@@ -11,6 +11,7 @@ import {
 import {ContentItem} from './MovieList';
 import {ContentCard} from './ContentCard';
 import {colors, spacing, typography} from '../styles/theme';
+import {HeadingSkeleton, HorizontalListSkeleton} from './LoadingSkeleton';
 
 interface HorizontalListProps {
   title: string;
@@ -20,6 +21,7 @@ interface HorizontalListProps {
   isLoading?: boolean;
   onRefresh?: () => void;
   onSeeAllPress?: () => void;
+  isSeeAll?: boolean;
 }
 
 export const HorizontalList: React.FC<HorizontalListProps> = ({
@@ -30,15 +32,17 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
   isLoading,
   onRefresh,
   onSeeAllPress,
+  isSeeAll = true,
 }) => {
   const renderItem = ({item}: {item: ContentItem}) => (
     <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
   );
 
-  if (!data.length && isLoading) {
+  if (!data.length || isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View>
+        <HeadingSkeleton />
+        <HorizontalListSkeleton />
       </View>
     );
   }
@@ -48,7 +52,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
       {title !== 'V2' ? (
         <View style={styles.headerContainer}>
           <Text style={styles.title}>{title}</Text>
-          {data.length > 0 && (
+          {data.length > 0 && isSeeAll && (
             <TouchableOpacity onPress={onSeeAllPress}>
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
@@ -74,13 +78,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
             />
           ) : undefined
         }
-        ListFooterComponent={
-          isLoading ? (
-            <View style={styles.footerLoader}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : null
-        }
+        ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
       />
     </View>
   );
@@ -107,11 +105,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: spacing.sm,
-  },
-  loadingContainer: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   footerLoader: {
     paddingHorizontal: spacing.md,

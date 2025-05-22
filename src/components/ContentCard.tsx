@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,9 @@ import {
   typography,
   shadows,
 } from '../styles/theme';
-import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {ContentItem} from './MovieList';
+import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -54,6 +54,8 @@ export const ContentCard: React.FC<ContentCardProps> = ({
   const {width} = Dimensions.get('window');
   const CARD_WIDTH = width * 0.42; // Slightly wider cards
   const CARD_HEIGHT = v2 ? CARD_WIDTH * 0.55 : CARD_WIDTH * 1.55; // Slightly taller aspect ratio
+
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const styles = StyleSheet.create({
     container: {
@@ -161,9 +163,20 @@ export const ContentCard: React.FC<ContentCardProps> = ({
       activeOpacity={0.9}>
       <View style={styles.cardInner}>
         <View style={styles.imageContainer}>
-          <Image source={{uri: imageUrl}} style={styles.image} />
-
-          {/* Overlay gradient for better text visibility */}
+          {!imageLoaded && (
+            <SkeletonPlaceholder
+              highlightColor="rgba(0,0,0,0.8)"
+              backgroundColor="rgba(26, 0, 78, 0.19)"
+              borderRadius={borderRadius.lg}>
+              <SkeletonPlaceholder.Item width="100%" height="100%" />
+            </SkeletonPlaceholder>
+          )}
+          <Image
+            source={{uri: imageUrl}}
+            style={styles.image}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
+          />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.gradient}

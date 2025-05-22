@@ -17,7 +17,7 @@ export const colors = {
     muted: '#83839C',
   },
   card: {
-    background: 'rgba(29, 29, 58, 0.8)',
+    background: '#1d1d3a',
     border: 'rgba(170, 78, 255, 0.15)',
     highlight: 'rgba(170, 78, 255, 0.1)',
   },

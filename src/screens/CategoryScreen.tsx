@@ -32,6 +32,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
+import {MovieCard} from '../components/MovieCard';
 
 type CategoryScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -89,7 +90,7 @@ export const CategoryScreen = () => {
 
   const renderItem = ({item, index}: {item: ContentItem; index: number}) => (
     <View style={styles.cardContainer}>
-      <ContentCard item={item} onPress={handleItemPress} index={index} />
+      <MovieCard item={item} onPress={handleItemPress} />
     </View>
   );
 
@@ -115,15 +116,15 @@ export const CategoryScreen = () => {
       <View style={styles.container}>
         {/* Header with back button */}
         <View style={styles.header}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <View style={styles.titleContainer}>
-            <View style={styles.titleIconContainer}>
+            {/* <View style={styles.titleIconContainer}>
               <Icon name={getCategoryIcon()} size={24} color={colors.primary} />
-            </View>
+            </View> */}
             <Text style={styles.title}>{title}</Text>
           </View>
           <View style={styles.headerRight} />
@@ -175,7 +176,7 @@ export const CategoryScreen = () => {
             data={transformedData}
             renderItem={renderItem}
             keyExtractor={item => item.id.toString()}
-            numColumns={2}
+            numColumns={3}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             onEndReached={handleEndReached}
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xxl,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
   },
@@ -300,10 +301,10 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.text.secondary,
   },
-  listContent: {padding: spacing.md, paddingBottom: 120},
+  listContent: {padding: spacing.sm, paddingBottom: 120},
   cardContainer: {
-    width: '50%',
-    padding: spacing.sm,
+    // width: '50%',
+    // padding: spacing.sm,
   },
   footerLoader: {
     paddingVertical: spacing.xl,

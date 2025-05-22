@@ -9,6 +9,7 @@ import {
 import {MovieCard} from './MovieCard';
 import {ContentItem} from './MovieList';
 import {colors, spacing, typography} from '../styles/theme';
+import {GridSkeleton} from './LoadingSkeleton';
 
 type TrendingGridProps = {
   data: ContentItem[];
@@ -28,7 +29,7 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <GridSkeleton />
       </View>
     );
   }
@@ -71,5 +72,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: spacing.xxl,
   },
 });

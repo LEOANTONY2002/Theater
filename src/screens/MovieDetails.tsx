@@ -243,6 +243,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               onItemPress={handleSimilarMoviePress}
               onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
               isLoading={isFetchingSimilar}
+              isSeeAll={false}
             />
           </View>
         )}
@@ -257,6 +258,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 hasNextRecommended ? fetchNextRecommended : undefined
               }
               isLoading={isFetchingRecommended}
+              isSeeAll={false}
             />
           </View>
         )}
@@ -303,6 +305,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingBottom: 86,
   },
   title: {
     fontSize: 24,

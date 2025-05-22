@@ -16,6 +16,11 @@ import {
   ContentType,
 } from '../types/navigation';
 import {colors} from '../styles/theme';
+import {
+  BannerSkeleton,
+  HorizontalListSkeleton,
+} from '../components/LoadingSkeleton';
+
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const HomeScreen = () => {
@@ -137,6 +142,26 @@ export const HomeScreen = () => {
     },
     [navigation],
   );
+
+  if (
+    isFetchingPopular ||
+    isFetchingPopularTV ||
+    isFetchingTopRated ||
+    isFetchingTopRatedTV ||
+    isFetchingRecent ||
+    isFetchingRecentTV ||
+    isFetchingUpcoming
+  ) {
+    return (
+      <View style={styles.container}>
+        <BannerSkeleton />
+        <HorizontalListSkeleton />
+        <HorizontalListSkeleton />
+        <HorizontalListSkeleton />
+        <HorizontalListSkeleton />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

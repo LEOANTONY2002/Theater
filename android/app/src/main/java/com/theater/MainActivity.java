@@ -5,15 +5,17 @@ import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.facebook.react.defaults.DefaultReactActivityDelegate;
+import org.devio.rn.splashscreen.SplashScreen;
 
 public class MainActivity extends ReactActivity {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    // Set the theme back to AppTheme before creating the activity
-    setTheme(R.style.AppTheme);
+    // SplashScreen.show(this, true); // <-- Show splash screen
+    // setTheme(R.style.AppTheme);    // Optional: sets back the app theme
     super.onCreate(savedInstanceState);
   }
+
 
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
