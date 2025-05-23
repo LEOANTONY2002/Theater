@@ -9,6 +9,11 @@ import {ContentItem} from '../components/MovieList';
 import {RootStackParamList, MovieCategoryType} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography} from '../styles/theme';
+import {
+  BannerSkeleton,
+  HeadingSkeleton,
+  HorizontalListSkeleton,
+} from '../components/LoadingSkeleton';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -98,6 +103,24 @@ export const MoviesScreen = () => {
     },
     [navigation],
   );
+
+  const isInitialLoading =
+    (!popularMovies?.pages?.length && isFetchingPopular) ||
+    (!topRatedMovies?.pages?.length && isFetchingTopRated) ||
+    (!recentMovies?.pages?.length && isFetchingRecent) ||
+    (!upcomingMovies?.pages?.length && isFetchingUpcoming);
+
+  if (isInitialLoading) {
+    return (
+      <View style={styles.container}>
+        <BannerSkeleton />
+        <HeadingSkeleton />
+        <HorizontalListSkeleton />
+        <HeadingSkeleton />
+        <HorizontalListSkeleton />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
