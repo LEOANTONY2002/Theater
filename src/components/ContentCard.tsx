@@ -18,7 +18,7 @@ import {
 } from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
 import {ContentItem} from './MovieList';
-import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
+import {MoivieCardSkeleton} from './LoadingSkeleton';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -163,14 +163,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({
       activeOpacity={0.9}>
       <View style={styles.cardInner}>
         <View style={styles.imageContainer}>
-          {!imageLoaded && (
-            <SkeletonPlaceholder
-              highlightColor="rgba(0,0,0,0.8)"
-              backgroundColor="rgba(26, 0, 78, 0.19)"
-              borderRadius={borderRadius.lg}>
-              <SkeletonPlaceholder.Item width="100%" height="100%" />
-            </SkeletonPlaceholder>
-          )}
+          {!imageLoaded && <MoivieCardSkeleton />}
           <Image
             source={{uri: imageUrl}}
             style={styles.image}

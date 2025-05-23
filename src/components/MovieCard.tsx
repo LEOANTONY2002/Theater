@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {View, Text, Image, TouchableOpacity, StyleSheet} from 'react-native';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
-import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
+import {MoivieCardSkeleton} from './LoadingSkeleton';
 
 interface MovieCardProps {
   item: ContentItem;
@@ -29,17 +29,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({
       onPress={() => onPress(item)}
       activeOpacity={0.8}>
       <View>
-        {!imageLoaded && (
-          <SkeletonPlaceholder
-            highlightColor="rgba(0,0,0,0.8)"
-            backgroundColor="rgba(26, 0, 78, 0.19)"
-            borderRadius={8}>
-            <SkeletonPlaceholder.Item
-              width={120}
-              height={size === 'large' ? 240 : 180}
-            />
-          </SkeletonPlaceholder>
-        )}
+        {!imageLoaded && <MoivieCardSkeleton />}
         <Image
           source={{
             uri: item.poster_path

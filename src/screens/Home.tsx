@@ -18,6 +18,7 @@ import {
 import {colors} from '../styles/theme';
 import {
   BannerSkeleton,
+  HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
 
@@ -156,9 +157,9 @@ export const HomeScreen = () => {
     return (
       <View style={styles.container}>
         <BannerSkeleton />
+        <HeadingSkeleton />
         <HorizontalListSkeleton />
-        <HorizontalListSkeleton />
-        <HorizontalListSkeleton />
+        <HeadingSkeleton />
         <HorizontalListSkeleton />
       </View>
     );
