@@ -1,6 +1,6 @@
 import React, {useCallback, useMemo} from 'react';
 import {View, Text, StyleSheet, ScrollView} from 'react-native';
-import {useTVShowsList} from '../hooks/useTVShows';
+import {useTrendingTVShows, useTVShowsList} from '../hooks/useTVShows';
 import {TVShow} from '../types/tvshow';
 import {useNavigation} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
@@ -39,13 +39,22 @@ export const TVShowsScreen = () => {
     refetch: refetchPopular,
   } = useTVShowsList('popular');
 
+  // Trending TV Shows
+  const {
+    data: trendingShows,
+    fetchNextPage: fetchNextTrending,
+    hasNextPage: hasNextTrending,
+    isFetchingNextPage: isFetchingTrending,
+    refetch: refetchTrending,
+  } = useTrendingTVShows('day');
+
   // Get a random popular show for the banner
   const featuredShow = useMemo(() => {
-    if (!popularShows?.pages?.[0]?.results) return null;
-    const shows = popularShows.pages[0].results;
+    if (!trendingShows?.pages?.[0]?.results) return null;
+    const shows = trendingShows.pages[0].results;
     const randomIndex = Math.floor(Math.random() * Math.min(shows.length, 5));
     return shows[randomIndex];
-  }, [popularShows]);
+  }, [trendingShows]);
 
   const handleFeaturedPress = useCallback(() => {
     if (featuredShow) {
@@ -106,6 +115,7 @@ export const TVShowsScreen = () => {
   );
 
   const isInitialLoading =
+    (!trendingShows?.pages?.length && isFetchingTrending) ||
     (!popularShows?.pages?.length && isFetchingPopular) ||
     (!topRatedShows?.pages?.length && isFetchingTopRated) ||
     (!recentShows?.pages?.length && isFetchingRecent);
@@ -132,6 +142,16 @@ export const TVShowsScreen = () => {
             onPress={handleFeaturedPress}
           />
         )}
+
+        <HorizontalList
+          title="Trending Today"
+          data={getShowsFromData(trendingShows)}
+          onItemPress={handleShowPress}
+          onEndReached={hasNextTrending ? fetchNextTrending : undefined}
+          isLoading={isFetchingTrending}
+          onRefresh={refetchTrending}
+          isSeeAll={false}
+        />
 
         <HorizontalList
           title="Recent Shows"
