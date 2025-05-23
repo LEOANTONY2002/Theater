@@ -143,15 +143,16 @@ export const HomeScreen = () => {
     [navigation],
   );
 
-  if (
-    isFetchingPopular ||
-    isFetchingPopularTV ||
-    isFetchingTopRated ||
-    isFetchingTopRatedTV ||
-    isFetchingRecent ||
-    isFetchingRecentTV ||
-    isFetchingUpcoming
-  ) {
+  const isInitialLoading =
+    (!popularMovies?.pages?.length && isFetchingPopular) ||
+    (!popularTVShows?.pages?.length && isFetchingPopularTV) ||
+    (!topRatedMovies?.pages?.length && isFetchingTopRated) ||
+    (!topRatedTVShows?.pages?.length && isFetchingTopRatedTV) ||
+    (!recentMovies?.pages?.length && isFetchingRecent) ||
+    (!recentTVShows?.pages?.length && isFetchingRecentTV) ||
+    (!upcomingMovies?.pages?.length && isFetchingUpcoming);
+
+  if (isInitialLoading) {
     return (
       <View style={styles.container}>
         <BannerSkeleton />
