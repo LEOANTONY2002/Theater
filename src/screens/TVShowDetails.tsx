@@ -468,6 +468,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           <WatchProviders providers={watchProviders.results.US} />
         )}
       </View>
+      <View style={{height: 100}} />
     </ScrollView>
   );
 };

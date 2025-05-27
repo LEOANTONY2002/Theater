@@ -155,10 +155,8 @@ export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
               {/* {!checkInWatchlist(item.id) && ( */}
               <TouchableOpacity style={styles.buttonWL} onPress={addWatchlist}>
                 <Ionicon
-                  name={
-                    checkInWatchlist(item.id) ? 'bookmark' : 'bookmark-outline'
-                  }
-                  size={24}
+                  name={checkInWatchlist(item.id) ? 'checkmark' : 'add'}
+                  size={25}
                   color={colors.text.primary}
                 />
               </TouchableOpacity>
@@ -259,14 +257,16 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   buttonWL: {
     marginTop: spacing.md,
     backgroundColor: colors.background.tertiary,
     borderRadius: borderRadius.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    // paddingHorizontal: spacing.md,
+    width: 40,
     height: 40,
+    display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
   },

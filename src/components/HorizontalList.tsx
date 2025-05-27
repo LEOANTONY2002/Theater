@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   seeAll: {
     ...typography.body2,
-    color: colors.text.accent,
+    color: colors.text.muted,
   },
   listContent: {
     paddingHorizontal: spacing.sm,

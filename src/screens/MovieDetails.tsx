@@ -237,6 +237,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   </Text>
                 </View>
               ))}
+              <View style={{height: 100}} />
             </ScrollView>
           </>
         )}

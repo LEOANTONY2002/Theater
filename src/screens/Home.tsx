@@ -279,6 +279,7 @@ export const HomeScreen = () => {
             handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
           }
         />
+        <View style={{height: 100}} />
       </ScrollView>
     </View>
   );
