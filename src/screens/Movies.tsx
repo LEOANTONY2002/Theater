@@ -124,7 +124,7 @@ export const MoviesScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {featuredMovie && (
           <FeaturedBanner
             item={featuredMovie}
@@ -186,6 +186,8 @@ export const MoviesScreen = () => {
           onRefresh={refetchUpcoming}
           onSeeAllPress={() => handleSeeAllPress('Upcoming Movies', 'upcoming')}
         />
+
+        <View style={{height: 100}} />
       </ScrollView>
     </View>
   );

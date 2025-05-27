@@ -2,6 +2,7 @@ import React from 'react';
 import {Image, StyleSheet, Text, View} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
+import {borderRadius} from '../styles/theme';
 
 const shimmerColors = [
   'rgb(5, 5, 35)',
@@ -24,7 +25,7 @@ export const BannerSkeleton = () => (
       shimmerColors={shimmerColors}
       style={{
         width: '100%',
-        height: 400,
+        height: 550,
         borderRadius: 20,
       }}></ShimmerPlaceholder>
   </View>
@@ -36,7 +37,7 @@ export const HeadingSkeleton = () => (
     shimmerColors={shimmerColors}
     style={{
       width: '70%',
-      height: 60,
+      height: 40,
       borderRadius: 10,
       margin: 20,
     }}></ShimmerPlaceholder>
@@ -101,18 +102,92 @@ export const GridSkeleton = () => (
   </View>
 );
 
-export const MoivieCardSkeleton = () => (
+export const MoivieCardSkeleton = ({v2 = false}: {v2?: boolean}) => (
   <View>
-    <View>
+    <ShimmerPlaceholder
+      LinearGradient={LinearGradient}
+      shimmerColors={shimmerColors}
+      style={{
+        width: v2 ? 180 : 120,
+        height: v2 ? 100 : 180,
+        borderRadius: borderRadius.sm,
+        marginHorizontal: 5,
+      }}></ShimmerPlaceholder>
+  </View>
+);
+
+export const DetailScreenSkeleton = () => (
+  <View
+    style={{
+      flex: 1,
+      width: '100%',
+      alignItems: 'flex-start',
+    }}>
+    <ShimmerPlaceholder
+      LinearGradient={LinearGradient}
+      shimmerColors={shimmerColors}
+      style={{
+        width: '100%',
+        height: 300,
+      }}></ShimmerPlaceholder>
+    <View
+      style={{
+        width: '100%',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}>
       <ShimmerPlaceholder
         LinearGradient={LinearGradient}
         shimmerColors={shimmerColors}
         style={{
-          width: '100%',
-          height: '100%',
-          borderRadius: 20,
+          width: 300,
+          height: 60,
+          marginVertical: 20,
+          borderRadius: 10,
+        }}></ShimmerPlaceholder>
+      <ShimmerPlaceholder
+        LinearGradient={LinearGradient}
+        shimmerColors={shimmerColors}
+        style={{
+          width: 300,
+          height: 30,
+          borderRadius: 5,
         }}></ShimmerPlaceholder>
     </View>
+    <ShimmerPlaceholder
+      LinearGradient={LinearGradient}
+      shimmerColors={shimmerColors}
+      style={{
+        width: '90%',
+        height: 30,
+        borderRadius: 5,
+        marginTop: 20,
+        marginHorizontal: 'auto',
+      }}></ShimmerPlaceholder>
+    <ShimmerPlaceholder
+      LinearGradient={LinearGradient}
+      shimmerColors={shimmerColors}
+      style={{
+        width: '90%',
+        height: 30,
+        borderRadius: 5,
+        marginTop: 5,
+        marginHorizontal: 'auto',
+      }}></ShimmerPlaceholder>
+    <ShimmerPlaceholder
+      LinearGradient={LinearGradient}
+      shimmerColors={shimmerColors}
+      style={{
+        width: '90%',
+        height: 30,
+        borderRadius: 5,
+        marginTop: 5,
+        marginHorizontal: 'auto',
+      }}></ShimmerPlaceholder>
+    <HeadingSkeleton />
+    <HorizontalListSkeleton />
+    <HeadingSkeleton />
+    <HorizontalListSkeleton />
   </View>
 );
 

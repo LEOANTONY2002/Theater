@@ -22,18 +22,29 @@ const MoviesStack = createNativeStackNavigator<MoviesStackParamList>();
 const TVShowsStack = createNativeStackNavigator<TVShowsStackParamList>();
 const MySpaceStack = createNativeStackNavigator<MySpaceStackParamList>();
 
-const screenOptions = {
+const defaultScreenOptions = {
   headerStyle: {
-    backgroundColor: '#121212',
+    backgroundColor: 'transparent',
   },
   headerTintColor: '#fff',
   headerTitleStyle: {
     fontWeight: '600' as const,
   },
+  contentStyle: {
+    backgroundColor: 'transparent',
+  },
+  animation: 'slide_from_right' as const,
+  presentation: 'transparentModal' as const,
+};
+
+const modalScreenOptions = {
+  ...defaultScreenOptions,
+  animation: 'slide_from_bottom' as const,
+  presentation: 'transparentModal' as const,
 };
 
 export const HomeStackNavigator = () => (
-  <HomeStack.Navigator screenOptions={screenOptions}>
+  <HomeStack.Navigator screenOptions={defaultScreenOptions}>
     <HomeStack.Screen
       name="HomeScreen"
       component={HomeScreen}
@@ -44,6 +55,7 @@ export const HomeStackNavigator = () => (
       component={MovieDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
     <HomeStack.Screen
@@ -51,6 +63,7 @@ export const HomeStackNavigator = () => (
       component={TVShowDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
     <HomeStack.Screen
@@ -58,13 +71,14 @@ export const HomeStackNavigator = () => (
       component={CategoryScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
   </HomeStack.Navigator>
 );
 
 export const SearchStackNavigator = () => (
-  <SearchStack.Navigator screenOptions={screenOptions}>
+  <SearchStack.Navigator screenOptions={defaultScreenOptions}>
     <SearchStack.Screen
       name="SearchScreen"
       component={SearchScreen}
@@ -75,6 +89,7 @@ export const SearchStackNavigator = () => (
       component={MovieDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
     <SearchStack.Screen
@@ -82,13 +97,14 @@ export const SearchStackNavigator = () => (
       component={TVShowDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
   </SearchStack.Navigator>
 );
 
 export const MoviesStackNavigator = () => (
-  <MoviesStack.Navigator screenOptions={screenOptions}>
+  <MoviesStack.Navigator screenOptions={defaultScreenOptions}>
     <MoviesStack.Screen
       name="MoviesScreen"
       component={MoviesScreen}
@@ -99,6 +115,7 @@ export const MoviesStackNavigator = () => (
       component={MovieDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
     <MoviesStack.Screen
@@ -106,13 +123,14 @@ export const MoviesStackNavigator = () => (
       component={CategoryScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
   </MoviesStack.Navigator>
 );
 
 export const TVShowsStackNavigator = () => (
-  <TVShowsStack.Navigator screenOptions={screenOptions}>
+  <TVShowsStack.Navigator screenOptions={defaultScreenOptions}>
     <TVShowsStack.Screen
       name="TVShowsScreen"
       component={TVShowsScreen}
@@ -123,6 +141,7 @@ export const TVShowsStackNavigator = () => (
       component={TVShowDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
     <TVShowsStack.Screen
@@ -130,13 +149,14 @@ export const TVShowsStackNavigator = () => (
       component={CategoryScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
   </TVShowsStack.Navigator>
 );
 
 export const MySpaceStackNavigator = () => (
-  <MySpaceStack.Navigator screenOptions={screenOptions}>
+  <MySpaceStack.Navigator screenOptions={defaultScreenOptions}>
     <MySpaceStack.Screen
       name="MySpaceScreen"
       component={MySpaceScreen}
@@ -147,6 +167,7 @@ export const MySpaceStackNavigator = () => (
       component={MovieDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
     <MySpaceStack.Screen
@@ -154,6 +175,7 @@ export const MySpaceStackNavigator = () => (
       component={TVShowDetailsScreen}
       options={{
         headerShown: false,
+        ...modalScreenOptions,
       }}
     />
   </MySpaceStack.Navigator>

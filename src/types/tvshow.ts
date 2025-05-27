@@ -63,3 +63,25 @@ export interface TVShowsResponse {
   total_pages: number;
   total_results: number;
 }
+
+export interface Episode {
+  id: number;
+  name: string;
+  overview: string;
+  still_path: string | null;
+  air_date: string;
+  episode_number: number;
+  season_number: number;
+  runtime: number;
+  vote_average: number;
+}
+
+export interface SeasonDetails {
+  id: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  air_date: string;
+  season_number: number;
+  episodes: Episode[];
+}

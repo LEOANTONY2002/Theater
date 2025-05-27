@@ -25,6 +25,9 @@ import {ContentItem} from '../components/MovieList';
 import {RootStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors} from '../styles/theme';
+import {DetailScreenSkeleton} from '../components/LoadingSkeleton';
+import {useWatchProviders} from '../hooks/useWatchProviders';
+import {WatchProviders} from '../components/WatchProviders';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -69,6 +72,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     hasNextPage: hasNextRecommended,
     isFetchingNextPage: isFetchingRecommended,
   } = useMovieRecommendations(movie.id);
+
+  const {data: watchProviders} = useWatchProviders(movie.id, 'movie');
+  console.log('Movie Watch Providers:', watchProviders);
 
   useEffect(() => {
     // Add to history when viewing details
@@ -115,7 +121,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fff" />
+        <DetailScreenSkeleton />
       </View>
     );
   }
@@ -261,6 +267,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               isSeeAll={false}
             />
           </View>
+        )}
+
+        {watchProviders?.results?.US && (
+          <WatchProviders providers={watchProviders.results.US} />
         )}
       </View>
     </ScrollView>

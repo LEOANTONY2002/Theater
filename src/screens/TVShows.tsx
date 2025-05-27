@@ -21,15 +21,6 @@ type TVShowsScreenNavigationProp =
 export const TVShowsScreen = () => {
   const navigation = useNavigation<TVShowsScreenNavigationProp>();
 
-  // Recent TV Shows (On Air)
-  const {
-    data: recentShows,
-    fetchNextPage: fetchNextRecent,
-    hasNextPage: hasNextRecent,
-    isFetchingNextPage: isFetchingRecent,
-    refetch: refetchRecent,
-  } = useTVShowsList('on_the_air');
-
   // Popular TV Shows
   const {
     data: popularShows,
@@ -71,23 +62,14 @@ export const TVShowsScreen = () => {
     refetch: refetchTopRated,
   } = useTVShowsList('top_rated');
 
-  // Currently On Air Shows
+  // Latest Shows
   const {
     data: onAirShows,
     fetchNextPage: fetchNextOnAir,
     hasNextPage: hasNextOnAir,
     isFetchingNextPage: isFetchingOnAir,
     refetch: refetchOnAir,
-  } = useTVShowsList('on_the_air');
-
-  // Airing Today Shows
-  const {
-    data: airingTodayShows,
-    fetchNextPage: fetchNextAiringToday,
-    hasNextPage: hasNextAiringToday,
-    isFetchingNextPage: isFetchingAiringToday,
-    refetch: refetchAiringToday,
-  } = useTVShowsList('airing_today');
+  } = useTVShowsList('latest');
 
   const handleShowPress = useCallback(
     (item: ContentItem) => {
@@ -117,8 +99,7 @@ export const TVShowsScreen = () => {
   const isInitialLoading =
     (!trendingShows?.pages?.length && isFetchingTrending) ||
     (!popularShows?.pages?.length && isFetchingPopular) ||
-    (!topRatedShows?.pages?.length && isFetchingTopRated) ||
-    (!recentShows?.pages?.length && isFetchingRecent);
+    (!topRatedShows?.pages?.length && isFetchingTopRated);
 
   if (isInitialLoading) {
     return (
@@ -154,16 +135,6 @@ export const TVShowsScreen = () => {
         />
 
         <HorizontalList
-          title="Recent Shows"
-          data={getShowsFromData(recentShows)}
-          onItemPress={handleShowPress}
-          onEndReached={hasNextRecent ? fetchNextRecent : undefined}
-          isLoading={isFetchingRecent}
-          onRefresh={refetchRecent}
-          onSeeAllPress={() => handleSeeAllPress('Recent Shows', 'on_the_air')}
-        />
-
-        <HorizontalList
           title="Top Rated Shows"
           data={getShowsFromData(topRatedShows)}
           onItemPress={handleShowPress}
@@ -175,29 +146,7 @@ export const TVShowsScreen = () => {
           }
         />
 
-        <HorizontalList
-          title="Currently On Air"
-          data={getShowsFromData(onAirShows)}
-          onItemPress={handleShowPress}
-          onEndReached={hasNextOnAir ? fetchNextOnAir : undefined}
-          isLoading={isFetchingOnAir}
-          onRefresh={refetchOnAir}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Currently On Air', 'on_the_air')
-          }
-        />
-
-        <HorizontalList
-          title="Airing Today"
-          data={getShowsFromData(airingTodayShows)}
-          onItemPress={handleShowPress}
-          onEndReached={hasNextAiringToday ? fetchNextAiringToday : undefined}
-          isLoading={isFetchingAiringToday}
-          onRefresh={refetchAiringToday}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Airing Today', 'airing_today')
-          }
-        />
+        <View style={{height: 100}} />
       </ScrollView>
     </View>
   );

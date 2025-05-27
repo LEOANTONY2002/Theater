@@ -7,6 +7,7 @@ import {
   Text,
   ScrollView,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import {
   useMovieSearch,
@@ -70,7 +71,7 @@ export const SearchScreen = () => {
   const [recentItems, setRecentItems] = useState<ContentItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterParams>({});
-  const [contentType, setContentType] = useState<'movie' | 'tv'>('movie');
+  const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
 
   // Get trending content
   const {data: trendingMovies, isLoading: isLoadingTrendingMovies} =
@@ -201,7 +202,7 @@ export const SearchScreen = () => {
   );
 
   const handleApplyFilters = useCallback(
-    (filters: FilterParams, selectedContentType: 'movie' | 'tv') => {
+    (filters: FilterParams, selectedContentType: 'all' | 'movie' | 'tv') => {
       setActiveFilters(filters);
       setContentType(selectedContentType);
       setShowFilters(false);
@@ -214,7 +215,15 @@ export const SearchScreen = () => {
   const hasNoResults =
     !isLoading && !hasError && movies.length === 0 && tvShows.length === 0;
 
-  const displayedContent = contentType === 'movie' ? movies : tvShows;
+  const displayedContent = React.useMemo(() => {
+    if (contentType === 'all') {
+      return [...movies, ...tvShows].sort(
+        (a, b) => b.popularity - a.popularity,
+      );
+    }
+    return contentType === 'movie' ? movies : tvShows;
+  }, [contentType, movies, tvShows]);
+
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
 
   return (
@@ -261,30 +270,36 @@ export const SearchScreen = () => {
       </View>
 
       {query.length === 0 ? (
-        <ScrollView>
-          {recentItems.length > 0 && (
-            <View style={styles.recentItemsContainer}>
-              <View style={styles.recentItemsHeader}>
-                <Text style={styles.sectionTitle}>Recent Searches</Text>
-                <TouchableOpacity onPress={clearRecentItems}>
-                  <Text style={styles.clearAllText}>Clear All</Text>
-                </TouchableOpacity>
-              </View>
-              <HorizontalList
-                title="V2"
-                data={recentItems}
-                onItemPress={handleItemPress}
-                isLoading={false}
-              />
-            </View>
-          )}
+        <FlatList
+          data={[{key: 'content'}]}
+          renderItem={() => (
+            <>
+              {recentItems.length > 0 && (
+                <View style={styles.recentItemsContainer}>
+                  <View style={styles.recentItemsHeader}>
+                    <Text style={styles.sectionTitle}>Recent Searches</Text>
+                    <TouchableOpacity onPress={clearRecentItems}>
+                      <Text style={styles.clearAllText}>Clear All</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <HorizontalList
+                    title="V2"
+                    data={recentItems}
+                    onItemPress={handleItemPress}
+                    isLoading={false}
+                  />
+                </View>
+              )}
 
-          <TrendingGrid
-            data={trendingData}
-            onItemPress={handleItemPress}
-            isLoading={isLoadingTrendingMovies || isLoadingTrendingTV}
-          />
-        </ScrollView>
+              <TrendingGrid
+                data={trendingData}
+                onItemPress={handleItemPress}
+                isLoading={isLoadingTrendingMovies || isLoadingTrendingTV}
+              />
+            </>
+          )}
+          showsVerticalScrollIndicator={false}
+        />
       ) : (
         <>
           {isLoading ? (
@@ -320,7 +335,14 @@ export const SearchScreen = () => {
               isLoading={isFetchingMoviePage || isFetchingTVPage}
               onMoviePress={handleItemPress}
               onLoadMore={
-                contentType === 'movie'
+                contentType === 'all'
+                  ? hasNextMoviePage || hasNextTVPage
+                    ? () => {
+                        if (hasNextMoviePage) fetchNextMoviePage();
+                        if (hasNextTVPage) fetchNextTVPage();
+                      }
+                    : undefined
+                  : contentType === 'movie'
                   ? hasNextMoviePage
                     ? fetchNextMoviePage
                     : undefined
@@ -397,7 +419,7 @@ const styles = StyleSheet.create({
     ...typography.h3,
   },
   clearAllText: {
-    color: colors.status.error,
+    color: colors.text.muted,
     ...typography.body2,
   },
   loadingContainer: {

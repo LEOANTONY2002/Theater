@@ -11,6 +11,7 @@ import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {BlurView} from '@react-native-community/blur';
 import {
   colors,
   spacing,
@@ -23,9 +24,9 @@ import {FilterParams, SORT_OPTIONS, LANGUAGE_OPTIONS} from '../types/filters';
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
-  onApply: (filters: FilterParams, contentType: 'movie' | 'tv') => void;
+  onApply: (filters: FilterParams, contentType: 'all' | 'movie' | 'tv') => void;
   initialFilters: FilterParams;
-  initialContentType: 'movie' | 'tv';
+  initialContentType: 'all' | 'movie' | 'tv';
 }
 
 export const FilterModal: React.FC<FilterModalProps> = ({
@@ -36,7 +37,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   initialContentType,
 }) => {
   const [filters, setFilters] = useState<FilterParams>(initialFilters);
-  const [contentType, setContentType] = useState<'movie' | 'tv'>(
+  const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>(
     initialContentType,
   );
   const [showFromDate, setShowFromDate] = useState(false);
@@ -91,7 +92,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
   const handleReset = () => {
     setFilters({});
-    setContentType('movie');
+    setContentType('all');
   };
 
   const getDateFromFilter = (key: string) => {
@@ -104,11 +105,19 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       visible={visible}
       animationType="slide"
       transparent={true}
+      statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
+          <BlurView
+            style={styles.blurView}
+            blurType="dark"
+            blurAmount={10}
+            overlayColor="rgba(23, 20, 48, 0.87)"
+            reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
+          />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Advanced Filters</Text>
+            <Text style={styles.modalTitle}>Filter</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Icon name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
@@ -119,6 +128,29 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             <View style={styles.filterSection}>
               <Text style={styles.sectionTitle}>Content Type</Text>
               <View style={styles.contentTypeContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.contentTypeButton,
+                    contentType === 'all' && styles.activeButton,
+                  ]}
+                  onPress={() => setContentType('all')}>
+                  <Icon
+                    name="apps-outline"
+                    size={20}
+                    color={
+                      contentType === 'all'
+                        ? colors.primary
+                        : colors.text.secondary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.contentTypeText,
+                      contentType === 'all' && styles.activeText,
+                    ]}>
+                    All
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[
                     styles.contentTypeButton,
@@ -324,22 +356,30 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
   },
   modalContent: {
-    backgroundColor: colors.background.primary,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
-    paddingTop: spacing.lg,
-    maxHeight: '90%',
+    maxHeight: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+  },
+  blurView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginVertical: spacing.lg,
   },
   modalTitle: {
     ...typography.h2,

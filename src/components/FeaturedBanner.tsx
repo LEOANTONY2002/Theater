@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {colors, typography, spacing, borderRadius} from '../styles/theme';
 import {useUserContent} from '../hooks/useUserContent';
+import {BannerSkeleton} from './LoadingSkeleton';
 
 const {width} = Dimensions.get('window');
 const BANNER_HEIGHT = 680;
@@ -68,6 +69,7 @@ type FeaturedBannerProps = {
 };
 
 export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
+  const [loading, setLoading] = useState(true);
   const title =
     type === 'movie' ? (item as Movie).title : (item as TVShow).name;
   const releaseDate =
@@ -88,9 +90,18 @@ export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
     }
   };
 
+  if (item.poster_path === null) {
+    return (
+      <View style={styles.skeletonContainer}>
+        <BannerSkeleton />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ImageBackground
+        onLoadEnd={() => setLoading(false)}
         source={{
           uri: `https://image.tmdb.org/t/p/w780${item.poster_path}`,
         }}
@@ -161,9 +172,18 @@ export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
 };
 
 const styles = StyleSheet.create({
+  skeletonContainer: {
+    width: width,
+    height: BANNER_HEIGHT,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 5,
+  },
   container: {
     width: width,
     height: BANNER_HEIGHT,
+    position: 'relative',
   },
   background: {
     width: '100%',

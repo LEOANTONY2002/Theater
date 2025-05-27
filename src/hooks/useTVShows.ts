@@ -7,6 +7,7 @@ import {
   getSimilarTVShows,
   getTVShowRecommendations,
   getTrendingTVShows,
+  getSeasonDetails,
 } from '../services/tmdb';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
 import {FilterParams} from '../types/filters';
@@ -14,17 +15,24 @@ import {FilterParams} from '../types/filters';
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
-export const useTVShowsList = (
-  type: 'popular' | 'top_rated' | 'on_the_air' | 'airing_today',
-) => {
+interface TVShowsResponse {
+  page: number;
+  results: any[];
+  total_pages: number;
+  total_results: number;
+}
+
+export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
   return useInfiniteQuery({
     queryKey: ['tvshows', type],
     queryFn: ({pageParam = 1}) => getTVShows(type, pageParam as number),
-    getNextPageParam: (lastPage: TVShowsResponse) =>
-      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    getNextPageParam: (lastPage: TVShowsResponse) => {
+      if (lastPage.page < lastPage.total_pages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
   });
 };
 
@@ -96,6 +104,22 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
+    gcTime: CACHE_TIME * 2,
+    staleTime: STALE_TIME * 2,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useSeasonDetails = (tvId: number, seasonNumber?: number) => {
+  return useQuery({
+    queryKey: ['tv', tvId, 'season', seasonNumber],
+    queryFn: () => {
+      // Ensure we pass 0 for specials season
+      const season = seasonNumber === 0 ? 0 : seasonNumber;
+      return getSeasonDetails(tvId, season!);
+    },
+    enabled: seasonNumber !== undefined,
     gcTime: CACHE_TIME,
     staleTime: STALE_TIME,
   });

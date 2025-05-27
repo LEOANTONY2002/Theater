@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo} from 'react';
 import {View, ScrollView, StyleSheet} from 'react-native';
-import {useMoviesList} from '../hooks/useMovies';
-import {useTVShowsList} from '../hooks/useTVShows';
+import {useMoviesList, useTrendingMovies} from '../hooks/useMovies';
+import {useTrendingTVShows, useTVShowsList} from '../hooks/useTVShows';
 import {ContentItem} from '../components/MovieList';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
@@ -83,7 +83,25 @@ export const HomeScreen = () => {
     hasNextPage: hasNextRecentTV,
     isFetchingNextPage: isFetchingRecentTV,
     refetch: refetchRecentTV,
-  } = useTVShowsList('on_the_air');
+  } = useTVShowsList('latest');
+
+  // Trending Movies
+  const {
+    data: trendingMovies,
+    fetchNextPage: fetchNextTrendingMovies,
+    hasNextPage: hasNextTrendingMovies,
+    isFetchingNextPage: isFetchingTrendingMovies,
+    refetch: refetchTrendingMovies,
+  } = useTrendingMovies('day');
+
+  // Trending TV Shows
+  const {
+    data: trendingTVShows,
+    fetchNextPage: fetchNextTrendingTVShows,
+    hasNextPage: hasNextTrendingTVShows,
+    isFetchingNextPage: isFetchingTrendingTVShows,
+    refetch: refetchTrendingTVShows,
+  } = useTrendingTVShows('day');
 
   // Get a random popular item for the banner
   const featuredItem = useMemo(() => {
@@ -151,7 +169,9 @@ export const HomeScreen = () => {
     (!topRatedTVShows?.pages?.length && isFetchingTopRatedTV) ||
     (!recentMovies?.pages?.length && isFetchingRecent) ||
     (!recentTVShows?.pages?.length && isFetchingRecentTV) ||
-    (!upcomingMovies?.pages?.length && isFetchingUpcoming);
+    (!upcomingMovies?.pages?.length && isFetchingUpcoming) ||
+    (!trendingMovies?.pages?.length && isFetchingTrendingMovies) ||
+    (!trendingTVShows?.pages?.length && isFetchingTrendingTVShows);
 
   if (isInitialLoading) {
     return (
@@ -189,14 +209,14 @@ export const HomeScreen = () => {
         />
 
         <HorizontalList
-          title="Recent TV Shows"
+          title="Latest Shows"
           data={getTVShowsFromData(recentTVShows)}
           isLoading={isFetchingRecentTV}
           onItemPress={handleItemPress}
           onEndReached={hasNextRecentTV ? fetchNextRecentTV : undefined}
           onRefresh={refetchRecentTV}
           onSeeAllPress={() =>
-            handleSeeAllPress('Recent TV Shows', 'on_the_air', 'tv')
+            handleSeeAllPress('Latest Shows', 'latest', 'tv')
           }
         />
 
@@ -213,14 +233,14 @@ export const HomeScreen = () => {
         />
 
         <HorizontalList
-          title="Popular TV Shows"
+          title="Popular Shows"
           data={getTVShowsFromData(popularTVShows)}
           isLoading={isFetchingPopularTV}
           onItemPress={handleItemPress}
           onEndReached={hasNextPopularTV ? fetchNextPopularTV : undefined}
           onRefresh={refetchPopularTV}
           onSeeAllPress={() =>
-            handleSeeAllPress('Popular TV Shows', 'popular', 'tv')
+            handleSeeAllPress('Popular Shows', 'popular', 'tv')
           }
         />
 

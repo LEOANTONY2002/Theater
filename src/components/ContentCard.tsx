@@ -51,108 +51,47 @@ export const ContentCard: React.FC<ContentCardProps> = ({
   // Safely get title - handling both movie and TV show types
   const title = 'title' in item ? item.title : 'name' in item ? item.name : '';
 
-  const {width} = Dimensions.get('window');
-  const CARD_WIDTH = width * 0.42; // Slightly wider cards
-  const CARD_HEIGHT = v2 ? CARD_WIDTH * 0.55 : CARD_WIDTH * 1.55; // Slightly taller aspect ratio
+  const CARD_WIDTH = v2 ? 180 : 120; // Slightly wider cards
+  const CARD_HEIGHT = v2 ? 100 : 180; // Slightly taller aspect ratio
 
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const styles = StyleSheet.create({
     container: {
-      width: CARD_WIDTH,
-      marginHorizontal: spacing.sm,
+      marginHorizontal: spacing.xs,
       marginVertical: spacing.md,
-    },
-    cardInner: {
-      borderRadius: borderRadius.lg,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: colors.card.border,
-      ...shadows.medium,
-      // Glass morphism effect (limited on Android)
-      ...(Platform.OS === 'ios'
-        ? {
-            backgroundColor: colors.background.card,
-            backdropFilter: 'blur(12px)',
-          }
-        : {
-            backgroundColor: colors.card.background,
-          }),
+      width: CARD_WIDTH,
+      height: v2 ? 150 : CARD_HEIGHT,
+      flexDirection: 'column',
+      alignItems: 'center',
       position: 'relative',
-    },
-    imageContainer: {
-      position: 'relative',
-      width: '100%',
-      height: CARD_HEIGHT,
-      borderTopLeftRadius: borderRadius.lg,
-      borderTopRightRadius: borderRadius.lg,
-      overflow: 'hidden',
     },
     image: {
-      width: '100%',
-      height: '100%',
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
       resizeMode: 'cover',
-    },
-    gradient: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: '35%', // Gradient covers bottom third
-    },
-    ratingContainer: {
-      position: 'absolute',
-      top: spacing.sm,
-      right: spacing.sm,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.round,
-      borderWidth: 1,
-    },
-    rating: {
-      marginLeft: spacing.xs,
-      ...typography.caption,
-      fontWeight: '600',
-    },
-    typeContainer: {
-      position: 'absolute',
-      top: spacing.sm + 32, // Position below rating
-      right: spacing.sm,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.round,
-      borderWidth: 1,
-    },
-    typeText: {
-      ...typography.caption,
-      fontWeight: '600',
+      borderRadius: borderRadius.md,
     },
     infoContainer: {
-      padding: spacing.md,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      padding: spacing.sm,
     },
+
     title: {
-      color: colors.text.primary,
-      ...typography.body2,
+      fontSize: 12,
+      color: colors.text.secondary,
       fontWeight: '600',
       marginBottom: spacing.xs,
     },
-    metaContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    year: {
-      color: colors.text.secondary,
-      ...typography.caption,
-    },
-    dotSeparator: {
-      width: 4,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.text.secondary,
-      marginHorizontal: spacing.xs,
-      opacity: 0.6,
+    skeletonContainer: {
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+      position: 'absolute',
+      top: 0,
+      left: -5,
+      zIndex: 5,
     },
   });
 
@@ -161,21 +100,17 @@ export const ContentCard: React.FC<ContentCardProps> = ({
       style={styles.container}
       onPress={() => onPress(item)}
       activeOpacity={0.9}>
-      <View style={styles.cardInner}>
-        <View style={styles.imageContainer}>
-          {!imageLoaded && <MoivieCardSkeleton />}
-          <Image
-            source={{uri: imageUrl}}
-            style={styles.image}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageLoaded(true)}
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
-            style={styles.gradient}
-          />
+      {!imageLoaded && (
+        <View style={styles.skeletonContainer}>
+          <MoivieCardSkeleton v2={v2} />
         </View>
-      </View>
+      )}
+      <Image
+        source={{uri: imageUrl}}
+        style={styles.image}
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageLoaded(true)}
+      />
       {v2 && (
         <View style={styles.infoContainer}>
           <Text style={styles.title} numberOfLines={2}>

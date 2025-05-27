@@ -8,11 +8,7 @@ export type MovieCategoryType =
   | 'top_rated'
   | 'now_playing'
   | 'upcoming';
-export type TVShowCategoryType =
-  | 'popular'
-  | 'top_rated'
-  | 'on_the_air'
-  | 'airing_today';
+export type TVShowCategoryType = 'latest' | 'popular' | 'top_rated';
 export type ContentType = 'movie' | 'tv';
 
 export type HomeStackParamList = {
