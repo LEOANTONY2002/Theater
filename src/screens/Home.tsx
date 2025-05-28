@@ -21,6 +21,7 @@ import {
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
+import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -189,10 +190,9 @@ export const HomeScreen = () => {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {featuredItem && (
-          <FeaturedBanner
+          <FeaturedBannerHome
             item={featuredItem.item}
             type={featuredItem.type}
-            onPress={handleFeaturedPress}
           />
         )}
 

@@ -88,10 +88,10 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
   const navigation = useNavigation<NavigationProp>();
 
   const addWatchlist = () => {
-    if (type === 'movie') {
-      addToWatchlist(item as Movie, type);
+    if (checkInWatchlist(item.id)) {
+      removeFromWatchlist(item.id);
     } else {
-      addToWatchlist(item as TVShow, type);
+      addToWatchlist(item, type);
     }
   };
 
@@ -259,6 +259,7 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
   },
   buttonText: {
     ...typography.body2,
@@ -271,6 +272,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
+    marginHorizontal: spacing.xxl,
   },
   buttonWL: {
     marginTop: spacing.md,
