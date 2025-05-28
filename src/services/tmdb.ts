@@ -10,11 +10,36 @@ export const tmdbApi = axios.create({
   },
 });
 
+// export const getMovies = async (
+//   type: 'latest' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing',
+//   page = 1,
+// ) => {
+//   const response = await tmdbApi.get(`/movie/${type}`, {params: {page}});
+//   return response.data;
+// };
+
 export const getMovies = async (
   type: 'latest' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing',
   page = 1,
 ) => {
-  const response = await tmdbApi.get(`/movie/${type}`, {params: {page}});
+  const today = new Date().toISOString().split('T')[0];
+
+  if (type === 'latest') {
+    const params: any = {
+      page,
+      sort_by: 'release_date.desc',
+      'release_date.lte': today,
+      'vote_count.gte': 6,
+      // with_original_language: 'ta',
+    };
+    const response = await tmdbApi.get('/discover/movie', {params});
+    return response.data;
+  }
+
+  // For other types, use built-in endpoints
+  const response = await tmdbApi.get(`/movie/${type}`, {
+    params: {page},
+  });
   return response.data;
 };
 

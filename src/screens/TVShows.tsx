@@ -64,11 +64,11 @@ export const TVShowsScreen = () => {
 
   // Latest Shows
   const {
-    data: onAirShows,
-    fetchNextPage: fetchNextOnAir,
-    hasNextPage: hasNextOnAir,
-    isFetchingNextPage: isFetchingOnAir,
-    refetch: refetchOnAir,
+    data: latestShows,
+    fetchNextPage: fetchNextLatest,
+    hasNextPage: hasNextLatest,
+    isFetchingNextPage: isFetchingLatest,
+    refetch: refetchLatest,
   } = useTVShowsList('latest');
 
   const handleShowPress = useCallback(
@@ -131,6 +131,16 @@ export const TVShowsScreen = () => {
           onEndReached={hasNextTrending ? fetchNextTrending : undefined}
           isLoading={isFetchingTrending}
           onRefresh={refetchTrending}
+          isSeeAll={false}
+        />
+
+        <HorizontalList
+          title="Latest Shows"
+          data={getShowsFromData(latestShows)}
+          onItemPress={handleShowPress}
+          onEndReached={hasNextLatest ? fetchNextLatest : undefined}
+          isLoading={isFetchingLatest}
+          onRefresh={refetchLatest}
           isSeeAll={false}
         />
 

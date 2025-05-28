@@ -27,7 +27,7 @@ export const MoviesScreen = () => {
     hasNextPage: hasNextRecent,
     isFetchingNextPage: isFetchingRecent,
     refetch: refetchRecent,
-  } = useMoviesList('now_playing');
+  } = useMoviesList('latest');
 
   // Popular Movies
   const {
@@ -140,9 +140,7 @@ export const MoviesScreen = () => {
           onEndReached={hasNextRecent ? fetchNextRecent : undefined}
           isLoading={isFetchingRecent}
           onRefresh={refetchRecent}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Recent Movies', 'now_playing')
-          }
+          onSeeAllPress={() => handleSeeAllPress('Recent Movies', 'latest')}
         />
 
         <HorizontalList

@@ -4,6 +4,7 @@ import {NavigatorScreenParams} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 
 export type MovieCategoryType =
+  | 'latest'
   | 'popular'
   | 'top_rated'
   | 'now_playing'

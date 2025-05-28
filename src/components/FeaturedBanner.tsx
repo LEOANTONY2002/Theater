@@ -11,12 +11,15 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicon from 'react-native-vector-icons/Ionicons';
-import {Movie} from '../types/movie';
-import {TVShow} from '../types/tvshow';
 import {colors, typography, spacing, borderRadius} from '../styles/theme';
 import {useUserContent} from '../hooks/useUserContent';
 import {BannerSkeleton} from './LoadingSkeleton';
-
+import {GradientButton} from './GradientButton';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../types/navigation';
+import {Movie} from '../types/movie';
+import {TVShow} from '../types/tvshow';
 const {width} = Dimensions.get('window');
 const BANNER_HEIGHT = 680;
 
@@ -65,10 +68,11 @@ const tvGenres: {[key: number]: string} = {
 type FeaturedBannerProps = {
   item: Movie | TVShow;
   type: 'movie' | 'tv';
-  onPress: () => void;
 };
 
-export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
   const [loading, setLoading] = useState(true);
   const title =
     type === 'movie' ? (item as Movie).title : (item as TVShow).name;
@@ -81,12 +85,21 @@ export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
     addItem: addToWatchlist,
     removeItem: removeFromWatchlist,
   } = useUserContent('watchlist');
+  const navigation = useNavigation<NavigationProp>();
 
   const addWatchlist = () => {
-    if (checkInWatchlist(item.id)) {
-      removeFromWatchlist(item.id);
+    if (type === 'movie') {
+      addToWatchlist(item as Movie, type);
     } else {
-      addToWatchlist(item, type);
+      addToWatchlist(item as TVShow, type);
+    }
+  };
+
+  const handlePress = () => {
+    if (type === 'movie') {
+      navigation.navigate('MovieDetails', {movie: item as Movie});
+    } else {
+      navigation.navigate('TVShowDetails', {show: item as TVShow});
     }
   };
 
@@ -149,10 +162,11 @@ export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
               </Text>
             </View>
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.button} onPress={onPress}>
-                <Text style={styles.buttonText}>Watch Now</Text>
-              </TouchableOpacity>
-              {/* {!checkInWatchlist(item.id) && ( */}
+              <GradientButton
+                title="View Details"
+                onPress={handlePress}
+                style={styles.button}
+              />
               <TouchableOpacity style={styles.buttonWL} onPress={addWatchlist}>
                 <Ionicon
                   name={checkInWatchlist(item.id) ? 'checkmark' : 'add'}
@@ -160,7 +174,6 @@ export const FeaturedBanner = ({item, type, onPress}: FeaturedBannerProps) => {
                   color={colors.text.primary}
                 />
               </TouchableOpacity>
-              {/* )} */}
             </View>
           </View>
         </LinearGradient>
@@ -263,7 +276,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     backgroundColor: colors.background.tertiary,
     borderRadius: borderRadius.sm,
-    // paddingHorizontal: spacing.md,
     width: 40,
     height: 40,
     display: 'flex',

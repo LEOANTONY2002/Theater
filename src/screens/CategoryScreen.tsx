@@ -100,17 +100,6 @@ export const CategoryScreen = () => {
     }
   };
 
-  // Function to get a category icon based on the title
-  const getCategoryIcon = () => {
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('popular')) return 'star';
-    if (lowerTitle.includes('top')) return 'trophy';
-    if (lowerTitle.includes('upcoming')) return 'calendar';
-    if (lowerTitle.includes('now')) return 'play';
-    if (lowerTitle.includes('trending')) return 'trending-up';
-    return 'grid';
-  };
-
   return (
     <GradientBackground variant="cinematic">
       <View style={styles.container}>

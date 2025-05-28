@@ -44,7 +44,7 @@ const TabBarBackground = () => (
       style={styles.blurContainer}
       blurType="dark"
       blurAmount={20}
-      overlayColor="rgba(16, 14, 35, 0.53)"
+      overlayColor="rgba(16, 14, 35, 0.71)"
       reducedTransparencyFallbackColor="rgba(15, 13, 33, 0.87)"
     />
   </View>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.round,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.11)',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   blurContainer: {
