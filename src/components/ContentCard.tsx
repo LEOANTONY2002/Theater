@@ -1,54 +1,24 @@
 import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Animated,
-  Platform,
-} from 'react-native';
-import {
-  colors,
-  spacing,
-  borderRadius,
-  typography,
-  shadows,
-} from '../styles/theme';
-import LinearGradient from 'react-native-linear-gradient';
+import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
+import {colors, spacing, borderRadius} from '../styles/theme';
 import {ContentItem} from './MovieList';
 import {MoivieCardSkeleton} from './LoadingSkeleton';
 
 interface ContentCardProps {
   item: ContentItem;
   onPress: (item: ContentItem) => void;
-  index?: number; // For staggered animation
   v2?: boolean;
 }
 
 export const ContentCard: React.FC<ContentCardProps> = ({
   item,
   onPress,
-  index = 0,
   v2 = false,
 }) => {
   const imageUrl = `https://image.tmdb.org/t/p/w500${
     v2 ? item.backdrop_path : item.poster_path
   }`;
-  const rating = item.vote_average?.toFixed(1);
 
-  // Safely extract date - handling both movie and TV show types
-  const date =
-    'release_date' in item
-      ? item.release_date
-      : 'first_air_date' in item
-      ? item.first_air_date
-      : '';
-
-  const releaseYear = date ? new Date(date).getFullYear() : '';
-
-  // Safely get title - handling both movie and TV show types
   const title = 'title' in item ? item.title : 'name' in item ? item.name : '';
 
   const CARD_WIDTH = v2 ? 180 : 120; // Slightly wider cards
@@ -58,24 +28,23 @@ export const ContentCard: React.FC<ContentCardProps> = ({
 
   const styles = StyleSheet.create({
     container: {
-      marginHorizontal: spacing.xs,
-      marginVertical: spacing.md,
       width: CARD_WIDTH,
-      height: v2 ? 150 : CARD_HEIGHT,
+      height: CARD_HEIGHT,
       flexDirection: 'column',
       alignItems: 'center',
       position: 'relative',
     },
     image: {
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
+      width: '100%',
+      height: '100%',
       resizeMode: 'cover',
       borderRadius: borderRadius.md,
     },
     infoContainer: {
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'flex-end',
+      alignItems: 'center',
+      justifyContent: 'center',
       padding: spacing.sm,
     },
 
@@ -84,40 +53,43 @@ export const ContentCard: React.FC<ContentCardProps> = ({
       color: colors.text.secondary,
       fontWeight: '600',
       marginBottom: spacing.xs,
+      width: 150,
     },
     skeletonContainer: {
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
+      width: '100%',
+      height: '100%',
       position: 'absolute',
       top: 0,
-      left: -5,
-      zIndex: 5,
+      left: 0,
+      zIndex: 1,
     },
   });
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={() => onPress(item)}
-      activeOpacity={0.9}>
-      {!imageLoaded && (
-        <View style={styles.skeletonContainer}>
-          <MoivieCardSkeleton v2={v2} />
-        </View>
-      )}
-      <Image
-        source={{uri: imageUrl}}
-        style={styles.image}
-        onLoad={() => setImageLoaded(true)}
-        onError={() => setImageLoaded(true)}
-      />
+    <>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={() => onPress(item)}
+        activeOpacity={0.9}>
+        {!imageLoaded && (
+          <View style={styles.skeletonContainer}>
+            <MoivieCardSkeleton />
+          </View>
+        )}
+        <Image
+          source={{uri: imageUrl}}
+          style={styles.image}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageLoaded(true)}
+        />
+      </TouchableOpacity>
       {v2 && (
         <View style={styles.infoContainer}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </>
   );
 };

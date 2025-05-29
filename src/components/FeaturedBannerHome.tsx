@@ -12,7 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicon from 'react-native-vector-icons/Ionicons';
 import {colors, typography, spacing, borderRadius} from '../styles/theme';
 import {useUserContent} from '../hooks/useUserContent';
-import {BannerSkeleton} from './LoadingSkeleton';
+import {BannerHomeSkeleton, BannerSkeleton} from './LoadingSkeleton';
 import {GradientButton} from './GradientButton';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -146,6 +146,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
         start={{x: 0, y: 0}}
         end={{x: 0.5, y: 0.5}}
       />
+
       <ImageBackground
         onLoadEnd={() => setLoading(false)}
         source={{
@@ -153,7 +154,11 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
         }}
         style={styles.cardContainer}
         imageStyle={styles.imageStyle}>
-        {/* Stronger bottom gradient */}
+        {loading && (
+          <View style={styles.skeletonContainer}>
+            <BannerHomeSkeleton />
+          </View>
+        )}
         <LinearGradient
           colors={['transparent', 'rgba(0, 0, 0, 0.64)', 'rgb(0, 0, 0)']}
           style={styles.gradientOverlay}
@@ -196,12 +201,12 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
 
 const styles = StyleSheet.create({
   skeletonContainer: {
-    width: width,
+    width: '100%',
     height: BANNER_HEIGHT,
     position: 'absolute',
     top: 0,
     left: 0,
-    zIndex: 5,
+    zIndex: 0,
   },
   container: {
     width: width,
@@ -224,13 +229,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 50,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 12},
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 20,
+    shadowColor: '#000000',
+    shadowOffset: {width: 6, height: 10},
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 30,
     borderWidth: 1,
-    borderColor: 'rgba(91, 91, 91, 0.35)',
+    borderColor: 'rgba(91, 91, 91, 0.2)',
   },
   imageStyle: {
     borderRadius: 32,

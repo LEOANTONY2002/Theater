@@ -120,63 +120,51 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
         }}
         style={styles.background}
         resizeMode="cover">
+        {loading && (
+          <View style={styles.skeletonContainer}>
+            <BannerSkeleton />
+          </View>
+        )}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)', colors.background.primary]}
-          style={styles.gradient}>
-          <View style={styles.content}>
-            <View style={styles.typeContainer}>
-              <Icon
-                name={type === 'movie' ? 'film' : 'tv'}
-                size={16}
-                color={colors.primary}
-              />
-              <Text style={styles.type}>
-                {type === 'movie' ? 'Movie' : 'TV Show'}
-              </Text>
-            </View>
-            <View>
-              <View style={styles.genreContainer}>
-                {item.genre_ids?.slice(0, 3).map((genreId, index) => (
-                  <View key={genreId} style={styles.genreWrapper}>
-                    <Text style={styles.genre}>
-                      {type === 'movie'
-                        ? movieGenres[genreId]
-                        : tvGenres[genreId]}
-                    </Text>
-                    {index < Math.min(item.genre_ids.length - 1, 2) && (
-                      <Text style={styles.genreDot}>•</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.infoContainer}>
-              <View style={styles.ratingContainer}>
-                <Icon name="star" size={16} color={colors.primary} />
-                <Text style={styles.rating}>
-                  {item.vote_average.toFixed(1)}
-                </Text>
-              </View>
-              <Text style={styles.date}>
-                {new Date(releaseDate).getFullYear()}
-              </Text>
-            </View>
-            <View style={styles.buttonContainer}>
-              <GradientButton
-                title="View Details"
-                onPress={handlePress}
-                style={styles.button}
-              />
-              <TouchableOpacity style={styles.buttonWL} onPress={addWatchlist}>
-                <Ionicon
-                  name={checkInWatchlist(item.id) ? 'checkmark' : 'add'}
-                  size={25}
-                  color={colors.text.primary}
-                />
-              </TouchableOpacity>
+          colors={[
+            'transparent',
+            'rgba(1, 1, 21, 0.62)',
+            colors.background.primary,
+          ]}
+          style={styles.gradient}
+        />
+        <View style={styles.content}>
+          <View>
+            <View style={styles.genreContainer}>
+              {item.genre_ids?.slice(0, 3).map((genreId, index) => (
+                <View key={genreId} style={styles.genreWrapper}>
+                  <Text style={styles.genre}>
+                    {type === 'movie'
+                      ? movieGenres[genreId]
+                      : tvGenres[genreId]}
+                  </Text>
+                  {index < Math.min(item.genre_ids.length - 1, 2) && (
+                    <Text style={styles.genreDot}>•</Text>
+                  )}
+                </View>
+              ))}
             </View>
           </View>
-        </LinearGradient>
+          <View style={styles.buttonContainer}>
+            <GradientButton
+              title="View Details"
+              onPress={handlePress}
+              style={styles.button}
+            />
+            <TouchableOpacity style={styles.buttonWL} onPress={addWatchlist}>
+              <Ionicon
+                name={checkInWatchlist(item.id) ? 'checkmark' : 'add'}
+                size={25}
+                color={colors.text.primary}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
       </ImageBackground>
     </View>
   );
@@ -189,7 +177,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    zIndex: 5,
+    zIndex: 0,
   },
   container: {
     width: width,
@@ -199,14 +187,22 @@ const styles = StyleSheet.create({
   background: {
     width: '100%',
     height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
   },
   gradient: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 400,
     justifyContent: 'flex-end',
     padding: spacing.lg,
   },
   content: {
     gap: spacing.sm,
+    padding: spacing.lg,
   },
   typeContainer: {
     flexDirection: 'row',
@@ -252,7 +248,7 @@ const styles = StyleSheet.create({
   button: {
     marginTop: spacing.md,
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.round,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xxl,
     alignSelf: 'flex-start',
@@ -277,7 +273,7 @@ const styles = StyleSheet.create({
   buttonWL: {
     marginTop: spacing.md,
     backgroundColor: colors.background.tertiary,
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.round,
     width: 40,
     height: 40,
     display: 'flex',

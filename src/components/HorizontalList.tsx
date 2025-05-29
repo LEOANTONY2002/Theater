@@ -12,6 +12,7 @@ import {ContentItem} from './MovieList';
 import {ContentCard} from './ContentCard';
 import {colors, spacing, typography} from '../styles/theme';
 import {HeadingSkeleton, HorizontalListSkeleton} from './LoadingSkeleton';
+import Ionicon from 'react-native-vector-icons/Ionicons';
 
 interface HorizontalListProps {
   title: string;
@@ -19,7 +20,6 @@ interface HorizontalListProps {
   onItemPress: (item: ContentItem) => void;
   onEndReached?: () => void;
   isLoading?: boolean;
-  onRefresh?: () => void;
   onSeeAllPress?: () => void;
   isSeeAll?: boolean;
 }
@@ -30,12 +30,13 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
   onItemPress,
   onEndReached,
   isLoading,
-  onRefresh,
   onSeeAllPress,
   isSeeAll = true,
 }) => {
   const renderItem = ({item}: {item: ContentItem}) => (
-    <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
+    <View style={{marginVertical: spacing.sm, marginHorizontal: spacing.xs}}>
+      <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
+    </View>
   );
 
   if (!data.length) {
@@ -51,11 +52,26 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
     <View style={styles.container}>
       {title !== 'V2' ? (
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>{title}</Text>
-          {data.length > 0 && isSeeAll && (
-            <TouchableOpacity onPress={onSeeAllPress}>
-              <Text style={styles.seeAll}>See All</Text>
+          {data.length > 0 && isSeeAll ? (
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+              onPress={onSeeAllPress}>
+              <Text style={styles.title}>{title}</Text>
+              <Ionicon
+                name="chevron-forward-outline"
+                size={20}
+                style={{marginTop: -spacing.xs}}
+                color={colors.text.muted}
+              />
             </TouchableOpacity>
+          ) : (
+            <Text style={styles.title}>{title}</Text>
           )}
         </View>
       ) : null}
@@ -87,13 +103,14 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h3,
     color: colors.text.primary,
+    marginBottom: spacing.sm,
   },
   seeAll: {
     ...typography.body2,
     color: colors.text.muted,
   },
   listContent: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   footerLoader: {
     paddingHorizontal: spacing.md,

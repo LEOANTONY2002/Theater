@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
-import {View, Image, TouchableOpacity, StyleSheet} from 'react-native';
-import {MoivieCardSkeleton} from './LoadingSkeleton';
+import {View, Image, StyleSheet} from 'react-native';
+import {PersonCardSkeleton} from './LoadingSkeleton';
 
 interface PersonCardProps {
   item: string;
@@ -8,16 +8,12 @@ interface PersonCardProps {
   size?: 'normal' | 'large';
 }
 
-export const PersonCard: React.FC<PersonCardProps> = ({
-  item,
-  onPress,
-  size = 'normal',
-}) => {
+export const PersonCard: React.FC<PersonCardProps> = ({item}) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   return (
     <View style={styles.container}>
-      {!imageLoaded && <MoivieCardSkeleton />}
+      {!imageLoaded && <PersonCardSkeleton />}
       <Image
         source={{
           uri: item ? item : 'https://via.placeholder.com/300x450',

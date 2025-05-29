@@ -107,8 +107,6 @@ export const TVShowsScreen = () => {
         <BannerSkeleton />
         <HeadingSkeleton />
         <HorizontalListSkeleton />
-        <HeadingSkeleton />
-        <HorizontalListSkeleton />
       </View>
     );
   }
@@ -116,13 +114,7 @@ export const TVShowsScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {featuredShow && (
-          <FeaturedBanner
-            item={featuredShow}
-            type="tv"
-            onPress={handleFeaturedPress}
-          />
-        )}
+        {featuredShow && <FeaturedBanner item={featuredShow} type="tv" />}
 
         <HorizontalList
           title="Trending Today"
@@ -130,7 +122,6 @@ export const TVShowsScreen = () => {
           onItemPress={handleShowPress}
           onEndReached={hasNextTrending ? fetchNextTrending : undefined}
           isLoading={isFetchingTrending}
-          onRefresh={refetchTrending}
           isSeeAll={false}
         />
 
@@ -140,7 +131,6 @@ export const TVShowsScreen = () => {
           onItemPress={handleShowPress}
           onEndReached={hasNextLatest ? fetchNextLatest : undefined}
           isLoading={isFetchingLatest}
-          onRefresh={refetchLatest}
           isSeeAll={false}
         />
 
@@ -150,7 +140,6 @@ export const TVShowsScreen = () => {
           onItemPress={handleShowPress}
           onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
           isLoading={isFetchingTopRated}
-          onRefresh={refetchTopRated}
           onSeeAllPress={() =>
             handleSeeAllPress('Top Rated Shows', 'top_rated')
           }

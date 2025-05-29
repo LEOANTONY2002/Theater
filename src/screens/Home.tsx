@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo} from 'react';
-import {View, ScrollView, StyleSheet} from 'react-native';
+import {View, ScrollView, StyleSheet, Dimensions} from 'react-native';
 import {useMoviesList, useTrendingMovies} from '../hooks/useMovies';
 import {useTrendingTVShows, useTVShowsList} from '../hooks/useTVShows';
 import {ContentItem} from '../components/MovieList';
@@ -15,9 +15,9 @@ import {
   TVShowCategoryType,
   ContentType,
 } from '../types/navigation';
-import {colors} from '../styles/theme';
+import {colors, spacing} from '../styles/theme';
 import {
-  BannerSkeleton,
+  BannerHomeSkeleton,
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
@@ -163,6 +163,8 @@ export const HomeScreen = () => {
     [navigation],
   );
 
+  const WIDTH = Dimensions.get('window').width;
+
   const isInitialLoading =
     (!popularMovies?.pages?.length && isFetchingPopular) ||
     (!popularTVShows?.pages?.length && isFetchingPopularTV) ||
@@ -174,10 +176,27 @@ export const HomeScreen = () => {
     (!trendingMovies?.pages?.length && isFetchingTrendingMovies) ||
     (!trendingTVShows?.pages?.length && isFetchingTrendingTVShows);
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    skeletonContainer: {
+      width: WIDTH - 64,
+      height: 520,
+      alignSelf: 'center',
+      borderRadius: 50,
+      marginVertical: spacing.xl,
+      marginTop: spacing.xxl,
+    },
+  });
+
   if (isInitialLoading) {
     return (
       <View style={styles.container}>
-        <BannerSkeleton />
+        <View style={styles.skeletonContainer}>
+          <BannerHomeSkeleton />
+        </View>
         <HeadingSkeleton />
         <HorizontalListSkeleton />
         <HeadingSkeleton />
@@ -189,11 +208,15 @@ export const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {featuredItem && (
+        {featuredItem ? (
           <FeaturedBannerHome
             item={featuredItem.item}
             type={featuredItem.type}
           />
+        ) : (
+          <View style={styles.skeletonContainer}>
+            <BannerHomeSkeleton />
+          </View>
         )}
 
         <HorizontalList
@@ -202,7 +225,6 @@ export const HomeScreen = () => {
           isLoading={isFetchingRecent}
           onItemPress={handleItemPress}
           onEndReached={hasNextRecent ? fetchNextRecent : undefined}
-          onRefresh={refetchRecent}
           onSeeAllPress={() =>
             handleSeeAllPress('Recent Movies', 'now_playing', 'movie')
           }
@@ -214,7 +236,6 @@ export const HomeScreen = () => {
           isLoading={isFetchingRecentTV}
           onItemPress={handleItemPress}
           onEndReached={hasNextRecentTV ? fetchNextRecentTV : undefined}
-          onRefresh={refetchRecentTV}
           onSeeAllPress={() =>
             handleSeeAllPress('Latest Shows', 'latest', 'tv')
           }
@@ -226,7 +247,6 @@ export const HomeScreen = () => {
           isLoading={isFetchingPopular}
           onItemPress={handleItemPress}
           onEndReached={hasNextPopular ? fetchNextPopular : undefined}
-          onRefresh={refetchPopular}
           onSeeAllPress={() =>
             handleSeeAllPress('Popular Movies', 'popular', 'movie')
           }
@@ -238,7 +258,6 @@ export const HomeScreen = () => {
           isLoading={isFetchingPopularTV}
           onItemPress={handleItemPress}
           onEndReached={hasNextPopularTV ? fetchNextPopularTV : undefined}
-          onRefresh={refetchPopularTV}
           onSeeAllPress={() =>
             handleSeeAllPress('Popular Shows', 'popular', 'tv')
           }
@@ -250,7 +269,6 @@ export const HomeScreen = () => {
           isLoading={isFetchingTopRated}
           onItemPress={handleItemPress}
           onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
-          onRefresh={refetchTopRated}
           onSeeAllPress={() =>
             handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie')
           }
@@ -262,7 +280,6 @@ export const HomeScreen = () => {
           isLoading={isFetchingTopRatedTV}
           onItemPress={handleItemPress}
           onEndReached={hasNextTopRatedTV ? fetchNextTopRatedTV : undefined}
-          onRefresh={refetchTopRatedTV}
           onSeeAllPress={() =>
             handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv')
           }
@@ -274,7 +291,6 @@ export const HomeScreen = () => {
           isLoading={isFetchingUpcoming}
           onItemPress={handleItemPress}
           onEndReached={hasNextUpcoming ? fetchNextUpcoming : undefined}
-          onRefresh={refetchUpcoming}
           onSeeAllPress={() =>
             handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
           }
@@ -284,10 +300,3 @@ export const HomeScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-});

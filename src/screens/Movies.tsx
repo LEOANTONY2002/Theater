@@ -26,7 +26,6 @@ export const MoviesScreen = () => {
     fetchNextPage: fetchNextRecent,
     hasNextPage: hasNextRecent,
     isFetchingNextPage: isFetchingRecent,
-    refetch: refetchRecent,
   } = useMoviesList('latest');
 
   // Popular Movies
@@ -35,7 +34,6 @@ export const MoviesScreen = () => {
     fetchNextPage: fetchNextPopular,
     hasNextPage: hasNextPopular,
     isFetchingNextPage: isFetchingPopular,
-    refetch: refetchPopular,
   } = useMoviesList('popular');
 
   // Top Rated Movies
@@ -44,7 +42,6 @@ export const MoviesScreen = () => {
     fetchNextPage: fetchNextTopRated,
     hasNextPage: hasNextTopRated,
     isFetchingNextPage: isFetchingTopRated,
-    refetch: refetchTopRated,
   } = useMoviesList('top_rated');
 
   // Now Playing Movies
@@ -53,7 +50,6 @@ export const MoviesScreen = () => {
     fetchNextPage: fetchNextNowPlaying,
     hasNextPage: hasNextNowPlaying,
     isFetchingNextPage: isFetchingNowPlaying,
-    refetch: refetchNowPlaying,
   } = useMoviesList('now_playing');
 
   // Upcoming Movies
@@ -62,7 +58,6 @@ export const MoviesScreen = () => {
     fetchNextPage: fetchNextUpcoming,
     hasNextPage: hasNextUpcoming,
     isFetchingNextPage: isFetchingUpcoming,
-    refetch: refetchUpcoming,
   } = useMoviesList('upcoming');
 
   // Get a random popular movie for the banner
@@ -125,12 +120,17 @@ export const MoviesScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {featuredMovie && (
-          <FeaturedBanner
-            item={featuredMovie}
-            type="movie"
-            onPress={handleFeaturedPress}
-          />
+        {featuredMovie ? (
+          <FeaturedBanner item={featuredMovie} type="movie" />
+        ) : (
+          <View
+            style={{
+              width: '100%',
+              height: 580,
+              alignSelf: 'center',
+            }}>
+            <BannerSkeleton />
+          </View>
         )}
 
         <HorizontalList
@@ -139,7 +139,6 @@ export const MoviesScreen = () => {
           onItemPress={handleMoviePress}
           onEndReached={hasNextRecent ? fetchNextRecent : undefined}
           isLoading={isFetchingRecent}
-          onRefresh={refetchRecent}
           onSeeAllPress={() => handleSeeAllPress('Recent Movies', 'latest')}
         />
 
@@ -149,7 +148,6 @@ export const MoviesScreen = () => {
           onItemPress={handleMoviePress}
           onEndReached={hasNextPopular ? fetchNextPopular : undefined}
           isLoading={isFetchingPopular}
-          onRefresh={refetchPopular}
           onSeeAllPress={() => handleSeeAllPress('Popular Movies', 'popular')}
         />
 
@@ -159,7 +157,6 @@ export const MoviesScreen = () => {
           onItemPress={handleMoviePress}
           onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
           isLoading={isFetchingTopRated}
-          onRefresh={refetchTopRated}
           onSeeAllPress={() =>
             handleSeeAllPress('Top Rated Movies', 'top_rated')
           }
@@ -171,7 +168,6 @@ export const MoviesScreen = () => {
           onItemPress={handleMoviePress}
           onEndReached={hasNextNowPlaying ? fetchNextNowPlaying : undefined}
           isLoading={isFetchingNowPlaying}
-          onRefresh={refetchNowPlaying}
           onSeeAllPress={() => handleSeeAllPress('Now Playing', 'now_playing')}
         />
 
@@ -181,7 +177,6 @@ export const MoviesScreen = () => {
           onItemPress={handleMoviePress}
           onEndReached={hasNextUpcoming ? fetchNextUpcoming : undefined}
           isLoading={isFetchingUpcoming}
-          onRefresh={refetchUpcoming}
           onSeeAllPress={() => handleSeeAllPress('Upcoming Movies', 'upcoming')}
         />
 

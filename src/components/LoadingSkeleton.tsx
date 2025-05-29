@@ -5,30 +5,30 @@ import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import {borderRadius} from '../styles/theme';
 
 const shimmerColors = [
-  'rgb(5, 5, 35)',
-  'rgba(17, 17, 46, 0.81)',
-  'rgb(9, 9, 31)',
+  'rgb(21, 21, 32)',
+  'rgba(20, 20, 28, 0.81)',
+  'rgb(21, 21, 32)',
 ];
 
 export const BannerSkeleton = () => (
-  <View
+  <ShimmerPlaceholder
+    LinearGradient={LinearGradient}
+    shimmerColors={shimmerColors}
     style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
       width: '100%',
-      padding: 20,
-      paddingTop: 50,
-    }}>
-    <ShimmerPlaceholder
-      LinearGradient={LinearGradient}
-      shimmerColors={shimmerColors}
-      style={{
-        width: '100%',
-        height: 550,
-        borderRadius: 20,
-      }}></ShimmerPlaceholder>
-  </View>
+      height: '100%',
+    }}></ShimmerPlaceholder>
+);
+
+export const BannerHomeSkeleton = () => (
+  <ShimmerPlaceholder
+    LinearGradient={LinearGradient}
+    shimmerColors={shimmerColors}
+    style={{
+      width: '100%',
+      height: '100%',
+      borderRadius: 20,
+    }}></ShimmerPlaceholder>
 );
 
 export const HeadingSkeleton = () => (
@@ -111,7 +111,19 @@ export const MoivieCardSkeleton = ({v2 = false}: {v2?: boolean}) => (
         width: v2 ? 180 : 120,
         height: v2 ? 100 : 180,
         borderRadius: borderRadius.sm,
-        marginHorizontal: 5,
+      }}></ShimmerPlaceholder>
+  </View>
+);
+
+export const PersonCardSkeleton = () => (
+  <View>
+    <ShimmerPlaceholder
+      LinearGradient={LinearGradient}
+      shimmerColors={shimmerColors}
+      style={{
+        width: 100,
+        height: 150,
+        borderRadius: borderRadius.sm,
       }}></ShimmerPlaceholder>
   </View>
 );

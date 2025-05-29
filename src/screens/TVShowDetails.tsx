@@ -582,7 +582,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
+    fontWeight: '400',
     color: '#fff',
     textAlign: 'center',
   },
@@ -599,7 +600,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   info: {
-    ...typography.caption,
+    ...typography.body2,
     color: 'rgba(255, 255, 255, 0.68)',
   },
   infoDot: {
@@ -652,12 +653,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   genre: {
-    ...typography.caption,
+    ...typography.body2,
     color: colors.text.primary,
     marginRight: spacing.xs,
   },
   genreDivider: {
-    ...typography.caption,
+    ...typography.body2,
     color: colors.text.primary,
     marginHorizontal: spacing.xs,
   },
