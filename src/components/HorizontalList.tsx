@@ -38,7 +38,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
     <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
   );
 
-  if (!data.length || isLoading) {
+  if (!data.length) {
     return (
       <View>
         <HeadingSkeleton />
@@ -68,16 +68,6 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
         contentContainerStyle={styles.listContent}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={isLoading || false}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          ) : undefined
-        }
         ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
       />
     </View>

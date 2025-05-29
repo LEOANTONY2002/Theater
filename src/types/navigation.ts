@@ -21,12 +21,22 @@ export type HomeStackParamList = {
     categoryType: MovieCategoryType | TVShowCategoryType;
     contentType: ContentType;
   };
+  PersonCredits: {
+    personId: number;
+    personName: string;
+    contentType: ContentType;
+  };
 };
 
 export type SearchStackParamList = {
   SearchScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  PersonCredits: {
+    personId: number;
+    personName: string;
+    contentType: ContentType;
+  };
 };
 
 export type MoviesStackParamList = {
@@ -36,6 +46,11 @@ export type MoviesStackParamList = {
     title: string;
     categoryType: MovieCategoryType;
     contentType: 'movie';
+  };
+  PersonCredits: {
+    personId: number;
+    personName: string;
+    contentType: ContentType;
   };
 };
 
@@ -47,12 +62,22 @@ export type TVShowsStackParamList = {
     categoryType: TVShowCategoryType;
     contentType: 'tv';
   };
+  PersonCredits: {
+    personId: number;
+    personName: string;
+    contentType: ContentType;
+  };
 };
 
 export type MySpaceStackParamList = {
   MySpaceScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  PersonCredits: {
+    personId: number;
+    personName: string;
+    contentType: ContentType;
+  };
 };
 
 export type TabParamList = {

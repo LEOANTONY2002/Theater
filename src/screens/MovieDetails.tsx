@@ -31,6 +31,7 @@ import {WatchProviders} from '../components/WatchProviders';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {GradientButton} from '../components/GradientButton';
 import Ionicon from 'react-native-vector-icons/Ionicons';
+import {PersonCard} from '../components/PersonCard';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -251,21 +252,26 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       <Text style={styles.overview}>{movie.overview}</Text>
 
       {movieDetails?.credits && (
-        <>
+        <View style={{marginVertical: spacing.lg, marginTop: 0}}>
           <Text style={styles.sectionTitle}>Cast</Text>
           <ScrollView
-            style={{paddingHorizontal: 16, marginBottom: 30}}
+            style={{paddingHorizontal: 16}}
             horizontal
             showsHorizontalScrollIndicator={false}>
             {movieDetails.credits.cast.slice(0, 10).map((person: Cast) => (
-              <View key={person.id} style={styles.castItem}>
-                <Image
-                  source={{
-                    uri: person.profile_path
-                      ? getImageUrl(person.profile_path)
-                      : 'https://via.placeholder.com/100x150',
-                  }}
-                  style={styles.castImage}
+              <TouchableOpacity
+                key={person.id}
+                style={styles.castItem}
+                onPress={() =>
+                  navigation.navigate('PersonCredits', {
+                    personId: person.id,
+                    personName: person.name,
+                    contentType: 'movie',
+                  })
+                }>
+                <PersonCard
+                  item={getImageUrl(person.profile_path || '', 'original')}
+                  onPress={() => {}}
                 />
                 <Text style={styles.castName} numberOfLines={2}>
                   {person.name}
@@ -273,11 +279,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 <Text style={styles.character} numberOfLines={1}>
                   {person.character}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
-            <View style={{height: 100}} />
           </ScrollView>
-        </>
+        </View>
       )}
 
       {watchProviders?.results?.US && (

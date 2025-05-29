@@ -38,6 +38,7 @@ import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {GradientButton} from '../components/GradientButton';
+import {PersonCard} from '../components/PersonCard';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -298,21 +299,26 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       <Text style={styles.overview}>{show.overview}</Text>
 
       {showDetails?.credits && (
-        <>
+        <View style={{marginVertical: spacing.lg, marginTop: 0}}>
           <Text style={styles.sectionTitle}>Cast</Text>
           <ScrollView
             style={{paddingHorizontal: 16, marginBottom: 30}}
             horizontal
             showsHorizontalScrollIndicator={false}>
             {showDetails.credits.cast.slice(0, 10).map((person: Cast) => (
-              <View key={person.id} style={styles.castItem}>
-                <Image
-                  source={{
-                    uri: person.profile_path
-                      ? getImageUrl(person.profile_path)
-                      : 'https://via.placeholder.com/100x150',
-                  }}
-                  style={styles.castImage}
+              <TouchableOpacity
+                key={person.id}
+                style={styles.castItem}
+                onPress={() =>
+                  navigation.navigate('PersonCredits', {
+                    personId: person.id,
+                    personName: person.name,
+                    contentType: 'tv',
+                  })
+                }>
+                <PersonCard
+                  item={getImageUrl(person.profile_path || '', 'original')}
+                  onPress={() => {}}
                 />
                 <Text style={styles.castName} numberOfLines={2}>
                   {person.name}
@@ -320,10 +326,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 <Text style={styles.character} numberOfLines={1}>
                   {person.character}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
-        </>
+        </View>
+      )}
+
+      {watchProviders?.results?.US && (
+        <WatchProviders providers={watchProviders.results.US} />
       )}
 
       {showDetails?.seasons && (
@@ -516,10 +526,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             isSeeAll={false}
           />
         </View>
-      )}
-
-      {watchProviders?.results?.US && (
-        <WatchProviders providers={watchProviders.results.US} />
       )}
 
       <View style={{height: 100}} />

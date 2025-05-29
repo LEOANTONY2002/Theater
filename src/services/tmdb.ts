@@ -1,22 +1,6 @@
 import axios from 'axios';
-
-const TMDB_API_KEY = 'ddc242ac9b33e6c9054b5193c541ffbb';
-const BASE_URL = 'https://api.themoviedb.org/3';
-
-export const tmdbApi = axios.create({
-  baseURL: BASE_URL,
-  params: {
-    api_key: TMDB_API_KEY,
-  },
-});
-
-// export const getMovies = async (
-//   type: 'latest' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing',
-//   page = 1,
-// ) => {
-//   const response = await tmdbApi.get(`/movie/${type}`, {params: {page}});
-//   return response.data;
-// };
+import {tmdbApi} from './api';
+import {FilterParams} from '../types/filters';
 
 export const getMovies = async (
   type: 'latest' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing',
@@ -102,31 +86,53 @@ export const getTVShows = async (
 
 // Use basic TV endpoints for popular and top_rated
 
-export const searchMovies = async (query: string, page = 1) => {
+export const searchMovies = async (
+  query: string,
+  page = 1,
+  filters: FilterParams = {},
+) => {
   if (!query) {
     const response = await tmdbApi.get('/discover/movie', {
       params: {
         page,
         sort_by: 'popularity.desc',
+        ...filters,
       },
     });
     return response.data;
   }
-  const response = await tmdbApi.get('/search/movie', {params: {query, page}});
+  const response = await tmdbApi.get('/search/movie', {
+    params: {
+      query,
+      page,
+      ...filters,
+    },
+  });
   return response.data;
 };
 
-export const searchTVShows = async (query: string, page = 1) => {
+export const searchTVShows = async (
+  query: string,
+  page = 1,
+  filters: FilterParams = {},
+) => {
   if (!query) {
     const response = await tmdbApi.get('/discover/tv', {
       params: {
         page,
         sort_by: 'popularity.desc',
+        ...filters,
       },
     });
     return response.data;
   }
-  const response = await tmdbApi.get('/search/tv', {params: {query, page}});
+  const response = await tmdbApi.get('/search/tv', {
+    params: {
+      query,
+      page,
+      ...filters,
+    },
+  });
   return response.data;
 };
 
@@ -236,4 +242,57 @@ export const getWatchProviders = async (
     `/${contentType}/${contentId}/watch/providers`,
   );
   return response.data;
+};
+
+export const getPersonMovieCredits = async (personId: number, page = 1) => {
+  const response = await tmdbApi.get(`/person/${personId}/movie_credits`);
+  const {cast} = response.data;
+  // Sort by release date, most recent first
+  const sortedCast = cast.sort((a: any, b: any) => {
+    if (!a.release_date) return 1;
+    if (!b.release_date) return -1;
+    return (
+      new Date(b.release_date).getTime() - new Date(a.release_date).getTime()
+    );
+  });
+
+  // Paginate the results
+  const itemsPerPage = 20;
+  const start = (page - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  const paginatedCast = sortedCast.slice(start, end);
+
+  return {
+    page,
+    results: paginatedCast,
+    total_pages: Math.ceil(sortedCast.length / itemsPerPage),
+    total_results: sortedCast.length,
+  };
+};
+
+export const getPersonTVCredits = async (personId: number, page = 1) => {
+  const response = await tmdbApi.get(`/person/${personId}/tv_credits`);
+  const {cast} = response.data;
+  // Sort by first air date, most recent first
+  const sortedCast = cast.sort((a: any, b: any) => {
+    if (!a.first_air_date) return 1;
+    if (!b.first_air_date) return -1;
+    return (
+      new Date(b.first_air_date).getTime() -
+      new Date(a.first_air_date).getTime()
+    );
+  });
+
+  // Paginate the results
+  const itemsPerPage = 20;
+  const start = (page - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  const paginatedCast = sortedCast.slice(start, end);
+
+  return {
+    page,
+    results: paginatedCast,
+    total_pages: Math.ceil(sortedCast.length / itemsPerPage),
+    total_results: sortedCast.length,
+  };
 };

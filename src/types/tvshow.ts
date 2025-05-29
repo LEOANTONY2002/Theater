@@ -11,6 +11,7 @@ export type TVShow = {
   genre_ids: number[];
   origin_country: string[];
   popularity: number;
+  original_language: string;
 };
 
 export interface TVShowDetails extends TVShow {

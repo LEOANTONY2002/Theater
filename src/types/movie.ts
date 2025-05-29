@@ -9,6 +9,7 @@ export type Movie = {
   release_date: string;
   genre_ids: number[];
   popularity: number;
+  original_language: string;
 };
 
 export interface MovieDetails extends Movie {

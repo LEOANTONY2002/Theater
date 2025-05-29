@@ -8,6 +8,7 @@ import {MySpaceScreen} from '../screens/MySpace';
 import {MovieDetailsScreen} from '../screens/MovieDetails';
 import {TVShowDetailsScreen} from '../screens/TVShowDetails';
 import {CategoryScreen} from '../screens/CategoryScreen';
+import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {
   HomeStackParamList,
   SearchStackParamList,
@@ -74,6 +75,14 @@ export const HomeStackNavigator = () => (
         ...modalScreenOptions,
       }}
     />
+    <HomeStack.Screen
+      name="PersonCredits"
+      component={PersonCreditsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
   </HomeStack.Navigator>
 );
 
@@ -95,6 +104,14 @@ export const SearchStackNavigator = () => (
     <SearchStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <SearchStack.Screen
+      name="PersonCredits"
+      component={PersonCreditsScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,
@@ -126,6 +143,14 @@ export const MoviesStackNavigator = () => (
         ...modalScreenOptions,
       }}
     />
+    <MoviesStack.Screen
+      name="PersonCredits"
+      component={PersonCreditsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
   </MoviesStack.Navigator>
 );
 
@@ -152,6 +177,14 @@ export const TVShowsStackNavigator = () => (
         ...modalScreenOptions,
       }}
     />
+    <TVShowsStack.Screen
+      name="PersonCredits"
+      component={PersonCreditsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
   </TVShowsStack.Navigator>
 );
 
@@ -173,6 +206,14 @@ export const MySpaceStackNavigator = () => (
     <MySpaceStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <MySpaceStack.Screen
+      name="PersonCredits"
+      component={PersonCreditsScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,

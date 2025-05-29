@@ -15,13 +15,6 @@ import {FilterParams} from '../types/filters';
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
-interface TVShowsResponse {
-  page: number;
-  results: any[];
-  total_pages: number;
-  total_results: number;
-}
-
 export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
   return useInfiniteQuery({
     queryKey: ['tvshows', type],
@@ -45,10 +38,11 @@ export const useTVShowDetails = (tvShowId: number) => {
   });
 };
 
-export const useTVShowSearch = (query: string) => {
+export const useTVShowSearch = (query: string, filters: FilterParams = {}) => {
   return useInfiniteQuery({
-    queryKey: ['search_tv', query],
-    queryFn: ({pageParam = 1}) => searchTVShows(query, pageParam as number),
+    queryKey: ['search_tv', query, filters],
+    queryFn: ({pageParam = 1}) =>
+      searchTVShows(query, pageParam as number, filters),
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,

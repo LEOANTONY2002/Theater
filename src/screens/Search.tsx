@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {
   View,
   TextInput,
@@ -41,7 +41,7 @@ import {FilterParams} from '../types/filters';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const RECENT_ITEMS_KEY = '@recent_items';
+const RECENT_ITEMS_KEY = '@recent_search_items';
 const MAX_RECENT_ITEMS = 10;
 
 const getItemTitle = (item: ContentItem) => {
@@ -90,8 +90,8 @@ export const SearchScreen = () => {
     isLoading: isLoadingMovies,
     isError: isMovieError,
   } = debouncedQuery
-    ? useMovieSearch(debouncedQuery)
-    : useDiscoverMovies({...activeFilters, include_adult: true});
+    ? useMovieSearch(debouncedQuery, activeFilters)
+    : useDiscoverMovies(activeFilters);
 
   const {
     data: tvData,
@@ -102,8 +102,8 @@ export const SearchScreen = () => {
     isLoading: isLoadingTV,
     isError: isTVError,
   } = debouncedQuery
-    ? useTVShowSearch(debouncedQuery)
-    : useDiscoverTVShows({...activeFilters, include_adult: true});
+    ? useTVShowSearch(debouncedQuery, activeFilters)
+    : useDiscoverTVShows(activeFilters);
 
   const movies =
     movieData?.pages.flatMap(page =>
@@ -181,13 +181,46 @@ export const SearchScreen = () => {
     }
   };
 
+  const handleClearSearch = useCallback(() => {
+    setQuery('');
+    setDebouncedQuery('');
+    // Don't reset filters when clearing search
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setActiveFilters({});
+    setContentType('all');
+    // Refetch data with cleared filters
+    refetchMovies();
+    refetchTV();
+  }, [refetchMovies, refetchTV]);
+
+  const handleApplyFilters = useCallback(
+    (filters: FilterParams, selectedContentType: 'all' | 'movie' | 'tv') => {
+      setActiveFilters(filters);
+      setContentType(selectedContentType);
+      setShowFilters(false);
+
+      // Always refetch when applying filters, regardless of search state
+      refetchMovies();
+      refetchTV();
+    },
+    [refetchMovies, refetchTV],
+  );
+
+  // Debounce search query
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
+      // When search query changes, refetch with current filters
+      if (query !== debouncedQuery) {
+        refetchMovies();
+        refetchTV();
+      }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, debouncedQuery, refetchMovies, refetchTV]);
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -201,30 +234,130 @@ export const SearchScreen = () => {
     [navigation],
   );
 
-  const handleApplyFilters = useCallback(
-    (filters: FilterParams, selectedContentType: 'all' | 'movie' | 'tv') => {
-      setActiveFilters(filters);
-      setContentType(selectedContentType);
-      setShowFilters(false);
-    },
-    [],
-  );
-
   const isLoading = isLoadingMovies || isLoadingTV;
   const hasError = isMovieError || isTVError;
   const hasNoResults =
     !isLoading && !hasError && movies.length === 0 && tvShows.length === 0;
 
-  const displayedContent = React.useMemo(() => {
-    if (contentType === 'all') {
-      return [...movies, ...tvShows].sort(
-        (a, b) => b.popularity - a.popularity,
-      );
-    }
-    return contentType === 'movie' ? movies : tvShows;
-  }, [contentType, movies, tvShows]);
+  const applyContentTypeFilter = useCallback(
+    (content: ContentItem[]) => {
+      if (contentType === 'all') {
+        return content;
+      }
+      return content.filter(item => item.type === contentType);
+    },
+    [contentType],
+  );
+
+  const applySearchFilters = useCallback(
+    (content: ContentItem[]) => {
+      if (!debouncedQuery || !Object.keys(activeFilters).length) {
+        return content;
+      }
+
+      return content.filter(item => {
+        // Filter by rating
+        if (activeFilters['vote_average.gte'] !== undefined) {
+          if (item.vote_average < activeFilters['vote_average.gte']) {
+            return false;
+          }
+        }
+
+        // Filter by date
+        if (item.type === 'movie') {
+          if (activeFilters['primary_release_date.gte'] && item.release_date) {
+            if (item.release_date < activeFilters['primary_release_date.gte']) {
+              return false;
+            }
+          }
+          if (activeFilters['primary_release_date.lte'] && item.release_date) {
+            if (item.release_date > activeFilters['primary_release_date.lte']) {
+              return false;
+            }
+          }
+        } else {
+          if (activeFilters['first_air_date.gte'] && item.first_air_date) {
+            if (item.first_air_date < activeFilters['first_air_date.gte']) {
+              return false;
+            }
+          }
+          if (activeFilters['first_air_date.lte'] && item.first_air_date) {
+            if (item.first_air_date > activeFilters['first_air_date.lte']) {
+              return false;
+            }
+          }
+        }
+
+        // Filter by language
+        if (activeFilters.with_original_language && item.original_language) {
+          if (item.original_language !== activeFilters.with_original_language) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    },
+    [debouncedQuery, activeFilters],
+  );
+
+  const applySorting = useCallback(
+    (content: ContentItem[]) => {
+      if (!activeFilters.sort_by) {
+        return content;
+      }
+
+      const [field, order] = activeFilters.sort_by.split('.');
+      const multiplier = order === 'desc' ? -1 : 1;
+
+      return [...content].sort((a, b) => {
+        let aValue = a[field as keyof typeof a];
+        let bValue = b[field as keyof typeof b];
+
+        // Handle special cases for different field names between movies and TV shows
+        if (field === 'title') {
+          aValue = a.type === 'movie' ? (a as Movie).title : (a as TVShow).name;
+          bValue = b.type === 'movie' ? (b as Movie).title : (b as TVShow).name;
+        } else if (field === 'release_date') {
+          aValue =
+            a.type === 'movie'
+              ? (a as Movie).release_date
+              : (a as TVShow).first_air_date;
+          bValue =
+            b.type === 'movie'
+              ? (b as Movie).release_date
+              : (b as TVShow).first_air_date;
+        }
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return multiplier * aValue.localeCompare(bValue);
+        }
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return multiplier * (aValue - bValue);
+        }
+        return 0;
+      });
+    },
+    [activeFilters.sort_by],
+  );
+
+  const combinedContent = useMemo(() => {
+    return [...movies, ...tvShows];
+  }, [movies, tvShows]);
+
+  const displayedContent = useMemo(() => {
+    let filteredContent = applyContentTypeFilter(combinedContent);
+    filteredContent = applySearchFilters(filteredContent);
+    return applySorting(filteredContent);
+  }, [
+    combinedContent,
+    applyContentTypeFilter,
+    applySearchFilters,
+    applySorting,
+  ]);
 
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
+  const showSearchResults = debouncedQuery.length > 0 || hasActiveFilters;
 
   return (
     <View style={styles.container}>
@@ -245,7 +378,7 @@ export const SearchScreen = () => {
           />
           {query.length > 0 && (
             <TouchableOpacity
-              onPress={() => setQuery('')}
+              onPress={handleClearSearch}
               style={styles.clearButton}>
               <Icon
                 name="close-circle"
@@ -269,7 +402,7 @@ export const SearchScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {query.length === 0 ? (
+      {!showSearchResults ? (
         <FlatList
           data={[{key: 'content'}]}
           renderItem={() => (
@@ -305,7 +438,9 @@ export const SearchScreen = () => {
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Searching...</Text>
+              <Text style={styles.loadingText}>
+                {debouncedQuery ? 'Searching...' : 'Applying filters...'}
+              </Text>
             </View>
           ) : hasError ? (
             <View style={styles.errorContainer}>
@@ -361,6 +496,7 @@ export const SearchScreen = () => {
         onApply={handleApplyFilters}
         initialFilters={activeFilters}
         initialContentType={contentType}
+        onReset={handleResetFilters}
       />
     </View>
   );

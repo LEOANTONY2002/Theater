@@ -89,7 +89,7 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({providers}) => {
     if (!providers || providers.length === 0) return null;
 
     return (
-      <View>
+      <View style={{marginVertical: spacing.lg, marginTop: 0}}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <View style={styles.providersList}>
           {providers.map(provider => (
@@ -112,7 +112,7 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({providers}) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View>
       {/* <Text style={styles.title}>Where to Watch</Text> */}
       {renderProviderSection(providers.flatrate, 'Streaming On')}
       {/* {renderProviderSection(providers.rent, 'Rent')}
@@ -123,9 +123,6 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({providers}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: spacing.md,
-  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Modal,
@@ -27,6 +27,7 @@ interface FilterModalProps {
   onApply: (filters: FilterParams, contentType: 'all' | 'movie' | 'tv') => void;
   initialFilters: FilterParams;
   initialContentType: 'all' | 'movie' | 'tv';
+  onReset?: () => void;
 }
 
 export const FilterModal: React.FC<FilterModalProps> = ({
@@ -35,6 +36,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   onApply,
   initialFilters,
   initialContentType,
+  onReset,
 }) => {
   const [filters, setFilters] = useState<FilterParams>(initialFilters);
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>(
@@ -42,6 +44,13 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   );
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setFilters(initialFilters);
+      setContentType(initialContentType);
+    }
+  }, [visible, initialFilters, initialContentType]);
 
   const handleSortChange = (value: string) => {
     setFilters(prev => ({...prev, sort_by: value}));
@@ -85,14 +94,15 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     setFilters(prev => ({...prev, with_runtime_gte: value}));
   };
 
-  const handleApply = () => {
-    onApply(filters, contentType);
-    onClose();
-  };
-
   const handleReset = () => {
     setFilters({});
     setContentType('all');
+    onReset?.();
+  };
+
+  const handleApply = () => {
+    onApply(filters, contentType);
+    onClose();
   };
 
   const getDateFromFilter = (key: string) => {

@@ -38,10 +38,11 @@ export const useMovieDetails = (movieId: number) => {
   });
 };
 
-export const useMovieSearch = (query: string) => {
+export const useMovieSearch = (query: string, filters: FilterParams = {}) => {
   return useInfiniteQuery({
-    queryKey: ['search', query],
-    queryFn: ({pageParam = 1}) => searchMovies(query, pageParam as number),
+    queryKey: ['search', query, filters],
+    queryFn: ({pageParam = 1}) =>
+      searchMovies(query, pageParam as number, filters),
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
