@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors} from '../styles/theme';
+import Ionicon from 'react-native-vector-icons/Ionicons';
 
 interface GradientButtonProps {
   onPress: () => void;
@@ -34,6 +35,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
         start={{x: 0, y: 0}}
         end={{x: 1, y: 0}}
         style={[styles.button, style]}>
+        <Ionicon name="play" size={24} color={colors.text.primary} />
         <Text style={[styles.text, textStyle]}>{title}</Text>
       </LinearGradient>
     </TouchableOpacity>
@@ -54,6 +56,10 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

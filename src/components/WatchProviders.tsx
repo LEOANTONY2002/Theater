@@ -8,7 +8,7 @@ import {
   Linking,
 } from 'react-native';
 import {getImageUrl} from '../services/tmdb';
-import {colors, spacing} from '../styles/theme';
+import {colors, spacing, typography} from '../styles/theme';
 import {WatchProviders as WatchProvidersType} from '../hooks/useWatchProviders';
 
 interface WatchProvidersProps {
@@ -89,7 +89,7 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({providers}) => {
     if (!providers || providers.length === 0) return null;
 
     return (
-      <View style={styles.section}>
+      <View>
         <Text style={styles.sectionTitle}>{title}</Text>
         <View style={styles.providersList}>
           {providers.map(provider => (
@@ -103,7 +103,7 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({providers}) => {
                 }}
                 style={styles.providerLogo}
               />
-              <Text style={styles.providerName}>{provider.provider_name}</Text>
+              {/* <Text style={styles.providerName}>{provider.provider_name}</Text> */}
             </TouchableOpacity>
           ))}
         </View>
@@ -113,11 +113,11 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({providers}) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Where to Watch</Text>
-      {renderProviderSection(providers.flatrate, 'Streaming')}
-      {renderProviderSection(providers.rent, 'Rent')}
+      {/* <Text style={styles.title}>Where to Watch</Text> */}
+      {renderProviderSection(providers.flatrate, 'Streaming On')}
+      {/* {renderProviderSection(providers.rent, 'Rent')}
       {renderProviderSection(providers.buy, 'Buy')}
-      {renderProviderSection(providers.free, 'Free')}
+      {renderProviderSection(providers.free, 'Free')} */}
     </View>
   );
 };
@@ -132,33 +132,28 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
-  section: {
-    marginBottom: spacing.md,
-  },
   sectionTitle: {
-    fontSize: 16,
-    color: colors.text.secondary,
-    marginBottom: spacing.xs,
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: 16,
+    marginLeft: 16,
   },
   providersList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+    marginHorizontal: spacing.md,
   },
   providerItem: {
     alignItems: 'center',
-    width: 80,
   },
   providerLogo: {
     width: 60,
     height: 60,
     borderRadius: 8,
     backgroundColor: colors.background.secondary,
-  },
-  providerName: {
-    color: colors.text.primary,
-    fontSize: 12,
-    marginTop: spacing.xs,
-    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.divider,
+    objectFit: 'cover',
   },
 });

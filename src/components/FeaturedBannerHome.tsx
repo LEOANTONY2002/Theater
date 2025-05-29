@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   Button,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/Feather';
 import Ionicon from 'react-native-vector-icons/Ionicons';
 import {colors, typography, spacing, borderRadius} from '../styles/theme';
 import {useUserContent} from '../hooks/useUserContent';
@@ -77,18 +76,40 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
   type,
 }) => {
   const [loading, setLoading] = useState(true);
-  const title =
-    type === 'movie' ? (item as Movie).title : (item as TVShow).name;
-  const releaseDate =
-    type === 'movie'
-      ? (item as Movie).release_date
-      : (item as TVShow).first_air_date;
+  const [dominantColor, setDominantColor] = useState<string | null>(null);
+  // const title =
+  //   type === 'movie' ? (item as Movie).title : (item as TVShow).name;
+  // const releaseDate =
+  //   type === 'movie'
+  //     ? (item as Movie).release_date
+  //     : (item as TVShow).first_air_date;
   const {
     isItemInContent: checkInWatchlist,
     addItem: addToWatchlist,
     removeItem: removeFromWatchlist,
   } = useUserContent('watchlist');
   const navigation = useNavigation<NavigationProp>();
+
+  // useEffect(() => {
+  //   const fetchDominantColor = async () => {
+  //     const result = await ImageColors.getColors(
+  //       `https://image.tmdb.org/t/p/w780${item.poster_path}`,
+  //       {
+  //         fallback: '#375B695',
+  //         cache: true,
+  //         key: 'my-image',
+  //       },
+  //     );
+
+  //     if (result.platform === 'android') {
+  //       setDominantColor(result.dominant);
+  //     }
+  //   };
+
+  //   fetchDominantColor();
+  // }, []);
+
+  console.log(dominantColor);
 
   const addWatchlist = () => {
     if (checkInWatchlist(item.id)) {
@@ -115,13 +136,22 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
   }
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[
+          dominantColor ? dominantColor : 'rgba(21, 72, 93, 0.52)',
+          'transparent',
+        ]}
+        style={styles.gradientShade}
+        start={{x: 0, y: 0}}
+        end={{x: 0.5, y: 0.5}}
+      />
       <ImageBackground
         onLoadEnd={() => setLoading(false)}
         source={{
           uri: `https://image.tmdb.org/t/p/w780${item.poster_path}`,
         }}
-        style={styles.image}
+        style={styles.cardContainer}
         imageStyle={styles.imageStyle}>
         {/* Stronger bottom gradient */}
         <LinearGradient
@@ -173,14 +203,27 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 5,
   },
+  container: {
+    width: width,
+    height: BANNER_HEIGHT,
+    paddingHorizontal: 40,
+    paddingTop: 70,
+    position: 'relative',
+    marginBottom: -50,
+  },
+  gradientShade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 500,
+  },
   cardContainer: {
-    width: width - 80,
+    width: '100%',
     height: 520,
     alignSelf: 'center',
-    borderRadius: 32,
+    borderRadius: 50,
     overflow: 'hidden',
-    margin: 40,
-    marginTop: 70,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 12},
     shadowOpacity: 0.45,
@@ -189,10 +232,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(91, 91, 91, 0.35)',
   },
-  image: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   imageStyle: {
     borderRadius: 32,
   },
@@ -200,7 +239,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 1,
+    bottom: 0,
     height: '65%',
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
@@ -212,7 +251,7 @@ const styles = StyleSheet.create({
     bottom: 32,
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 48,
+    paddingHorizontal: 56,
   },
   genreContainer: {
     flexDirection: 'row',
@@ -228,12 +267,12 @@ const styles = StyleSheet.create({
   },
   genre: {
     ...typography.caption,
-    color: colors.text.secondary,
+    color: 'rgba(255, 255, 255, 0.68)',
     marginRight: spacing.xs,
   },
   genreDot: {
-    ...typography.caption,
-    color: colors.text.secondary,
+    ...typography.h3,
+    color: 'rgba(163, 163, 163, 0.68)',
     marginHorizontal: spacing.xs,
   },
   buttonRow: {

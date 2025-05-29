@@ -103,64 +103,13 @@ export const CategoryScreen = () => {
   return (
     <GradientBackground variant="cinematic">
       <View style={styles.container}>
-        {/* Header with back button */}
         <View style={styles.header}>
-          {/* <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity> */}
           <View style={styles.titleContainer}>
-            {/* <View style={styles.titleIconContainer}>
-              <Icon name={getCategoryIcon()} size={24} color={colors.primary} />
-            </View> */}
             <Text style={styles.title}>{title}</Text>
           </View>
-          <View style={styles.headerRight} />
         </View>
 
         <View style={styles.contentContainer}>
-          {/* Content type chip */}
-          <View style={styles.chipContainer}>
-            <View
-              style={[
-                styles.chip,
-                {
-                  backgroundColor:
-                    contentType === 'movie'
-                      ? colors.primary + '22'
-                      : colors.secondary + '22',
-                  borderColor:
-                    contentType === 'movie'
-                      ? colors.primary + '44'
-                      : colors.secondary + '44',
-                },
-              ]}>
-              <Icon
-                name={contentType === 'movie' ? 'film' : 'tv'}
-                size={16}
-                color={
-                  contentType === 'movie' ? colors.primary : colors.secondary
-                }
-              />
-              <Text
-                style={[
-                  styles.chipText,
-                  {
-                    color:
-                      contentType === 'movie'
-                        ? colors.primary
-                        : colors.secondary,
-                  },
-                ]}>
-                {contentType === 'movie' ? 'Movies' : 'TV Shows'}
-              </Text>
-            </View>
-            <Text style={styles.resultsCount}>
-              {transformedData.length} results
-            </Text>
-          </View>
-
           <FlatList
             data={transformedData}
             renderItem={renderItem}
@@ -233,22 +182,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.round,
-    backgroundColor: colors.background.tertiary + '80',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.small,
-  },
-  headerRight: {
-    width: 40,
-  },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
   titleIconContainer: {
     width: 36,
@@ -265,35 +202,12 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-  },
-  chipContainer: {
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    justifyContent: 'center',
   },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.round,
-    borderWidth: 1,
-  },
-  chipText: {
-    ...typography.caption,
-    fontWeight: '600',
-    marginLeft: spacing.xs,
-  },
-  resultsCount: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  listContent: {padding: spacing.sm, paddingBottom: 120},
-  cardContainer: {
-    // width: '50%',
-    // padding: spacing.sm,
+  listContent: {
+    paddingBottom: 120,
   },
   footerLoader: {
     paddingVertical: spacing.xl,

@@ -24,10 +24,13 @@ import {useNavigation} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 import {RootStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {colors} from '../styles/theme';
+import {colors, spacing, typography} from '../styles/theme';
 import {DetailScreenSkeleton} from '../components/LoadingSkeleton';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
+import {LinearGradient} from 'react-native-linear-gradient';
+import {GradientButton} from '../components/GradientButton';
+import Ionicon from 'react-native-vector-icons/Ionicons';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -138,142 +141,171 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
   return (
     <ScrollView style={styles.container}>
-      {!isPlaying ? (
-        <View style={styles.header}>
+      <LinearGradient
+        colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
+        style={styles.gradientShade}
+        start={{x: 0, y: 0}}
+        end={{x: 0.5, y: 0.5}}
+      />
+
+      <View style={styles.main}>
+        {!isPlaying ? (
           <Image
             source={{uri: getImageUrl(movie.backdrop_path || '', 'original')}}
             style={styles.backdrop}
             resizeMode="cover"
           />
-          {trailer && (
-            <TouchableOpacity
-              style={styles.playButton}
-              onPress={() => setIsPlaying(true)}>
-              <Text style={styles.playButtonText}>▶ Play Trailer</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        <View style={styles.trailerContainer}>
-          <YoutubePlayer
-            height={width * 0.5625}
-            play={isPlaying}
-            videoId={trailer.key}
-            webViewProps={{
-              allowsInlineMediaPlayback: true,
-              allowsPictureInPicture: true,
-              allowsFullscreenVideo: true,
-              allowsPictureInPictureMediaPlayback: true,
-            }}
-            key={trailer.key}
-            onChangeState={(state: string) => {
-              if (state === 'ended') setIsPlaying(false);
-            }}
-          />
-        </View>
-      )}
+        ) : (
+          <View style={styles.trailerContainer}>
+            <YoutubePlayer
+              height={width * 0.5625}
+              play={isPlaying}
+              videoId={trailer?.key}
+              webViewProps={{
+                allowsInlineMediaPlayback: true,
+                allowsPictureInPicture: true,
+                allowsFullscreenVideo: true,
+                allowsPictureInPictureMediaPlayback: true,
+              }}
+              key={trailer?.key}
+              onChangeState={(state: string) => {
+                if (state === 'ended') setIsPlaying(false);
+              }}
+            />
+          </View>
+        )}
+      </View>
 
       <View style={styles.content}>
         <Text style={styles.title}>{movie.title}</Text>
-        <View style={styles.info}>
-          <Text style={styles.rating}>⭐ {movie.vote_average.toFixed(1)}</Text>
-          <Text style={styles.year}>
+        <View style={styles.infoContainer}>
+          <Text style={styles.info}>
             {new Date(movie.release_date).getFullYear()}
           </Text>
           {movieDetails?.runtime && (
-            <Text style={styles.runtime}>
-              {Math.floor(movieDetails.runtime / 60)}h{' '}
-              {movieDetails.runtime % 60}m
-            </Text>
+            <>
+              <Text style={styles.infoDot}>•</Text>
+              <Text style={styles.info}>
+                {Math.floor(movieDetails.runtime / 60)}h{' '}
+                {movieDetails.runtime % 60}m
+              </Text>
+            </>
+          )}
+          {movieDetails?.original_language && (
+            <>
+              <Text style={styles.infoDot}>•</Text>
+              <Text style={styles.info}>{movieDetails.original_language}</Text>
+            </>
+          )}
+          {movieDetails?.vote_average && (
+            <>
+              <Text style={styles.infoDot}>•</Text>
+              <View
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                }}>
+                <Ionicon name="star" size={12} color="#ffffff70" />
+                <Text style={styles.info}>
+                  {movieDetails.vote_average.toFixed(1)}
+                </Text>
+              </View>
+            </>
           )}
         </View>
-
-        <View style={styles.actions}>
+        <View style={styles.buttonRow}>
+          <GradientButton
+            title="Watch Now"
+            onPress={() => {
+              setIsPlaying(true);
+            }}
+            style={styles.watchButton}
+            textStyle={styles.watchButtonText}
+          />
           <TouchableOpacity
-            style={styles.actionButton}
+            style={styles.addButton}
             onPress={handleWatchlistPress}>
-            <Icon
-              name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
-              size={24}
-              color={isInWatchlist ? '#e50914' : '#fff'}
-            />
-            <Text style={styles.actionText}>
-              {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
-            </Text>
+            {checkInWatchlist(movie.id) ? (
+              <Ionicon name="checkmark" size={24} color="#fff" />
+            ) : (
+              <Ionicon name="add" size={24} color="#fff" />
+            )}
           </TouchableOpacity>
         </View>
-
-        {movieDetails?.genres && (
-          <View style={styles.genres}>
-            {movieDetails.genres.map((genre: Genre) => (
-              <View key={genre.id} style={styles.genre}>
-                <Text style={styles.genreText}>{genre.name}</Text>
+        <View style={styles.genreContainer}>
+          {movieDetails?.genres
+            ?.slice(0, 3)
+            .map((genre: Genre, index: number) => (
+              <View key={genre.id} style={styles.genreWrapper}>
+                <Text style={styles.genre}>{genre.name}</Text>
+                {index < Math.min(movieDetails.genres.length - 1, 2) && (
+                  <Text style={styles.genreDivider}>|</Text>
+                )}
               </View>
             ))}
-          </View>
-        )}
-
-        <Text style={styles.overview}>{movie.overview}</Text>
-
-        {movieDetails?.credits && (
-          <>
-            <Text style={styles.sectionTitle}>Cast</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {movieDetails.credits.cast.slice(0, 10).map((person: Cast) => (
-                <View key={person.id} style={styles.castItem}>
-                  <Image
-                    source={{
-                      uri: person.profile_path
-                        ? getImageUrl(person.profile_path)
-                        : 'https://via.placeholder.com/100x150',
-                    }}
-                    style={styles.castImage}
-                  />
-                  <Text style={styles.castName} numberOfLines={2}>
-                    {person.name}
-                  </Text>
-                  <Text style={styles.character} numberOfLines={1}>
-                    {person.character}
-                  </Text>
-                </View>
-              ))}
-              <View style={{height: 100}} />
-            </ScrollView>
-          </>
-        )}
-
-        {similarMoviesData.length > 0 && (
-          <View style={styles.section}>
-            <HorizontalList
-              title="Similar Movies"
-              data={similarMoviesData}
-              onItemPress={handleSimilarMoviePress}
-              onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
-              isLoading={isFetchingSimilar}
-              isSeeAll={false}
-            />
-          </View>
-        )}
-
-        {recommendedMoviesData.length > 0 && (
-          <View style={styles.section}>
-            <HorizontalList
-              title="Recommended Movies"
-              data={recommendedMoviesData}
-              onItemPress={handleRecommendedMoviePress}
-              onEndReached={
-                hasNextRecommended ? fetchNextRecommended : undefined
-              }
-              isLoading={isFetchingRecommended}
-              isSeeAll={false}
-            />
-          </View>
-        )}
-
-        {watchProviders?.results?.US && (
-          <WatchProviders providers={watchProviders.results.US} />
-        )}
+        </View>
       </View>
+
+      <Text style={styles.overview}>{movie.overview}</Text>
+
+      {movieDetails?.credits && (
+        <>
+          <Text style={styles.sectionTitle}>Cast</Text>
+          <ScrollView
+            style={{paddingHorizontal: 16, marginBottom: 30}}
+            horizontal
+            showsHorizontalScrollIndicator={false}>
+            {movieDetails.credits.cast.slice(0, 10).map((person: Cast) => (
+              <View key={person.id} style={styles.castItem}>
+                <Image
+                  source={{
+                    uri: person.profile_path
+                      ? getImageUrl(person.profile_path)
+                      : 'https://via.placeholder.com/100x150',
+                  }}
+                  style={styles.castImage}
+                />
+                <Text style={styles.castName} numberOfLines={2}>
+                  {person.name}
+                </Text>
+                <Text style={styles.character} numberOfLines={1}>
+                  {person.character}
+                </Text>
+              </View>
+            ))}
+            <View style={{height: 100}} />
+          </ScrollView>
+        </>
+      )}
+
+      {watchProviders?.results?.US && (
+        <WatchProviders providers={watchProviders.results.US} />
+      )}
+
+      {similarMoviesData.length > 0 && (
+        <HorizontalList
+          title="Similar Movies"
+          data={similarMoviesData}
+          onItemPress={handleSimilarMoviePress}
+          onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
+          isLoading={isFetchingSimilar}
+          isSeeAll={false}
+        />
+      )}
+
+      {recommendedMoviesData.length > 0 && (
+        <HorizontalList
+          title="Recommended Movies"
+          data={recommendedMoviesData}
+          onItemPress={handleRecommendedMoviePress}
+          onEndReached={hasNextRecommended ? fetchNextRecommended : undefined}
+          isLoading={isFetchingRecommended}
+          isSeeAll={false}
+        />
+      )}
+      <View style={{height: 100}} />
     </ScrollView>
   );
 };
@@ -289,107 +321,135 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background.primary,
   },
-  header: {
+  gradientShade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 500,
+  },
+  main: {
     position: 'relative',
+    width: width - 32,
+    height: width * 0.5625,
+    borderRadius: 40,
+    overflow: 'hidden',
+    margin: 16,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: {width: 5, height: 20},
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    backgroundColor: colors.background.tertiary,
   },
   backdrop: {
     width: '100%',
-    height: width * 0.5625,
+    height: '100%',
     backgroundColor: colors.background.secondary,
+    borderRadius: 40,
   },
-  playButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: colors.button.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  playButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  content: {
+    padding: 16,
+    flexDirection: 'column',
+    gap: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trailerContainer: {
     backgroundColor: '#000',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 86,
-  },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
     color: '#fff',
-    marginBottom: 8,
+    textAlign: 'center',
   },
-  info: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  rating: {
-    fontSize: 16,
-    color: '#ffd700',
-    marginRight: 16,
-  },
-  year: {
-    fontSize: 16,
-    color: '#888',
-    marginRight: 16,
-  },
-  runtime: {
-    fontSize: 16,
-    color: '#888',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#2a2a2a',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  actionText: {
-    color: '#fff',
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  genres: {
+  infoContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
+    gap: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  infoWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  info: {
+    ...typography.caption,
+    color: 'rgba(255, 255, 255, 0.68)',
+  },
+  infoDot: {
+    ...typography.h3,
+    color: 'rgba(163, 163, 163, 0.68)',
+    marginHorizontal: spacing.xs,
+  },
+  buttonRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    width: width - 100,
+    marginTop: -spacing.sm,
+  },
+  watchButton: {
+    flex: 1,
+    borderRadius: 24,
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+  },
+  watchButtonText: {
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  genreContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  genreWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   genre: {
-    backgroundColor: '#2a2a2a',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
+    ...typography.caption,
+    color: colors.text.primary,
+    marginRight: spacing.xs,
   },
-  genreText: {
-    color: '#fff',
-    fontSize: 14,
+  genreDivider: {
+    ...typography.caption,
+    color: colors.text.primary,
+    marginHorizontal: spacing.xs,
   },
   overview: {
-    color: '#fff',
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 24,
+    color: colors.text.muted,
+    fontSize: 14,
+    lineHeight: 20,
+    marginHorizontal: 16,
+    marginBottom: 30,
   },
   sectionTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...typography.h3,
+    color: colors.text.primary,
     marginBottom: 16,
+    marginLeft: 16,
   },
   castItem: {
     marginRight: 16,
@@ -404,7 +464,7 @@ const styles = StyleSheet.create({
   },
   castName: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -412,8 +472,5 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 12,
     textAlign: 'center',
-  },
-  section: {
-    marginTop: 24,
   },
 });

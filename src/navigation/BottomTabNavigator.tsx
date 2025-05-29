@@ -43,8 +43,8 @@ const TabBarBackground = () => (
     <BlurView
       style={styles.blurContainer}
       blurType="dark"
-      blurAmount={20}
-      overlayColor="rgba(16, 14, 35, 0.71)"
+      blurAmount={15}
+      overlayColor="rgba(16, 14, 35, 0.43)"
       reducedTransparencyFallbackColor="rgba(15, 13, 33, 0.87)"
     />
   </View>
