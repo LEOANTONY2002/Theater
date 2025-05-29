@@ -34,6 +34,14 @@ export const ContentCard: React.FC<ContentCardProps> = ({
       alignItems: 'center',
       position: 'relative',
     },
+    skeletonContainer: {
+      width: '100%',
+      height: '100%',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      zIndex: 1,
+    },
     image: {
       width: '100%',
       height: '100%',
@@ -55,14 +63,6 @@ export const ContentCard: React.FC<ContentCardProps> = ({
       marginBottom: spacing.xs,
       width: 150,
     },
-    skeletonContainer: {
-      width: '100%',
-      height: '100%',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      zIndex: 1,
-    },
   });
 
   return (
@@ -73,7 +73,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({
         activeOpacity={0.9}>
         {!imageLoaded && (
           <View style={styles.skeletonContainer}>
-            <MoivieCardSkeleton />
+            <MoivieCardSkeleton v2={v2} />
           </View>
         )}
         <Image

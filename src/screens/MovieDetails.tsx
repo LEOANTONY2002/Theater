@@ -25,7 +25,10 @@ import {ContentItem} from '../components/MovieList';
 import {RootStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography} from '../styles/theme';
-import {DetailScreenSkeleton} from '../components/LoadingSkeleton';
+import {
+  BannerHomeSkeleton,
+  DetailScreenSkeleton,
+} from '../components/LoadingSkeleton';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
 import {LinearGradient} from 'react-native-linear-gradient';
@@ -52,6 +55,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const navigation = useNavigation<MovieDetailsScreenNavigationProp>();
   const {movie} = route.params;
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const {data: movieDetails, isLoading} = useMovieDetails(movie.id);
 
@@ -142,10 +146,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       />
 
       <View style={styles.main}>
+        {isPosterLoading && <BannerHomeSkeleton />}
+
         {!isPlaying ? (
           <Image
             source={{uri: getImageUrl(movie.backdrop_path || '', 'original')}}
             style={styles.backdrop}
+            onLoadEnd={() => setIsPosterLoading(false)}
             resizeMode="cover"
           />
         ) : (

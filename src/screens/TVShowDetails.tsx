@@ -32,7 +32,10 @@ import {ContentItem} from '../components/MovieList';
 import {RootStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {DetailScreenSkeleton} from '../components/LoadingSkeleton';
+import {
+  DetailScreenSkeleton,
+  BannerHomeSkeleton,
+} from '../components/LoadingSkeleton';
 import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
@@ -59,6 +62,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const navigation = useNavigation<TVShowDetailsScreenNavigationProp>();
   const {show} = route.params;
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const {data: showDetails, isLoading} = useTVShowDetails(show.id);
 
@@ -182,10 +186,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       />
 
       <View style={styles.main}>
+        {isPosterLoading && <BannerHomeSkeleton />}
+
         {!isPlaying ? (
           <Image
             source={{uri: getImageUrl(show.backdrop_path || '', 'original')}}
             style={styles.backdrop}
+            onLoadEnd={() => setIsPosterLoading(false)}
             resizeMode="cover"
           />
         ) : (

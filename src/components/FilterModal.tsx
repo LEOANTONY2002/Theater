@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -19,7 +20,14 @@ import {
   typography,
   shadows,
 } from '../styles/theme';
-import {FilterParams, SORT_OPTIONS, LANGUAGE_OPTIONS} from '../types/filters';
+import {FilterParams, SORT_OPTIONS} from '../types/filters';
+import {getLanguages} from '../services/tmdb';
+
+interface Language {
+  iso_639_1: string;
+  english_name: string;
+  name: string;
+}
 
 interface FilterModalProps {
   visible: boolean;
@@ -44,6 +52,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   );
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -51,6 +61,28 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       setContentType(initialContentType);
     }
   }, [visible, initialFilters, initialContentType]);
+
+  useEffect(() => {
+    const fetchLanguages = async () => {
+      try {
+        setIsLoadingLanguages(true);
+        const languagesData = await getLanguages();
+        // Sort languages by English name
+        const sortedLanguages = languagesData.sort((a: Language, b: Language) =>
+          a.english_name.localeCompare(b.english_name),
+        );
+        setLanguages(sortedLanguages);
+      } catch (error) {
+        console.error('Error loading languages:', error);
+      } finally {
+        setIsLoadingLanguages(false);
+      }
+    };
+
+    if (visible && languages.length === 0) {
+      fetchLanguages();
+    }
+  }, [visible, languages.length]);
 
   const handleSortChange = (value: string) => {
     setFilters(prev => ({...prev, sort_by: value}));
@@ -235,20 +267,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             <View style={styles.filterSection}>
               <Text style={styles.sectionTitle}>Original Language</Text>
               <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={filters.with_original_language}
-                  onValueChange={handleLanguageChange}
-                  style={styles.picker}
-                  dropdownIconColor={colors.text.primary}>
-                  <Picker.Item label="Any" value="" />
-                  {LANGUAGE_OPTIONS.map(option => (
-                    <Picker.Item
-                      key={option.value}
-                      label={option.label}
-                      value={option.value}
-                    />
-                  ))}
-                </Picker>
+                {isLoadingLanguages ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator color={colors.primary} />
+                  </View>
+                ) : (
+                  <Picker
+                    selectedValue={filters.with_original_language}
+                    onValueChange={handleLanguageChange}
+                    style={styles.picker}
+                    dropdownIconColor={colors.text.primary}>
+                    <Picker.Item label="Any" value="" />
+                    {languages.map(lang => (
+                      <Picker.Item
+                        key={lang.iso_639_1}
+                        label={`${lang.english_name} (${lang.name})`}
+                        value={lang.iso_639_1}
+                      />
+                    ))}
+                  </Picker>
+                )}
               </View>
             </View>
 
@@ -488,5 +526,10 @@ const styles = StyleSheet.create({
     ...typography.body1,
     color: colors.text.primary,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

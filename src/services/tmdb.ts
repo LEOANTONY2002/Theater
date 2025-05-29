@@ -1,12 +1,20 @@
 import axios from 'axios';
 import {tmdbApi} from './api';
 import {FilterParams} from '../types/filters';
+import {SettingsManager} from '../store/settings';
+
+const getLanguageParam = async () => {
+  const contentLanguages = await SettingsManager.getContentLanguages();
+  if (contentLanguages.length === 0) return undefined;
+  return contentLanguages.map(lang => lang.iso_639_1).join('|');
+};
 
 export const getMovies = async (
   type: 'latest' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing',
   page = 1,
 ) => {
   const today = new Date().toISOString().split('T')[0];
+  const with_original_language = await getLanguageParam();
 
   if (type === 'latest') {
     const params: any = {
@@ -14,15 +22,22 @@ export const getMovies = async (
       sort_by: 'release_date.desc',
       'release_date.lte': today,
       'vote_count.gte': 6,
-      // with_original_language: 'ta',
+      with_original_language,
     };
     const response = await tmdbApi.get('/discover/movie', {params});
     return response.data;
   }
 
-  // For other types, use built-in endpoints
-  const response = await tmdbApi.get(`/movie/${type}`, {
-    params: {page},
+  // For other types, use built-in endpoints with discover to support language filter
+  const params: any = {
+    page,
+    with_original_language,
+  };
+  const response = await tmdbApi.get(`/discover/movie`, {
+    params: {
+      ...params,
+      sort_by: type === 'popular' ? 'popularity.desc' : 'vote_average.desc',
+    },
   });
   return response.data;
 };
@@ -32,59 +47,32 @@ export const getTVShows = async (
   page = 1,
 ) => {
   const today = new Date().toISOString().split('T')[0];
+  const with_original_language = await getLanguageParam();
   const params: any = {
     page,
     sort_by: 'first_air_date.desc',
     without_genres: '10764,10767,10766,10763', // Reality, Talk Show, Soap, News
-    with_original_language: 'en',
+    with_original_language,
     'first_air_date.lte': today,
     'vote_count.gte': 6,
   };
+
   if (type === 'latest') {
     const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }
+
   if (type === 'popular') {
     params.sort_by = 'popularity.desc';
     const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }
-  const response = await tmdbApi.get(`/tv/${type}`, {
-    params: {
-      page,
-    },
-  });
+
+  // For top_rated, use discover with vote_average sort
+  params.sort_by = 'vote_average.desc';
+  const response = await tmdbApi.get('/discover/tv', {params});
   return response.data;
 };
-
-// export const getTVShows = async (
-//   type: 'latest' | 'popular' | 'top_rated',
-//   page = 1,
-// ) => {
-//   const sortMap = {
-//     latest: 'first_air_date.desc',
-//     popular: 'popularity.desc',
-//     top_rated: 'vote_average.desc',
-//   };
-
-//   const today = new Date().toISOString().split('T')[0];
-
-//   const params: any = {
-//     page,
-//     sort_by: sortMap[type],
-//     with_type: 0, // Only scripted shows
-//     with_original_language: 'en',
-//     'first_air_date.lte': today,
-//     'vote_count.gte': 10,
-//     without_genres: '10764,10767,10766,10763', // Reality, Talk, Soap, News
-//     include_null_first_air_dates: false,
-//   };
-
-//   const response = await tmdbApi.get('/discover/tv', { params });
-//   return response.data;
-// };
-
-// Use basic TV endpoints for popular and top_rated
 
 export const searchMovies = async (
   query: string,
@@ -92,13 +80,15 @@ export const searchMovies = async (
   filters: FilterParams = {},
 ) => {
   if (!query) {
-    const response = await tmdbApi.get('/discover/movie', {
-      params: {
-        page,
-        sort_by: 'popularity.desc',
-        ...filters,
-      },
-    });
+    const with_original_language = await getLanguageParam();
+    const params = {
+      page,
+      sort_by: 'popularity.desc',
+      ...filters,
+      with_original_language:
+        filters.with_original_language || with_original_language,
+    };
+    const response = await tmdbApi.get('/discover/movie', {params});
     return response.data;
   }
   const response = await tmdbApi.get('/search/movie', {
@@ -117,13 +107,15 @@ export const searchTVShows = async (
   filters: FilterParams = {},
 ) => {
   if (!query) {
-    const response = await tmdbApi.get('/discover/tv', {
-      params: {
-        page,
-        sort_by: 'popularity.desc',
-        ...filters,
-      },
-    });
+    const with_original_language = await getLanguageParam();
+    const params = {
+      page,
+      sort_by: 'popularity.desc',
+      ...filters,
+      with_original_language:
+        filters.with_original_language || with_original_language,
+    };
+    const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }
   const response = await tmdbApi.get('/search/tv', {
@@ -163,27 +155,59 @@ export const getImageUrl = (
 };
 
 export const getSimilarMovies = async (movieId: number, page = 1) => {
-  const response = await tmdbApi.get(`/movie/${movieId}/similar`, {
-    params: {page},
+  const with_original_language = await getLanguageParam();
+  const response = await tmdbApi.get(`/discover/movie`, {
+    params: {
+      page,
+      with_original_language,
+      with_genres: (await getMovieDetails(movieId)).genres
+        .map((g: any) => g.id)
+        .join(','),
+    },
   });
   return response.data;
 };
 
 export const getMovieRecommendations = async (movieId: number, page = 1) => {
-  const response = await tmdbApi.get(`/movie/${movieId}/recommendations`, {
-    params: {page},
+  const with_original_language = await getLanguageParam();
+  const response = await tmdbApi.get(`/discover/movie`, {
+    params: {
+      page,
+      with_original_language,
+      with_genres: (await getMovieDetails(movieId)).genres
+        .map((g: any) => g.id)
+        .join(','),
+      sort_by: 'vote_average.desc',
+    },
   });
   return response.data;
 };
 
 export const getSimilarTVShows = async (tvId: number, page = 1) => {
-  const response = await tmdbApi.get(`/tv/${tvId}/similar`, {params: {page}});
+  const with_original_language = await getLanguageParam();
+  const response = await tmdbApi.get(`/discover/tv`, {
+    params: {
+      page,
+      with_original_language,
+      with_genres: (await getTVShowDetails(tvId)).genres
+        .map((g: any) => g.id)
+        .join(','),
+    },
+  });
   return response.data;
 };
 
 export const getTVShowRecommendations = async (tvId: number, page = 1) => {
-  const response = await tmdbApi.get(`/tv/${tvId}/recommendations`, {
-    params: {page},
+  const with_original_language = await getLanguageParam();
+  const response = await tmdbApi.get(`/discover/tv`, {
+    params: {
+      page,
+      with_original_language,
+      with_genres: (await getTVShowDetails(tvId)).genres
+        .map((g: any) => g.id)
+        .join(','),
+      sort_by: 'vote_average.desc',
+    },
   });
   return response.data;
 };
@@ -295,4 +319,9 @@ export const getPersonTVCredits = async (personId: number, page = 1) => {
     total_pages: Math.ceil(sortedCast.length / itemsPerPage),
     total_results: sortedCast.length,
   };
+};
+
+export const getLanguages = async () => {
+  const response = await tmdbApi.get('/configuration/languages');
+  return response.data;
 };
