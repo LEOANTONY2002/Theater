@@ -22,7 +22,9 @@ type MovieListProps = {
   onRefresh?: () => void;
   onLoadMore?: (() => void) | undefined;
   onMoviePress: (item: ContentItem) => void;
-  onRemoveFromWatchlist?: (id: number) => void;
+  onRemove?: (id: number) => void;
+  emptyText?: string;
+  emptySubtext?: string;
 };
 
 export const MovieList: React.FC<MovieListProps> = ({
@@ -32,7 +34,9 @@ export const MovieList: React.FC<MovieListProps> = ({
   onRefresh,
   onLoadMore,
   onMoviePress,
-  onRemoveFromWatchlist,
+  onRemove,
+  emptyText,
+  emptySubtext,
 }) => {
   const renderFooter = () => {
     if (!isLoading) return null;
@@ -46,10 +50,10 @@ export const MovieList: React.FC<MovieListProps> = ({
   const renderItem = ({item}: {item: ContentItem}) => (
     <View style={styles.itemContainer}>
       <MovieCard item={item} onPress={onMoviePress} />
-      {onRemoveFromWatchlist && (
+      {onRemove && (
         <TouchableOpacity
           style={styles.removeButton}
-          onPress={() => onRemoveFromWatchlist(item.id)}>
+          onPress={() => onRemove(item.id)}>
           <Icon
             name="close-circle"
             size={24}
@@ -85,18 +89,23 @@ export const MovieList: React.FC<MovieListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.sm,
+    padding: spacing.md,
+  },
+  itemContainer: {
+    flex: 1,
+    margin: spacing.xs,
+    position: 'relative',
   },
   footer: {
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
   removeButton: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    backgroundColor: 'white',
-    opacity: 0.9,
+    top: spacing.xs,
+    right: spacing.xs,
+    backgroundColor: colors.background.primary,
+    opacity: 0.8,
     borderRadius: 12,
   },
 });

@@ -68,8 +68,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     removeItem: removeFromWatchlist,
   } = useUserContent('watchlist');
 
-  const {addItem: addToHistory} = useUserContent('history');
-
   const {
     data: similarShows,
     fetchNextPage: fetchNextSimilar,
@@ -93,12 +91,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   );
 
   const {data: watchProviders} = useWatchProviders(show.id, 'tv');
-  console.log('TV Show Watch Providers:', watchProviders);
-
-  useEffect(() => {
-    // Add to history when viewing details
-    addToHistory(show, 'tv');
-  }, [addToHistory, show]);
 
   useEffect(() => {
     // Update watchlist status

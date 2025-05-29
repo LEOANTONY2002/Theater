@@ -61,8 +61,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     removeItem: removeFromWatchlist,
   } = useUserContent('watchlist');
 
-  const {addItem: addToHistory} = useUserContent('history');
-
   const {
     data: similarMovies,
     fetchNextPage: fetchNextSimilar,
@@ -78,12 +76,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   } = useMovieRecommendations(movie.id);
 
   const {data: watchProviders} = useWatchProviders(movie.id, 'movie');
-  console.log('Movie Watch Providers:', watchProviders);
-
-  useEffect(() => {
-    // Add to history when viewing details
-    addToHistory(movie, 'movie');
-  }, [addToHistory, movie]);
 
   useEffect(() => {
     // Update watchlist status

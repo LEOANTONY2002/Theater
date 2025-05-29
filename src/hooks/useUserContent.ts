@@ -6,63 +6,46 @@ import {ContentItem} from '../components/MovieList';
 
 const STORAGE_KEYS = {
   WATCHLIST: '@user_watchlist',
-  HISTORY: '@user_history',
 };
 
-type ContentType = 'watchlist' | 'history';
+type ContentType = 'watchlist';
 
-// Create a global state object to share between hook instances
-const globalState: {
-  [key: string]: {
-    content: ContentItem[];
-    listeners: Set<() => void>;
-  };
-} = {};
+// Global state to sync across hook instances
+const globalState: Record<string, {content: ContentItem[]}> = {
+  [STORAGE_KEYS.WATCHLIST]: {content: []},
+};
+
+// Listeners for state changes
+const listeners: Record<string, Set<() => void>> = {
+  [STORAGE_KEYS.WATCHLIST]: new Set(),
+};
 
 export const useUserContent = (type: ContentType) => {
-  const storageKey =
-    STORAGE_KEYS[type.toUpperCase() as keyof typeof STORAGE_KEYS];
-
-  // Initialize global state for this content type if it doesn't exist
-  if (!globalState[storageKey]) {
-    globalState[storageKey] = {
-      content: [],
-      listeners: new Set(),
-    };
-  }
-
-  const [content, setContent] = useState<ContentItem[]>(
-    globalState[storageKey].content,
-  );
+  const [content, setContent] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const storageKey = STORAGE_KEYS[type.toUpperCase()];
 
-  // Add this instance's setContent to listeners
-  useEffect(() => {
-    const updateContent = () => setContent(globalState[storageKey].content);
-    globalState[storageKey].listeners.add(updateContent);
-    return () => {
-      globalState[storageKey].listeners.delete(updateContent);
-    };
-  }, [storageKey]);
-
-  // Notify all listeners of content changes
   const notifyListeners = useCallback(() => {
-    globalState[storageKey].listeners.forEach(listener => listener());
+    listeners[storageKey].forEach(listener => listener());
   }, [storageKey]);
 
   const loadContent = useCallback(async () => {
     try {
       setIsLoading(true);
-      const storedContent = await AsyncStorage.getItem(storageKey);
-      const newContent = storedContent ? JSON.parse(storedContent) : [];
-      globalState[storageKey].content = newContent;
-      notifyListeners();
+      const savedContent = await AsyncStorage.getItem(storageKey);
+      const parsedContent: ContentItem[] = savedContent
+        ? JSON.parse(savedContent)
+        : [];
+
+      // Update global state
+      globalState[storageKey].content = parsedContent;
+      setContent(parsedContent);
     } catch (error) {
       console.error(`Error loading ${type}:`, error);
     } finally {
       setIsLoading(false);
     }
-  }, [storageKey, type, notifyListeners]);
+  }, [storageKey, type]);
 
   const addItem = useCallback(
     async (item: Movie | TVShow, itemType: 'movie' | 'tv') => {
@@ -73,32 +56,19 @@ export const useUserContent = (type: ContentType) => {
         } as ContentItem;
 
         const currentContent = globalState[storageKey].content;
-        let newContent: ContentItem[];
 
-        if (type === 'history') {
-          newContent = [
-            contentItem,
-            ...currentContent.filter(
-              existingItem => existingItem.id !== item.id,
-            ),
-          ];
-        } else {
-          if (
-            !currentContent.some(existingItem => existingItem.id === item.id)
-          ) {
-            newContent = [...currentContent, contentItem];
-          } else {
-            return false;
-          }
+        if (!currentContent.some(existingItem => existingItem.id === item.id)) {
+          const newContent = [...currentContent, contentItem];
+
+          // Update global state and notify listeners
+          globalState[storageKey].content = newContent;
+          notifyListeners();
+
+          // Update storage
+          await AsyncStorage.setItem(storageKey, JSON.stringify(newContent));
+          return true;
         }
-
-        // Update global state and notify listeners
-        globalState[storageKey].content = newContent;
-        notifyListeners();
-
-        // Update storage
-        await AsyncStorage.setItem(storageKey, JSON.stringify(newContent));
-        return true;
+        return false;
       } catch (error) {
         console.error(`Error adding item to ${type}:`, error);
         await loadContent();
