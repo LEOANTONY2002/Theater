@@ -15,29 +15,27 @@ export const getMovies = async (
 ) => {
   const today = new Date().toISOString().split('T')[0];
   const with_original_language = await getLanguageParam();
-
+  console.log('with_original_language', with_original_language);
+  const params: any = {
+    page,
+    sort_by: 'release_date.desc',
+    with_original_language,
+    'release_date.lte': today,
+    'vote_count.gte': 6,
+  };
   if (type === 'latest') {
-    const params: any = {
-      page,
-      sort_by: 'release_date.desc',
-      'release_date.lte': today,
-      'vote_count.gte': 6,
-      with_original_language,
-    };
+    const response = await tmdbApi.get('/discover/movie', {params});
+    return response.data;
+  }
+  if (type === 'popular') {
+    params.sort_by = 'popularity.desc';
     const response = await tmdbApi.get('/discover/movie', {params});
     return response.data;
   }
 
-  // For other types, use built-in endpoints with discover to support language filter
-  const params: any = {
-    page,
-    with_original_language,
-  };
-  const response = await tmdbApi.get(`/discover/movie`, {
-    params: {
-      ...params,
-      sort_by: type === 'popular' ? 'popularity.desc' : 'vote_average.desc',
-    },
+  // For other types, use built-in endpoints
+  const response = await tmdbApi.get(`/movie/${type}`, {
+    params: {page},
   });
   return response.data;
 };
@@ -56,21 +54,20 @@ export const getTVShows = async (
     'first_air_date.lte': today,
     'vote_count.gte': 6,
   };
-
   if (type === 'latest') {
     const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }
-
   if (type === 'popular') {
     params.sort_by = 'popularity.desc';
     const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }
-
-  // For top_rated, use discover with vote_average sort
-  params.sort_by = 'vote_average.desc';
-  const response = await tmdbApi.get('/discover/tv', {params});
+  const response = await tmdbApi.get(`/tv/${type}`, {
+    params: {
+      page,
+    },
+  });
   return response.data;
 };
 

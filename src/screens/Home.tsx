@@ -75,7 +75,7 @@ export const HomeScreen = () => {
     hasNextPage: hasNextRecent,
     isFetchingNextPage: isFetchingRecent,
     refetch: refetchRecent,
-  } = useMoviesList('now_playing');
+  } = useMoviesList('latest');
 
   // Recent TV Shows (On Air)
   const {
@@ -106,14 +106,14 @@ export const HomeScreen = () => {
 
   // Get a random popular item for the banner
   const featuredItem = useMemo(() => {
-    if (!popularMovies?.pages?.[0]?.results) return null;
-    const items = popularMovies.pages[0].results;
+    if (!recentMovies?.pages?.[0]?.results) return null;
+    const items = recentMovies.pages[0].results;
     const randomIndex = Math.floor(Math.random() * Math.min(items.length, 5));
     return {
       item: items[randomIndex],
       type: 'movie' as const,
     };
-  }, [popularMovies]);
+  }, [recentMovies]);
 
   const handleFeaturedPress = useCallback(() => {
     if (featuredItem?.type === 'movie') {
@@ -226,7 +226,7 @@ export const HomeScreen = () => {
           onItemPress={handleItemPress}
           onEndReached={hasNextRecent ? fetchNextRecent : undefined}
           onSeeAllPress={() =>
-            handleSeeAllPress('Recent Movies', 'now_playing', 'movie')
+            handleSeeAllPress('Recent Movies', 'latest', 'movie')
           }
         />
 
