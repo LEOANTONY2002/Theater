@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  FlatList,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -18,6 +19,7 @@ import {LanguageSettings} from '../components/LanguageSettings';
 import {SettingsManager} from '../store/settings';
 import {useQueryClient} from '@tanstack/react-query';
 import {BlurView} from '@react-native-community/blur';
+import {MovieCard} from '../components/MovieCard';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -124,13 +126,12 @@ export const MySpaceScreen = () => {
 
           {watchlist.length > 0 ? (
             <View style={styles.watchlistContainer}>
-              <MovieList
+              <FlatList
                 data={watchlist}
-                isLoading={watchlistLoading}
-                onMoviePress={handleMoviePress}
-                onRemove={handleRemoveFromWatchlist}
-                emptyText="Your watchlist is empty"
-                emptySubtext="Add movies and TV shows to your watchlist to keep track of what you want to watch"
+                numColumns={3}
+                renderItem={({item}) => (
+                  <MovieCard item={item} onPress={handleMoviePress} />
+                )}
               />
             </View>
           ) : (
@@ -205,6 +206,8 @@ const styles = StyleSheet.create({
   watchlistContainer: {
     flex: 1,
     paddingVertical: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyContainer: {
     flex: 1,

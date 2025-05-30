@@ -465,27 +465,29 @@ export const SearchScreen = () => {
           ) : hasNoResults ? (
             <NoResults query={debouncedQuery} />
           ) : (
-            <MovieList
-              data={displayedContent}
-              isLoading={isFetchingMoviePage || isFetchingTVPage}
-              onMoviePress={handleItemPress}
-              onLoadMore={
-                contentType === 'all'
-                  ? hasNextMoviePage || hasNextTVPage
-                    ? () => {
-                        if (hasNextMoviePage) fetchNextMoviePage();
-                        if (hasNextTVPage) fetchNextTVPage();
-                      }
+            <View style={{flex: 1}}>
+              <MovieList
+                data={displayedContent}
+                isLoading={isFetchingMoviePage || isFetchingTVPage}
+                onMoviePress={handleItemPress}
+                onLoadMore={
+                  contentType === 'all'
+                    ? hasNextMoviePage || hasNextTVPage
+                      ? () => {
+                          if (hasNextMoviePage) fetchNextMoviePage();
+                          if (hasNextTVPage) fetchNextTVPage();
+                        }
+                      : undefined
+                    : contentType === 'movie'
+                    ? hasNextMoviePage
+                      ? fetchNextMoviePage
+                      : undefined
+                    : hasNextTVPage
+                    ? fetchNextTVPage
                     : undefined
-                  : contentType === 'movie'
-                  ? hasNextMoviePage
-                    ? fetchNextMoviePage
-                    : undefined
-                  : hasNextTVPage
-                  ? fetchNextTVPage
-                  : undefined
-              }
-            />
+                }
+              />
+            </View>
           )}
         </>
       )}

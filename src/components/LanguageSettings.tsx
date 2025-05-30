@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getLanguages} from '../services/tmdb';
 import {SettingsManager, Language} from '../store/settings';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 // Define suggested language codes
 const SUGGESTED_LANGUAGE_CODES = [
@@ -41,27 +41,44 @@ const fetchLanguages = async () => {
 };
 
 export const LanguageSettings = () => {
+  const queryClient = useQueryClient();
   const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([]);
 
   // Query for all languages
-  const {data: languages = [], isLoading} = useQuery({
+  const {data: languages = [], isLoading: isLoadingLanguages} = useQuery({
     queryKey: ['languages'],
     queryFn: fetchLanguages,
-    staleTime: Infinity, // Never consider the data stale
-    gcTime: Infinity, // Keep in cache forever (previously cacheTime)
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
-  // Query for selected languages
-  const {data: savedLanguages = []} = useQuery<Language[]>({
+  // Query for selected languages with enabled setting
+  const {data: savedLanguages = [], isLoading: isLoadingSaved} = useQuery<
+    Language[]
+  >({
     queryKey: ['selectedLanguages'],
     queryFn: SettingsManager.getContentLanguages,
     initialData: [],
+    enabled: true, // Always enable this query
+    staleTime: 0, // Consider data always stale to ensure fresh data
   });
 
   // Update selected languages when saved languages change
-  React.useEffect(() => {
-    setSelectedLanguages(savedLanguages);
-  }, [savedLanguages]);
+  useEffect(() => {
+    if (savedLanguages.length > 0) {
+      setSelectedLanguages(savedLanguages);
+    } else if (!isLoadingSaved) {
+      // If no saved languages and not loading, set English as default
+      const englishLanguage = languages.find(
+        (lang: Language) => lang.iso_639_1 === 'en',
+      );
+      if (englishLanguage) {
+        const defaultLanguages = [englishLanguage];
+        setSelectedLanguages(defaultLanguages);
+        SettingsManager.setContentLanguages(defaultLanguages);
+      }
+    }
+  }, [savedLanguages, isLoadingSaved, languages]);
 
   const toggleLanguage = async (language: Language) => {
     const isSelected = selectedLanguages.some(
@@ -70,6 +87,10 @@ export const LanguageSettings = () => {
 
     let newSelectedLanguages: Language[];
     if (isSelected) {
+      // Prevent removing the last language
+      if (selectedLanguages.length === 1) {
+        return;
+      }
       newSelectedLanguages = selectedLanguages.filter(
         (lang: Language) => lang.iso_639_1 !== language.iso_639_1,
       );
@@ -79,9 +100,10 @@ export const LanguageSettings = () => {
 
     setSelectedLanguages(newSelectedLanguages);
     await SettingsManager.setContentLanguages(newSelectedLanguages);
+    queryClient.invalidateQueries({queryKey: ['selectedLanguages']});
   };
 
-  if (isLoading) {
+  if (isLoadingLanguages || isLoadingSaved) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

@@ -152,7 +152,7 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
           </View>
           <View style={styles.buttonContainer}>
             <GradientButton
-              title="View Details"
+              title="Watch Now"
               onPress={handlePress}
               style={styles.button}
             />
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xxl,
     alignSelf: 'flex-start',
-    height: 40,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
@@ -274,8 +274,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     backgroundColor: colors.background.tertiary,
     borderRadius: borderRadius.round,
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',

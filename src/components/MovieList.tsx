@@ -89,7 +89,7 @@ export const MovieList: React.FC<MovieListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.md,
+    // padding: spacing.md,
   },
   itemContainer: {
     flex: 1,
