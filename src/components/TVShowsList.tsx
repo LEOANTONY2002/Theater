@@ -61,7 +61,7 @@ export const TVShowsList = () => {
                 key={show.id}
                 id={show.id}
                 title={show.name}
-                posterPath={show.poster_path}
+                posterPath={show?.poster_path}
                 type="tv"
                 rating={show.vote_average}
                 releaseDate={show.first_air_date}

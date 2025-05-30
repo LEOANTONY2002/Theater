@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -11,36 +11,57 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getLanguages} from '../services/tmdb';
 import {SettingsManager, Language} from '../store/settings';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {useQuery} from '@tanstack/react-query';
+
+// Define suggested language codes
+const SUGGESTED_LANGUAGE_CODES = [
+  'en', // English
+  'es', // Spanish
+  'fr', // French
+  'ja', // Japanese
+  'ko', // Korean
+  'ta', // Tamil
+  'hi', // Hindi
+  'zh', // Chinese
+  'de', // German
+  'it', // Italian
+];
+
+const fetchLanguages = async () => {
+  // Try to get cached languages first
+  const cachedLanguages = await SettingsManager.getCachedLanguages();
+  if (cachedLanguages) {
+    return cachedLanguages;
+  }
+
+  // If no cache, fetch from API and cache
+  const languages = await getLanguages();
+  await SettingsManager.setCachedLanguages(languages);
+  return languages;
+};
 
 export const LanguageSettings = () => {
-  const [languages, setLanguages] = useState<Language[]>([]);
   const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [languagesData, savedLanguages] = await Promise.all([
-          getLanguages(),
-          SettingsManager.getContentLanguages(),
-        ]);
+  // Query for all languages
+  const {data: languages = [], isLoading} = useQuery({
+    queryKey: ['languages'],
+    queryFn: fetchLanguages,
+    staleTime: Infinity, // Never consider the data stale
+    gcTime: Infinity, // Keep in cache forever (previously cacheTime)
+  });
 
-        // Sort languages by English name
-        const sortedLanguages = languagesData.sort((a: Language, b: Language) =>
-          a.english_name.localeCompare(b.english_name),
-        );
-        setLanguages(sortedLanguages);
-        setSelectedLanguages(savedLanguages);
-      } catch (error) {
-        console.error('Error loading languages:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Query for selected languages
+  const {data: savedLanguages = []} = useQuery<Language[]>({
+    queryKey: ['selectedLanguages'],
+    queryFn: SettingsManager.getContentLanguages,
+    initialData: [],
+  });
 
-    loadData();
-  }, []);
+  // Update selected languages when saved languages change
+  React.useEffect(() => {
+    setSelectedLanguages(savedLanguages);
+  }, [savedLanguages]);
 
   const toggleLanguage = async (language: Language) => {
     const isSelected = selectedLanguages.some(
@@ -68,14 +89,23 @@ export const LanguageSettings = () => {
     );
   }
 
+  // Sort languages by English name
+  const sortedLanguages = [...languages].sort((a: Language, b: Language) =>
+    a.english_name.localeCompare(b.english_name),
+  );
+
+  const suggestedLanguages = sortedLanguages.filter(lang =>
+    SUGGESTED_LANGUAGE_CODES.includes(lang.iso_639_1),
+  );
+  const otherLanguages = sortedLanguages.filter(
+    lang => !SUGGESTED_LANGUAGE_CODES.includes(lang.iso_639_1),
+  );
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.description}>
-        Select the languages you want to see content in. Content in other
-        languages will be filtered out.
-      </Text>
-      <ScrollView style={styles.languageList}>
-        {languages.map(language => {
+    <ScrollView style={styles.container}>
+      <Text style={styles.sectionTitle}>Choose Content Languages</Text>
+      <View style={styles.section}>
+        {suggestedLanguages.map(language => {
           const isSelected = selectedLanguages.some(
             (lang: Language) => lang.iso_639_1 === language.iso_639_1,
           );
@@ -95,8 +125,34 @@ export const LanguageSettings = () => {
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
-    </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.description}>More Languages</Text>
+        {otherLanguages.map(language => {
+          const isSelected = selectedLanguages.some(
+            (lang: Language) => lang.iso_639_1 === language.iso_639_1,
+          );
+
+          return (
+            <TouchableOpacity
+              key={language.iso_639_1}
+              style={[styles.languageItem, isSelected && styles.selectedItem]}
+              onPress={() => toggleLanguage(language)}>
+              <View style={styles.languageInfo}>
+                <Text style={styles.languageName}>{language.english_name}</Text>
+                {language.name && (
+                  <Text style={styles.nativeName}>({language.name})</Text>
+                )}
+              </View>
+              {isSelected && (
+                <Icon name="checkmark" size={24} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 };
 
@@ -104,6 +160,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: spacing.lg,
+    paddingTop: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -117,6 +174,16 @@ const styles = StyleSheet.create({
   },
   languageList: {
     flex: 1,
+  },
+  section: {
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
   },
   languageItem: {
     flexDirection: 'row',
@@ -133,6 +200,9 @@ const styles = StyleSheet.create({
   },
   languageInfo: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   languageName: {
     ...typography.body1,

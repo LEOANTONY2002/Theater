@@ -103,7 +103,7 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
     }
   };
 
-  if (item.poster_path === null) {
+  if (item?.poster_path === null) {
     return (
       <View style={styles.skeletonContainer}>
         <BannerSkeleton />
@@ -116,7 +116,7 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
       <ImageBackground
         onLoadEnd={() => setLoading(false)}
         source={{
-          uri: `https://image.tmdb.org/t/p/w780${item.poster_path}`,
+          uri: `https://image.tmdb.org/t/p/w780${item?.poster_path}`,
         }}
         style={styles.background}
         resizeMode="cover">

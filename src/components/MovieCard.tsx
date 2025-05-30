@@ -32,13 +32,13 @@ export const MovieCard: React.FC<MovieCardProps> = ({
         {!imageLoaded && <MoivieCardSkeleton />}
         <Image
           source={{
-            uri: item.poster_path
-              ? getImageUrl(item.poster_path)
+            uri: item?.poster_path
+              ? getImageUrl(item?.poster_path)
               : 'https://via.placeholder.com/300x450',
           }}
           style={[
-            styles.poster,
-            size === 'large' && styles.posterLarge,
+            styles?.poster,
+            size === 'large' && styles?.posterLarge,
             !imageLoaded && {position: 'absolute', width: 0, height: 0},
           ]}
           resizeMode="cover"

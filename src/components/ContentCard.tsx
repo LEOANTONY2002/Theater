@@ -16,7 +16,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({
   v2 = false,
 }) => {
   const imageUrl = `https://image.tmdb.org/t/p/w500${
-    v2 ? item.backdrop_path : item.poster_path
+    v2 ? item.backdrop_path : item?.poster_path
   }`;
 
   const title = 'title' in item ? item.title : 'name' in item ? item.name : '';

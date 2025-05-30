@@ -1,5 +1,11 @@
 import React, {useState, useCallback, useEffect} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types/navigation';
@@ -8,11 +14,10 @@ import {MovieList, ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {colors, spacing, typography} from '../styles/theme';
-import {GradientBackground} from '../components/GradientBackground';
 import {LanguageSettings} from '../components/LanguageSettings';
 import {SettingsManager} from '../store/settings';
-import Icon from 'react-native-vector-icons/Ionicons';
 import {useQueryClient} from '@tanstack/react-query';
+import {BlurView} from '@react-native-community/blur';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -27,7 +32,6 @@ export const MySpaceScreen = () => {
   const {
     content: watchlist,
     isLoading: watchlistLoading,
-    refresh: refreshWatchlist,
     removeItem: removeFromWatchlist,
     clearContent: clearWatchlist,
   } = useUserContent('watchlist');
@@ -76,11 +80,11 @@ export const MySpaceScreen = () => {
     <TouchableOpacity
       style={[styles.tab, activeTab === tab && styles.activeTab]}
       onPress={() => setActiveTab(tab)}>
-      <Icon
+      {/* <Icon
         name={icon}
         size={24}
         color={activeTab === tab ? colors.primary : colors.text.secondary}
-      />
+      /> */}
       <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
         {label}
       </Text>
@@ -88,39 +92,57 @@ export const MySpaceScreen = () => {
   );
 
   return (
-    <GradientBackground>
-      <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.tabsContainer}>
         <View style={styles.tabs}>
+          <BlurView
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 50,
+            }}
+            blurRadius={10}
+            overlayColor="rgba(43, 43, 63, 0.72)"
+          />
           {renderTab('watchlist', 'Watchlist', 'bookmark-outline')}
           {renderTab('settings', 'Settings', 'settings-outline')}
         </View>
-
-        {activeTab === 'watchlist' ? (
-          <>
-            {watchlist.length > 0 && (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Watchlist</Text>
-                <TouchableOpacity onPress={handleClearWatchlist}>
-                  <Text style={styles.clearAllText}>Clear All</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            <MovieList
-              data={watchlist}
-              isLoading={watchlistLoading}
-              onMoviePress={handleMoviePress}
-              onRefresh={refreshWatchlist}
-              onRemove={handleRemoveFromWatchlist}
-              emptyText="Your watchlist is empty"
-              emptySubtext="Add movies and TV shows to your watchlist to keep track of what you want to watch"
-            />
-          </>
-        ) : (
-          <LanguageSettings />
-        )}
       </View>
-    </GradientBackground>
+
+      {activeTab === 'watchlist' ? (
+        <>
+          {/* {watchlist.length > 0 && (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Watchlist</Text>
+              <TouchableOpacity onPress={handleClearWatchlist}>
+                <Text style={styles.clearAllText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
+          )} */}
+
+          {watchlist.length > 0 ? (
+            <View style={styles.watchlistContainer}>
+              <MovieList
+                data={watchlist}
+                isLoading={watchlistLoading}
+                onMoviePress={handleMoviePress}
+                onRemove={handleRemoveFromWatchlist}
+                emptyText="Your watchlist is empty"
+                emptySubtext="Add movies and TV shows to your watchlist to keep track of what you want to watch"
+              />
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Your watchlist is empty</Text>
+            </View>
+          )}
+        </>
+      ) : (
+        <LanguageSettings />
+      )}
+    </SafeAreaView>
   );
 };
 
@@ -128,14 +150,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: spacing.lg,
+    backgroundColor: colors.background.primary,
+  },
+  tabsContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 1,
   },
   tabs: {
     flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.lg,
+    overflow: 'hidden',
+    borderRadius: 100,
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
   },
   tab: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -143,15 +177,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
+    // borderBottomWidth: 2,
+    // borderBottomColor: colors.text.primary,
   },
   tabText: {
     ...typography.body1,
-    color: colors.text.secondary,
+    color: colors.text.muted,
   },
   activeTabText: {
-    color: colors.primary,
+    color: colors.text.primary,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -167,5 +201,18 @@ const styles = StyleSheet.create({
   clearAllText: {
     color: colors.text.muted,
     ...typography.body2,
+  },
+  watchlistContainer: {
+    flex: 1,
+    paddingVertical: 100,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: colors.text.muted,
+    ...typography.body1,
   },
 });

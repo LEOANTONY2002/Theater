@@ -19,7 +19,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({item}) => {
           uri: item ? item : 'https://via.placeholder.com/300x450',
         }}
         style={[
-          styles.poster,
+          styles?.poster,
           !imageLoaded && {position: 'absolute', width: 0, height: 0},
         ]}
         resizeMode="cover"

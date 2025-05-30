@@ -93,7 +93,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
   // useEffect(() => {
   //   const fetchDominantColor = async () => {
   //     const result = await ImageColors.getColors(
-  //       `https://image.tmdb.org/t/p/w780${item.poster_path}`,
+  //       `https://image.tmdb.org/t/p/w780${item?.poster_path}`,
   //       {
   //         fallback: '#375B695',
   //         cache: true,
@@ -127,7 +127,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
     }
   };
 
-  if (item.poster_path === null) {
+  if (item?.poster_path === null) {
     return (
       <View style={styles.skeletonContainer}>
         <BannerSkeleton />
@@ -150,7 +150,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
       <ImageBackground
         onLoadEnd={() => setLoading(false)}
         source={{
-          uri: `https://image.tmdb.org/t/p/w780${item.poster_path}`,
+          uri: `https://image.tmdb.org/t/p/w780${item?.poster_path}`,
         }}
         style={styles.cardContainer}
         imageStyle={styles.imageStyle}>

@@ -477,8 +477,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         }}>
                         <Image
                           source={{
-                            uri: season.poster_path
-                              ? getImageUrl(season.poster_path)
+                            uri: season?.poster_path
+                              ? getImageUrl(season?.poster_path)
                               : 'https://via.placeholder.com/100x150',
                           }}
                           style={styles.seasonItemPoster}
