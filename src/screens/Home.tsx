@@ -144,8 +144,8 @@ export const HomeScreen = () => {
     ) || [];
 
   const getTVShowsFromData = (data: any) =>
-    data?.pages.flatMap((page: any) =>
-      page.results.map((show: any) => ({...show, type: 'tv' as const})),
+    data?.pages?.flatMap((page: any) =>
+      page.results?.map((show: any) => ({...show, type: 'tv' as const})),
     ) || [];
 
   const handleSeeAllPress = useCallback(
@@ -219,82 +219,83 @@ export const HomeScreen = () => {
           </View>
         )}
 
-        <HorizontalList
-          title="Recent Movies"
-          data={getMoviesFromData(recentMovies)}
-          isLoading={isFetchingRecent}
-          onItemPress={handleItemPress}
-          onEndReached={hasNextRecent ? fetchNextRecent : undefined}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Recent Movies', 'latest', 'movie')
-          }
-        />
+        {recentMovies?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Recent Movies"
+            data={getMoviesFromData(recentMovies)}
+            isLoading={isFetchingRecent}
+            onItemPress={handleItemPress}
+            onEndReached={hasNextRecent ? fetchNextRecent : undefined}
+            onSeeAllPress={() =>
+              handleSeeAllPress('Recent Movies', 'latest', 'movie')
+            }
+          />
+        )}
 
-        <HorizontalList
-          title="Latest Shows"
-          data={getTVShowsFromData(recentTVShows)}
-          isLoading={isFetchingRecentTV}
-          onItemPress={handleItemPress}
-          onEndReached={hasNextRecentTV ? fetchNextRecentTV : undefined}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Latest Shows', 'latest', 'tv')
-          }
-        />
+        {recentTVShows?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Latest Shows"
+            data={getTVShowsFromData(recentTVShows)}
+            isLoading={isFetchingRecentTV}
+            onItemPress={handleItemPress}
+            onEndReached={hasNextRecentTV ? fetchNextRecentTV : undefined}
+            onSeeAllPress={() =>
+              handleSeeAllPress('Latest Shows', 'latest', 'tv')
+            }
+          />
+        )}
 
-        <HorizontalList
-          title="Popular Movies"
-          data={getMoviesFromData(popularMovies)}
-          isLoading={isFetchingPopular}
-          onItemPress={handleItemPress}
-          onEndReached={hasNextPopular ? fetchNextPopular : undefined}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Popular Movies', 'popular', 'movie')
-          }
-        />
+        {popularTVShows?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Popular Shows"
+            data={getTVShowsFromData(popularTVShows)}
+            isLoading={isFetchingPopularTV}
+            onItemPress={handleItemPress}
+            onEndReached={hasNextPopularTV ? fetchNextPopularTV : undefined}
+            onSeeAllPress={() =>
+              handleSeeAllPress('Popular Shows', 'popular', 'tv')
+            }
+          />
+        )}
 
-        <HorizontalList
-          title="Popular Shows"
-          data={getTVShowsFromData(popularTVShows)}
-          isLoading={isFetchingPopularTV}
-          onItemPress={handleItemPress}
-          onEndReached={hasNextPopularTV ? fetchNextPopularTV : undefined}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Popular Shows', 'popular', 'tv')
-          }
-        />
+        {topRatedMovies?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Top Rated Movies"
+            data={getMoviesFromData(topRatedMovies)}
+            isLoading={isFetchingTopRated}
+            onItemPress={handleItemPress}
+            onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
+            onSeeAllPress={() =>
+              handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie')
+            }
+          />
+        )}
 
-        <HorizontalList
-          title="Top Rated Movies"
-          data={getMoviesFromData(topRatedMovies)}
-          isLoading={isFetchingTopRated}
-          onItemPress={handleItemPress}
-          onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie')
-          }
-        />
+        {topRatedTVShows?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Top Rated TV Shows"
+            data={getTVShowsFromData(topRatedTVShows)}
+            isLoading={isFetchingTopRatedTV}
+            onItemPress={handleItemPress}
+            onEndReached={hasNextTopRatedTV ? fetchNextTopRatedTV : undefined}
+            onSeeAllPress={() =>
+              handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv')
+            }
+          />
+        )}
 
-        <HorizontalList
-          title="Top Rated TV Shows"
-          data={getTVShowsFromData(topRatedTVShows)}
-          isLoading={isFetchingTopRatedTV}
-          onItemPress={handleItemPress}
-          onEndReached={hasNextTopRatedTV ? fetchNextTopRatedTV : undefined}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv')
-          }
-        />
-
-        <HorizontalList
-          title="Upcoming Movies"
-          data={getMoviesFromData(upcomingMovies)}
-          isLoading={isFetchingUpcoming}
-          onItemPress={handleItemPress}
-          onEndReached={hasNextUpcoming ? fetchNextUpcoming : undefined}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
-          }
-        />
+        {upcomingMovies?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Upcoming Movies"
+            data={getMoviesFromData(upcomingMovies)}
+            isLoading={isFetchingUpcoming}
+            onItemPress={handleItemPress}
+            onEndReached={hasNextUpcoming ? fetchNextUpcoming : undefined}
+            onSeeAllPress={() =>
+              handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
+            }
+          />
+        )}
         <View style={{height: 100}} />
       </ScrollView>
     </View>

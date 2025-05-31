@@ -32,6 +32,13 @@ export const getMovies = async (
     const response = await tmdbApi.get('/discover/movie', {params});
     return response.data;
   }
+  if (type === 'top_rated') {
+    params.sort_by = 'vote_average.desc';
+    params.vote_count_gte = 7;
+    params.vote_average_gte = 7;
+    const response = await tmdbApi.get('/discover/movie', {params});
+    return response.data;
+  }
 
   // For other types, use built-in endpoints
   const response = await tmdbApi.get(`/movie/${type}`, {
@@ -63,9 +70,17 @@ export const getTVShows = async (
     const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }
+  if (type === 'top_rated') {
+    params.sort_by = 'vote_average.desc';
+    params.vote_count_gte = 7;
+    params.vote_average_gte = 7;
+    const response = await tmdbApi.get('/discover/tv', {params});
+    return response.data;
+  }
   const response = await tmdbApi.get(`/tv/${type}`, {
     params: {
       page,
+      with_original_language,
     },
   });
   return response.data;

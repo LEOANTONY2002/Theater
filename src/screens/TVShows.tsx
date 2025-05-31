@@ -116,34 +116,40 @@ export const TVShowsScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {featuredShow && <FeaturedBanner item={featuredShow} type="tv" />}
 
-        <HorizontalList
-          title="Trending Today"
-          data={getShowsFromData(trendingShows)}
-          onItemPress={handleShowPress}
-          onEndReached={hasNextTrending ? fetchNextTrending : undefined}
-          isLoading={isFetchingTrending}
-          isSeeAll={false}
-        />
+        {trendingShows?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Trending Today"
+            data={getShowsFromData(trendingShows)}
+            onItemPress={handleShowPress}
+            onEndReached={hasNextTrending ? fetchNextTrending : undefined}
+            isLoading={isFetchingTrending}
+            isSeeAll={false}
+          />
+        )}
 
-        <HorizontalList
-          title="Latest Shows"
-          data={getShowsFromData(latestShows)}
-          onItemPress={handleShowPress}
-          onEndReached={hasNextLatest ? fetchNextLatest : undefined}
-          isLoading={isFetchingLatest}
-          isSeeAll={false}
-        />
+        {latestShows?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Latest Shows"
+            data={getShowsFromData(latestShows)}
+            onItemPress={handleShowPress}
+            onEndReached={hasNextLatest ? fetchNextLatest : undefined}
+            isLoading={isFetchingLatest}
+            isSeeAll={false}
+          />
+        )}
 
-        <HorizontalList
-          title="Top Rated Shows"
-          data={getShowsFromData(topRatedShows)}
-          onItemPress={handleShowPress}
-          onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
-          isLoading={isFetchingTopRated}
-          onSeeAllPress={() =>
-            handleSeeAllPress('Top Rated Shows', 'top_rated')
-          }
-        />
+        {topRatedShows?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Top Rated Shows"
+            data={getShowsFromData(topRatedShows)}
+            onItemPress={handleShowPress}
+            onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
+            isLoading={isFetchingTopRated}
+            onSeeAllPress={() =>
+              handleSeeAllPress('Top Rated Shows', 'top_rated')
+            }
+          />
+        )}
 
         <View style={{height: 100}} />
       </ScrollView>
