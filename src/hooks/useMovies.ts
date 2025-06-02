@@ -8,6 +8,7 @@ import {
   getMovieRecommendations,
   getTrendingMovies,
   discoverMovies,
+  getTop10MoviesTodayByRegion,
 } from '../services/tmdb';
 import {Movie, MovieDetails, MoviesResponse} from '../types/movie';
 import {FilterParams} from '../types/filters';
@@ -99,6 +100,15 @@ export const useDiscoverMovies = (params: FilterParams) => {
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
     enabled: params !== undefined,
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+  });
+};
+
+export const useTop10MoviesTodayByRegion = () => {
+  return useQuery({
+    queryKey: ['top_10_movies_today_by_region'],
+    queryFn: () => getTop10MoviesTodayByRegion(),
     gcTime: CACHE_TIME,
     staleTime: STALE_TIME,
   });

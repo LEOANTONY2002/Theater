@@ -228,8 +228,9 @@ export const getTrendingMovies = async (
   timeWindow: 'day' | 'week' = 'day',
   page = 1,
 ) => {
+  const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/trending/movie/${timeWindow}`, {
-    params: {page},
+    params: {page, with_original_language},
   });
   return response.data;
 };
@@ -238,8 +239,9 @@ export const getTrendingTVShows = async (
   timeWindow: 'day' | 'week' = 'day',
   page = 1,
 ) => {
+  const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/trending/tv/${timeWindow}`, {
-    params: {page},
+    params: {page, with_original_language},
   });
   return response.data;
 };
@@ -336,4 +338,120 @@ export const getPersonTVCredits = async (personId: number, page = 1) => {
 export const getLanguages = async () => {
   const response = await tmdbApi.get('/configuration/languages');
   return response.data;
+};
+
+export const getContentByGenre = async (
+  genreId: number,
+  contentType: 'movie' | 'tv',
+  page = 1,
+  sortBy:
+    | 'popularity.desc'
+    | 'release_date.desc'
+    | 'vote_average.desc' = 'popularity.desc',
+) => {
+  if (!genreId || !contentType) {
+    const error = new Error('Genre ID and content type are required');
+    console.error('Invalid parameters:', {genreId, contentType, error});
+    throw error;
+  }
+
+  console.log('getContentByGenre called with:', {
+    genreId,
+    contentType,
+    page,
+    sortBy,
+  });
+
+  const with_original_language = await getLanguageParam();
+  const endpoint = contentType === 'movie' ? '/discover/movie' : '/discover/tv';
+
+  // Base params that always apply
+  const params: any = {
+    page,
+    with_genres: genreId.toString(),
+    with_original_language,
+    sort_by: sortBy,
+    include_adult: false,
+    include_null_first_air_dates: false,
+  };
+
+  // Only apply language filter if we have saved languages
+  if (with_original_language) {
+    // Make language an optional filter to get more results
+    params.with_original_language = with_original_language;
+  }
+
+  // Add TV-specific filters
+  if (contentType === 'tv') {
+    params.without_genres = '10764,10767'; // Exclude reality and talk shows
+  }
+
+  console.log('Making API call to:', endpoint);
+  console.log('API params:', JSON.stringify(params, null, 2));
+
+  try {
+    const response = await tmdbApi.get(endpoint, {params});
+    const responseData = {
+      status: response.status,
+      page: response.data.page,
+      total_pages: response.data.total_pages,
+      total_results: response.data.total_results,
+      results_count: response.data.results?.length,
+      first_result: response.data.results?.[0]?.id,
+    };
+    console.log('API Response:', responseData);
+    return response.data;
+  } catch (error: any) {
+    const errorDetails = {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+    };
+    console.error('API call failed:', errorDetails);
+    throw error;
+  }
+};
+
+export const getRegions = async () => {
+  const regions = await SettingsManager.getRegions();
+  if (regions && regions?.length > 0) return regions;
+  const response = await tmdbApi.get('/watch/providers/regions');
+  await SettingsManager.setRegions(response.data.results);
+  return response.data.results;
+};
+
+export const getTop10MoviesTodayByRegion = async () => {
+  const region = await SettingsManager.getRegion();
+  console.log('region', region);
+  const response = await tmdbApi.get('/discover/movie', {
+    params: {
+      watch_region: region?.iso_3166_1 || 'US', // US, IN, etc.
+      sort_by: 'popularity.desc',
+      'release_date.lte': new Date().toISOString().split('T')[0], // Only released titles
+      // 'vote_count.gte': 50, // Filter out obscure titles
+      page: 1,
+      without_genres: '10764,10767,10766,10763,99,10751', // Exclude reality, talk shows, soap, news
+    },
+  });
+
+  // Return top 10 results
+  return response.data.results.slice(0, 10);
+};
+
+export const getTop10TVShowsTodayByRegion = async () => {
+  const region = await SettingsManager.getRegion();
+  console.log('region', region);
+  const response = await tmdbApi.get('/discover/tv', {
+    params: {
+      watch_region: region?.iso_3166_1 || 'US',
+      sort_by: 'popularity.desc',
+      'first_air_date.lte': new Date().toISOString().split('T')[0],
+      // 'vote_count.gte': 50,
+      page: 1,
+      without_genres: '10764,10767,10766,10763,99,10751',
+    },
+  });
+
+  // Return top 10 results
+  return response.data.results.slice(0, 10);
 };

@@ -1,10 +1,17 @@
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, ScrollView, StyleSheet, Dimensions} from 'react-native';
-import {useMoviesList, useTrendingMovies} from '../hooks/useMovies';
-import {useTrendingTVShows, useTVShowsList} from '../hooks/useTVShows';
+import {
+  useMoviesList,
+  useTop10MoviesTodayByRegion,
+  useTrendingMovies,
+} from '../hooks/useMovies';
+import {
+  useTop10ShowsTodayByRegion,
+  useTrendingTVShows,
+  useTVShowsList,
+} from '../hooks/useTVShows';
 import {ContentItem} from '../components/MovieList';
 import {HorizontalList} from '../components/HorizontalList';
-import {FeaturedBanner} from '../components/FeaturedBanner';
 import {useNavigation} from '@react-navigation/native';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
@@ -22,11 +29,13 @@ import {
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
-
+import {useRegion} from '../hooks/useApp';
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const HomeScreen = () => {
+  const {data: region} = useRegion();
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const [top10ContentByRegion, setTop10ContentByRegion] = useState<any[]>([]);
 
   const {
     data: popularMovies,
@@ -115,17 +124,28 @@ export const HomeScreen = () => {
     };
   }, [recentMovies]);
 
-  const handleFeaturedPress = useCallback(() => {
-    if (featuredItem?.type === 'movie') {
-      navigation.navigate('MovieDetails', {
-        movie: featuredItem.item as Movie,
+  const {
+    data: top10MoviesTodayByRegion,
+    isFetching: isFetchingTop10MoviesTodayByRegion,
+  } = useTop10MoviesTodayByRegion();
+
+  const {
+    data: top10ShowsTodayByRegion,
+    isFetching: isFetchingTop10ShowsTodayByRegion,
+  } = useTop10ShowsTodayByRegion();
+
+  useEffect(() => {
+    if (top10MoviesTodayByRegion && top10ShowsTodayByRegion) {
+      const top10ContentByRegion = [
+        ...top10MoviesTodayByRegion,
+        ...top10ShowsTodayByRegion,
+      ];
+      const sortedContent = top10ContentByRegion.sort((a: any, b: any) => {
+        return b.popularity - a.popularity;
       });
-    } else if (featuredItem?.type === 'tv') {
-      navigation.navigate('TVShowDetails', {
-        show: featuredItem.item as TVShow,
-      });
+      setTop10ContentByRegion(sortedContent.slice(0, 10));
     }
-  }, [navigation, featuredItem]);
+  }, [top10MoviesTodayByRegion, top10ShowsTodayByRegion]);
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -174,7 +194,9 @@ export const HomeScreen = () => {
     (!recentTVShows?.pages?.length && isFetchingRecentTV) ||
     (!upcomingMovies?.pages?.length && isFetchingUpcoming) ||
     (!trendingMovies?.pages?.length && isFetchingTrendingMovies) ||
-    (!trendingTVShows?.pages?.length && isFetchingTrendingTVShows);
+    (!trendingTVShows?.pages?.length && isFetchingTrendingTVShows) ||
+    (!top10MoviesTodayByRegion?.length && isFetchingTop10MoviesTodayByRegion) ||
+    (!top10ShowsTodayByRegion?.length && isFetchingTop10ShowsTodayByRegion);
 
   const styles = StyleSheet.create({
     container: {
@@ -242,6 +264,17 @@ export const HomeScreen = () => {
             onSeeAllPress={() =>
               handleSeeAllPress('Latest Shows', 'latest', 'tv')
             }
+          />
+        )}
+
+        {top10ContentByRegion?.length && (
+          <HorizontalList
+            title={`Top 10 in ${region?.english_name}`}
+            data={top10ContentByRegion}
+            isLoading={top10ContentByRegion.length === 0}
+            onItemPress={handleItemPress}
+            isSeeAll={false}
+            isTop10={true}
           />
         )}
 

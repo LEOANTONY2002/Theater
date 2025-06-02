@@ -20,6 +20,12 @@ export type HomeStackParamList = {
     title: string;
     categoryType: MovieCategoryType | TVShowCategoryType;
     contentType: ContentType;
+    genreId?: number;
+  };
+  Genre: {
+    genreId: number;
+    genreName: string;
+    contentType: ContentType;
   };
   PersonCredits: {
     personId: number;
@@ -46,6 +52,12 @@ export type MoviesStackParamList = {
     title: string;
     categoryType: MovieCategoryType;
     contentType: 'movie';
+    genreId?: number;
+  };
+  Genre: {
+    genreId: number;
+    genreName: string;
+    contentType: 'movie';
   };
   PersonCredits: {
     personId: number;
@@ -60,6 +72,12 @@ export type TVShowsStackParamList = {
   Category: {
     title: string;
     categoryType: TVShowCategoryType;
+    contentType: 'tv';
+    genreId?: number;
+  };
+  Genre: {
+    genreId: number;
+    genreName: string;
     contentType: 'tv';
   };
   PersonCredits: {

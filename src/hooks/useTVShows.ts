@@ -8,6 +8,7 @@ import {
   getTVShowRecommendations,
   getTrendingTVShows,
   getSeasonDetails,
+  getTop10TVShowsTodayByRegion,
 } from '../services/tmdb';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
 import {FilterParams} from '../types/filters';
@@ -114,6 +115,15 @@ export const useSeasonDetails = (tvId: number, seasonNumber?: number) => {
       return getSeasonDetails(tvId, season!);
     },
     enabled: seasonNumber !== undefined,
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+  });
+};
+
+export const useTop10ShowsTodayByRegion = () => {
+  return useQuery({
+    queryKey: ['top_10_shows_today_by_region'],
+    queryFn: () => getTop10TVShowsTodayByRegion(),
     gcTime: CACHE_TIME,
     staleTime: STALE_TIME,
   });

@@ -1,6 +1,12 @@
-import React, {useCallback, useMemo} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
-import {useMoviesList} from '../hooks/useMovies';
+import React, {useCallback, useMemo, useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import {useMoviesList, useTop10MoviesTodayByRegion} from '../hooks/useMovies';
 import {Movie} from '../types/movie';
 import {useNavigation} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
@@ -14,11 +20,28 @@ import {
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
+import {getGenres} from '../services/tmdb';
+import {Genre} from '../types/movie';
+import {useRegion} from '../hooks/useApp';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const MoviesScreen = () => {
+  const {data: region} = useRegion();
   const navigation = useNavigation<MoviesScreenNavigationProp>();
+  const [genres, setGenres] = useState<Genre[]>([]);
+
+  useEffect(() => {
+    const loadGenres = async () => {
+      try {
+        const movieGenres = await getGenres('movie');
+        setGenres(movieGenres);
+      } catch (error) {
+        console.error('Error loading genres:', error);
+      }
+    };
+    loadGenres();
+  }, []);
 
   // Recent Movies (Now Playing)
   const {
@@ -60,13 +83,22 @@ export const MoviesScreen = () => {
     isFetchingNextPage: isFetchingUpcoming,
   } = useMoviesList('upcoming');
 
+  const {
+    data: top10MoviesTodayByRegion,
+    isFetching: isFetchingTop10MoviesTodayByRegion,
+  } = useTop10MoviesTodayByRegion();
+
+  const top10MoviesTodayByRegionData = useMemo(() => {
+    return top10MoviesTodayByRegion || [];
+  }, [top10MoviesTodayByRegion]);
+
   // Get a random popular movie for the banner
   const featuredMovie = useMemo(() => {
-    if (!popularMovies?.pages?.[0]?.results) return null;
-    const movies = popularMovies.pages[0].results;
+    if (!recentMovies?.pages?.[0]?.results) return null;
+    const movies = recentMovies.pages[0].results;
     const randomIndex = Math.floor(Math.random() * Math.min(movies.length, 5));
     return movies[randomIndex];
-  }, [popularMovies]);
+  }, [recentMovies]);
 
   const handleFeaturedPress = useCallback(() => {
     if (featuredMovie) {
@@ -76,8 +108,11 @@ export const MoviesScreen = () => {
 
   const handleMoviePress = useCallback(
     (item: ContentItem) => {
-      if (item.type === 'movie') {
+      console.log('item', item);
+      if (item.type !== 'tv') {
         navigation.navigate('MovieDetails', {movie: item as Movie});
+      } else {
+        navigation.navigate('TVShowDetails', {tv: item as TVShow});
       }
     },
     [navigation],
@@ -98,6 +133,14 @@ export const MoviesScreen = () => {
     },
     [navigation],
   );
+
+  const handleGenrePress = (genre: Genre) => {
+    navigation.navigate('Genre', {
+      genreId: genre.id,
+      genreName: genre.name,
+      contentType: 'movie',
+    });
+  };
 
   const isInitialLoading =
     (!popularMovies?.pages?.length && isFetchingPopular) ||
@@ -133,6 +176,20 @@ export const MoviesScreen = () => {
           </View>
         )}
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.genreList}>
+          {genres.map(genre => (
+            <TouchableOpacity
+              key={genre.id}
+              style={styles.genreItem}
+              onPress={() => handleGenrePress(genre)}>
+              <Text style={styles.genreText}>{genre.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {recentMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Recent Movies"
@@ -152,6 +209,17 @@ export const MoviesScreen = () => {
             onEndReached={hasNextPopular ? fetchNextPopular : undefined}
             isLoading={isFetchingPopular}
             onSeeAllPress={() => handleSeeAllPress('Popular Movies', 'popular')}
+          />
+        )}
+
+        {top10MoviesTodayByRegionData?.length && (
+          <HorizontalList
+            title={`Top 10 Movies in ${region?.english_name}`}
+            data={top10MoviesTodayByRegionData}
+            onItemPress={handleMoviePress}
+            isLoading={isFetchingTop10MoviesTodayByRegion}
+            isSeeAll={false}
+            isTop10={true}
           />
         )}
 
@@ -214,5 +282,20 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text.primary,
     ...typography.h2,
+  },
+  genreList: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  genreItem: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 20,
+    marginRight: spacing.sm,
+  },
+  genreText: {
+    ...typography.body2,
+    color: colors.text.primary,
   },
 });

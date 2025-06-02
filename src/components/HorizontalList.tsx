@@ -13,6 +13,7 @@ import {ContentCard} from './ContentCard';
 import {colors, spacing, typography} from '../styles/theme';
 import {HeadingSkeleton, HorizontalListSkeleton} from './LoadingSkeleton';
 import Ionicon from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface HorizontalListProps {
   title: string;
@@ -22,6 +23,7 @@ interface HorizontalListProps {
   isLoading?: boolean;
   onSeeAllPress?: () => void;
   isSeeAll?: boolean;
+  isTop10?: boolean;
 }
 
 export const HorizontalList: React.FC<HorizontalListProps> = ({
@@ -32,10 +34,21 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
   isLoading,
   onSeeAllPress,
   isSeeAll = true,
+  isTop10 = false,
 }) => {
-  const renderItem = ({item}: {item: ContentItem}) => (
-    <View style={{marginVertical: spacing.sm, marginHorizontal: spacing.xs}}>
+  const renderItem = ({item, index}: {item: ContentItem; index: number}) => (
+    <View
+      style={
+        isTop10
+          ? {...styles.itemContainer, marginLeft: spacing.xxl}
+          : {...styles.itemContainer}
+      }>
       <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
+      {isTop10 && (
+        <View style={styles.top10}>
+          <Text style={styles.top10Number}>{index + 1}</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -84,6 +97,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
         contentContainerStyle={styles.listContent}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
+        style={isTop10 ? {marginLeft: -spacing.md} : {}}
         ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
       />
     </View>
@@ -115,5 +129,34 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
+  },
+  itemContainer: {
+    marginVertical: spacing.sm,
+    marginHorizontal: spacing.xs,
+    position: 'relative',
+    height: '100%',
+  },
+  top10: {
+    position: 'absolute',
+    top: 0,
+    bottom: -100,
+    left: -spacing.xl,
+    width: spacing.xl * 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  top10Number: {
+    fontSize: 100,
+    opacity: 0.8,
+    // textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    // textShadowOffset: {width: 2, height: 2},
+    // textShadowRadius: 5,
+    fontWeight: 'bold',
+    // color: 'transparent',
+    color: 'white',
+    width: 100,
+    letterSpacing: -10,
+    textAlign: 'center',
   },
 });

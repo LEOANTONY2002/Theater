@@ -51,8 +51,8 @@ export const HorizontalListSkeleton = () => (
         LinearGradient={LinearGradient}
         shimmerColors={shimmerColors}
         style={{
-          width: 100,
-          height: 150,
+          width: 120,
+          height: 180,
           borderRadius: 20,
         }}
       />

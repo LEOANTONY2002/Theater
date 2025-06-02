@@ -14,6 +14,25 @@ type LanguageChangeListener = () => void;
 const listeners = new Set<LanguageChangeListener>();
 
 export const SettingsManager = {
+  async getRegions(): Promise<any> {
+    const regions = await AsyncStorage.getItem('regions');
+    return regions ? JSON.parse(regions) : [];
+  },
+
+  async setRegions(regions: any): Promise<void> {
+    await AsyncStorage.setItem('regions', JSON.stringify(regions));
+    queryClient.invalidateQueries({queryKey: ['regions']});
+  },
+
+  async getRegion(): Promise<any> {
+    const region = await AsyncStorage.getItem('region');
+    return region ? JSON.parse(region) : null;
+  },
+
+  async setRegion(region: any): Promise<void> {
+    await AsyncStorage.setItem('region', JSON.stringify(region));
+  },
+
   async getContentLanguages(): Promise<Language[]> {
     try {
       const savedLanguages = await AsyncStorage.getItem(STORAGE_KEY);

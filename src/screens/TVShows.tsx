@@ -1,12 +1,26 @@
-import React, {useCallback, useMemo} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
-import {useTrendingTVShows, useTVShowsList} from '../hooks/useTVShows';
+import React, {useCallback, useMemo, useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import {
+  useTop10ShowsTodayByRegion,
+  useTrendingTVShows,
+  useTVShowsList,
+} from '../hooks/useTVShows';
 import {TVShow} from '../types/tvshow';
 import {useNavigation} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
-import {RootStackParamList, TVShowCategoryType} from '../types/navigation';
+import {
+  RootStackParamList,
+  TVShowsStackParamList,
+  TVShowCategoryType,
+} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography} from '../styles/theme';
 import {
@@ -14,12 +28,39 @@ import {
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
+import {getGenres} from '../services/tmdb';
+import {Genre} from '../types/movie';
+import {useRegion} from '../hooks/useApp';
 
 type TVShowsScreenNavigationProp =
-  NativeStackNavigationProp<RootStackParamList>;
+  NativeStackNavigationProp<TVShowsStackParamList>;
 
 export const TVShowsScreen = () => {
+  const {data: region} = useRegion();
   const navigation = useNavigation<TVShowsScreenNavigationProp>();
+  const [genres, setGenres] = useState<Genre[]>([]);
+
+  useEffect(() => {
+    const loadGenres = async () => {
+      try {
+        const tvGenres = await getGenres('tv');
+        console.log('Loaded TV Genres:', tvGenres);
+        setGenres(tvGenres);
+      } catch (error) {
+        console.error('Error loading genres:', error);
+      }
+    };
+    loadGenres();
+  }, []);
+
+  const handleGenrePress = (genre: Genre) => {
+    console.log('Pressing genre:', genre);
+    navigation.navigate('Genre', {
+      genreId: genre.id,
+      genreName: genre.name,
+      contentType: 'tv',
+    });
+  };
 
   // Popular TV Shows
   const {
@@ -39,13 +80,22 @@ export const TVShowsScreen = () => {
     refetch: refetchTrending,
   } = useTrendingTVShows('day');
 
+  // Latest Shows
+  const {
+    data: latestShows,
+    fetchNextPage: fetchNextLatest,
+    hasNextPage: hasNextLatest,
+    isFetchingNextPage: isFetchingLatest,
+    refetch: refetchLatest,
+  } = useTVShowsList('latest');
+
   // Get a random popular show for the banner
   const featuredShow = useMemo(() => {
-    if (!trendingShows?.pages?.[0]?.results) return null;
-    const shows = trendingShows.pages[0].results;
+    if (!latestShows?.pages?.[0]?.results) return null;
+    const shows = latestShows.pages[0].results;
     const randomIndex = Math.floor(Math.random() * Math.min(shows.length, 5));
     return shows[randomIndex];
-  }, [trendingShows]);
+  }, [latestShows]);
 
   const handleFeaturedPress = useCallback(() => {
     if (featuredShow) {
@@ -62,19 +112,17 @@ export const TVShowsScreen = () => {
     refetch: refetchTopRated,
   } = useTVShowsList('top_rated');
 
-  // Latest Shows
   const {
-    data: latestShows,
-    fetchNextPage: fetchNextLatest,
-    hasNextPage: hasNextLatest,
-    isFetchingNextPage: isFetchingLatest,
-    refetch: refetchLatest,
-  } = useTVShowsList('latest');
+    data: top10ShowsTodayByRegion,
+    isFetching: isFetchingTop10ShowsTodayByRegion,
+  } = useTop10ShowsTodayByRegion();
 
   const handleShowPress = useCallback(
     (item: ContentItem) => {
-      if (item.type === 'tv') {
+      if (item.type !== 'movie') {
         navigation.navigate('TVShowDetails', {show: item as TVShow});
+      } else {
+        navigation.navigate('MovieDetails', {movie: item as Movie});
       }
     },
     [navigation],
@@ -116,16 +164,19 @@ export const TVShowsScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {featuredShow && <FeaturedBanner item={featuredShow} type="tv" />}
 
-        {trendingShows?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Trending Today"
-            data={getShowsFromData(trendingShows)}
-            onItemPress={handleShowPress}
-            onEndReached={hasNextTrending ? fetchNextTrending : undefined}
-            isLoading={isFetchingTrending}
-            isSeeAll={false}
-          />
-        )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.genreList}>
+          {genres.map(genre => (
+            <TouchableOpacity
+              key={genre.id}
+              style={styles.genreItem}
+              onPress={() => handleGenrePress(genre)}>
+              <Text style={styles.genreText}>{genre.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {latestShows?.pages?.[0]?.results?.length && (
           <HorizontalList
@@ -134,7 +185,29 @@ export const TVShowsScreen = () => {
             onItemPress={handleShowPress}
             onEndReached={hasNextLatest ? fetchNextLatest : undefined}
             isLoading={isFetchingLatest}
+            onSeeAllPress={() => handleSeeAllPress('Latest Shows', 'latest')}
+          />
+        )}
+
+        {popularShows?.pages?.[0]?.results?.length && (
+          <HorizontalList
+            title="Popular Shows"
+            data={getShowsFromData(popularShows)}
+            onItemPress={handleShowPress}
+            onEndReached={hasNextPopular ? fetchNextPopular : undefined}
+            isLoading={isFetchingPopular}
+            onSeeAllPress={() => handleSeeAllPress('Popular Shows', 'popular')}
+          />
+        )}
+
+        {top10ShowsTodayByRegion?.length && (
+          <HorizontalList
+            title={`Top 10 Shows in ${region?.english_name}`}
+            data={top10ShowsTodayByRegion}
+            onItemPress={handleShowPress}
+            isLoading={isFetchingTop10ShowsTodayByRegion}
             isSeeAll={false}
+            isTop10={true}
           />
         )}
 
@@ -171,5 +244,20 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text.primary,
     ...typography.h2,
+  },
+  genreList: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  genreItem: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 20,
+    marginRight: spacing.sm,
+  },
+  genreText: {
+    ...typography.body2,
+    color: colors.text.primary,
   },
 });

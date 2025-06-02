@@ -5,10 +5,14 @@
  * @format
  */
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {StatusBar} from 'react-native';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
+import {LoadingScreen} from './src/components/LoadingScreen';
+import {detectRegion} from './src/services/regionDetection';
+import {getRegions} from './src/services/tmdb';
+import {SettingsManager} from './src/store/settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,25 +24,39 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  // useEffect(() => {
-  //   SplashScreen.hide();
-  // }, []);
-  // const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect(() => {
-  //   // Simulate a delay to load resources
-  //   const timer = setTimeout(() => {
-  //     setIsLoading(false);
-  //   }, 2000);
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Detect and set region
+        await detectRegion();
+        await getRegions();
+        const regions = await SettingsManager.getRegions();
+        var region = await SettingsManager.getRegion();
+        const regionData = regions.find((r: any) => r?.iso_3166_1 === region);
+        await SettingsManager.setRegion(regionData);
+        console.log('Regions:', regions);
+        var region = await SettingsManager.getRegion();
+        console.log('Region detected:', region);
+        // Add a small delay to ensure smooth transition
+        // await new Promise(resolve => setTimeout(resolve, 1000));
 
-  //   return () => clearTimeout(timer);
-  // }, []);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error initializing app:', error);
+        setIsLoading(false);
+      }
+    };
+
+    initializeApp();
+  }, []);
 
   // if (isLoading) {
   //   return (
   //     <>
   //       <StatusBar barStyle="light-content" backgroundColor="#0A0A1A" />
-  //       <LoadingScreen message="Getting things ready..." />
+  //       <LoadingScreen message="Personalizing your experience..." />
   //     </>
   //   );
   // }

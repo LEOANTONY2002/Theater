@@ -16,6 +16,7 @@ import {
   TVShowsStackParamList,
   MySpaceStackParamList,
 } from '../types/navigation';
+import {Genre} from '../screens/Genre';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -70,6 +71,14 @@ export const HomeStackNavigator = () => (
     <HomeStack.Screen
       name="Category"
       component={CategoryScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <HomeStack.Screen
+      name="Genre"
+      component={Genre}
       options={{
         headerShown: false,
         ...modalScreenOptions,
@@ -144,6 +153,14 @@ export const MoviesStackNavigator = () => (
       }}
     />
     <MoviesStack.Screen
+      name="Genre"
+      component={Genre}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <MoviesStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
       options={{
@@ -164,6 +181,14 @@ export const TVShowsStackNavigator = () => (
     <TVShowsStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <TVShowsStack.Screen
+      name="Genre"
+      component={Genre}
       options={{
         headerShown: false,
         ...modalScreenOptions,
