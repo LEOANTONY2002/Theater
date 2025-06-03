@@ -63,7 +63,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     isItemInContent: checkInWatchlist,
     addItem: addToWatchlist,
     removeItem: removeFromWatchlist,
-  } = useUserContent('watchlist');
+  } = useUserContent('WATCHLIST');
 
   const {
     data: similarMovies,

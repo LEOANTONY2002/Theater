@@ -84,7 +84,7 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
     isItemInContent: checkInWatchlist,
     addItem: addToWatchlist,
     removeItem: removeFromWatchlist,
-  } = useUserContent('watchlist');
+  } = useUserContent('WATCHLIST');
   const navigation = useNavigation<NavigationProp>();
 
   const addWatchlist = () => {

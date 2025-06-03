@@ -125,7 +125,9 @@ export const LanguageSettings = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.sectionTitle}>Choose Content Languages</Text>
+      <Text style={styles.sectionTitle}>
+        Choose your preferred content languages
+      </Text>
       <View style={styles.section}>
         {suggestedLanguages.map(language => {
           const isSelected = selectedLanguages.some(
@@ -182,7 +184,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: spacing.lg,
-    paddingTop: 100,
+    // paddingTop: 100,
+    height: 900,
   },
   loadingContainer: {
     flex: 1,
@@ -201,9 +204,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    letterSpacing: 0.5,
+    ...typography.h3,
     color: colors.text.primary,
     marginBottom: spacing.md,
   },
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.primary,
     marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
   },

@@ -70,7 +70,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     isItemInContent: checkInWatchlist,
     addItem: addToWatchlist,
     removeItem: removeFromWatchlist,
-  } = useUserContent('watchlist');
+  } = useUserContent('WATCHLIST');
 
   const {
     data: similarShows,

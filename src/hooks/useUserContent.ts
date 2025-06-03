@@ -14,24 +14,11 @@ type ContentType = keyof typeof STORAGE_KEYS;
 const loadContent = async (storageKey: string): Promise<ContentItem[]> => {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const watchlistKeys = keys.filter(key => key.startsWith(storageKey));
-    const items = await Promise.all(
-      watchlistKeys.map(async key => {
-        const data = await AsyncStorage.getItem(key);
-        try {
-          return data ? JSON.parse(data) : null;
-        } catch (e) {
-          return null;
-        }
-      }),
-    );
-    return items.filter(
-      (item): item is ContentItem =>
-        item !== null &&
-        typeof item === 'object' &&
-        'id' in item &&
-        typeof item.id === 'number',
-    );
+    const contentKeys = keys.filter(key => key.startsWith(storageKey));
+    const items = await AsyncStorage.multiGet(contentKeys);
+    return items
+      .map(([_, value]) => (value ? JSON.parse(value) : null))
+      .filter(item => item !== null);
   } catch (error) {
     console.error('Error loading content:', error);
     return [];
@@ -42,10 +29,7 @@ const validateContentItem = (item: ContentItem): boolean => {
   return (
     item !== null &&
     typeof item === 'object' &&
-    'id' in item &&
     typeof item.id === 'number' &&
-    item.id > 0 &&
-    'type' in item &&
     (item.type === 'movie' || item.type === 'tv')
   );
 };
@@ -114,9 +98,23 @@ export const useUserContent = (type: ContentType) => {
 
         await AsyncStorage.setItem(itemKey, contentToStore);
 
-        // Update React Query cache
-        const currentContent = await loadContent(storageKey);
-        queryClient.setQueryData([type], currentContent);
+        // Update React Query cache and trigger a refetch
+        await queryClient.invalidateQueries({queryKey: [type]});
+
+        // Optimistically update the cache
+        queryClient.setQueryData([type], (old: ContentItem[] = []) => {
+          const newContent = [...old];
+          const existingIndex = newContent.findIndex(
+            i => i.id === contentItem.id,
+          );
+          if (existingIndex >= 0) {
+            newContent[existingIndex] = contentItem;
+          } else {
+            newContent.push(contentItem);
+          }
+          return newContent;
+        });
+
         return true;
       } catch (error) {
         console.error(`Error adding item to ${type}:`, error);
@@ -138,9 +136,13 @@ export const useUserContent = (type: ContentType) => {
         const itemKey = `${storageKey}_${itemId}`;
         await AsyncStorage.removeItem(itemKey);
 
-        // Update React Query cache
-        const currentContent = await loadContent(storageKey);
-        queryClient.setQueryData([type], currentContent);
+        // Optimistically update the cache
+        queryClient.setQueryData([type], (old: ContentItem[] = []) => {
+          return old.filter(item => item.id !== itemId);
+        });
+
+        // Invalidate and refetch to ensure consistency
+        await queryClient.invalidateQueries({queryKey: [type]});
       } catch (error) {
         console.error(`Error removing item from ${type}:`, error);
       }
@@ -153,7 +155,10 @@ export const useUserContent = (type: ContentType) => {
       const keys = await AsyncStorage.getAllKeys();
       const watchlistKeys = keys.filter(key => key.startsWith(storageKey));
       await AsyncStorage.multiRemove(watchlistKeys);
+
+      // Clear cache and trigger refetch
       queryClient.setQueryData([type], []);
+      await queryClient.invalidateQueries({queryKey: [type]});
     } catch (error) {
       console.error(`Error clearing ${type}:`, error);
     }
