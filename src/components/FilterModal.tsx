@@ -63,6 +63,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [isApplyingSavedFilter, setIsApplyingSavedFilter] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -113,8 +114,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-    // Clear genre selection when content type changes
-    setFilters(prev => ({...prev, with_genres: undefined}));
+    // Only clear genres when content type changes naturally, not when applying saved filter
+    if (!isApplyingSavedFilter) {
+      setFilters(prev => ({...prev, with_genres: undefined}));
+    }
+    setIsApplyingSavedFilter(false);
   }, [contentType]);
 
   useEffect(() => {
@@ -227,10 +231,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     });
   };
 
-  const handleMaxRatingChange = (value: number) => {
-    setFilters(prev => ({...prev, 'vote_average.lte': value}));
-  };
-
   const getFilteredGenres = () => {
     if (contentType === 'movie') return movieGenres;
     if (contentType === 'tv') return tvGenres;
@@ -246,6 +246,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   const handleSavedFilterSelect = (savedFilter: SavedFilter) => {
+    setIsApplyingSavedFilter(true);
     setContentType(savedFilter.type);
     setFilters(savedFilter.params);
   };
@@ -462,41 +463,21 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </View>
             </View>
 
-            {/* Rating Range */}
+            {/* Rating */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Rating Range</Text>
-              <View style={styles.ratingContainer}>
-                <View style={styles.ratingSection}>
-                  <Text style={styles.ratingLabel}>
-                    Min: {filters['vote_average.gte'] || 0}
-                  </Text>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={0}
-                    maximumValue={10}
-                    step={0.5}
-                    value={filters['vote_average.gte'] || 0}
-                    onValueChange={handleRatingChange}
-                    minimumTrackTintColor={colors.primary}
-                    maximumTrackTintColor={colors.text.secondary}
-                  />
-                </View>
-                <View style={styles.ratingSection}>
-                  <Text style={styles.ratingLabel}>
-                    Max: {filters['vote_average.lte'] || 10}
-                  </Text>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={0}
-                    maximumValue={10}
-                    step={0.5}
-                    value={filters['vote_average.lte'] || 10}
-                    onValueChange={handleMaxRatingChange}
-                    minimumTrackTintColor={colors.primary}
-                    maximumTrackTintColor={colors.text.secondary}
-                  />
-                </View>
-              </View>
+              <Text style={styles.sectionTitle}>
+                Minimum Rating: {filters['vote_average.gte'] || 0}
+              </Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={10}
+                step={0.5}
+                value={filters['vote_average.gte'] || 0}
+                onValueChange={handleRatingChange}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.text.secondary}
+              />
             </View>
 
             {/* Release Date */}
@@ -730,16 +711,6 @@ const styles = StyleSheet.create({
   },
   sortOrderButton: {
     padding: spacing.xs,
-  },
-  ratingContainer: {
-    gap: spacing.md,
-  },
-  ratingSection: {
-    gap: spacing.xs,
-  },
-  ratingLabel: {
-    color: colors.text.primary,
-    ...typography.body2,
   },
   savedFiltersScroll: {
     flexGrow: 0,
