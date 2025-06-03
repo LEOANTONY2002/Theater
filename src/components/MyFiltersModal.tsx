@@ -54,6 +54,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     if (visible) {
@@ -61,10 +62,18 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         setFilterName(editingFilter.name);
         setContentType(editingFilter.type);
         setFilters(editingFilter.params);
+        // Set initial sort order based on editingFilter
+        if (editingFilter.params.sort_by) {
+          const [, order] = editingFilter.params.sort_by.split('.');
+          setSortOrder(order as 'asc' | 'desc');
+        } else {
+          setSortOrder('desc');
+        }
       } else {
         setFilterName('');
         setContentType('all');
         setFilters({});
+        setSortOrder('desc');
       }
     }
   }, [visible, editingFilter]);
@@ -111,12 +120,31 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-    // Clear genre selection when content type changes
-    setFilters(prev => ({...prev, with_genres: undefined}));
-  }, [contentType]);
+    if (!editingFilter) {
+      setFilters(prev => ({...prev, with_genres: undefined}));
+    }
+  }, [contentType, editingFilter]);
 
   const handleSortChange = (value: string) => {
-    setFilters(prev => ({...prev, sort_by: value}));
+    if (!value) {
+      setFilters(prev => ({...prev, sort_by: undefined}));
+      return;
+    }
+    setFilters(prev => ({...prev, sort_by: `${value}.${sortOrder}`}));
+  };
+
+  const handleSortOrderToggle = () => {
+    setSortOrder(prev => {
+      const newOrder = prev === 'asc' ? 'desc' : 'asc';
+      if (filters.sort_by) {
+        const [field] = filters.sort_by.split('.');
+        setFilters(prevFilters => ({
+          ...prevFilters,
+          sort_by: `${field}.${newOrder}`,
+        }));
+      }
+      return newOrder;
+    });
   };
 
   const handleLanguageChange = (value: string) => {
@@ -169,12 +197,13 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         return;
       }
 
+      const timestamp = Date.now();
       const newFilter: SavedFilter = {
-        id: editingFilter?.id || Date.now().toString(),
+        id: editingFilter?.id || timestamp.toString(),
         name: filterName,
         type: contentType,
         params: filters,
-        createdAt: editingFilter?.createdAt || new Date().toISOString(),
+        createdAt: timestamp,
       };
 
       if (editingFilter) {
@@ -184,6 +213,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       }
 
       onSave(newFilter);
+      setFilterName('');
+      setContentType('all');
+      setFilters({});
       onClose();
     } catch (error) {
       Alert.alert(
@@ -221,11 +253,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     if (contentType === 'movie') return movieGenres;
     if (contentType === 'tv') return tvGenres;
 
-    // For "All", combine genres and remove duplicates by name
+    // For "All", combine genres and remove duplicates by ID
     const uniqueGenres = new Map();
     [...movieGenres, ...tvGenres].forEach(genre => {
-      if (!uniqueGenres.has(genre.name)) {
-        uniqueGenres.set(genre.name, genre);
+      if (!uniqueGenres.has(genre.id)) {
+        uniqueGenres.set(genre.id, genre);
       }
     });
     return Array.from(uniqueGenres.values());
@@ -363,12 +395,23 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               </View>
             </View>
 
-            {/* Sort By */}
+            {/* Sort By with Order Toggle */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sort By</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Sort By</Text>
+                <TouchableOpacity
+                  style={styles.sortOrderButton}
+                  onPress={handleSortOrderToggle}>
+                  <Ionicons
+                    name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
+                    size={20}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={filters.sort_by}
+                  selectedValue={filters.sort_by?.split('.')[0]}
                   onValueChange={handleSortChange}
                   style={styles.picker}
                   dropdownIconColor={colors.text.primary}>
@@ -659,5 +702,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background.secondary,
+  },
+  sortOrderButton: {
+    padding: spacing.sm,
   },
 });

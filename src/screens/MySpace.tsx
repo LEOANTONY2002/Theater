@@ -55,7 +55,19 @@ export const MySpaceScreen = () => {
   const {data: savedFilters = [], isLoading: isLoadingFilters} = useQuery({
     queryKey: ['savedFilters'],
     queryFn: FiltersManager.getSavedFilters,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
+
+  // Add focus effect to refresh filters
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      queryClient.invalidateQueries({queryKey: ['savedFilters']});
+    });
+
+    return unsubscribe;
+  }, [navigation, queryClient]);
 
   useEffect(() => {
     // Listen for language changes and invalidate queries to refetch data
@@ -92,6 +104,14 @@ export const MySpaceScreen = () => {
     },
     [navigation],
   );
+
+  const handleSortChange = (value: string) => {
+    if (!value) {
+      setFilters(prev => ({...prev, sort_by: undefined}));
+      return;
+    }
+    setFilters(prev => ({...prev, sort_by: `${value}.${sortOrder}`}));
+  };
 
   return (
     <View style={styles.container}>

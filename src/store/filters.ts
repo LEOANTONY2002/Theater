@@ -28,12 +28,13 @@ export const FiltersManager = {
         throw new Error('A filter with this name already exists');
       }
 
+      const timestamp = Date.now();
       const newFilter: SavedFilter = {
-        id: Date.now().toString(),
+        id: timestamp.toString(),
         name,
         params,
         type,
-        createdAt: Date.now(),
+        createdAt: timestamp,
       };
 
       const updatedFilters = [...filters, newFilter];
@@ -75,6 +76,8 @@ export const FiltersManager = {
       };
 
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+
+      // Invalidate queries
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
     } catch (error) {
       console.error('Error updating filter:', error);
@@ -87,6 +90,8 @@ export const FiltersManager = {
       const filters = await this.getSavedFilters();
       const updatedFilters = filters.filter(f => f.id !== id);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedFilters));
+
+      // Invalidate queries
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
     } catch (error) {
       console.error('Error deleting filter:', error);

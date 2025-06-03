@@ -69,6 +69,13 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     if (visible) {
       setFilters(initialFilters);
       setContentType(initialContentType);
+      // Set initial sort order based on initialFilters
+      if (initialFilters.sort_by) {
+        const [, order] = initialFilters.sort_by.split('.');
+        setSortOrder(order as 'asc' | 'desc');
+      } else {
+        setSortOrder('desc');
+      }
     }
   }, [visible, initialFilters, initialContentType]);
 
@@ -138,6 +145,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   }, [visible]);
 
   const handleSortChange = (value: string) => {
+    if (!value) {
+      setFilters(prev => ({...prev, sort_by: undefined}));
+      return;
+    }
+    // Don't append sortOrder here since the value already includes it
     setFilters(prev => ({...prev, sort_by: value}));
   };
 
@@ -217,16 +229,19 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const handleSortOrderToggle = () => {
     setSortOrder(prev => {
       const newOrder = prev === 'asc' ? 'desc' : 'asc';
-      const currentSort = filters.sort_by || '';
-      const [field] = currentSort.split('.');
-
-      if (field) {
-        setFilters(prevFilters => ({
-          ...prevFilters,
-          sort_by: `${field}.${newOrder}`,
-        }));
+      if (filters.sort_by) {
+        const [field] = filters.sort_by.split('.');
+        // Find the matching sort option with the new order
+        const newSortBy = SORT_OPTIONS.find(
+          option => option.value === `${field}.${newOrder}`,
+        )?.value;
+        if (newSortBy) {
+          setFilters(prevFilters => ({
+            ...prevFilters,
+            sort_by: newSortBy,
+          }));
+        }
       }
-
       return newOrder;
     });
   };
@@ -249,6 +264,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     setIsApplyingSavedFilter(true);
     setContentType(savedFilter.type);
     setFilters(savedFilter.params);
+
+    // Update sort order when applying saved filter
+    if (savedFilter.params.sort_by) {
+      const [, order] = savedFilter.params.sort_by.split('.');
+      setSortOrder(order as 'asc' | 'desc');
+    } else {
+      setSortOrder('desc');
+    }
   };
 
   return (
@@ -420,7 +443,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </View>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={filters.sort_by?.split('.')[0]}
+                  selectedValue={filters.sort_by}
                   onValueChange={handleSortChange}
                   style={styles.picker}
                   dropdownIconColor={colors.text.primary}>
