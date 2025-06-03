@@ -2,6 +2,7 @@ import {Movie} from './movie';
 import {TVShow} from './tvshow';
 import {NavigatorScreenParams} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
+import {SavedFilter} from './filters';
 
 export type MovieCategoryType =
   | 'latest'
@@ -35,7 +36,9 @@ export type HomeStackParamList = {
 };
 
 export type SearchStackParamList = {
-  SearchScreen: undefined;
+  SearchScreen: {
+    filter?: SavedFilter;
+  };
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
   PersonCredits: {
@@ -89,8 +92,12 @@ export type TVShowsStackParamList = {
 
 export type MySpaceStackParamList = {
   MySpaceScreen: undefined;
+  MyFiltersScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  SearchScreen: {
+    filter?: SavedFilter;
+  };
   PersonCredits: {
     personId: number;
     personName: string;
@@ -106,11 +113,13 @@ export type TabParamList = {
   MySpace: NavigatorScreenParams<MySpaceStackParamList>;
 };
 
-export type RootStackParamList = HomeStackParamList &
-  SearchStackParamList &
-  MoviesStackParamList &
-  TVShowsStackParamList &
-  MySpaceStackParamList;
+export type RootStackParamList = {
+  HomeTab: NavigatorScreenParams<HomeStackParamList>;
+  Search: NavigatorScreenParams<SearchStackParamList>;
+  Movies: NavigatorScreenParams<MoviesStackParamList>;
+  TVShows: NavigatorScreenParams<TVShowsStackParamList>;
+  MySpace: NavigatorScreenParams<MySpaceStackParamList>;
+};
 
 declare global {
   namespace ReactNavigation {

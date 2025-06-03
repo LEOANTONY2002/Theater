@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../types/navigation';
+import {CompositeNavigationProp} from '@react-navigation/native';
+import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
+import {TabParamList, MySpaceStackParamList} from '../types/navigation';
 import {useUserContent} from '../hooks/useUserContent';
 import {MovieList, ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
@@ -27,11 +29,15 @@ import {MovieCard} from '../components/MovieCard';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
 import {ContentCard} from '../components/ContentCard';
+import {SavedFilter} from '../types/filters';
+import {FiltersManager} from '../store/filters';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
-type MySpaceScreenNavigationProp =
-  NativeStackNavigationProp<RootStackParamList>;
+type MySpaceScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList, 'MySpace'>,
+  NativeStackNavigationProp<MySpaceStackParamList>
+>;
 
 export const MySpaceScreen = () => {
   const navigation = useNavigation<MySpaceScreenNavigationProp>();
@@ -45,6 +51,11 @@ export const MySpaceScreen = () => {
       queryFn: SettingsManager.getContentLanguages,
       initialData: [],
     });
+
+  const {data: savedFilters = [], isLoading: isLoadingFilters} = useQuery({
+    queryKey: ['savedFilters'],
+    queryFn: FiltersManager.getSavedFilters,
+  });
 
   useEffect(() => {
     // Listen for language changes and invalidate queries to refetch data
@@ -75,10 +86,11 @@ export const MySpaceScreen = () => {
     [navigation],
   );
 
-  const renderLanguageItem = ({item}: {item: Language}) => (
-    <View style={styles.languageTag}>
-      <Text style={styles.languageText}>{item.english_name}</Text>
-    </View>
+  const handleFilterPress = useCallback(
+    (filter: SavedFilter) => {
+      navigation.navigate('SearchScreen', {filter});
+    },
+    [navigation],
   );
 
   return (
@@ -153,14 +165,50 @@ export const MySpaceScreen = () => {
         />
       </View>
 
-      <View style={styles.headerContainer}>
+      <TouchableOpacity
+        style={styles.headerContainer}
+        onPress={() => navigation.navigate('MyFiltersScreen')}
+        testID="myFiltersButton">
         <Text style={styles.sectionTitle}>My Filters</Text>
         <Ionicons
           name="chevron-forward"
           size={24}
           color={colors.text.primary}
         />
-      </View>
+      </TouchableOpacity>
+
+      {isLoadingFilters ? (
+        <View style={styles.filtersContainer}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      ) : savedFilters.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtersContainer}
+          contentContainerStyle={styles.filtersContent}>
+          {savedFilters.map(filter => (
+            <TouchableOpacity
+              key={filter.id}
+              style={styles.filterTag}
+              onPress={() => handleFilterPress(filter)}>
+              <Text style={styles.filterText}>{filter.name}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            style={[styles.filterTag, styles.addFilterTag]}
+            onPress={() => navigation.navigate('MyFiltersScreen')}>
+            <Ionicons name="add" size={20} color={colors.text.primary} />
+          </TouchableOpacity>
+        </ScrollView>
+      ) : (
+        <TouchableOpacity
+          style={styles.addFirstFilterButton}
+          onPress={() => navigation.navigate('MyFiltersScreen')}>
+          <Ionicons name="add" size={24} color={colors.text.primary} />
+          <Text style={styles.addFirstFilterText}>Add your first filter</Text>
+        </TouchableOpacity>
+      )}
 
       <Modal
         visible={showLanguageModal}
@@ -171,7 +219,7 @@ export const MySpaceScreen = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <BlurView
-              style={styles.blurView}
+              style={StyleSheet.absoluteFill}
               blurType="dark"
               blurAmount={10}
               overlayColor="rgba(23, 17, 42, 0.87)"
@@ -229,16 +277,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     height: '90%',
-    // borderWidth: 1,
-    // borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
-  },
-  blurView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -270,10 +309,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
     borderRadius: borderRadius.lg,
-    // borderWidth: 1,
-    // borderColor: colors.primary,
   },
   languageText: {
+    color: colors.text.primary,
+    ...typography.body2,
+  },
+  filtersContainer: {
+    marginTop: -spacing.md,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  filtersContent: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: spacing.md,
+  },
+  filterTag: {
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  filterText: {
+    color: colors.text.primary,
+    ...typography.body2,
+  },
+  addFilterTag: {
+    paddingHorizontal: spacing.md,
+  },
+  addFirstFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+  },
+  addFirstFilterText: {
     color: colors.text.primary,
     ...typography.body2,
   },

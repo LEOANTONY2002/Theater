@@ -1,9 +1,11 @@
+import {Language} from '../store/settings';
+
 export type SortOption = {
   label: string;
   value: string;
 };
 
-export type FilterParams = {
+export interface FilterParams {
   sort_by?: string;
   'vote_average.gte'?: number;
   'vote_average.lte'?: number;
@@ -18,17 +20,25 @@ export type FilterParams = {
   with_runtime_gte?: number;
   with_runtime_lte?: number;
   include_adult?: boolean;
-};
+}
+
+export interface SavedFilter {
+  id: string;
+  name: string;
+  params: FilterParams;
+  type: 'all' | 'movie' | 'tv';
+  createdAt: number;
+}
 
 export const SORT_OPTIONS = [
   {label: 'Popularity Descending', value: 'popularity.desc'},
   {label: 'Popularity Ascending', value: 'popularity.asc'},
   {label: 'Rating Descending', value: 'vote_average.desc'},
   {label: 'Rating Ascending', value: 'vote_average.asc'},
-  {label: 'Release Date Descending', value: 'release_date.desc'},
-  {label: 'Release Date Ascending', value: 'release_date.asc'},
-  {label: 'Title (A-Z)', value: 'title.asc'},
-  {label: 'Title (Z-A)', value: 'title.desc'},
+  {label: 'Release Date Descending', value: 'primary_release_date.desc'},
+  {label: 'Release Date Ascending', value: 'primary_release_date.asc'},
+  {label: 'Title (A-Z)', value: 'original_title.asc'},
+  {label: 'Title (Z-A)', value: 'original_title.desc'},
 ];
 
 export const LANGUAGE_OPTIONS = [

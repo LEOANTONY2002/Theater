@@ -36,7 +36,6 @@ const App = () => {
         var region = await SettingsManager.getRegion();
         const regionData = regions.find((r: any) => r?.iso_3166_1 === region);
         await SettingsManager.setRegion(regionData);
-        console.log('Regions:', regions);
         var region = await SettingsManager.getRegion();
         console.log('Region detected:', region);
         // Add a small delay to ensure smooth transition

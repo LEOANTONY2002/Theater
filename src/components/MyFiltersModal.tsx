@@ -8,8 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  Switch,
-  FlatList,
+  Alert,
 } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -17,11 +16,10 @@ import Slider from '@react-native-community/slider';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
-import {FilterParams, SORT_OPTIONS} from '../types/filters';
+import {FilterParams, SORT_OPTIONS, SavedFilter} from '../types/filters';
 import {getLanguages, getGenres} from '../services/tmdb';
-import {Chip} from './Chip';
 import {FiltersManager} from '../store/filters';
-import type {SavedFilter} from '../types/filters';
+import {Chip} from './Chip';
 
 interface Language {
   iso_639_1: string;
@@ -34,42 +32,42 @@ interface Genre {
   name: string;
 }
 
-interface FilterModalProps {
+interface MyFiltersModalProps {
   visible: boolean;
   onClose: () => void;
-  onApply: (filters: FilterParams, contentType: 'all' | 'movie' | 'tv') => void;
-  initialFilters: FilterParams;
-  initialContentType: 'all' | 'movie' | 'tv';
-  onReset?: () => void;
+  onSave: (filter: SavedFilter) => void;
+  editingFilter?: SavedFilter | null;
 }
 
-export const FilterModal: React.FC<FilterModalProps> = ({
+export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   visible,
   onClose,
-  onApply,
-  initialFilters,
-  initialContentType,
-  onReset,
+  onSave,
+  editingFilter = null,
 }) => {
-  const [filters, setFilters] = useState<FilterParams>(initialFilters);
-  const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>(
-    initialContentType,
-  );
+  const [filterName, setFilterName] = useState('');
+  const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
+  const [filters, setFilters] = useState<FilterParams>({});
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
 
   useEffect(() => {
     if (visible) {
-      setFilters(initialFilters);
-      setContentType(initialContentType);
+      if (editingFilter) {
+        setFilterName(editingFilter.name);
+        setContentType(editingFilter.type);
+        setFilters(editingFilter.params);
+      } else {
+        setFilterName('');
+        setContentType('all');
+        setFilters({});
+      }
     }
-  }, [visible, initialFilters, initialContentType]);
+  }, [visible, editingFilter]);
 
   useEffect(() => {
     const fetchLanguages = async () => {
@@ -117,22 +115,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     setFilters(prev => ({...prev, with_genres: undefined}));
   }, [contentType]);
 
-  useEffect(() => {
-    // Load saved filters when modal opens
-    const loadSavedFilters = async () => {
-      try {
-        const filters = await FiltersManager.getSavedFilters();
-        setSavedFilters(filters);
-      } catch (error) {
-        console.error('Error loading saved filters:', error);
-      }
-    };
-
-    if (visible) {
-      loadSavedFilters();
-    }
-  }, [visible]);
-
   const handleSortChange = (value: string) => {
     setFilters(prev => ({...prev, sort_by: value}));
   };
@@ -178,12 +160,37 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const handleReset = () => {
     setFilters({});
     setContentType('all');
-    onReset?.();
   };
 
-  const handleApply = () => {
-    onApply(filters, contentType);
-    onClose();
+  const handleSave = async () => {
+    try {
+      if (!filterName.trim()) {
+        Alert.alert('Error', 'Please enter a filter name');
+        return;
+      }
+
+      const newFilter: SavedFilter = {
+        id: editingFilter?.id || Date.now().toString(),
+        name: filterName,
+        type: contentType,
+        params: filters,
+        createdAt: editingFilter?.createdAt || new Date().toISOString(),
+      };
+
+      if (editingFilter) {
+        await FiltersManager.updateFilter(editingFilter.id, newFilter);
+      } else {
+        await FiltersManager.saveFilter(filterName, filters, contentType);
+      }
+
+      onSave(newFilter);
+      onClose();
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to save filter',
+      );
+    }
   };
 
   const getDateFromFilter = (key: string) => {
@@ -210,27 +217,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     });
   };
 
-  const handleSortOrderToggle = () => {
-    setSortOrder(prev => {
-      const newOrder = prev === 'asc' ? 'desc' : 'asc';
-      const currentSort = filters.sort_by || '';
-      const [field] = currentSort.split('.');
-
-      if (field) {
-        setFilters(prevFilters => ({
-          ...prevFilters,
-          sort_by: `${field}.${newOrder}`,
-        }));
-      }
-
-      return newOrder;
-    });
-  };
-
-  const handleMaxRatingChange = (value: number) => {
-    setFilters(prev => ({...prev, 'vote_average.lte': value}));
-  };
-
   const getFilteredGenres = () => {
     if (contentType === 'movie') return movieGenres;
     if (contentType === 'tv') return tvGenres;
@@ -243,11 +229,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       }
     });
     return Array.from(uniqueGenres.values());
-  };
-
-  const handleSavedFilterSelect = (savedFilter: SavedFilter) => {
-    setContentType(savedFilter.type);
-    setFilters(savedFilter.params);
   };
 
   return (
@@ -267,47 +248,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         />
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filter Content</Text>
+            <Text style={styles.modalTitle}>
+              {editingFilter ? 'Edit Filter' : 'New Filter'}
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.scrollContent}>
-            {/* Saved Filters Section */}
-            {savedFilters.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Saved Filters</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.savedFiltersScroll}>
-                  {savedFilters.map(filter => (
-                    <TouchableOpacity
-                      key={filter.id}
-                      style={[
-                        styles.savedFilterChip,
-                        JSON.stringify(filters) ===
-                          JSON.stringify(filter.params) &&
-                          contentType === filter.type &&
-                          styles.activeSavedFilter,
-                      ]}
-                      onPress={() => handleSavedFilterSelect(filter)}>
-                      <Text
-                        style={[
-                          styles.savedFilterText,
-                          JSON.stringify(filters) ===
-                            JSON.stringify(filter.params) &&
-                            contentType === filter.type &&
-                            styles.activeSavedFilterText,
-                        ]}>
-                        {filter.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+            {/* Filter Name */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Filter Name</Text>
+              <TextInput
+                style={styles.input}
+                value={filterName}
+                onChangeText={setFilterName}
+                placeholder="Enter filter name"
+                placeholderTextColor={colors.text.secondary}
+              />
+            </View>
 
             {/* Content Type */}
             <View style={styles.section}>
@@ -403,23 +363,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </View>
             </View>
 
-            {/* Sort By with Order Toggle */}
+            {/* Sort By */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Sort By</Text>
-                <TouchableOpacity
-                  style={styles.sortOrderButton}
-                  onPress={handleSortOrderToggle}>
-                  <Ionicons
-                    name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
-                    size={20}
-                    color={colors.text.primary}
-                  />
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.sectionTitle}>Sort By</Text>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={filters.sort_by?.split('.')[0]}
+                  selectedValue={filters.sort_by}
                   onValueChange={handleSortChange}
                   style={styles.picker}
                   dropdownIconColor={colors.text.primary}>
@@ -462,41 +411,21 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </View>
             </View>
 
-            {/* Rating Range */}
+            {/* Rating */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Rating Range</Text>
-              <View style={styles.ratingContainer}>
-                <View style={styles.ratingSection}>
-                  <Text style={styles.ratingLabel}>
-                    Min: {filters['vote_average.gte'] || 0}
-                  </Text>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={0}
-                    maximumValue={10}
-                    step={0.5}
-                    value={filters['vote_average.gte'] || 0}
-                    onValueChange={handleRatingChange}
-                    minimumTrackTintColor={colors.primary}
-                    maximumTrackTintColor={colors.text.secondary}
-                  />
-                </View>
-                <View style={styles.ratingSection}>
-                  <Text style={styles.ratingLabel}>
-                    Max: {filters['vote_average.lte'] || 10}
-                  </Text>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={0}
-                    maximumValue={10}
-                    step={0.5}
-                    value={filters['vote_average.lte'] || 10}
-                    onValueChange={handleMaxRatingChange}
-                    minimumTrackTintColor={colors.primary}
-                    maximumTrackTintColor={colors.text.secondary}
-                  />
-                </View>
-              </View>
+              <Text style={styles.sectionTitle}>
+                Minimum Rating: {filters['vote_average.gte'] || 0}
+              </Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={10}
+                step={0.5}
+                value={filters['vote_average.gte'] || 0}
+                onValueChange={handleRatingChange}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.text.secondary}
+              />
             </View>
 
             {/* Release Date */}
@@ -579,9 +508,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               <Text style={styles.resetButtonText}>Reset</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.footerButton, styles.applyButton]}
-              onPress={handleApply}>
-              <Text style={styles.applyButtonText}>Apply</Text>
+              style={[styles.footerButton, styles.saveButton]}
+              onPress={handleSave}>
+              <Text style={styles.saveButtonText}>
+                {editingFilter ? 'Update' : 'Save'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -628,6 +559,13 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     ...typography.h3,
     marginBottom: spacing.sm,
+  },
+  input: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    color: colors.text.primary,
+    ...typography.body1,
   },
   contentTypeContainer: {
     flexDirection: 'row',
@@ -705,10 +643,10 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     ...typography.button,
   },
-  applyButton: {
+  saveButton: {
     backgroundColor: colors.primary,
   },
-  applyButtonText: {
+  saveButtonText: {
     color: colors.text.primary,
     ...typography.button,
   },
@@ -721,48 +659,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  sortOrderButton: {
-    padding: spacing.xs,
-  },
-  ratingContainer: {
-    gap: spacing.md,
-  },
-  ratingSection: {
-    gap: spacing.xs,
-  },
-  ratingLabel: {
-    color: colors.text.primary,
-    ...typography.body2,
-  },
-  savedFiltersScroll: {
-    flexGrow: 0,
-    marginBottom: spacing.xs,
-  },
-  savedFilterChip: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.round,
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  activeSavedFilter: {
-    backgroundColor: colors.background.tertiary,
-    borderColor: colors.primary,
-  },
-  savedFilterText: {
-    color: colors.text.secondary,
-    ...typography.body2,
-  },
-  activeSavedFilterText: {
-    color: colors.primary,
   },
 });

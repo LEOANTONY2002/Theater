@@ -69,7 +69,6 @@ export const SettingsManager = {
   async getCachedLanguages(): Promise<Language[] | null> {
     try {
       const cachedData = await AsyncStorage.getItem(LANGUAGES_CACHE_KEY);
-      console.log('Getting cached languages from storage:', cachedData);
       if (!cachedData) return null;
 
       const parsedCache = JSON.parse(cachedData);

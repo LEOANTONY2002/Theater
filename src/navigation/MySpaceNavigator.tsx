@@ -1,0 +1,62 @@
+import React from 'react';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {MySpaceScreen} from '../screens/MySpace';
+import {MovieDetailsScreen} from '../screens/MovieDetails';
+import {TVShowDetailsScreen} from '../screens/TVShowDetails';
+import {MyFiltersScreen} from '../screens/MyFilters';
+import {SearchScreen} from '../screens/Search';
+import {MySpaceStackParamList} from '../types/navigation';
+import {colors} from '../styles/theme';
+
+const Stack = createNativeStackNavigator<MySpaceStackParamList>();
+
+export const MySpaceNavigator = () => {
+  console.log('MySpaceNavigator rendering');
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: colors.background.primary,
+        },
+        animation: 'slide_from_right',
+      }}>
+      <Stack.Screen
+        name="MySpaceScreen"
+        component={MySpaceScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="MyFiltersScreen"
+        component={MyFiltersScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="MovieDetails"
+        component={MovieDetailsScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="TVShowDetails"
+        component={TVShowDetailsScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="SearchScreen"
+        component={SearchScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
