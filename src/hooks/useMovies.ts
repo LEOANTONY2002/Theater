@@ -12,6 +12,7 @@ import {
 } from '../services/tmdb';
 import {Movie, MovieDetails, MoviesResponse} from '../types/movie';
 import {FilterParams} from '../types/filters';
+import {SettingsManager} from '../store/settings';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
@@ -87,7 +88,10 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
     gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
 
@@ -106,10 +110,19 @@ export const useDiscoverMovies = (params: FilterParams) => {
 };
 
 export const useTop10MoviesTodayByRegion = () => {
+  const {data: region} = useQuery<{iso_3166_1: string; english_name: string}>({
+    queryKey: ['region'],
+    queryFn: SettingsManager.getRegion,
+  });
+
   return useQuery({
-    queryKey: ['top_10_movies_today_by_region'],
+    queryKey: ['top_10_movies_today_by_region', region?.iso_3166_1],
     queryFn: () => getTop10MoviesTodayByRegion(),
     gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    staleTime: 0, // Always consider the data stale
+    enabled: !!region?.iso_3166_1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };

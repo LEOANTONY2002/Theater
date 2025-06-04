@@ -2,6 +2,8 @@ import axios from 'axios';
 import {tmdbApi} from './api';
 import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
+import languageData from '../utils/language.json';
+import regionData from '../utils/region.json';
 
 const getLanguageParam = async () => {
   const contentLanguages = await SettingsManager.getContentLanguages();
@@ -293,7 +295,7 @@ export const getTrendingMovies = async (
   page = 1,
 ) => {
   const with_original_language = await getLanguageParam();
-  const response = await tmdbApi.get(`/trending/movie/${timeWindow}`, {
+  const response = await tmdbApi.get(`/discover/movie/${timeWindow}`, {
     params: {page, with_original_language},
   });
   return response.data;
@@ -304,7 +306,7 @@ export const getTrendingTVShows = async (
   page = 1,
 ) => {
   const with_original_language = await getLanguageParam();
-  const response = await tmdbApi.get(`/trending/tv/${timeWindow}`, {
+  const response = await tmdbApi.get(`/discover/tv/${timeWindow}`, {
     params: {page, with_original_language},
   });
   return response.data;
@@ -340,10 +342,12 @@ export const getWatchProviders = async (
   contentId: number,
   contentType: 'movie' | 'tv',
 ) => {
+  const region = await SettingsManager.getRegion();
   const response = await tmdbApi.get(
     `/${contentType}/${contentId}/watch/providers`,
   );
-  return response.data;
+  const results = response.data.results || {};
+  return results[region?.iso_3166_1 || 'US'] || null;
 };
 
 export const getPersonMovieCredits = async (personId: number, page = 1) => {
@@ -400,8 +404,7 @@ export const getPersonTVCredits = async (personId: number, page = 1) => {
 };
 
 export const getLanguages = async () => {
-  const response = await tmdbApi.get('/configuration/languages');
-  return response.data;
+  return languageData;
 };
 
 export const getContentByGenre = async (
@@ -477,45 +480,53 @@ export const getContentByGenre = async (
 };
 
 export const getRegions = async () => {
-  const regions = await SettingsManager.getRegions();
-  if (regions && regions?.length > 0) return regions;
-  const response = await tmdbApi.get('/watch/providers/regions');
-  await SettingsManager.setRegions(response.data.results);
-  return response.data.results;
+  return regionData;
 };
 
 export const getTop10MoviesTodayByRegion = async () => {
-  const region = await SettingsManager.getRegion();
-  console.log('region', region);
-  const response = await tmdbApi.get('/discover/movie', {
-    params: {
-      watch_region: region?.iso_3166_1 || 'US', // US, IN, etc.
-      sort_by: 'popularity.desc',
-      'release_date.lte': new Date().toISOString().split('T')[0], // Only released titles
-      // 'vote_count.gte': 50, // Filter out obscure titles
-      page: 1,
-      without_genres: '10764,10767,10766,10763,99,10751', // Exclude reality, talk shows, soap, news
-    },
-  });
+  try {
+    const region = await SettingsManager.getRegion();
+    const today = new Date().toISOString().split('T')[0];
 
-  // Return top 10 results
-  return response.data.results.slice(0, 10);
+    console.log('Fetching top 10 movies for region:', region);
+    const response = await tmdbApi.get('/trending/movie/day', {
+      params: {
+        page: 1,
+        region: region.iso_3166_1,
+        'release_date.lte': today,
+        sort_by: 'popularity.desc',
+        // 'vote_count.gte': 50,
+        without_genres: '10764,10767,10766,10763', // Reality, Talk Show, Soap, News
+      },
+    });
+
+    console.log('Response:', response.data);
+
+    return response.data.results.slice(0, 10);
+  } catch (error) {
+    console.error('Error fetching top 10 movies:', error);
+    return [];
+  }
 };
 
 export const getTop10TVShowsTodayByRegion = async () => {
-  const region = await SettingsManager.getRegion();
-  console.log('region', region);
-  const response = await tmdbApi.get('/discover/tv', {
-    params: {
-      watch_region: region?.iso_3166_1 || 'US',
-      sort_by: 'popularity.desc',
-      'first_air_date.lte': new Date().toISOString().split('T')[0],
-      // 'vote_count.gte': 50,
-      page: 1,
-      without_genres: '10764,10767,10766,10763,99,10751',
-    },
-  });
+  try {
+    const region = await SettingsManager.getRegion();
+    if (!region?.iso_3166_1) {
+      console.warn('No region set for getTop10TVShowsTodayByRegion');
+      return [];
+    }
 
-  // Return top 10 results
-  return response.data.results.slice(0, 10);
+    console.log('Fetching top 10 TV shows for region:', region);
+    const response = await tmdbApi.get('/trending/tv/day', {
+      params: {
+        region: region.iso_3166_1,
+      },
+    });
+
+    return response.data.results.slice(0, 10);
+  } catch (error) {
+    console.error('Error fetching top 10 TV shows:', error);
+    return [];
+  }
 };

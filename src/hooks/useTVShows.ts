@@ -12,6 +12,7 @@ import {
 } from '../services/tmdb';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
 import {FilterParams} from '../types/filters';
+import {SettingsManager} from '../store/settings';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
@@ -99,10 +100,11 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME * 2,
-    staleTime: STALE_TIME * 2,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    gcTime: CACHE_TIME,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
 
@@ -121,10 +123,19 @@ export const useSeasonDetails = (tvId: number, seasonNumber?: number) => {
 };
 
 export const useTop10ShowsTodayByRegion = () => {
+  const {data: region} = useQuery<{iso_3166_1: string; english_name: string}>({
+    queryKey: ['region'],
+    queryFn: SettingsManager.getRegion,
+  });
+
   return useQuery({
-    queryKey: ['top_10_shows_today_by_region'],
+    queryKey: ['top_10_shows_today_by_region', region?.iso_3166_1],
     queryFn: () => getTop10TVShowsTodayByRegion(),
     gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    staleTime: 0, // Always consider the data stale
+    enabled: !!region?.iso_3166_1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };

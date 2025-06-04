@@ -31,6 +31,9 @@ import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
 import {ContentCard} from '../components/ContentCard';
 import {SavedFilter} from '../types/filters';
 import {FiltersManager} from '../store/filters';
+import {RegionModal} from '../components/RegionModal';
+import regionData from '../utils/region.json';
+import {FilterParams} from '../types/filters';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -39,10 +42,18 @@ type MySpaceScreenNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<MySpaceStackParamList>
 >;
 
+interface Region {
+  iso_3166_1: string;
+  english_name: string;
+}
+
 export const MySpaceScreen = () => {
   const navigation = useNavigation<MySpaceScreenNavigationProp>();
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showRegionModal, setShowRegionModal] = useState(false);
+  const [filters, setFilters] = useState<FilterParams>({});
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const {content: watchlist, isLoading} = useUserContent('WATCHLIST');
   const {data: selectedLanguages = [], isLoading: isLoadingLanguages} =
@@ -60,6 +71,16 @@ export const MySpaceScreen = () => {
     refetchOnReconnect: true,
   });
 
+  const {data: currentRegion} = useQuery<Region>({
+    queryKey: ['region'],
+    queryFn: SettingsManager.getRegion,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+
   // Add focus effect to refresh filters
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -70,16 +91,16 @@ export const MySpaceScreen = () => {
   }, [navigation, queryClient]);
 
   useEffect(() => {
-    // Listen for language changes and invalidate queries to refetch data
-    const handleLanguageChange = () => {
-      // Invalidate all queries to refetch with new language settings
+    // Listen for both language and region changes
+    const handleSettingsChange = () => {
+      // Invalidate all queries to refetch with new settings
       queryClient.invalidateQueries();
     };
 
-    SettingsManager.addChangeListener(handleLanguageChange);
+    SettingsManager.addChangeListener(handleSettingsChange);
 
     return () => {
-      SettingsManager.removeChangeListener(handleLanguageChange);
+      SettingsManager.removeChangeListener(handleSettingsChange);
     };
   }, [queryClient]);
 
@@ -106,11 +127,30 @@ export const MySpaceScreen = () => {
   );
 
   const handleSortChange = (value: string) => {
-    if (!value) {
-      setFilters(prev => ({...prev, sort_by: undefined}));
-      return;
+    setFilters((prev: FilterParams) => ({
+      ...prev,
+      sort_by: `${value}.${sortOrder}`,
+    }));
+  };
+
+  const handleRegionSelect = async (region: Region) => {
+    try {
+      setShowRegionModal(false);
+      await SettingsManager.setRegion(region);
+
+      // Force an immediate refetch of the region-dependent queries
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: ['top_10_movies_today_by_region'],
+        }),
+        queryClient.refetchQueries({
+          queryKey: ['top_10_shows_today_by_region'],
+        }),
+        queryClient.refetchQueries({queryKey: ['watchProviders']}),
+      ]);
+    } catch (error) {
+      console.error('Error setting region:', error);
     }
-    setFilters(prev => ({...prev, sort_by: `${value}.${sortOrder}`}));
   };
 
   return (
@@ -176,13 +216,22 @@ export const MySpaceScreen = () => {
         ) : null}
       </View>
 
-      <View style={styles.headerContainer}>
-        <Text style={styles.sectionTitle}>Region</Text>
-        <Ionicons
-          name="chevron-forward"
-          size={24}
-          color={colors.text.primary}
-        />
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          onPress={() => setShowRegionModal(true)}>
+          <Text style={styles.sectionTitle}>Region</Text>
+          <View style={styles.regionInfo}>
+            <Text style={styles.regionText}>
+              {currentRegion?.english_name || 'Select Region'}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={colors.text.secondary}
+            />
+          </View>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity
@@ -257,6 +306,14 @@ export const MySpaceScreen = () => {
           </View>
         </View>
       </Modal>
+
+      <RegionModal
+        visible={showRegionModal}
+        onClose={() => setShowRegionModal(false)}
+        regions={regionData}
+        selectedRegion={currentRegion?.iso_3166_1}
+        onSelectRegion={handleRegionSelect}
+      />
     </View>
   );
 };
@@ -375,5 +432,23 @@ const styles = StyleSheet.create({
   addFirstFilterText: {
     color: colors.text.primary,
     ...typography.body2,
+  },
+  section: {
+    padding: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+  },
+  regionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  regionText: {
+    color: colors.text.secondary,
+    ...typography.body1,
   },
 });

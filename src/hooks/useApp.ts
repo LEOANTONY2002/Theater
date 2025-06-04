@@ -5,5 +5,9 @@ export const useRegion = () => {
   return useQuery({
     queryKey: ['region'],
     queryFn: () => SettingsManager.getRegion(),
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };

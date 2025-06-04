@@ -10,27 +10,74 @@ export interface Language {
 const STORAGE_KEY = '@settings_content_languages';
 const LANGUAGES_CACHE_KEY = '@languages_cache';
 
-type LanguageChangeListener = () => void;
-const listeners = new Set<LanguageChangeListener>();
+type SettingsChangeListener = () => void;
+const listeners = new Set<SettingsChangeListener>();
+
+const KEYS = {
+  LANGUAGES: '@settings/languages',
+  REGIONS: '@settings/regions',
+  SELECTED_LANGUAGE: '@settings/selected_language',
+  SELECTED_REGION: '@settings/selected_region',
+};
 
 export const SettingsManager = {
   async getRegions(): Promise<any> {
-    const regions = await AsyncStorage.getItem('regions');
+    const regions = await AsyncStorage.getItem(KEYS.REGIONS);
     return regions ? JSON.parse(regions) : [];
   },
 
   async setRegions(regions: any): Promise<void> {
-    await AsyncStorage.setItem('regions', JSON.stringify(regions));
+    await AsyncStorage.setItem(KEYS.REGIONS, JSON.stringify(regions));
     queryClient.invalidateQueries({queryKey: ['regions']});
   },
 
   async getRegion(): Promise<any> {
-    const region = await AsyncStorage.getItem('region');
+    const region = await AsyncStorage.getItem(KEYS.SELECTED_REGION);
     return region ? JSON.parse(region) : null;
   },
 
   async setRegion(region: any): Promise<void> {
-    await AsyncStorage.setItem('region', JSON.stringify(region));
+    try {
+      await AsyncStorage.setItem(KEYS.SELECTED_REGION, JSON.stringify(region));
+
+      // First invalidate all queries that depend on region
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: ['region']}),
+        queryClient.invalidateQueries({
+          queryKey: ['top_10_movies_today_by_region'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['top_10_shows_today_by_region'],
+        }),
+        queryClient.invalidateQueries({queryKey: ['watchProviders']}),
+        queryClient.invalidateQueries({queryKey: ['movies']}),
+        queryClient.invalidateQueries({queryKey: ['tvshows']}),
+        queryClient.invalidateQueries({queryKey: ['discover_movies']}),
+        queryClient.invalidateQueries({queryKey: ['discover_tv']}),
+      ]);
+
+      // Then force refetch all invalidated queries
+      await Promise.all([
+        queryClient.refetchQueries({queryKey: ['region']}),
+        queryClient.refetchQueries({
+          queryKey: ['top_10_movies_today_by_region'],
+        }),
+        queryClient.refetchQueries({
+          queryKey: ['top_10_shows_today_by_region'],
+        }),
+        queryClient.refetchQueries({queryKey: ['watchProviders']}),
+        queryClient.refetchQueries({queryKey: ['movies']}),
+        queryClient.refetchQueries({queryKey: ['tvshows']}),
+        queryClient.refetchQueries({queryKey: ['discover_movies']}),
+        queryClient.refetchQueries({queryKey: ['discover_tv']}),
+      ]);
+
+      // Notify all listeners of the region change
+      listeners.forEach(listener => listener());
+    } catch (error) {
+      console.error('Error setting region:', error);
+      throw error;
+    }
   },
 
   async getContentLanguages(): Promise<Language[]> {
@@ -91,18 +138,24 @@ export const SettingsManager = {
     }
   },
 
-  addChangeListener(listener: LanguageChangeListener): void {
+  // Combined listener management for both language and region changes
+  addChangeListener(listener: SettingsChangeListener): void {
     listeners.add(listener);
   },
 
-  removeChangeListener(listener: LanguageChangeListener): void {
+  removeChangeListener(listener: SettingsChangeListener): void {
     listeners.delete(listener);
   },
 
   // Debug method to clear all storage (for testing)
   async clearStorage(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([STORAGE_KEY, LANGUAGES_CACHE_KEY]);
+      await AsyncStorage.multiRemove([
+        STORAGE_KEY,
+        LANGUAGES_CACHE_KEY,
+        KEYS.SELECTED_REGION,
+        KEYS.REGIONS,
+      ]);
       console.log('Storage cleared successfully');
     } catch (error) {
       console.error('Error clearing storage:', error);
