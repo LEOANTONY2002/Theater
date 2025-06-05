@@ -13,12 +13,18 @@ import {GridSkeleton} from './LoadingSkeleton';
 
 type TrendingGridProps = {
   data: ContentItem[];
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
   onItemPress: (item: ContentItem) => void;
   isLoading?: boolean;
 };
 
 export const TrendingGrid: React.FC<TrendingGridProps> = ({
   data,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
   onItemPress,
   isLoading = false,
 }) => {
@@ -44,6 +50,15 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
         numColumns={3}
         contentContainerStyle={styles.gridContainer}
         showsVerticalScrollIndicator={false}
+        onEndReached={
+          hasNextPage
+            ? () => {
+                if (hasNextPage) fetchNextPage();
+              }
+            : undefined
+        }
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
       />
     </View>
   );
@@ -54,6 +69,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
     alignItems: 'center',
+    paddingBottom: 100,
   },
   title: {
     ...typography.h3,

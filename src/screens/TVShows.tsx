@@ -44,7 +44,6 @@ export const TVShowsScreen = () => {
     const loadGenres = async () => {
       try {
         const tvGenres = await getGenres('tv');
-        console.log('Loaded TV Genres:', tvGenres);
         setGenres(tvGenres);
       } catch (error) {
         console.error('Error loading genres:', error);
@@ -54,7 +53,6 @@ export const TVShowsScreen = () => {
   }, []);
 
   const handleGenrePress = (genre: Genre) => {
-    console.log('Pressing genre:', genre);
     navigation.navigate('Genre', {
       genreId: genre.id,
       genreName: genre.name,

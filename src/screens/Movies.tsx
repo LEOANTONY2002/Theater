@@ -23,6 +23,7 @@ import {
 import {getGenres} from '../services/tmdb';
 import {Genre} from '../types/movie';
 import {useRegion} from '../hooks/useApp';
+import {TVShow} from '../types/tvshow';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -108,7 +109,6 @@ export const MoviesScreen = () => {
 
   const handleMoviePress = useCallback(
     (item: ContentItem) => {
-      console.log('item', item);
       if (item.type !== 'tv') {
         navigation.navigate('MovieDetails', {movie: item as Movie});
       } else {

@@ -16,7 +16,7 @@ import {
   useMovieRecommendations,
 } from '../hooks/useMovies';
 import {useUserContent} from '../hooks/useUserContent';
-import {getImageUrl} from '../services/tmdb';
+import {getImageUrl, getLanguage} from '../services/tmdb';
 import {Movie, Video, Genre, Cast} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
@@ -194,7 +194,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           {movieDetails?.original_language && (
             <>
               <Text style={styles.infoDot}>•</Text>
-              <Text style={styles.info}>{movieDetails.original_language}</Text>
+              <Text style={styles.info}>
+                {getLanguage(movieDetails?.original_language)}
+              </Text>
             </>
           )}
           {movieDetails?.vote_average && (
@@ -250,7 +252,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
       <Text style={styles.overview}>{movie.overview}</Text>
 
-      {movieDetails?.credits && (
+      {movieDetails?.credits?.cast?.length > 0 && (
         <View style={{marginVertical: spacing.lg, marginTop: 0}}>
           <Text style={styles.sectionTitle}>Cast</Text>
           <ScrollView

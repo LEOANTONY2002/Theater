@@ -208,7 +208,7 @@ export const HomeScreen = () => {
       height: 520,
       alignSelf: 'center',
       borderRadius: 50,
-      marginVertical: spacing.xl,
+      marginBottom: spacing.xl,
       marginTop: spacing.xxl,
     },
   });

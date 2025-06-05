@@ -17,7 +17,6 @@ export const getMovies = async (
 ) => {
   const today = new Date().toISOString().split('T')[0];
   const with_original_language = await getLanguageParam();
-  console.log('with_original_language', with_original_language);
   const params: any = {
     page,
     sort_by: 'release_date.desc',
@@ -97,8 +96,8 @@ export const searchMovies = async (
   const params = {
     page,
     ...filters,
-    with_original_language:
-      filters.with_original_language || with_original_language,
+    // with_original_language:
+    //   filters.with_original_language || with_original_language,
   };
 
   if (!query) {
@@ -156,8 +155,8 @@ export const searchTVShows = async (
   const params = {
     page,
     ...filters,
-    with_original_language:
-      filters.with_original_language || with_original_language,
+    // with_original_language:
+    //   filters.with_original_language || with_original_language,
   };
 
   if (!query) {
@@ -290,13 +289,23 @@ export const getTVShowRecommendations = async (tvId: number, page = 1) => {
   return response.data;
 };
 
+export const getTrending = async (
+  timeWindow: 'day' | 'week' = 'day',
+  page = 1,
+) => {
+  const response = await tmdbApi.get(`/trending/all/${timeWindow}`, {
+    params: {page},
+  });
+  return response.data;
+};
+
 export const getTrendingMovies = async (
   timeWindow: 'day' | 'week' = 'day',
   page = 1,
 ) => {
   const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/discover/movie/${timeWindow}`, {
-    params: {page, with_original_language},
+    params: {page},
   });
   return response.data;
 };
@@ -307,7 +316,7 @@ export const getTrendingTVShows = async (
 ) => {
   const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/discover/tv/${timeWindow}`, {
-    params: {page, with_original_language},
+    params: {page},
   });
   return response.data;
 };
@@ -407,6 +416,10 @@ export const getLanguages = async () => {
   return languageData;
 };
 
+export const getLanguage = (language: string) => {
+  return languageData.find((l: any) => l.iso_639_1 === language)?.english_name;
+};
+
 export const getContentByGenre = async (
   genreId: number,
   contentType: 'movie' | 'tv',
@@ -421,13 +434,6 @@ export const getContentByGenre = async (
     console.error('Invalid parameters:', {genreId, contentType, error});
     throw error;
   }
-
-  console.log('getContentByGenre called with:', {
-    genreId,
-    contentType,
-    page,
-    sortBy,
-  });
 
   const with_original_language = await getLanguageParam();
   const endpoint = contentType === 'movie' ? '/discover/movie' : '/discover/tv';
@@ -453,9 +459,6 @@ export const getContentByGenre = async (
     params.without_genres = '10764,10767'; // Exclude reality and talk shows
   }
 
-  console.log('Making API call to:', endpoint);
-  console.log('API params:', JSON.stringify(params, null, 2));
-
   try {
     const response = await tmdbApi.get(endpoint, {params});
     const responseData = {
@@ -466,7 +469,6 @@ export const getContentByGenre = async (
       results_count: response.data.results?.length,
       first_result: response.data.results?.[0]?.id,
     };
-    console.log('API Response:', responseData);
     return response.data;
   } catch (error: any) {
     const errorDetails = {
@@ -488,7 +490,6 @@ export const getTop10MoviesTodayByRegion = async () => {
     const region = await SettingsManager.getRegion();
     const today = new Date().toISOString().split('T')[0];
 
-    console.log('Fetching top 10 movies for region:', region);
     const response = await tmdbApi.get('/trending/movie/day', {
       params: {
         page: 1,
@@ -499,8 +500,6 @@ export const getTop10MoviesTodayByRegion = async () => {
         without_genres: '10764,10767,10766,10763', // Reality, Talk Show, Soap, News
       },
     });
-
-    console.log('Response:', response.data);
 
     return response.data.results.slice(0, 10);
   } catch (error) {
@@ -517,7 +516,6 @@ export const getTop10TVShowsTodayByRegion = async () => {
       return [];
     }
 
-    console.log('Fetching top 10 TV shows for region:', region);
     const response = await tmdbApi.get('/trending/tv/day', {
       params: {
         region: region.iso_3166_1,

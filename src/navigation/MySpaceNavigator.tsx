@@ -11,7 +11,6 @@ import {colors} from '../styles/theme';
 const Stack = createNativeStackNavigator<MySpaceStackParamList>();
 
 export const MySpaceNavigator = () => {
-  console.log('MySpaceNavigator rendering');
   return (
     <Stack.Navigator
       screenOptions={{

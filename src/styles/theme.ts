@@ -4,11 +4,15 @@ export const colors = {
   tertiary: '#4DCFFF',
   accent: '#FFD54F',
   background: {
-    primary: '#0A0A1A',
-    secondary: '#12122A',
+    primary: '#000016',
+    secondary: '#15152B',
     tertiary: '#1D1D3A',
-    gradient: ['#0A0A1A', '#1D1D3A'],
-    card: 'rgba(29, 29, 58, 0.7)',
+    card: '#15152B',
+    tag: '#14142460',
+  },
+  gradient: {
+    primary: ['rgba(0, 0, 14, 0)', 'rgba(0, 0, 18, 0.4)'],
+    secondary: ['#212144', '#15152B'],
   },
   text: {
     primary: '#FFFFFF',
@@ -61,7 +65,7 @@ export const typography = {
     letterSpacing: 0.3,
   },
   h2: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600' as const,
     letterSpacing: 0.2,
   },

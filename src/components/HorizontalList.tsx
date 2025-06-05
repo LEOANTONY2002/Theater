@@ -75,7 +75,9 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
                 justifyContent: 'space-between',
               }}
               onPress={onSeeAllPress}>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.title} numberOfLines={1}>
+                {title}
+              </Text>
               <Ionicon
                 name="chevron-forward-outline"
                 size={20}
@@ -84,7 +86,9 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
               />
             </TouchableOpacity>
           ) : (
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
           )}
         </View>
       ) : null}
@@ -106,7 +110,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: spacing.md,
+    marginBottom: spacing.md,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -118,6 +122,7 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.text.primary,
     marginBottom: spacing.sm,
+    flex: 1,
   },
   seeAll: {
     ...typography.body2,
@@ -149,11 +154,7 @@ const styles = StyleSheet.create({
   top10Number: {
     fontSize: 100,
     opacity: 0.8,
-    // textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    // textShadowOffset: {width: 2, height: 2},
-    // textShadowRadius: 5,
     fontWeight: 'bold',
-    // color: 'transparent',
     color: 'white',
     width: 100,
     letterSpacing: -10,

@@ -22,7 +22,7 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
       case 'dark':
         return ['#050510', '#0A0A1A', '#0F0F20'];
       default:
-        return colors.background.gradient;
+        return colors.gradient.primary;
     }
   };
 

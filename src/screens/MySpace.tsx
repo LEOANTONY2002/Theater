@@ -34,6 +34,7 @@ import {FiltersManager} from '../store/filters';
 import {RegionModal} from '../components/RegionModal';
 import regionData from '../utils/region.json';
 import {FilterParams} from '../types/filters';
+import LinearGradient from 'react-native-linear-gradient';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -198,18 +199,29 @@ export const MySpaceScreen = () => {
         </TouchableOpacity>
 
         {isLoadingLanguages ? (
-          <View style={styles.languagesContainer}>
+          <View style={styles.tagContainer}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : selectedLanguages.length > 0 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.languagesContainer}
-            contentContainerStyle={styles.languagesContent}>
+            style={styles.tagContainer}
+            contentContainerStyle={styles.tagContent}>
             {selectedLanguages.map(lang => (
-              <View key={lang.iso_639_1} style={styles.languageTag}>
-                <Text style={styles.languageText}>{lang.english_name}</Text>
+              <View key={lang.iso_639_1} style={styles.tag}>
+                <LinearGradient
+                  colors={colors.gradient.primary}
+                  style={styles.tagGradient}
+                />
+                <Text style={styles.tagText} numberOfLines={1}>
+                  {lang.english_name}
+                </Text>
+                {lang.name && (
+                  <Text style={styles.tagSubText} numberOfLines={1}>
+                    {lang.name}
+                  </Text>
+                )}
               </View>
             ))}
           </ScrollView>
@@ -247,35 +259,41 @@ export const MySpaceScreen = () => {
       </TouchableOpacity>
 
       {isLoadingFilters ? (
-        <View style={styles.filtersContainer}>
+        <View style={styles.tagContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
         </View>
       ) : savedFilters.length > 0 ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.filtersContainer}
-          contentContainerStyle={styles.filtersContent}>
+          style={styles.tagContainer}
+          contentContainerStyle={styles.tagContent}>
           {savedFilters.map(filter => (
             <TouchableOpacity
               key={filter.id}
-              style={styles.filterTag}
+              style={styles.tag}
               onPress={() => handleFilterPress(filter)}>
-              <Text style={styles.filterText}>{filter.name}</Text>
+              <LinearGradient
+                colors={colors.gradient.primary}
+                style={styles.tagGradient}
+              />
+              <Text style={styles.tagText} numberOfLines={1}>
+                {filter.name}
+              </Text>
             </TouchableOpacity>
           ))}
           <TouchableOpacity
-            style={[styles.filterTag, styles.addFilterTag]}
+            style={styles.addTag}
             onPress={() => navigation.navigate('MyFiltersScreen')}>
-            <Ionicons name="add" size={20} color={colors.text.primary} />
+            <Ionicons name="add" size={30} color={'rgba(255, 255, 255, 0.3)'} />
           </TouchableOpacity>
         </ScrollView>
       ) : (
         <TouchableOpacity
-          style={styles.addFirstFilterButton}
+          style={styles.addFirstTagButton}
           onPress={() => navigation.navigate('MyFiltersScreen')}>
           <Ionicons name="add" size={24} color={colors.text.primary} />
-          <Text style={styles.addFirstFilterText}>Add your first filter</Text>
+          <Text style={styles.addFirstTagText}>Add your first filter</Text>
         </TouchableOpacity>
       )}
 
@@ -371,52 +389,60 @@ const styles = StyleSheet.create({
   modalBody: {
     flex: 1,
   },
-  languagesContainer: {
+  tagContainer: {
     marginTop: -spacing.md,
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
   },
-  languagesContent: {
+  tagContent: {
     flexDirection: 'row',
     gap: spacing.sm,
     paddingTop: spacing.md,
   },
-  languageTag: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: spacing.lg,
+  tag: {
+    backgroundColor: colors.background.tag,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xl,
     borderRadius: borderRadius.lg,
+    width: 100,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  languageText: {
+  tagGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 75,
+    marginTop: 25,
+    zIndex: 1,
+    borderBottomLeftRadius: borderRadius.lg,
+    borderBottomRightRadius: borderRadius.lg,
+  },
+  tagText: {
     color: colors.text.primary,
+    ...typography.h2,
+    fontWeight: '900',
+    opacity: 0.3,
+    textAlign: 'center',
+  },
+  tagSubText: {
+    color: colors.text.secondary,
     ...typography.body2,
+    opacity: 0.3,
+    textAlign: 'center',
   },
-  filtersContainer: {
-    marginTop: -spacing.md,
-    marginBottom: spacing.md,
+  addTag: {
     paddingHorizontal: spacing.md,
-  },
-  filtersContent: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-  },
-  filterTag: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xl,
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    width: 100,
+    height: 100,
+    alignItems: 'center',
   },
-  filterText: {
-    color: colors.text.primary,
-    ...typography.body2,
-  },
-  addFilterTag: {
-    paddingHorizontal: spacing.md,
-  },
-  addFirstFilterButton: {
+  addFirstTagButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -429,7 +455,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderStyle: 'dashed',
   },
-  addFirstFilterText: {
+  addFirstTagText: {
     color: colors.text.primary,
     ...typography.body2,
   },

@@ -83,11 +83,9 @@ export const SettingsManager = {
   async getContentLanguages(): Promise<Language[]> {
     try {
       const savedLanguages = await AsyncStorage.getItem(STORAGE_KEY);
-      console.log('Getting saved languages from storage:', savedLanguages);
       if (!savedLanguages) return [];
 
       const parsedLanguages = JSON.parse(savedLanguages);
-      console.log('Parsed saved languages:', parsedLanguages);
       return Array.isArray(parsedLanguages) ? parsedLanguages : [];
     } catch (error) {
       console.error('Error loading content languages:', error);
@@ -97,10 +95,8 @@ export const SettingsManager = {
 
   async setContentLanguages(languages: Language[]): Promise<void> {
     try {
-      console.log('Saving languages to storage:', languages);
       const languagesString = JSON.stringify(languages);
       await AsyncStorage.setItem(STORAGE_KEY, languagesString);
-      console.log('Languages saved successfully');
 
       // Invalidate relevant queries
       queryClient.invalidateQueries({queryKey: ['watchlist']});
@@ -119,7 +115,6 @@ export const SettingsManager = {
       if (!cachedData) return null;
 
       const parsedCache = JSON.parse(cachedData);
-      console.log('Parsed cached languages:', parsedCache);
       return Array.isArray(parsedCache) ? parsedCache : null;
     } catch (error) {
       console.error('Error loading cached languages:', error);
@@ -129,10 +124,8 @@ export const SettingsManager = {
 
   async setCachedLanguages(languages: Language[]): Promise<void> {
     try {
-      console.log('Caching languages to storage:', languages);
       const languagesString = JSON.stringify(languages);
       await AsyncStorage.setItem(LANGUAGES_CACHE_KEY, languagesString);
-      console.log('Languages cached successfully');
     } catch (error) {
       console.error('Error caching languages:', error);
     }
@@ -156,7 +149,6 @@ export const SettingsManager = {
         KEYS.SELECTED_REGION,
         KEYS.REGIONS,
       ]);
-      console.log('Storage cleared successfully');
     } catch (error) {
       console.error('Error clearing storage:', error);
     }

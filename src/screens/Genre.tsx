@@ -25,20 +25,6 @@ export const Genre = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'Genre'>>();
   const {genreId, genreName, contentType} = route.params;
 
-  console.log('Genre Screen Mounted with params:', {
-    genreId,
-    genreName,
-    contentType,
-  });
-
-  useEffect(() => {
-    console.log('Current query params:', {
-      genreId,
-      contentType,
-      enabled: !!genreId && !!contentType,
-    });
-  }, [genreId, contentType]);
-
   const {
     data,
     fetchNextPage,
@@ -52,9 +38,7 @@ export const Genre = () => {
   } = useInfiniteQuery({
     queryKey: ['genre', genreId, contentType],
     queryFn: async ({pageParam = 1}) => {
-      console.log('Query function executing with pageParam:', pageParam);
       const result = await getContentByGenre(genreId, contentType, pageParam);
-      console.log('Genre API result:', result);
       return result;
     },
     getNextPageParam: lastPage =>
@@ -69,15 +53,6 @@ export const Genre = () => {
     }
   }, [isError, error]);
 
-  console.log('Query state:', {
-    isLoading,
-    error,
-    hasNextPage,
-    isFetchingNextPage,
-    dataExists: !!data,
-    pagesCount: data?.pages?.length,
-  });
-
   const allItems =
     data?.pages.flatMap(page =>
       page.results.map((item: Movie | TVShow) => ({
@@ -86,11 +61,8 @@ export const Genre = () => {
       })),
     ) || [];
 
-  console.log('Processed items:', allItems.length);
-
   useEffect(() => {
     if (genreId && contentType) {
-      console.log('Triggering manual refetch');
       refetch();
     }
   }, [genreId, contentType, refetch]);

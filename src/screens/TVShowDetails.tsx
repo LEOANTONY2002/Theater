@@ -18,7 +18,7 @@ import {
   useSeasonDetails,
 } from '../hooks/useTVShows';
 import {useUserContent} from '../hooks/useUserContent';
-import {getImageUrl} from '../services/tmdb';
+import {getImageUrl, getLanguage} from '../services/tmdb';
 import {
   TVShow,
   TVShowDetails as TVShowDetailsType,
@@ -241,7 +241,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {showDetails?.original_language && (
             <>
               <Text style={styles.infoDot}>•</Text>
-              <Text style={styles.info}>{showDetails.original_language}</Text>
+              <Text style={styles.info}>
+                {getLanguage(showDetails.original_language)}
+              </Text>
             </>
           )}
           {showDetails?.vote_average && (
@@ -297,7 +299,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
       <Text style={styles.overview}>{show.overview}</Text>
 
-      {showDetails?.credits && (
+      {showDetails?.credits?.cast?.length > 0 && (
         <View style={{marginVertical: spacing.lg, marginTop: 0}}>
           <Text style={styles.sectionTitle}>Cast</Text>
           <ScrollView

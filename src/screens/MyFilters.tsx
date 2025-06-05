@@ -16,6 +16,10 @@ import {FiltersManager} from '../store/filters';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {MyFiltersModal} from '../components/MyFiltersModal';
+import LinearGradient from 'react-native-linear-gradient';
+import languageData from '../utils/language.json';
+import {Genre} from '../types/movie';
+import {getGenres} from '../services/tmdb';
 
 type MyFiltersScreenNavigationProp = NativeStackNavigationProp<
   MySpaceStackParamList,
@@ -68,38 +72,94 @@ export const MyFiltersScreen = () => {
     [queryClient],
   );
 
+  const getLanguage = (language: string) => {
+    return languageData.find((l: any) => l.iso_639_1 === language);
+  };
+
+  const [allGenres, setAllGenres] = useState<Genre[]>([]);
+
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const [movieGenresData, tvGenresData] = await Promise.all([
+          getGenres('movie'),
+          getGenres('tv'),
+        ]);
+        const uniqueGenres = [...movieGenresData, ...tvGenresData].filter(
+          (genre, index, self) =>
+            index === self.findIndex(t => t.id === genre.id),
+        );
+        setAllGenres(uniqueGenres);
+      } catch (error) {
+        console.error('Error loading genres:', error);
+      }
+    };
+
+    fetchGenres();
+  }, []);
+
   const renderFilterItem = useCallback(
     (filter: SavedFilter) => {
-      const getFilterDescription = (filter: SavedFilter) => {
-        const parts = [];
-        if (filter.params.sort_by) {
-          parts.push(`Sort: ${filter.params.sort_by.replace('.', ' ')}`);
-        }
-        if (filter.params['vote_average.gte']) {
-          parts.push(`Rating: ${filter.params['vote_average.gte']}+`);
-        }
-        if (filter.params.with_original_language) {
-          parts.push(
-            `Language: ${filter.params.with_original_language.toUpperCase()}`,
-          );
-        }
-        return parts.join(' • ');
-      };
+      const sortBy = filter?.params?.sort_by?.split('.')[0][0];
+      const sortOrder = filter?.params?.sort_by?.split('.')[1];
+      const rating = filter?.params?.['vote_average.gte'];
+      const language = filter?.params?.with_original_language
+        ? getLanguage(filter?.params?.with_original_language)
+        : null;
+      const genres = filter?.params?.with_genres;
+      const genreNames = genres
+        ?.split(',')
+        .map(id => allGenres.find(genre => genre.id === parseInt(id))?.name)
+        .join(', ');
 
       return (
         <View key={filter.id} style={styles.filterItem}>
           <View style={styles.filterHeader}>
             <Text style={styles.filterName}>{filter.name}</Text>
-            <View style={styles.filterType}>
-              <Text style={styles.filterTypeText}>
-                {filter.type.toUpperCase()}
-              </Text>
-            </View>
+            {genreNames && (
+              <View style={styles.genreContainer}>
+                <Text style={styles.genreText} numberOfLines={1}>
+                  {genreNames}
+                </Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.filterDescription}>
-            {getFilterDescription(filter)}
-          </Text>
-          <View style={styles.filterActions}>
+          <View style={styles.filterContent}>
+            {sortBy && (
+              <View style={styles.card}>
+                <Ionicons
+                  name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                  size={15}
+                  color={colors.text.primary}
+                />
+                <Text style={styles.cardText} numberOfLines={1}>
+                  {sortBy.toString()}
+                </Text>
+              </View>
+            )}
+            {rating && (
+              <View style={styles.card}>
+                <Ionicons name="star" size={15} color={colors.text.primary} />
+                <Text style={styles.cardText} numberOfLines={1}>
+                  {rating.toString()}
+                </Text>
+              </View>
+            )}
+            {language && (
+              <View style={styles.card}>
+                <Ionicons
+                  name="language"
+                  size={15}
+                  color={colors.text.primary}
+                />
+                <Text style={styles.cardText} numberOfLines={1}>
+                  {language?.name || language?.english_name}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* <View style={styles.filterActions}>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => setEditingFilter(filter)}>
@@ -120,7 +180,7 @@ export const MyFiltersScreen = () => {
               />
               <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
       );
     },
@@ -130,16 +190,18 @@ export const MyFiltersScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
         <Text style={styles.title}>My Filters</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowAddModal(true)}>
-          <Ionicons name="add" size={24} color={colors.text.primary} />
+        <TouchableOpacity onPress={() => setShowAddModal(true)}>
+          <LinearGradient
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            colors={colors.gradient.secondary}
+            style={styles.addButton}>
+            <Ionicons name="add" size={15} color={colors.text.primary} />
+            <Text style={{...typography.button, color: colors.text.primary}}>
+              Create
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -164,15 +226,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
-    paddingTop: 100,
+    paddingTop: spacing.xxl,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
   },
   backButton: {
     padding: spacing.sm,
@@ -182,64 +242,82 @@ const styles = StyleSheet.create({
     ...typography.h2,
   },
   addButton: {
-    padding: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.round,
   },
   content: {
     flex: 1,
     padding: spacing.md,
   },
   filterItem: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tag,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
   filterHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     marginBottom: spacing.sm,
   },
   filterName: {
     color: colors.text.primary,
     ...typography.h3,
   },
-  filterType: {
-    backgroundColor: colors.background.tertiary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  filterTypeText: {
-    color: colors.text.secondary,
-    ...typography.caption,
-  },
-  filterDescription: {
-    color: colors.text.secondary,
-    ...typography.body2,
-    marginBottom: spacing.md,
-  },
-  filterActions: {
+  filterContent: {
     flexDirection: 'row',
-    gap: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  actionButton: {
+  card: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.md,
+    width: 80,
+    height: 80,
+    padding: spacing.xs,
+  },
+  cardText: {
+    color: colors.text.primary,
+    ...typography.body1,
+  },
+  genreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.tertiary,
   },
-  actionText: {
-    color: colors.text.primary,
-    ...typography.button,
+  genreText: {
+    color: colors.text.muted,
+    ...typography.body2,
   },
-  deleteButton: {
-    backgroundColor: colors.background.primary,
-  },
-  deleteText: {
-    color: colors.status.error,
-  },
+
+  // filterActions: {
+  //   flexDirection: 'row',
+  //   gap: spacing.md,
+  // },
+  // actionButton: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   gap: spacing.xs,
+  //   paddingVertical: spacing.sm,
+  //   paddingHorizontal: spacing.md,
+  //   borderRadius: borderRadius.md,
+  //   backgroundColor: colors.background.tertiary,
+  // },
+  // actionText: {
+  //   color: colors.text.primary,
+  //   ...typography.button,
+  // },
+  // deleteButton: {
+  //   backgroundColor: colors.background.primary,
+  // },
+  // deleteText: {
+  //   color: colors.status.error,
+  // },
 });

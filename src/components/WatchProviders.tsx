@@ -59,17 +59,12 @@ const STREAMING_APPS = {
 };
 
 export const WatchProviders: React.FC<WatchProvidersProps> = ({providers}) => {
-  console.log('Watch Providers Data:', providers);
-
   const handleProviderPress = async (providerName: string) => {
-    console.log('Provider Name:', providerName);
     const provider =
       STREAMING_APPS[providerName as keyof typeof STREAMING_APPS];
-    console.log('Provider URLs:', provider);
     if (provider) {
       try {
         const canOpen = await Linking.canOpenURL(provider.app);
-        console.log('Can open app:', canOpen);
         if (canOpen) {
           await Linking.openURL(provider.app);
         } else {

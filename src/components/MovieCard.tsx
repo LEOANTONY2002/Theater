@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, Text, Image, TouchableOpacity, StyleSheet} from 'react-native';
+import {View, Image, TouchableOpacity, StyleSheet} from 'react-native';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
 import {MoivieCardSkeleton} from './LoadingSkeleton';
@@ -16,12 +16,6 @@ export const MovieCard: React.FC<MovieCardProps> = ({
   size = 'normal',
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-
-  const title = 'title' in item ? item.title : item.name;
-  const releaseDate =
-    'release_date' in item ? item.release_date : item.first_air_date;
-  const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
-  const year = releaseDate ? new Date(releaseDate).getFullYear() : '';
 
   return (
     <TouchableOpacity
@@ -55,11 +49,6 @@ const styles = StyleSheet.create({
     width: 120,
     borderRadius: 8,
     overflow: 'hidden',
-    // elevation: 5,
-    // shadowColor: '#000',
-    // shadowOffset: {width: 0, height: 2},
-    // shadowOpacity: 0.25,
-    // shadowRadius: 3.84,
     margin: 5,
   },
   containerLarge: {

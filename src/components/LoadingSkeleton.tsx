@@ -88,14 +88,14 @@ export const GridSkeleton = () => (
       gap: 10,
       margin: 'auto',
     }}>
-    {[...Array(15)].map((_, idx) => (
+    {[...Array(16)].map((_, idx) => (
       <ShimmerPlaceholder
         LinearGradient={LinearGradient}
         shimmerColors={shimmerColors}
         key={idx}
         style={{
-          width: 80,
-          height: 130,
+          width: 120,
+          height: 180,
           borderRadius: 8,
         }}></ShimmerPlaceholder>
     ))}

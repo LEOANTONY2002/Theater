@@ -109,8 +109,6 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
   //   fetchDominantColor();
   // }, []);
 
-  console.log(dominantColor);
-
   const addWatchlist = () => {
     if (checkInWatchlist(item.id)) {
       removeFromWatchlist(item.id);

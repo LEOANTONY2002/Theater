@@ -38,6 +38,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types/navigation';
 import {FilterModal} from '../components/FilterModal';
 import {FilterParams} from '../types/filters';
+import {useTrending} from '../hooks/useApp';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -114,24 +115,14 @@ export const SearchScreen = () => {
       page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
     ) || [];
 
-  // Combine and transform trending data
-  const trendingData = React.useMemo(() => {
-    const movies =
-      trendingMovies?.pages[0]?.results.map((movie: Movie) => ({
-        ...movie,
-        type: 'movie' as const,
-      })) || [];
-
-    const shows =
-      trendingTVShows?.pages[0]?.results.map((show: TVShow) => ({
-        ...show,
-        type: 'tv' as const,
-      })) || [];
-
-    // Combine and shuffle the arrays
-    const combined = [...movies, ...shows];
-    return combined.sort(() => Math.random() - 0.5);
-  }, [trendingMovies, trendingTVShows]);
+  // trending
+  const {
+    data: trendingData,
+    isLoading: isLoadingTrending,
+    fetchNextPage: fetchNextTrendingPage,
+    hasNextPage: hasNextTrendingPage,
+    isFetchingNextPage: isFetchingTrendingPage,
+  } = useTrending('day');
 
   // Load recent items on mount
   useEffect(() => {
@@ -425,9 +416,15 @@ export const SearchScreen = () => {
               )}
 
               <TrendingGrid
-                data={trendingData}
+                data={
+                  trendingData?.pages?.flatMap((page: any) => page.results) ||
+                  []
+                }
                 onItemPress={handleItemPress}
-                isLoading={isLoadingTrendingMovies || isLoadingTrendingTV}
+                isLoading={isLoadingTrending}
+                fetchNextPage={fetchNextTrendingPage}
+                hasNextPage={hasNextTrendingPage}
+                isFetchingNextPage={isFetchingTrendingPage}
               />
             </>
           )}
