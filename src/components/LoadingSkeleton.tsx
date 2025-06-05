@@ -203,6 +203,23 @@ export const DetailScreenSkeleton = () => (
   </View>
 );
 
+export const LanguageSkeleton = () => (
+  <View style={styles.container}>
+    {[...Array(10)].map((_, index) => (
+      <ShimmerPlaceholder
+        key={index}
+        LinearGradient={LinearGradient}
+        shimmerColors={shimmerColors}
+        style={{
+          width: 100,
+          height: 100,
+          borderRadius: 10,
+        }}
+      />
+    ))}
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',

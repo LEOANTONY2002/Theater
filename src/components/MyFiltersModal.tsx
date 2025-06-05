@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Modal,
@@ -20,6 +20,7 @@ import {FilterParams, SORT_OPTIONS, SavedFilter} from '../types/filters';
 import {getLanguages, getGenres} from '../services/tmdb';
 import {FiltersManager} from '../store/filters';
 import {Chip} from './Chip';
+import {queryClient} from '../services/queryClient';
 
 interface Language {
   iso_639_1: string;
@@ -37,12 +38,14 @@ interface MyFiltersModalProps {
   onClose: () => void;
   onSave: (filter: SavedFilter) => void;
   editingFilter?: SavedFilter | null;
+  onDelete: (id: string) => void;
 }
 
 export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   visible,
   onClose,
   onSave,
+  onDelete,
   editingFilter = null,
 }) => {
   const [filterName, setFilterName] = useState('');
@@ -54,7 +57,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     if (visible) {
@@ -62,18 +64,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         setFilterName(editingFilter.name);
         setContentType(editingFilter.type);
         setFilters(editingFilter.params);
-        // Set initial sort order based on editingFilter
-        if (editingFilter.params.sort_by) {
-          const [, order] = editingFilter.params.sort_by.split('.');
-          setSortOrder(order as 'asc' | 'desc');
-        } else {
-          setSortOrder('desc');
-        }
       } else {
         setFilterName('');
         setContentType('all');
         setFilters({});
-        setSortOrder('desc');
       }
     }
   }, [visible, editingFilter]);
@@ -130,21 +124,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       setFilters(prev => ({...prev, sort_by: undefined}));
       return;
     }
-    setFilters(prev => ({...prev, sort_by: `${value}.${sortOrder}`}));
-  };
-
-  const handleSortOrderToggle = () => {
-    setSortOrder(prev => {
-      const newOrder = prev === 'asc' ? 'desc' : 'asc';
-      if (filters.sort_by) {
-        const [field] = filters.sort_by.split('.');
-        setFilters(prevFilters => ({
-          ...prevFilters,
-          sort_by: `${field}.${newOrder}`,
-        }));
-      }
-      return newOrder;
-    });
+    setFilters(prev => ({...prev, sort_by: value}));
   };
 
   const handleLanguageChange = (value: string) => {
@@ -224,6 +204,36 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       );
     }
   };
+
+  const handleDelete = useCallback(
+    async (filter: any) => {
+      Alert.alert(
+        'Delete Filter',
+        `Are you sure you want to delete "${filter.name}"?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await FiltersManager.deleteFilter(filter.id);
+                queryClient.invalidateQueries({queryKey: ['savedFilters']});
+                onDelete(filter.id);
+                onClose();
+              } catch (error) {
+                Alert.alert('Error', 'Failed to delete filter');
+              }
+            },
+          },
+        ],
+      );
+    },
+    [queryClient],
+  );
 
   const getDateFromFilter = (key: string) => {
     const dateStr = filters[key as keyof FilterParams];
@@ -397,9 +407,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             {/* Sort By with Order Toggle */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Sort By</Text>
-                <TouchableOpacity
+              {/* <View style={styles.sectionHeader}> */}
+              <Text style={styles.sectionTitle}>Sort By</Text>
+              {/* <TouchableOpacity
                   style={styles.sortOrderButton}
                   onPress={handleSortOrderToggle}>
                   <Ionicons
@@ -407,11 +417,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     size={20}
                     color={colors.text.primary}
                   />
-                </TouchableOpacity>
-              </View>
+                </TouchableOpacity> */}
+              {/* </View> */}
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={filters.sort_by?.split('.')[0]}
+                  selectedValue={filters.sort_by}
                   onValueChange={handleSortChange}
                   style={styles.picker}
                   dropdownIconColor={colors.text.primary}>
@@ -556,6 +566,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               <Text style={styles.saveButtonText}>
                 {editingFilter ? 'Update' : 'Save'}
               </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.footerButton, styles.resetButton]}
+              onPress={() => handleDelete(editingFilter)}>
+              <Text style={styles.resetButtonText}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>

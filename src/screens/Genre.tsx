@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {MovieCard} from '../components/MovieCard';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {ContentItem} from '../components/MovieList';
+import {GridSkeleton} from '../components/LoadingSkeleton';
 
 export const Genre = () => {
   const navigation =
@@ -90,14 +91,13 @@ export const Genre = () => {
   };
 
   // Show loading state only during initial load
-  if (isLoading) {
-    return (
-      <View style={styles.fullScreenLoader}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingTitle}>Loading...</Text>
-      </View>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <View style={styles.fullScreenLoader}>
+  //       <GridSkeleton />
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={styles.container}>
@@ -109,50 +109,54 @@ export const Genre = () => {
         </View>
 
         <View style={styles.contentContainer}>
-          <FlatList
-            data={allItems}
-            renderItem={renderItem}
-            keyExtractor={item => item.id.toString()}
-            numColumns={3}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.listContent,
-              allItems.length === 0 && styles.emptyListContent,
-            ]}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={
-              <View style={styles.footerLoader}>
-                {isFetchingNextPage && (
-                  <View style={styles.loadingIndicatorContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>Loading more...</Text>
-                  </View>
-                )}
-                <View style={styles.footerSpace} />
-              </View>
-            }
-            ListEmptyComponent={
-              !isLoading && !isFetching ? (
-                <View style={styles.emptyContainer}>
-                  <Icon
-                    name="alert-circle-outline"
-                    size={48}
-                    color={colors.text.muted}
-                  />
-                  <Text style={styles.emptyText}>
-                    No {contentType === 'movie' ? 'movies' : 'TV shows'} found
-                    in this genre
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.retryButton}
-                    onPress={() => refetch()}>
-                    <Text style={styles.retryText}>Try Again</Text>
-                  </TouchableOpacity>
+          {isLoading ? (
+            <GridSkeleton />
+          ) : (
+            <FlatList
+              data={allItems}
+              renderItem={renderItem}
+              keyExtractor={item => item.id.toString()}
+              numColumns={3}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[
+                styles.listContent,
+                allItems.length === 0 && styles.emptyListContent,
+              ]}
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={
+                <View style={styles.footerLoader}>
+                  {isFetchingNextPage && (
+                    <View style={styles.loadingIndicatorContainer}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={styles.loadingText}>Loading more...</Text>
+                    </View>
+                  )}
+                  <View style={styles.footerSpace} />
                 </View>
-              ) : null
-            }
-          />
+              }
+              ListEmptyComponent={
+                !isLoading && !isFetching ? (
+                  <View style={styles.emptyContainer}>
+                    <Icon
+                      name="alert-circle-outline"
+                      size={48}
+                      color={colors.text.muted}
+                    />
+                    <Text style={styles.emptyText}>
+                      No {contentType === 'movie' ? 'movies' : 'TV shows'} found
+                      in this genre
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.retryButton}
+                      onPress={() => refetch()}>
+                      <Text style={styles.retryText}>Try Again</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null
+              }
+            />
+          )}
         </View>
       </View>
     </View>
@@ -249,7 +253,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 10, 26, 0.85)',
+    backgroundColor: colors.background.primary,
+    paddingVertical: spacing.xxl,
   },
   loadingTitle: {
     ...typography.h3,

@@ -4,11 +4,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   FlatList,
   ActivityIndicator,
   Modal,
-  Dimensions,
   ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
@@ -17,7 +15,7 @@ import {CompositeNavigationProp} from '@react-navigation/native';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {TabParamList, MySpaceStackParamList} from '../types/navigation';
 import {useUserContent} from '../hooks/useUserContent';
-import {MovieList, ContentItem} from '../components/MovieList';
+import {ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
@@ -25,18 +23,18 @@ import {LanguageSettings} from '../components/LanguageSettings';
 import {SettingsManager, Language} from '../store/settings';
 import {useQueryClient, useQuery} from '@tanstack/react-query';
 import {BlurView} from '@react-native-community/blur';
-import {MovieCard} from '../components/MovieCard';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
+import {
+  HorizontalListSkeleton,
+  LanguageSkeleton,
+} from '../components/LoadingSkeleton';
 import {ContentCard} from '../components/ContentCard';
 import {SavedFilter} from '../types/filters';
 import {FiltersManager} from '../store/filters';
 import {RegionModal} from '../components/RegionModal';
 import regionData from '../utils/region.json';
-import {FilterParams} from '../types/filters';
 import LinearGradient from 'react-native-linear-gradient';
-
-const {height: SCREEN_HEIGHT} = Dimensions.get('window');
+import {useSelectedLanguages} from '../hooks/useApp';
 
 type MySpaceScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'MySpace'>,
@@ -53,16 +51,10 @@ export const MySpaceScreen = () => {
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
-  const [filters, setFilters] = useState<FilterParams>({});
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const {content: watchlist, isLoading} = useUserContent('WATCHLIST');
-  const {data: selectedLanguages = [], isLoading: isLoadingLanguages} =
-    useQuery<Language[]>({
-      queryKey: ['selectedLanguages'],
-      queryFn: SettingsManager.getContentLanguages,
-      initialData: [],
-    });
+  const {data: selectedLanguages, isLoading: isLoadingLanguages} =
+    useSelectedLanguages();
 
   const {data: savedFilters = [], isLoading: isLoadingFilters} = useQuery({
     queryKey: ['savedFilters'],
@@ -126,13 +118,6 @@ export const MySpaceScreen = () => {
     },
     [navigation],
   );
-
-  const handleSortChange = (value: string) => {
-    setFilters((prev: FilterParams) => ({
-      ...prev,
-      sort_by: `${value}.${sortOrder}`,
-    }));
-  };
 
   const handleRegionSelect = async (region: Region) => {
     try {
@@ -199,10 +184,8 @@ export const MySpaceScreen = () => {
         </TouchableOpacity>
 
         {isLoadingLanguages ? (
-          <View style={styles.tagContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
-          </View>
-        ) : selectedLanguages.length > 0 ? (
+          <LanguageSkeleton />
+        ) : selectedLanguages && selectedLanguages.length > 0 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -259,9 +242,7 @@ export const MySpaceScreen = () => {
       </TouchableOpacity>
 
       {isLoadingFilters ? (
-        <View style={styles.tagContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
+        <LanguageSkeleton />
       ) : savedFilters.length > 0 ? (
         <ScrollView
           horizontal
@@ -474,7 +455,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   regionText: {
-    color: colors.text.secondary,
+    color: colors.text.muted,
     ...typography.body1,
   },
 });

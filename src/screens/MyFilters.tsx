@@ -7,9 +7,6 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {MySpaceStackParamList} from '../types/navigation';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {SavedFilter} from '../types/filters';
 import {FiltersManager} from '../store/filters';
@@ -21,13 +18,7 @@ import languageData from '../utils/language.json';
 import {Genre} from '../types/movie';
 import {getGenres} from '../services/tmdb';
 
-type MyFiltersScreenNavigationProp = NativeStackNavigationProp<
-  MySpaceStackParamList,
-  'MyFiltersScreen'
->;
-
 export const MyFiltersScreen = () => {
-  const navigation = useNavigation<MyFiltersScreenNavigationProp>();
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
@@ -37,36 +28,15 @@ export const MyFiltersScreen = () => {
     queryFn: FiltersManager.getSavedFilters,
   });
 
-  const handleDelete = useCallback(
-    async (filter: SavedFilter) => {
-      Alert.alert(
-        'Delete Filter',
-        `Are you sure you want to delete "${filter.name}"?`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await FiltersManager.deleteFilter(filter.id);
-                queryClient.invalidateQueries({queryKey: ['savedFilters']});
-              } catch (error) {
-                Alert.alert('Error', 'Failed to delete filter');
-              }
-            },
-          },
-        ],
-      );
+  const handleSaveFilter = useCallback(
+    (filter: SavedFilter) => {
+      queryClient.invalidateQueries({queryKey: ['savedFilters']});
     },
     [queryClient],
   );
 
-  const handleSaveFilter = useCallback(
-    (filter: SavedFilter) => {
+  const handleDelete = useCallback(
+    (id: string) => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
     },
     [queryClient],
@@ -100,6 +70,7 @@ export const MyFiltersScreen = () => {
 
   const renderFilterItem = useCallback(
     (filter: SavedFilter) => {
+      const type = filter?.type;
       const sortBy = filter?.params?.sort_by?.split('.')[0][0];
       const sortOrder = filter?.params?.sort_by?.split('.')[1];
       const rating = filter?.params?.['vote_average.gte'];
@@ -111,9 +82,20 @@ export const MyFiltersScreen = () => {
         ?.split(',')
         .map(id => allGenres.find(genre => genre.id === parseInt(id))?.name)
         .join(', ');
+      const fromDate =
+        filter?.params?.['primary_release_date.gte'] ||
+        filter?.params?.['first_air_date.gte'];
+      const toDate =
+        filter?.params?.['primary_release_date.lte'] ||
+        filter?.params?.['first_air_date.lte'];
+      const fromYear = fromDate ? new Date(fromDate).getFullYear() : null;
+      const toYear = toDate ? new Date(toDate).getFullYear() : null;
 
       return (
-        <View key={filter.id} style={styles.filterItem}>
+        <TouchableOpacity
+          key={filter.id}
+          style={styles.filterItem}
+          onPress={() => setEditingFilter(filter)}>
           <View style={styles.filterHeader}>
             <Text style={styles.filterName}>{filter.name}</Text>
             {genreNames && (
@@ -125,26 +107,85 @@ export const MyFiltersScreen = () => {
             )}
           </View>
           <View style={styles.filterContent}>
-            {sortBy && (
+            {type && (
               <View style={styles.card}>
                 <Ionicons
-                  name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                  name={
+                    type === 'movie'
+                      ? 'film-outline'
+                      : type === 'tv'
+                      ? 'tv-outline'
+                      : 'apps-outline'
+                  }
                   size={15}
                   color={colors.text.primary}
                 />
                 <Text style={styles.cardText} numberOfLines={1}>
-                  {sortBy.toString()}
+                  {type?.charAt(0).toUpperCase() + type?.slice(1)}
                 </Text>
               </View>
             )}
-            {rating && (
-              <View style={styles.card}>
-                <Ionicons name="star" size={15} color={colors.text.primary} />
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {rating.toString()}
-                </Text>
+            {sortBy && rating && language && (fromYear || toYear) ? (
+              <View
+                style={{
+                  flexDirection: 'column',
+                  gap: spacing.sm,
+                  alignItems: 'flex-start',
+                }}>
+                {sortBy && (
+                  <View style={styles.cardSmall}>
+                    <Ionicons
+                      name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                      size={15}
+                      color={colors.text.primary}
+                    />
+                    <Text style={styles.cardText} numberOfLines={1}>
+                      {sortBy.toString()}
+                    </Text>
+                  </View>
+                )}
+                {rating && (
+                  <View style={styles.cardSmall}>
+                    <Ionicons
+                      name="star"
+                      size={15}
+                      color={colors.text.primary}
+                    />
+                    <Text style={styles.cardText} numberOfLines={1}>
+                      {rating.toString()}
+                    </Text>
+                  </View>
+                )}
               </View>
+            ) : (
+              <>
+                {sortBy && (
+                  <View style={styles.card}>
+                    <Ionicons
+                      name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                      size={15}
+                      color={colors.text.primary}
+                    />
+                    <Text style={styles.cardText} numberOfLines={1}>
+                      {sortBy.toString()}
+                    </Text>
+                  </View>
+                )}
+                {rating && (
+                  <View style={styles.card}>
+                    <Ionicons
+                      name="star"
+                      size={15}
+                      color={colors.text.primary}
+                    />
+                    <Text style={styles.cardText} numberOfLines={1}>
+                      {rating.toString()}
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
+
             {language && (
               <View style={styles.card}>
                 <Ionicons
@@ -157,6 +198,52 @@ export const MyFiltersScreen = () => {
                 </Text>
               </View>
             )}
+            {fromYear && toYear ? (
+              <View style={{flexDirection: 'column', gap: spacing.sm}}>
+                <View style={styles.cardSmall}>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={15}
+                    color={colors.text.primary}
+                  />
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {fromYear}
+                  </Text>
+                </View>
+                <View style={styles.cardSmall}>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {toYear}
+                  </Text>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={15}
+                    color={colors.text.primary}
+                  />
+                </View>
+              </View>
+            ) : fromYear && !toYear ? (
+              <View style={styles.card}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={15}
+                  color={colors.text.primary}
+                />
+                <Text style={styles.cardText} numberOfLines={1}>
+                  {fromYear}
+                </Text>
+              </View>
+            ) : toYear && !fromYear ? (
+              <View style={styles.card}>
+                <Text style={styles.cardText} numberOfLines={1}>
+                  {toYear}
+                </Text>
+                <Ionicons
+                  name="calendar-outline"
+                  size={15}
+                  color={colors.text.primary}
+                />
+              </View>
+            ) : null}
           </View>
 
           {/* <View style={styles.filterActions}>
@@ -181,10 +268,10 @@ export const MyFiltersScreen = () => {
               <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
             </TouchableOpacity>
           </View> */}
-        </View>
+        </TouchableOpacity>
       );
     },
-    [handleDelete],
+    [allGenres],
   );
 
   return (
@@ -217,6 +304,7 @@ export const MyFiltersScreen = () => {
         }}
         onSave={handleSaveFilter}
         editingFilter={editingFilter}
+        onDelete={handleDelete}
       />
     </View>
   );
@@ -227,6 +315,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
     paddingTop: spacing.xxl,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -283,8 +372,19 @@ const styles = StyleSheet.create({
     height: 80,
     padding: spacing.xs,
   },
+  cardSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.sm,
+    width: 80,
+    height: 35,
+    padding: spacing.xs,
+  },
   cardText: {
-    color: colors.text.primary,
+    color: colors.text.secondary,
     ...typography.body1,
   },
   genreContainer: {

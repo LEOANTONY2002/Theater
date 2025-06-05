@@ -24,6 +24,7 @@ import {getGenres} from '../services/tmdb';
 import {Genre} from '../types/movie';
 import {useRegion} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
+import {HorizontalGenreList} from '../components/HorizontalGenreList';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -31,14 +32,17 @@ export const MoviesScreen = () => {
   const {data: region} = useRegion();
   const navigation = useNavigation<MoviesScreenNavigationProp>();
   const [genres, setGenres] = useState<Genre[]>([]);
+  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
 
   useEffect(() => {
     const loadGenres = async () => {
       try {
         const movieGenres = await getGenres('movie');
         setGenres(movieGenres);
+        setIsLoadingGenres(false);
       } catch (error) {
         console.error('Error loading genres:', error);
+        setIsLoadingGenres(false);
       }
     };
     loadGenres();
@@ -176,19 +180,12 @@ export const MoviesScreen = () => {
           </View>
         )}
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.genreList}>
-          {genres.map(genre => (
-            <TouchableOpacity
-              key={genre.id}
-              style={styles.genreItem}
-              onPress={() => handleGenrePress(genre)}>
-              <Text style={styles.genreText}>{genre.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <HorizontalGenreList
+          title="Genres"
+          data={genres}
+          onItemPress={handleGenrePress}
+          isLoading={isLoadingGenres}
+        />
 
         {recentMovies?.pages?.[0]?.results?.length && (
           <HorizontalList

@@ -16,6 +16,18 @@ export const useRegion = () => {
   });
 };
 
+export const useSelectedLanguages = () => {
+  return useQuery({
+    queryKey: ['selectedLanguages'],
+    queryFn: () => SettingsManager.getContentLanguages(),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    enabled: true,
+    staleTime: 0,
+  });
+};
+
 export const useTrending = (timeWindow: 'day' | 'week' = 'day') => {
   return useInfiniteQuery({
     queryKey: ['trending', timeWindow],
