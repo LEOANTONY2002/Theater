@@ -567,11 +567,13 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 {editingFilter ? 'Update' : 'Save'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.footerButton, styles.resetButton]}
-              onPress={() => handleDelete(editingFilter)}>
-              <Text style={styles.resetButtonText}>Delete</Text>
-            </TouchableOpacity>
+            {editingFilter && (
+              <TouchableOpacity
+                style={[styles.footerButton, styles.resetButton]}
+                onPress={() => handleDelete(editingFilter)}>
+                <Text style={styles.resetButtonText}>Delete</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

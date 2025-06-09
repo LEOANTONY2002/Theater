@@ -1,10 +1,23 @@
-import {useInfiniteQuery} from '@tanstack/react-query';
-import {getPersonMovieCredits, getPersonTVCredits} from '../services/tmdb';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import {
+  getPersonMovieCredits,
+  getPersonTVCredits,
+  getPersonDetails,
+} from '../services/tmdb';
 import {MoviesResponse} from '../types/movie';
 import {TVShowsResponse} from '../types/tvshow';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
+
+export const usePersonDetails = (personId: number) => {
+  return useQuery({
+    queryKey: ['person', personId],
+    queryFn: () => getPersonDetails(personId),
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+  });
+};
 
 export const usePersonMovieCredits = (personId: number) => {
   return useInfiniteQuery({

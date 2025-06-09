@@ -6,23 +6,30 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Image,
+  ScrollView,
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../types/navigation';
+import {RootStackParamList, HomeStackParamList} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
 import {GradientBackground} from '../components/GradientBackground';
 import {colors, spacing, typography} from '../styles/theme';
-import {usePersonMovieCredits} from '../hooks/usePersonCredits';
-import {usePersonTVCredits} from '../hooks/usePersonCredits';
+import {
+  usePersonMovieCredits,
+  usePersonTVCredits,
+  usePersonDetails,
+} from '../hooks/usePersonCredits';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {MovieCard} from '../components/MovieCard';
+import {getImageUrl} from '../services/tmdb';
+import {LinearGradient} from 'react-native-linear-gradient';
 
 type PersonCreditsScreenNavigationProp =
-  NativeStackNavigationProp<RootStackParamList>;
+  NativeStackNavigationProp<HomeStackParamList>;
 type PersonCreditsScreenRouteProp = RouteProp<
-  RootStackParamList,
+  HomeStackParamList,
   'PersonCredits'
 >;
 
@@ -31,11 +38,16 @@ export const PersonCreditsScreen = () => {
   const route = useRoute<PersonCreditsScreenRouteProp>();
   const {personId, personName} = route.params;
 
+  // Get person details
+  const {data: personDetails, isLoading: isLoadingDetails} =
+    usePersonDetails(personId);
+
   // Use both hooks to get all credits
   const movieCredits = usePersonMovieCredits(personId);
   const tvCredits = usePersonTVCredits(personId);
 
   const isLoading =
+    isLoadingDetails ||
     movieCredits.isLoading ||
     tvCredits.isLoading ||
     movieCredits.isRefetching ||
@@ -106,85 +118,114 @@ export const PersonCreditsScreen = () => {
   };
 
   return (
-    <GradientBackground variant="cinematic">
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{personName}</Text>
-            <Text style={styles.subtitle}>Movies & TV Shows</Text>
-          </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{personName}</Text>
+          <Text style={styles.subtitle}>Movies & TV Shows</Text>
         </View>
-
-        <View style={styles.contentContainer}>
-          <FlatList
-            data={transformedData}
-            renderItem={renderItem}
-            keyExtractor={item => `${item.type}-${item.id}`}
-            numColumns={3}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.5}
-            refreshControl={
-              <RefreshControl
-                refreshing={movieCredits.isRefetching || tvCredits.isRefetching}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
-            ListFooterComponent={
-              <View style={styles.footerLoader}>
-                {(movieCredits.isFetchingNextPage ||
-                  tvCredits.isFetchingNextPage) && (
-                  <View style={styles.loadingIndicatorContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>Loading more...</Text>
-                  </View>
-                )}
-                <View style={styles.footerSpace} />
-              </View>
-            }
-            ListEmptyComponent={
-              !isLoading ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No items found</Text>
-                </View>
-              ) : null
-            }
-          />
-        </View>
-
-        {(movieCredits.isLoading || tvCredits.isLoading) && (
-          <View style={styles.fullScreenLoader}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingTitle}>Loading</Text>
-            <Text style={styles.loadingSubtitle}>Movies & TV Shows</Text>
-          </View>
-        )}
       </View>
-    </GradientBackground>
+
+      <View style={styles.profileContainer}>
+        <Image
+          source={{
+            uri: getImageUrl(personDetails?.profile_path || '', 'original'),
+          }}
+          style={styles.profileImage}
+        />
+        <LinearGradient
+          colors={['transparent', colors.background.primary]}
+          style={styles.profileGradient}
+        />
+        <LinearGradient
+          colors={['transparent', colors.background.primary]}
+          style={styles.profileGradient}
+        />
+        <LinearGradient
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          colors={[colors.background.primary, 'transparent']}
+          style={styles.profileGradientHorizontal}
+        />
+        <LinearGradient
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          colors={[colors.background.primary, 'transparent']}
+          style={styles.profileGradientHorizontal}
+        />
+      </View>
+
+      <View style={styles.contentContainer}>
+        <FlatList
+          data={transformedData}
+          renderItem={renderItem}
+          keyExtractor={item => `${item.type}-${item.id}`}
+          numColumns={3}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={movieCredits.isRefetching || tvCredits.isRefetching}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListFooterComponent={
+            <View style={styles.footerLoader}>
+              {(movieCredits.isFetchingNextPage ||
+                tvCredits.isFetchingNextPage) && (
+                <View style={styles.loadingIndicatorContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.loadingText}>Loading more...</Text>
+                </View>
+              )}
+              <View style={styles.footerSpace} />
+            </View>
+          }
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No items found</Text>
+              </View>
+            ) : null
+          }
+        />
+      </View>
+
+      {(movieCredits.isLoading || tvCredits.isLoading) && (
+        <View style={styles.fullScreenLoader}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingTitle}>Loading</Text>
+          <Text style={styles.loadingSubtitle}>Movies & TV Shows</Text>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: spacing.xxl,
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
+    paddingTop: 120,
+    paddingBottom: spacing.xxl,
+    zIndex: 1,
   },
   titleContainer: {
     flexDirection: 'column',
     alignItems: 'flex-start',
   },
   title: {
-    ...typography.h2,
+    ...typography.h1,
     color: colors.text.primary,
   },
   subtitle: {
@@ -249,5 +290,33 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.text.secondary,
     marginTop: spacing.xs,
+  },
+  profileContainer: {
+    height: 400,
+    width: '70%',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 0,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  profileGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    height: '100%',
+  },
+  profileGradientHorizontal: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
   },
 });

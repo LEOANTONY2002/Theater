@@ -136,6 +136,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       page.results.map((movie: Movie) => ({...movie, type: 'movie' as const})),
     ) || [];
 
+  console.log(movieDetails);
+
   return (
     <ScrollView style={styles.container}>
       <LinearGradient

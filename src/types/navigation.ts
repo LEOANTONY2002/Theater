@@ -121,6 +121,16 @@ export type RootStackParamList = {
   MySpace: NavigatorScreenParams<MySpaceStackParamList>;
 };
 
+export interface PersonDetails {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string;
+  place_of_birth: string;
+  profile_path: string;
+  known_for_department: string;
+}
+
 declare global {
   namespace ReactNavigation {
     interface RootParamList extends RootStackParamList {}

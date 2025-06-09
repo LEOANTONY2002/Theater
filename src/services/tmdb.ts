@@ -528,3 +528,12 @@ export const getTop10TVShowsTodayByRegion = async () => {
     return [];
   }
 };
+
+export const getPersonDetails = async (personId: number) => {
+  const response = await tmdbApi.get(`/person/${personId}`, {
+    params: {
+      append_to_response: 'images,combined_credits',
+    },
+  });
+  return response.data;
+};
