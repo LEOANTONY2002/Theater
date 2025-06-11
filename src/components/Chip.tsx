@@ -32,13 +32,13 @@ const styles = StyleSheet.create({
   },
   selectedChip: {
     backgroundColor: colors.background.tertiary,
-    borderColor: colors.primary,
+    borderColor: colors.accent,
   },
   label: {
     color: colors.text.secondary,
     ...typography.body2,
   },
   selectedLabel: {
-    color: colors.primary,
+    color: colors.accent,
   },
 });

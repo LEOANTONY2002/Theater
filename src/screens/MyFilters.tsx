@@ -17,6 +17,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import languageData from '../utils/language.json';
 import {Genre} from '../types/movie';
 import {getGenres} from '../services/tmdb';
+import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -275,7 +276,7 @@ export const MyFiltersScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Filters</Text>
         <TouchableOpacity onPress={() => setShowAddModal(true)}>
@@ -285,16 +286,29 @@ export const MyFiltersScreen = () => {
             colors={colors.gradient.secondary}
             style={styles.addButton}>
             <Ionicons name="add" size={15} color={colors.text.primary} />
-            <Text style={{...typography.button, color: colors.text.primary}}>
+            <Text
+              style={{
+                ...typography.button,
+                paddingRight: spacing.sm,
+                color: colors.text.primary,
+              }}>
               Create
             </Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
-        {savedFilters.map(renderFilterItem)}
-      </ScrollView>
+      {isLoading ? (
+        <View>
+          <HorizontalListSkeleton />
+        </View>
+      ) : savedFilters.length > 0 ? (
+        <View style={styles.content}>{savedFilters.map(renderFilterItem)}</View>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No filters found</Text>
+        </View>
+      )}
 
       <MyFiltersModal
         visible={showAddModal || !!editingFilter}
@@ -306,25 +320,22 @@ export const MyFiltersScreen = () => {
         editingFilter={editingFilter}
         onDelete={handleDelete}
       />
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    height: '100%',
     backgroundColor: colors.background.primary,
     paddingTop: spacing.xxl,
-    paddingBottom: 100,
+    paddingBottom: 200,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-  },
-  backButton: {
-    padding: spacing.sm,
   },
   title: {
     color: colors.text.primary,
@@ -336,11 +347,22 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.round,
+    borderRadius: borderRadius.md,
+    height: 40,
   },
   content: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: 150,
+  },
+  emptyContainer: {
     flex: 1,
-    padding: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: colors.text.primary,
+    ...typography.body1,
   },
   filterItem: {
     backgroundColor: colors.background.tag,

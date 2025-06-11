@@ -17,7 +17,7 @@ import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {
-  RootStackParamList,
+  HomeStackParamList,
   MovieCategoryType,
   TVShowCategoryType,
   ContentType,
@@ -30,12 +30,15 @@ import {
 } from '../components/LoadingSkeleton';
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
 import {useRegion} from '../hooks/useApp';
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
 export const HomeScreen = () => {
   const {data: region} = useRegion();
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const [top10ContentByRegion, setTop10ContentByRegion] = useState<any[]>([]);
+  const [top10ContentByRegion, setTop10ContentByRegion] = useState<
+    ContentItem[]
+  >([]);
 
   const {
     data: popularMovies,
@@ -137,12 +140,20 @@ export const HomeScreen = () => {
   useEffect(() => {
     if (top10MoviesTodayByRegion && top10ShowsTodayByRegion) {
       const top10ContentByRegion = [
-        ...top10MoviesTodayByRegion,
-        ...top10ShowsTodayByRegion,
+        ...top10MoviesTodayByRegion.map((movie: Movie) => ({
+          ...movie,
+          type: 'movie' as const,
+        })),
+        ...top10ShowsTodayByRegion.map((show: TVShow) => ({
+          ...show,
+          type: 'tv' as const,
+        })),
       ];
-      const sortedContent = top10ContentByRegion.sort((a: any, b: any) => {
-        return b.popularity - a.popularity;
-      });
+      const sortedContent = top10ContentByRegion.sort(
+        (a: ContentItem, b: ContentItem) => {
+          return b.popularity - a.popularity;
+        },
+      );
       setTop10ContentByRegion(sortedContent.slice(0, 10));
     }
   }, [top10MoviesTodayByRegion, top10ShowsTodayByRegion]);

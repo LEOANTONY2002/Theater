@@ -326,7 +326,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     size={20}
                     color={
                       contentType === 'all'
-                        ? colors.primary
+                        ? colors.accent
                         : colors.text.secondary
                     }
                   />
@@ -349,7 +349,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     size={20}
                     color={
                       contentType === 'movie'
-                        ? colors.primary
+                        ? colors.accent
                         : colors.text.secondary
                     }
                   />
@@ -372,7 +372,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     size={20}
                     color={
                       contentType === 'tv'
-                        ? colors.primary
+                        ? colors.accent
                         : colors.text.secondary
                     }
                   />
@@ -443,7 +443,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               <View style={styles.pickerContainer}>
                 {isLoadingLanguages ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator color={colors.primary} />
+                    <ActivityIndicator color={colors.accent} />
                   </View>
                 ) : (
                   <Picker
@@ -476,7 +476,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 step={0.5}
                 value={filters['vote_average.gte'] || 0}
                 onValueChange={handleRatingChange}
-                minimumTrackTintColor={colors.primary}
+                minimumTrackTintColor={colors.accent}
                 maximumTrackTintColor={colors.text.secondary}
               />
             </View>
@@ -524,7 +524,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 step={15}
                 value={filters.with_runtime_gte || 0}
                 onValueChange={handleRuntimeChange}
-                minimumTrackTintColor={colors.primary}
+                minimumTrackTintColor={colors.accent}
                 maximumTrackTintColor={colors.text.secondary}
               />
             </View>
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   activeButton: {
-    borderColor: colors.primary,
+    borderColor: colors.accent,
     backgroundColor: colors.background.tertiary,
   },
   contentTypeText: {
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   activeText: {
-    color: colors.primary,
+    color: colors.accent,
   },
   pickerContainer: {
     backgroundColor: colors.background.secondary,
@@ -704,10 +704,10 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   saveButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   saveButtonText: {
-    color: colors.text.primary,
+    color: colors.background.primary,
     ...typography.button,
   },
   loadingContainer: {

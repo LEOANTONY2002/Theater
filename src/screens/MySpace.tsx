@@ -163,7 +163,7 @@ export const MySpaceScreen = () => {
                 <ContentCard item={item} onPress={handleMoviePress} />
               )}
               keyExtractor={item => `${item.id}-${item.type}`}
-              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               horizontal={true}
             />
@@ -171,11 +171,29 @@ export const MySpaceScreen = () => {
         )
       )}
 
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          onPress={() => setShowRegionModal(true)}>
+          <Text style={styles.sectionTitle}>Region</Text>
+          <View style={styles.regionInfo}>
+            <Text style={styles.regionText}>
+              {currentRegion?.english_name || 'Select Region'}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={colors.text.secondary}
+            />
+          </View>
+        </TouchableOpacity>
+      </View>
+
       <View>
         <TouchableOpacity
           style={styles.headerContainer}
           onPress={() => setShowLanguageModal(true)}>
-          <Text style={styles.sectionTitle}>Language</Text>
+          <Text style={styles.sectionTitle}>Languages</Text>
           <Ionicons
             name="chevron-forward"
             size={24}
@@ -209,24 +227,6 @@ export const MySpaceScreen = () => {
             ))}
           </ScrollView>
         ) : null}
-      </View>
-
-      <View style={styles.section}>
-        <TouchableOpacity
-          style={styles.sectionHeader}
-          onPress={() => setShowRegionModal(true)}>
-          <Text style={styles.sectionTitle}>Region</Text>
-          <View style={styles.regionInfo}>
-            <Text style={styles.regionText}>
-              {currentRegion?.english_name || 'Select Region'}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={24}
-              color={colors.text.secondary}
-            />
-          </View>
-        </TouchableOpacity>
       </View>
 
       <TouchableOpacity

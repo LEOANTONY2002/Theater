@@ -282,14 +282,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType="dark"
-          blurAmount={10}
-          overlayColor="rgba(23, 20, 48, 0.87)"
-          reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
-        />
         <View style={styles.modalContent}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={10}
+            overlayColor="rgba(23, 17, 42, 0.87)"
+            reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
+          />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filter Content</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -301,7 +301,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Saved Filters Section */}
             {savedFilters.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Saved Filters</Text>
+                <Text style={styles.sectionTitle}>My Filters</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -348,7 +348,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     size={20}
                     color={
                       contentType === 'all'
-                        ? colors.primary
+                        ? colors.accent
                         : colors.text.secondary
                     }
                   />
@@ -371,7 +371,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     size={20}
                     color={
                       contentType === 'movie'
-                        ? colors.primary
+                        ? colors.accent
                         : colors.text.secondary
                     }
                   />
@@ -394,7 +394,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     size={20}
                     color={
                       contentType === 'tv'
-                        ? colors.primary
+                        ? colors.accent
                         : colors.text.secondary
                     }
                   />
@@ -465,7 +465,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               <View style={styles.pickerContainer}>
                 {isLoadingLanguages ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator color={colors.primary} />
+                    <ActivityIndicator color={colors.accent} />
                   </View>
                 ) : (
                   <Picker
@@ -498,7 +498,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 step={0.5}
                 value={filters['vote_average.gte'] || 0}
                 onValueChange={handleRatingChange}
-                minimumTrackTintColor={colors.primary}
+                minimumTrackTintColor={colors.accent}
                 maximumTrackTintColor={colors.text.secondary}
               />
             </View>
@@ -535,7 +535,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             </View>
 
             {/* Runtime */}
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
               <Text style={styles.sectionTitle}>
                 Minimum Runtime: {filters.with_runtime_gte || 0} min
               </Text>
@@ -546,10 +546,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 step={15}
                 value={filters.with_runtime_gte || 0}
                 onValueChange={handleRuntimeChange}
-                minimumTrackTintColor={colors.primary}
+                minimumTrackTintColor={colors.accent}
                 maximumTrackTintColor={colors.text.secondary}
               />
-            </View>
+            </View> */}
           </ScrollView>
 
           {/* Date Pickers */}
@@ -597,14 +597,20 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 1, 3, 0.28)',
   },
   modalContent: {
     flex: 1,
     marginTop: 60,
-    backgroundColor: colors.background.primary,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
+  },
+  blurView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -650,7 +656,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   activeButton: {
-    borderColor: colors.primary,
+    borderColor: colors.accent,
     backgroundColor: colors.background.tertiary,
   },
   contentTypeText: {
@@ -658,7 +664,7 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   activeText: {
-    color: colors.primary,
+    color: colors.accent,
   },
   pickerContainer: {
     backgroundColor: colors.background.secondary,
@@ -710,10 +716,10 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   applyButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   applyButtonText: {
-    color: colors.text.primary,
+    color: colors.background.primary,
     ...typography.button,
   },
   loadingContainer: {
@@ -750,13 +756,13 @@ const styles = StyleSheet.create({
   },
   activeSavedFilter: {
     backgroundColor: colors.background.tertiary,
-    borderColor: colors.primary,
+    borderColor: colors.accent,
   },
   savedFilterText: {
     color: colors.text.secondary,
     ...typography.body2,
   },
   activeSavedFilterText: {
-    color: colors.primary,
+    color: colors.accent,
   },
 });

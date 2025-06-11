@@ -177,7 +177,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
         colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
         style={styles.gradientShade}

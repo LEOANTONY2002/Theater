@@ -2,7 +2,13 @@ import React from 'react';
 import {View, Text, FlatList, StyleSheet, TouchableOpacity} from 'react-native';
 import {ContentItem} from './MovieList';
 import {ContentCard} from './ContentCard';
-import {borderRadius, colors, spacing, typography} from '../styles/theme';
+import {
+  borderRadius,
+  colors,
+  spacing,
+  tagGradientColors,
+  typography,
+} from '../styles/theme';
 import {
   HeadingSkeleton,
   HorizontalListSkeleton,
@@ -27,6 +33,12 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
 }) => {
   const renderItem = ({item, index}: {item: Genre; index: number}) => (
     <TouchableOpacity style={styles.tag} onPress={() => onItemPress(item)}>
+      <LinearGradient
+        colors={['transparent', 'transparent', tagGradientColors[index]]}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={styles.tagGradient}
+      />
       <Text style={styles.tagText}>{item?.name}</Text>
     </TouchableOpacity>
   );
@@ -79,6 +91,11 @@ const styles = StyleSheet.create({
     height: 100,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRightWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderColor: colors.background.secondary,
+    minWidth: 120,
+    maxWidth: 200,
   },
   tagGradient: {
     position: 'absolute',
@@ -86,17 +103,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 75,
-    marginTop: 25,
+    height: 100,
     zIndex: 1,
-    borderBottomLeftRadius: borderRadius.lg,
-    borderBottomRightRadius: borderRadius.lg,
+    borderRadius: borderRadius.lg,
   },
   tagText: {
-    color: colors.text.primary,
-    ...typography.h2,
-    fontWeight: '900',
-    opacity: 0.3,
+    color: colors.text.secondary,
+    ...typography.h3,
+    // fontWeight: '900',
+    opacity: 0.4,
     textAlign: 'center',
+    zIndex: 2,
   },
 });

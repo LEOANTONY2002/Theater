@@ -139,7 +139,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   console.log(movieDetails);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
         colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
         style={styles.gradientShade}

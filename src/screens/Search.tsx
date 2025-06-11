@@ -417,8 +417,12 @@ export const SearchScreen = () => {
 
               <TrendingGrid
                 data={
-                  trendingData?.pages?.flatMap((page: any) => page.results) ||
-                  []
+                  trendingData?.pages?.flatMap((page: any) =>
+                    page.results.map((item: any) => ({
+                      ...item,
+                      type: item.media_type === 'movie' ? 'movie' : 'tv',
+                    })),
+                  ) || []
                 }
                 onItemPress={handleItemPress}
                 isLoading={isLoadingTrending}

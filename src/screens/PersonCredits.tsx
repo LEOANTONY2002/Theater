@@ -118,14 +118,7 @@ export const PersonCreditsScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>{personName}</Text>
-          <Text style={styles.subtitle}>Movies & TV Shows</Text>
-        </View>
-      </View>
-
+    <View style={styles.container}>
       <View style={styles.profileContainer}>
         <Image
           source={{
@@ -155,45 +148,43 @@ export const PersonCreditsScreen = () => {
         />
       </View>
 
-      <View style={styles.contentContainer}>
-        <FlatList
-          data={transformedData}
-          renderItem={renderItem}
-          keyExtractor={item => `${item.type}-${item.id}`}
-          numColumns={3}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              refreshing={movieCredits.isRefetching || tvCredits.isRefetching}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
-          ListFooterComponent={
-            <View style={styles.footerLoader}>
-              {(movieCredits.isFetchingNextPage ||
-                tvCredits.isFetchingNextPage) && (
-                <View style={styles.loadingIndicatorContainer}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                  <Text style={styles.loadingText}>Loading more...</Text>
-                </View>
-              )}
-              <View style={styles.footerSpace} />
+      <FlatList
+        data={transformedData}
+        renderItem={renderItem}
+        keyExtractor={item => `${item.type}-${item.id}`}
+        numColumns={3}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>{personName}</Text>
+              <Text style={styles.subtitle}>Movies & TV Shows</Text>
             </View>
-          }
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No items found</Text>
+          </View>
+        }
+        ListFooterComponent={
+          <View style={styles.footerLoader}>
+            {(movieCredits.isFetchingNextPage ||
+              tvCredits.isFetchingNextPage) && (
+              <View style={styles.loadingIndicatorContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading more...</Text>
               </View>
-            ) : null
-          }
-        />
-      </View>
+            )}
+            <View style={styles.footerSpace} />
+          </View>
+        }
+        ListEmptyComponent={
+          !isLoading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No items found</Text>
+            </View>
+          ) : null
+        }
+      />
 
       {(movieCredits.isLoading || tvCredits.isLoading) && (
         <View style={styles.fullScreenLoader}>
@@ -202,7 +193,7 @@ export const PersonCreditsScreen = () => {
           <Text style={styles.loadingSubtitle}>Movies & TV Shows</Text>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 };
 
@@ -233,18 +224,15 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginTop: spacing.xs,
   },
-  contentContainer: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   listContent: {
     paddingBottom: 120,
   },
   cardContainer: {
+    flex: 1 / 3,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
   footerLoader: {
     paddingVertical: spacing.xl,
