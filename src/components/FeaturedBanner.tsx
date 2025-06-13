@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Dimensions,
   Button,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/Feather';
-import Ionicon from 'react-native-vector-icons/Ionicons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, typography, spacing, borderRadius} from '../styles/theme';
 import {useUserContent} from '../hooks/useUserContent';
 import {BannerSkeleton} from './LoadingSkeleton';
@@ -20,6 +20,12 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types/navigation';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
+import {WatchlistModal} from './WatchlistModal';
+import {
+  useIsItemInAnyWatchlist,
+  useRemoveFromWatchlist,
+  useWatchlistContainingItem,
+} from '../hooks/useWatchlists';
 const {width} = Dimensions.get('window');
 const BANNER_HEIGHT = 680;
 
@@ -74,6 +80,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
   const [loading, setLoading] = useState(true);
+  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const title =
     type === 'movie' ? (item as Movie).title : (item as TVShow).name;
   const releaseDate =
@@ -86,6 +93,9 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
     removeItem: removeFromWatchlist,
   } = useUserContent('WATCHLIST');
   const navigation = useNavigation<NavigationProp>();
+  const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
+  const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
+  const removeFromWatchlistMutation = useRemoveFromWatchlist();
 
   const addWatchlist = () => {
     if (checkInWatchlist(item.id)) {
@@ -110,6 +120,28 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
       </View>
     );
   }
+
+  const handleWatchlistPress = useCallback(async () => {
+    if (isInAnyWatchlist && watchlistContainingItem) {
+      // If item is already in a watchlist, remove it
+      try {
+        await removeFromWatchlistMutation.mutateAsync({
+          watchlistId: watchlistContainingItem,
+          itemId: item.id,
+        });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to remove from watchlist');
+      }
+    } else {
+      // If item is not in any watchlist, show modal to add it
+      setShowWatchlistModal(true);
+    }
+  }, [
+    isInAnyWatchlist,
+    watchlistContainingItem,
+    removeFromWatchlistMutation,
+    item.id,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -156,16 +188,26 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
               onPress={handlePress}
               style={styles.button}
             />
-            <TouchableOpacity style={styles.buttonWL} onPress={addWatchlist}>
-              <Ionicon
-                name={checkInWatchlist(item.id) ? 'checkmark' : 'add'}
-                size={25}
-                color={colors.text.primary}
+            <TouchableOpacity
+              style={styles.buttonWL}
+              onPress={handleWatchlistPress}
+              disabled={removeFromWatchlistMutation.isPending}>
+              <Ionicons
+                name={isInAnyWatchlist ? 'checkmark' : 'add'}
+                size={24}
+                color={isInAnyWatchlist ? colors.accent : '#fff'}
               />
             </TouchableOpacity>
           </View>
         </View>
       </ImageBackground>
+
+      <WatchlistModal
+        visible={showWatchlistModal}
+        onClose={() => setShowWatchlistModal(false)}
+        item={item}
+        itemType={type}
+      />
     </View>
   );
 };

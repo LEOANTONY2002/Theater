@@ -8,13 +8,13 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {CompositeNavigationProp} from '@react-navigation/native';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {TabParamList, MySpaceStackParamList} from '../types/navigation';
-import {useUserContent} from '../hooks/useUserContent';
 import {ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
@@ -35,6 +35,8 @@ import {RegionModal} from '../components/RegionModal';
 import regionData from '../utils/region.json';
 import LinearGradient from 'react-native-linear-gradient';
 import {useSelectedLanguages} from '../hooks/useApp';
+import {useWatchlists} from '../hooks/useWatchlists';
+import {Watchlist} from '../store/watchlists';
 
 type MySpaceScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'MySpace'>,
@@ -44,6 +46,7 @@ type MySpaceScreenNavigationProp = CompositeNavigationProp<
 interface Region {
   iso_3166_1: string;
   english_name: string;
+  native_name?: string;
 }
 
 export const MySpaceScreen = () => {
@@ -52,7 +55,8 @@ export const MySpaceScreen = () => {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
 
-  const {content: watchlist, isLoading} = useUserContent('WATCHLIST');
+  const {data: watchlists = [], isLoading: isLoadingWatchlists} =
+    useWatchlists();
   const {data: selectedLanguages, isLoading: isLoadingLanguages} =
     useSelectedLanguages();
 
@@ -78,6 +82,7 @@ export const MySpaceScreen = () => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
+      queryClient.invalidateQueries({queryKey: ['watchlists']});
     });
 
     return unsubscribe;
@@ -97,17 +102,9 @@ export const MySpaceScreen = () => {
     };
   }, [queryClient]);
 
-  const handleMoviePress = useCallback(
-    (item: ContentItem) => {
-      if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {
-          movie: item as Movie,
-        });
-      } else {
-        navigation.navigate('TVShowDetails', {
-          show: item as TVShow,
-        });
-      }
+  const handleWatchlistPress = useCallback(
+    (watchlist: Watchlist) => {
+      navigation.navigate('WatchlistDetails', {watchlistId: watchlist.id});
     },
     [navigation],
   );
@@ -141,35 +138,50 @@ export const MySpaceScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.sectionTitle}>Watchlist</Text>
+      <TouchableOpacity
+        style={styles.headerContainer}
+        onPress={() => navigation.navigate('WatchlistsScreen')}
+        testID="watchlistsHeader">
+        <Text style={styles.sectionTitle}>Watchlists</Text>
         <Ionicons
           name="chevron-forward"
           size={24}
           color={colors.text.primary}
         />
-      </View>
+      </TouchableOpacity>
 
-      {isLoading ? (
+      {isLoadingWatchlists ? (
         <View style={{paddingBottom: spacing.md}}>
-          <HorizontalListSkeleton />
+          <LanguageSkeleton />
         </View>
-      ) : (
-        watchlist.length > 0 && (
-          <View style={styles.watchlistContainer}>
-            <FlatList
-              data={watchlist}
-              renderItem={({item}) => (
-                <ContentCard item={item} onPress={handleMoviePress} />
-              )}
-              keyExtractor={item => `${item.id}-${item.type}`}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-              horizontal={true}
-            />
-          </View>
-        )
-      )}
+      ) : watchlists.length > 0 ? (
+        <View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tagContainer}
+            contentContainerStyle={styles.tagContent}>
+            {watchlists.map(watchlist => (
+              <TouchableOpacity
+                key={watchlist.id}
+                style={styles.tag}
+                onPress={() => handleWatchlistPress(watchlist)}>
+                <LinearGradient
+                  colors={colors.gradient.primary}
+                  style={styles.tagGradient}
+                />
+                <Text style={styles.tagText} numberOfLines={1}>
+                  {watchlist.name}
+                </Text>
+                <Text style={styles.tagSubText} numberOfLines={1}>
+                  {watchlist.itemCount}{' '}
+                  {watchlist.itemCount === 1 ? 'item' : 'items'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <TouchableOpacity

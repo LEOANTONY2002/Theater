@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Button,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicon from 'react-native-vector-icons/Ionicons';
@@ -19,6 +20,12 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types/navigation';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
+import {WatchlistModal} from './WatchlistModal';
+import {
+  useIsItemInAnyWatchlist,
+  useRemoveFromWatchlist,
+  useWatchlistContainingItem,
+} from '../hooks/useWatchlists';
 const {width} = Dimensions.get('window');
 const BANNER_HEIGHT = 680;
 
@@ -77,6 +84,10 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [dominantColor, setDominantColor] = useState<string | null>(null);
+  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+  const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
+  const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
+  const removeFromWatchlistMutation = useRemoveFromWatchlist();
   // const title =
   //   type === 'movie' ? (item as Movie).title : (item as TVShow).name;
   // const releaseDate =
@@ -89,25 +100,6 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
     removeItem: removeFromWatchlist,
   } = useUserContent('WATCHLIST');
   const navigation = useNavigation<NavigationProp>();
-
-  // useEffect(() => {
-  //   const fetchDominantColor = async () => {
-  //     const result = await ImageColors.getColors(
-  //       `https://image.tmdb.org/t/p/w780${item?.poster_path}`,
-  //       {
-  //         fallback: '#375B695',
-  //         cache: true,
-  //         key: 'my-image',
-  //       },
-  //     );
-
-  //     if (result.platform === 'android') {
-  //       setDominantColor(result.dominant);
-  //     }
-  //   };
-
-  //   fetchDominantColor();
-  // }, []);
 
   const addWatchlist = () => {
     if (checkInWatchlist(item.id)) {
@@ -132,6 +124,28 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
       </View>
     );
   }
+
+  const handleWatchlistPress = useCallback(async () => {
+    if (isInAnyWatchlist && watchlistContainingItem) {
+      // If item is already in a watchlist, remove it
+      try {
+        await removeFromWatchlistMutation.mutateAsync({
+          watchlistId: watchlistContainingItem,
+          itemId: item.id,
+        });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to remove from watchlist');
+      }
+    } else {
+      // If item is not in any watchlist, show modal to add it
+      setShowWatchlistModal(true);
+    }
+  }, [
+    isInAnyWatchlist,
+    watchlistContainingItem,
+    removeFromWatchlistMutation,
+    item.id,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -183,16 +197,29 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
               style={styles.watchButton}
               textStyle={styles.watchButtonText}
             />
-            <TouchableOpacity style={styles.addButton} onPress={addWatchlist}>
-              {checkInWatchlist(item.id) ? (
-                <Ionicon name="checkmark" size={24} color="#fff" />
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={handleWatchlistPress}>
+              {isInAnyWatchlist ? (
+                <Ionicon
+                  name="checkmark"
+                  size={24}
+                  color={colors.text.primary}
+                />
               ) : (
-                <Ionicon name="add" size={24} color="#fff" />
+                <Ionicon name="add" size={24} color={colors.text.primary} />
               )}
             </TouchableOpacity>
           </View>
         </View>
       </ImageBackground>
+
+      <WatchlistModal
+        visible={showWatchlistModal}
+        onClose={() => setShowWatchlistModal(false)}
+        item={item}
+        itemType={type}
+      />
     </View>
   );
 };

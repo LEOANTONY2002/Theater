@@ -18,6 +18,7 @@ import languageData from '../utils/language.json';
 import {Genre} from '../types/movie';
 import {getGenres} from '../services/tmdb';
 import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
+import CreateButton from '../components/createButton';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -295,36 +296,11 @@ export const MyFiltersScreen = () => {
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No filters found</Text>
-          <TouchableOpacity
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginTop: spacing.md,
-            }}
-            onPress={() => setShowAddModal(true)}>
-            <LinearGradient
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              colors={colors.gradient.tertiary}
-              style={[
-                styles.addButton,
-                {height: 60, borderRadius: borderRadius.round},
-              ]}>
-              <Ionicons
-                name="add"
-                size={25}
-                color={colors.background.secondary}
-              />
-              <Text
-                style={{
-                  ...typography.button,
-                  paddingRight: spacing.sm,
-                  color: colors.background.secondary,
-                }}>
-                Create Your First Filter
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <CreateButton
+            onPress={() => setShowAddModal(true)}
+            title="Create Your First Filter"
+            icon="add"
+          />
         </View>
       )}
 

@@ -93,6 +93,7 @@ export type TVShowsStackParamList = {
 export type MySpaceStackParamList = {
   MySpaceScreen: undefined;
   MyFiltersScreen: undefined;
+  WatchlistsScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
   SearchScreen: {
@@ -102,6 +103,9 @@ export type MySpaceStackParamList = {
     personId: number;
     personName: string;
     contentType: ContentType;
+  };
+  WatchlistDetails: {
+    watchlistId: string;
   };
 };
 

@@ -5,6 +5,7 @@ import {MovieDetailsScreen} from '../screens/MovieDetails';
 import {TVShowDetailsScreen} from '../screens/TVShowDetails';
 import {MyFiltersScreen} from '../screens/MyFilters';
 import {SearchScreen} from '../screens/Search';
+import {WatchlistsScreen} from '../screens/Watchlists';
 import {MySpaceStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 
@@ -20,6 +21,13 @@ export const MySpaceNavigator = () => {
         },
         animation: 'slide_from_right',
       }}>
+      <Stack.Screen
+        name="WatchlistsScreen"
+        component={WatchlistsScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
       <Stack.Screen
         name="MySpaceScreen"
         component={MySpaceScreen}

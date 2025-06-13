@@ -18,6 +18,7 @@ import {
 } from '../types/navigation';
 import {Genre} from '../screens/Genre';
 import {MyFiltersScreen} from '../screens/MyFilters';
+import {WatchlistsScreen} from '../screens/Watchlists';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -244,6 +245,11 @@ export const MySpaceStackNavigator = () => (
         headerShown: false,
         ...modalScreenOptions,
       }}
+    />
+    <MySpaceStack.Screen
+      name="WatchlistsScreen"
+      component={WatchlistsScreen}
+      options={{headerShown: false}}
     />
     <MySpaceStack.Screen
       name="MyFiltersScreen"

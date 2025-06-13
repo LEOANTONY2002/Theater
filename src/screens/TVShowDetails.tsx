@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
@@ -17,7 +18,6 @@ import {
   useTVShowRecommendations,
   useSeasonDetails,
 } from '../hooks/useTVShows';
-import {useUserContent} from '../hooks/useUserContent';
 import {getImageUrl, getLanguage} from '../services/tmdb';
 import {
   TVShow,
@@ -25,11 +25,11 @@ import {
   Episode,
 } from '../types/tvshow';
 import {Video, Genre, Cast} from '../types/movie';
-import Ionicon from 'react-native-vector-icons/Ionicons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {useNavigation} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
-import {RootStackParamList} from '../types/navigation';
+import {MySpaceStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
@@ -42,11 +42,15 @@ import {WatchProviders} from '../components/WatchProviders';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {GradientButton} from '../components/GradientButton';
 import {PersonCard} from '../components/PersonCard';
+import {WatchlistModal} from '../components/WatchlistModal';
+import {
+  useIsItemInAnyWatchlist,
+  useWatchlistContainingItem,
+  useRemoveFromWatchlist,
+} from '../hooks/useWatchlists';
 
 type TVShowDetailsScreenNavigationProp =
-  NativeStackNavigationProp<RootStackParamList>;
-
-const {width} = Dimensions.get('window');
+  NativeStackNavigationProp<MySpaceStackParamList>;
 
 interface TVShowDetailsScreenProps {
   route: {
@@ -56,6 +60,8 @@ interface TVShowDetailsScreenProps {
   };
 }
 
+const {width} = Dimensions.get('window');
+
 export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   route,
 }) => {
@@ -63,14 +69,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {show} = route.params;
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
-  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const {data: showDetails, isLoading} = useTVShowDetails(show.id);
 
-  const {
-    isItemInContent: checkInWatchlist,
-    addItem: addToWatchlist,
-    removeItem: removeFromWatchlist,
-  } = useUserContent('WATCHLIST');
+  const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
+  const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
+  const removeFromWatchlistMutation = useRemoveFromWatchlist();
 
   const {
     data: similarShows,
@@ -96,10 +100,27 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   const {data: watchProviders} = useWatchProviders(show.id, 'tv');
 
-  useEffect(() => {
-    // Update watchlist status
-    setIsInWatchlist(checkInWatchlist(show.id));
-  }, [checkInWatchlist, show.id]);
+  const handleWatchlistPress = useCallback(async () => {
+    if (isInAnyWatchlist && watchlistContainingItem) {
+      // If item is already in a watchlist, remove it
+      try {
+        await removeFromWatchlistMutation.mutateAsync({
+          watchlistId: watchlistContainingItem,
+          itemId: show.id,
+        });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to remove from watchlist');
+      }
+    } else {
+      // If item is not in any watchlist, show modal to add it
+      setShowWatchlistModal(true);
+    }
+  }, [
+    isInAnyWatchlist,
+    watchlistContainingItem,
+    removeFromWatchlistMutation,
+    show.id,
+  ]);
 
   useEffect(() => {
     if (
@@ -118,16 +139,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       }
     }
   }, [showDetails, selectedSeason]);
-
-  const handleWatchlistPress = useCallback(async () => {
-    if (isInWatchlist) {
-      await removeFromWatchlist(show.id);
-      setIsInWatchlist(false);
-    } else {
-      await addToWatchlist(show, 'tv');
-      setIsInWatchlist(true);
-    }
-  }, [isInWatchlist, show, addToWatchlist, removeFromWatchlist]);
 
   const trailer = showDetails?.videos.results.find(
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
@@ -177,360 +188,374 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <LinearGradient
-        colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
-        style={styles.gradientShade}
-        start={{x: 0, y: 0}}
-        end={{x: 0.5, y: 0.5}}
-      />
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}>
+        <LinearGradient
+          colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
+          style={styles.gradientShade}
+          start={{x: 0, y: 0}}
+          end={{x: 0.5, y: 0.5}}
+        />
 
-      <View style={styles.main}>
-        {isPosterLoading && <BannerHomeSkeleton />}
+        <View style={styles.main}>
+          {isPosterLoading && <BannerHomeSkeleton />}
 
-        {!isPlaying ? (
-          <Image
-            source={{uri: getImageUrl(show.backdrop_path || '', 'original')}}
-            style={styles.backdrop}
-            onLoadEnd={() => setIsPosterLoading(false)}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.trailerContainer}>
-            <YoutubePlayer
-              height={width * 0.5625}
-              play={isPlaying}
-              videoId={trailer?.key}
-              webViewProps={{
-                allowsInlineMediaPlayback: true,
-                allowsPictureInPicture: true,
-                allowsFullscreenVideo: true,
-                allowsPictureInPictureMediaPlayback: true,
-              }}
-              key={trailer?.key}
-              onChangeState={(state: string) => {
-                if (state === 'ended') setIsPlaying(false);
-              }}
+          {!isPlaying ? (
+            <Image
+              source={{uri: getImageUrl(show.backdrop_path || '', 'original')}}
+              style={styles.backdrop}
+              onLoadEnd={() => setIsPosterLoading(false)}
+              resizeMode="cover"
             />
-          </View>
-        )}
-      </View>
-
-      <View style={styles.content}>
-        <Text style={styles.title}>{show.name}</Text>
-        <View style={styles.infoContainer}>
-          <Text style={styles.info}>
-            {new Date(show.first_air_date).getFullYear()}
-          </Text>
-          {showDetails?.number_of_seasons && (
-            <>
-              <Text style={styles.infoDot}>•</Text>
-              <Text style={styles.info}>
-                {showDetails.number_of_seasons} Seasons
-              </Text>
-            </>
-          )}
-          {showDetails?.number_of_episodes && (
-            <>
-              <Text style={styles.infoDot}>•</Text>
-              <Text style={styles.info}>
-                {showDetails.number_of_episodes} Episodes
-              </Text>
-            </>
-          )}
-          {showDetails?.original_language && (
-            <>
-              <Text style={styles.infoDot}>•</Text>
-              <Text style={styles.info}>
-                {getLanguage(showDetails.original_language)}
-              </Text>
-            </>
-          )}
-          {showDetails?.vote_average && (
-            <>
-              <Text style={styles.infoDot}>•</Text>
-              <View
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: spacing.xs,
-                }}>
-                <Ionicon name="star" size={12} color="#ffffff70" />
-                <Text style={styles.info}>
-                  {showDetails.vote_average.toFixed(1)}
-                </Text>
-              </View>
-            </>
+          ) : (
+            <View style={styles.trailerContainer}>
+              <YoutubePlayer
+                height={width * 0.5625}
+                play={isPlaying}
+                videoId={trailer?.key}
+                webViewProps={{
+                  allowsInlineMediaPlayback: true,
+                  allowsPictureInPicture: true,
+                  allowsFullscreenVideo: true,
+                  allowsPictureInPictureMediaPlayback: true,
+                }}
+                key={trailer?.key}
+                onChangeState={(state: string) => {
+                  if (state === 'ended') setIsPlaying(false);
+                }}
+              />
+            </View>
           )}
         </View>
-        <View style={styles.buttonRow}>
-          <GradientButton
-            title="Watch Now"
-            onPress={() => {
-              setIsPlaying(true);
-            }}
-            style={styles.watchButton}
-            textStyle={styles.watchButtonText}
-          />
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleWatchlistPress}>
-            {checkInWatchlist(show.id) ? (
-              <Ionicon name="checkmark" size={24} color="#fff" />
-            ) : (
-              <Ionicon name="add" size={24} color="#fff" />
-            )}
-          </TouchableOpacity>
-        </View>
-        <View style={styles.genreContainer}>
-          {showDetails?.genres
-            ?.slice(0, 3)
-            .map((genre: Genre, index: number) => (
-              <View key={genre.id} style={styles.genreWrapper}>
-                <Text style={styles.genre}>{genre.name}</Text>
-                {index < Math.min(showDetails.genres.length - 1, 2) && (
-                  <Text style={styles.genreDivider}>|</Text>
-                )}
-              </View>
-            ))}
-        </View>
-      </View>
 
-      <Text style={styles.overview}>{show.overview}</Text>
-
-      {showDetails?.credits?.cast?.length > 0 && (
-        <View style={{marginVertical: spacing.lg, marginTop: 0}}>
-          <Text style={styles.sectionTitle}>Cast</Text>
-          <ScrollView
-            style={{paddingHorizontal: 16, marginBottom: 30}}
-            horizontal
-            showsHorizontalScrollIndicator={false}>
-            {showDetails.credits.cast.slice(0, 10).map((person: Cast) => (
-              <TouchableOpacity
-                key={person.id}
-                style={styles.castItem}
-                onPress={() =>
-                  navigation.navigate('PersonCredits', {
-                    personId: person.id,
-                    personName: person.name,
-                    contentType: 'tv',
-                  })
-                }>
-                <PersonCard
-                  item={getImageUrl(person.profile_path || '', 'original')}
-                  onPress={() => {}}
-                />
-                <Text style={styles.castName} numberOfLines={2}>
-                  {person.name}
-                </Text>
-                <Text style={styles.character} numberOfLines={1}>
-                  {person.character}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {watchProviders?.results?.US && (
-        <WatchProviders providers={watchProviders.results.US} />
-      )}
-
-      {showDetails?.seasons && (
-        <View style={styles.seasonsSection}>
-          <Text style={styles.sectionTitle}>Seasons</Text>
-          <TouchableOpacity
-            style={styles.seasonDropdown}
-            onPress={() => setShowSeasonModal(true)}>
-            <Text style={styles.seasonDropdownText}>
-              {selectedSeason
-                ? getSeasonTitle(selectedSeason)
-                : 'Select Season'}
+        <View style={styles.content}>
+          <Text style={styles.title}>{show.name}</Text>
+          <View style={styles.infoContainer}>
+            <Text style={styles.info}>
+              {new Date(show.first_air_date).getFullYear()}
             </Text>
-            <Ionicon
-              name="chevron-down"
-              size={20}
-              color={colors.text.primary}
-            />
-          </TouchableOpacity>
-
-          {selectedSeason && episodes && episodes.episodes.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.episodesContainer}>
-              {episodes.episodes.map((episode: Episode) => (
-                <TouchableOpacity
-                  key={episode.id}
-                  style={styles.episodeCard}
-                  onPress={() => {
-                    // Handle episode selection
+            {showDetails?.number_of_seasons && (
+              <>
+                <Text style={styles.infoDot}>•</Text>
+                <Text style={styles.info}>
+                  {showDetails.number_of_seasons} Season
+                  {showDetails.number_of_seasons !== 1 ? 's' : ''}
+                </Text>
+              </>
+            )}
+            {showDetails?.number_of_episodes && (
+              <>
+                <Text style={styles.infoDot}>•</Text>
+                <Text style={styles.info}>
+                  {showDetails.number_of_episodes} Episodes
+                </Text>
+              </>
+            )}
+            {showDetails?.original_language && (
+              <>
+                <Text style={styles.infoDot}>•</Text>
+                <Text style={styles.info}>
+                  {getLanguage(showDetails?.original_language)}
+                </Text>
+              </>
+            )}
+            {showDetails?.vote_average && (
+              <>
+                <Text style={styles.infoDot}>•</Text>
+                <View
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.xs,
                   }}>
-                  <Image
-                    source={{
-                      uri: episode.still_path
-                        ? getImageUrl(episode.still_path)
-                        : 'https://via.placeholder.com/200x112',
-                    }}
-                    style={styles.episodeImage}
+                  <Ionicons name="star" size={12} color="#ffffff70" />
+                  <Text style={styles.info}>
+                    {showDetails.vote_average.toFixed(1)}
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+          <View style={styles.buttonRow}>
+            <GradientButton
+              title="Watch Now"
+              onPress={() => {
+                setIsPlaying(true);
+              }}
+              style={styles.watchButton}
+              textStyle={styles.watchButtonText}
+            />
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={handleWatchlistPress}
+              disabled={removeFromWatchlistMutation.isPending}>
+              <Ionicons
+                name={isInAnyWatchlist ? 'checkmark' : 'add'}
+                size={24}
+                color={isInAnyWatchlist ? colors.accent : '#fff'}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.genreContainer}>
+            {showDetails?.genres
+              ?.slice(0, 3)
+              .map((genre: Genre, index: number) => (
+                <View key={genre.id} style={styles.genreWrapper}>
+                  <Text style={styles.genre}>{genre.name}</Text>
+                  {index < Math.min(showDetails.genres.length - 1, 2) && (
+                    <Text style={styles.genreDivider}>|</Text>
+                  )}
+                </View>
+              ))}
+          </View>
+        </View>
+
+        <Text style={styles.overview}>{show.overview}</Text>
+
+        {showDetails?.credits?.cast?.length > 0 && (
+          <View style={{marginVertical: spacing.lg, marginTop: 0}}>
+            <Text style={styles.sectionTitle}>Cast</Text>
+            <ScrollView
+              style={{paddingHorizontal: 16}}
+              horizontal
+              showsHorizontalScrollIndicator={false}>
+              {showDetails.credits.cast.slice(0, 10).map((person: Cast) => (
+                <TouchableOpacity
+                  key={person.id}
+                  style={styles.castItem}
+                  onPress={() =>
+                    navigation.navigate('PersonCredits', {
+                      personId: person.id,
+                      personName: person.name,
+                      contentType: 'tv',
+                    })
+                  }>
+                  <PersonCard
+                    item={getImageUrl(person.profile_path || '', 'original')}
+                    onPress={() => {}}
                   />
-
-                  <View style={styles.episodeContent}>
-                    <Text style={styles.episodeTitle} numberOfLines={2}>
-                      {episode.name}
-                    </Text>
-
-                    <View style={styles.episodeInfo}>
-                      {episode?.episode_number && (
-                        <Text style={styles.info}>
-                          S{episode.season_number} E{episode.episode_number}
-                        </Text>
-                      )}
-                      <Text style={styles.infoDot}>•</Text>
-
-                      <Text style={styles.info}>
-                        {new Date(episode.air_date).toLocaleDateString(
-                          'en-US',
-                          {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric',
-                          },
-                        )}
-                      </Text>
-
-                      {episode?.runtime && (
-                        <>
-                          <Text style={styles.infoDot}>•</Text>
-                          <Text style={styles.info}>{episode.runtime} min</Text>
-                        </>
-                      )}
-
-                      {episode?.vote_average && (
-                        <>
-                          <Text style={styles.infoDot}>•</Text>
-                          <View
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: spacing.xs,
-                            }}>
-                            <Ionicon name="star" size={12} color="#ffffff70" />
-                            <Text style={styles.info}>
-                              {episode.vote_average.toFixed(1)}
-                            </Text>
-                          </View>
-                        </>
-                      )}
-                    </View>
-                  </View>
+                  <Text style={styles.castName} numberOfLines={2}>
+                    {person.name}
+                  </Text>
+                  <Text style={styles.character} numberOfLines={1}>
+                    {person.character}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          ) : (
-            <View style={styles.noEpisodesContainer}>
-              <Text style={styles.noEpisodesText}>
-                {selectedSeason?.season_number === 0
-                  ? 'No special episodes available'
-                  : 'No episodes available for this season'}
-              </Text>
-            </View>
-          )}
+          </View>
+        )}
 
-          <Modal
-            visible={showSeasonModal}
-            transparent
-            animationType="slide"
-            statusBarTranslucent={true}
-            onRequestClose={() => setShowSeasonModal(false)}>
+        {watchProviders?.results?.US && (
+          <WatchProviders providers={watchProviders.results.US} />
+        )}
+
+        {showDetails?.seasons && (
+          <View style={styles.seasonsSection}>
+            <Text style={styles.sectionTitle}>Seasons</Text>
             <TouchableOpacity
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPress={() => setShowSeasonModal(false)}>
-              <View style={styles.modalContent}>
-                <BlurView
-                  style={styles.blurView}
-                  blurType="dark"
-                  blurAmount={10}
-                  overlayColor="rgba(23, 20, 48, 0.87)"
-                  reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
-                />
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Season</Text>
-                  <TouchableOpacity onPress={() => setShowSeasonModal(false)}>
-                    <Ionicon
-                      name="close"
-                      size={24}
-                      color={colors.text.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <ScrollView style={styles.seasonsList}>
-                  {showDetails.seasons.map(
-                    (season: TVShowDetailsType['seasons'][0]) => (
-                      <TouchableOpacity
-                        key={season.id}
-                        style={styles.seasonItem}
-                        onPress={() => {
-                          setSelectedSeason(season);
-                          setShowSeasonModal(false);
-                        }}>
-                        <Image
-                          source={{
-                            uri: season?.poster_path
-                              ? getImageUrl(season?.poster_path)
-                              : 'https://via.placeholder.com/100x150',
-                          }}
-                          style={styles.seasonItemPoster}
-                        />
-                        <View style={styles.seasonItemInfo}>
-                          <Text style={styles.seasonItemName}>
-                            {getSeasonTitle(season)}
-                          </Text>
-                          <Text style={styles.seasonItemEpisodes}>
-                            {season.episode_count} Episodes
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    ),
-                  )}
-                </ScrollView>
-              </View>
+              style={styles.seasonDropdown}
+              onPress={() => setShowSeasonModal(true)}>
+              <Text style={styles.seasonDropdownText}>
+                {selectedSeason
+                  ? getSeasonTitle(selectedSeason)
+                  : 'Select Season'}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={colors.text.primary}
+              />
             </TouchableOpacity>
-          </Modal>
-        </View>
-      )}
 
-      {similarShowsData.length > 0 && (
-        <View style={styles.section}>
+            {selectedSeason && episodes && episodes.episodes.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.episodesContainer}>
+                {episodes.episodes.map((episode: Episode) => (
+                  <TouchableOpacity
+                    key={episode.id}
+                    style={styles.episodeCard}
+                    onPress={() => {
+                      // Handle episode selection
+                    }}>
+                    <Image
+                      source={{
+                        uri: episode.still_path
+                          ? getImageUrl(episode.still_path)
+                          : 'https://via.placeholder.com/200x112',
+                      }}
+                      style={styles.episodeImage}
+                    />
+
+                    <View style={styles.episodeContent}>
+                      <Text style={styles.episodeTitle} numberOfLines={2}>
+                        {episode.name}
+                      </Text>
+
+                      <View style={styles.episodeInfo}>
+                        {episode?.episode_number && (
+                          <Text style={styles.info}>
+                            S{episode.season_number} E{episode.episode_number}
+                          </Text>
+                        )}
+                        <Text style={styles.infoDot}>•</Text>
+
+                        <Text style={styles.info}>
+                          {new Date(episode.air_date).toLocaleDateString(
+                            'en-US',
+                            {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric',
+                            },
+                          )}
+                        </Text>
+
+                        {episode?.runtime && (
+                          <>
+                            <Text style={styles.infoDot}>•</Text>
+                            <Text style={styles.info}>
+                              {episode.runtime} min
+                            </Text>
+                          </>
+                        )}
+
+                        {episode?.vote_average && (
+                          <>
+                            <Text style={styles.infoDot}>•</Text>
+                            <View
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: spacing.xs,
+                              }}>
+                              <Ionicons
+                                name="star"
+                                size={12}
+                                color="#ffffff70"
+                              />
+                              <Text style={styles.info}>
+                                {episode.vote_average.toFixed(1)}
+                              </Text>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.noEpisodesContainer}>
+                <Text style={styles.noEpisodesText}>
+                  {selectedSeason?.season_number === 0
+                    ? 'No special episodes available'
+                    : 'No episodes available for this season'}
+                </Text>
+              </View>
+            )}
+
+            <Modal
+              visible={showSeasonModal}
+              transparent
+              animationType="slide"
+              statusBarTranslucent={true}
+              onRequestClose={() => setShowSeasonModal(false)}>
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowSeasonModal(false)}>
+                <View style={styles.modalContent}>
+                  <BlurView
+                    style={styles.blurView}
+                    blurType="dark"
+                    blurAmount={10}
+                    overlayColor="rgba(23, 20, 48, 0.87)"
+                    reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
+                  />
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Select Season</Text>
+                    <TouchableOpacity onPress={() => setShowSeasonModal(false)}>
+                      <Ionicons
+                        name="close"
+                        size={24}
+                        color={colors.text.primary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView style={styles.seasonsList}>
+                    {showDetails.seasons.map(
+                      (season: TVShowDetailsType['seasons'][0]) => (
+                        <TouchableOpacity
+                          key={season.id}
+                          style={styles.seasonItem}
+                          onPress={() => {
+                            setSelectedSeason(season);
+                            setShowSeasonModal(false);
+                          }}>
+                          <Image
+                            source={{
+                              uri: season?.poster_path
+                                ? getImageUrl(season?.poster_path)
+                                : 'https://via.placeholder.com/100x150',
+                            }}
+                            style={styles.seasonItemPoster}
+                          />
+                          <View style={styles.seasonItemInfo}>
+                            <Text style={styles.seasonItemName}>
+                              {getSeasonTitle(season)}
+                            </Text>
+                            <Text style={styles.seasonItemEpisodes}>
+                              {season.episode_count} Episodes
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ),
+                    )}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          </View>
+        )}
+
+        {similarShowsData.length > 0 && (
           <HorizontalList
-            title="Similar Shows"
+            title="Similar TV Shows"
             data={similarShowsData}
             onItemPress={handleSimilarShowPress}
             onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
             isLoading={isFetchingSimilar}
             isSeeAll={false}
           />
-        </View>
-      )}
+        )}
 
-      {recommendedShowsData.length > 0 && (
-        <View style={styles.section}>
+        {recommendedShowsData.length > 0 && (
           <HorizontalList
-            title="Recommended Shows"
+            title="Recommended TV Shows"
             data={recommendedShowsData}
             onItemPress={handleRecommendedShowPress}
             onEndReached={hasNextRecommended ? fetchNextRecommended : undefined}
             isLoading={isFetchingRecommended}
             isSeeAll={false}
           />
-        </View>
-      )}
+        )}
+        <View style={{height: 100}} />
+      </ScrollView>
 
-      <View style={{height: 100}} />
-    </ScrollView>
+      <WatchlistModal
+        visible={showWatchlistModal}
+        onClose={() => setShowWatchlistModal(false)}
+        item={show}
+        itemType="tv"
+      />
+    </View>
   );
 };
 
@@ -541,8 +566,6 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: colors.background.primary,
   },
   gradientShade: {
@@ -587,6 +610,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#fff',
     textAlign: 'center',
+    width: '100%',
   },
   infoContainer: {
     flexDirection: 'row',
@@ -632,13 +656,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
     elevation: 4,
   },
   genreContainer: {
@@ -698,6 +724,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
+  scrollView: {
+    flex: 1,
+  },
   seasonsSection: {
     marginVertical: spacing.md,
   },
@@ -728,11 +757,8 @@ const styles = StyleSheet.create({
   episodeCard: {
     width: 280,
     marginRight: 12,
-    // backgroundColor: colors.card.background,
     borderRadius: 8,
     overflow: 'hidden',
-    // borderWidth: 1,
-    // borderColor: colors.card.border,
   },
   episodeImage: {
     width: '100%',
@@ -832,9 +858,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 14,
   },
-  section: {
-    marginTop: 24,
-  },
   noEpisodesContainer: {
     padding: spacing.lg,
     alignItems: 'center',
@@ -844,13 +867,5 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     ...typography.body1,
     textAlign: 'center',
-  },
-  selectedSeasonItem: {
-    backgroundColor: colors.primary,
-  },
-  seasonItemText: {
-    color: colors.text.primary,
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
