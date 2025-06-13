@@ -22,21 +22,25 @@ export const Chip: React.FC<ChipProps> = ({label, selected, onPress}) => {
 
 const styles = StyleSheet.create({
   chip: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.round,
-    backgroundColor: colors.background.secondary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 10,
+    backgroundColor: colors.background.card,
     borderWidth: 1,
     borderColor: 'transparent',
-    marginBottom: spacing.xs,
+    margin: 2,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectedChip: {
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: colors.modal.active,
     borderColor: colors.accent,
   },
   label: {
     color: colors.text.secondary,
     ...typography.body2,
+    textAlign: 'center',
   },
   selectedLabel: {
     color: colors.accent,

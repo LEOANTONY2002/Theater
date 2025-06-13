@@ -269,14 +269,7 @@ export const MySpaceScreen = () => {
             <Ionicons name="add" size={30} color={'rgba(255, 255, 255, 0.3)'} />
           </TouchableOpacity>
         </ScrollView>
-      ) : (
-        <TouchableOpacity
-          style={styles.addFirstTagButton}
-          onPress={() => navigation.navigate('MyFiltersScreen')}>
-          <Ionicons name="add" size={24} color={colors.text.primary} />
-          <Text style={styles.addFirstTagText}>Add your first filter</Text>
-        </TouchableOpacity>
-      )}
+      ) : null}
 
       <Modal
         visible={showLanguageModal}

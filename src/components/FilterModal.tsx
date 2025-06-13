@@ -22,6 +22,7 @@ import {getLanguages, getGenres} from '../services/tmdb';
 import {Chip} from './Chip';
 import {FiltersManager} from '../store/filters';
 import type {SavedFilter} from '../types/filters';
+import {modalStyles} from '../styles/styles';
 
 interface Language {
   iso_639_1: string;
@@ -284,14 +285,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <BlurView
-            style={StyleSheet.absoluteFill}
+            style={styles.blurView}
             blurType="dark"
             blurAmount={10}
-            overlayColor="rgba(23, 17, 42, 0.87)"
-            reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
+            overlayColor={colors.modal.blur}
+            reducedTransparencyFallbackColor={colors.modal.blur}
           />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filter Content</Text>
+            <Text style={styles.modalTitle}>Filter</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
@@ -412,8 +413,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Genres */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Genres</Text>
-              <View style={styles.genresContainer}>
-                {getFilteredGenres().map(genre => (
+              <FlatList
+                data={getFilteredGenres()}
+                scrollEnabled={false}
+                renderItem={({item: genre}) => (
                   <Chip
                     key={genre.id}
                     label={genre.name}
@@ -423,8 +426,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     }
                     onPress={() => handleGenreToggle(genre.id)}
                   />
-                ))}
-              </View>
+                )}
+                keyExtractor={genre => genre.id.toString()}
+                numColumns={3}
+                contentContainerStyle={styles.genresContainer}
+              />
             </View>
 
             {/* Sort By with Order Toggle */}
@@ -498,8 +504,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 step={0.5}
                 value={filters['vote_average.gte'] || 0}
                 onValueChange={handleRatingChange}
+                thumbTintColor={colors.accent}
                 minimumTrackTintColor={colors.accent}
-                maximumTrackTintColor={colors.text.secondary}
+                maximumTrackTintColor={colors.background.primary}
               />
             </View>
 
@@ -534,22 +541,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </View>
             </View>
 
-            {/* Runtime */}
-            {/* <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Minimum Runtime: {filters.with_runtime_gte || 0} min
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={360}
-                step={15}
-                value={filters.with_runtime_gte || 0}
-                onValueChange={handleRuntimeChange}
-                minimumTrackTintColor={colors.accent}
-                maximumTrackTintColor={colors.text.secondary}
-              />
-            </View> */}
+            <View style={{height: 150}} />
           </ScrollView>
 
           {/* Date Pickers */}
@@ -594,175 +586,4 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 1, 3, 0.28)',
-  },
-  modalContent: {
-    flex: 1,
-    marginTop: 60,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-  },
-  blurView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  modalTitle: {
-    color: colors.text.primary,
-    ...typography.h2,
-  },
-  closeButton: {
-    padding: spacing.sm,
-  },
-  scrollContent: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-    marginBottom: spacing.sm,
-  },
-  contentTypeContainer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  contentTypeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    padding: spacing.md,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  activeButton: {
-    borderColor: colors.accent,
-    backgroundColor: colors.background.tertiary,
-  },
-  contentTypeText: {
-    color: colors.text.secondary,
-    ...typography.button,
-  },
-  activeText: {
-    color: colors.accent,
-  },
-  pickerContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  picker: {
-    color: colors.text.primary,
-    height: 50,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  dateButton: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  dateButtonText: {
-    color: colors.text.primary,
-    ...typography.body2,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.background.secondary,
-  },
-  footerButton: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  resetButton: {
-    backgroundColor: colors.background.secondary,
-  },
-  resetButtonText: {
-    color: colors.text.primary,
-    ...typography.button,
-  },
-  applyButton: {
-    backgroundColor: colors.accent,
-  },
-  applyButtonText: {
-    color: colors.background.primary,
-    ...typography.button,
-  },
-  loadingContainer: {
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  genresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  sortOrderButton: {
-    padding: spacing.xs,
-  },
-  savedFiltersScroll: {
-    flexGrow: 0,
-    marginBottom: spacing.xs,
-  },
-  savedFilterChip: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.round,
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  activeSavedFilter: {
-    backgroundColor: colors.background.tertiary,
-    borderColor: colors.accent,
-  },
-  savedFilterText: {
-    color: colors.text.secondary,
-    ...typography.body2,
-  },
-  activeSavedFilterText: {
-    color: colors.accent,
-  },
-});
+const styles = StyleSheet.create(modalStyles);

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  FlatList,
 } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -21,6 +22,7 @@ import {getLanguages, getGenres} from '../services/tmdb';
 import {FiltersManager} from '../store/filters';
 import {Chip} from './Chip';
 import {queryClient} from '../services/queryClient';
+import {modalStyles} from '../styles/styles';
 
 interface Language {
   iso_639_1: string;
@@ -281,14 +283,14 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType="dark"
-          blurAmount={10}
-          overlayColor="rgba(23, 20, 48, 0.87)"
-          reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
-        />
         <View style={styles.modalContent}>
+          <BlurView
+            style={styles.blurView}
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blur}
+            reducedTransparencyFallbackColor={colors.modal.blur}
+          />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {editingFilter ? 'Edit Filter' : 'New Filter'}
@@ -307,7 +309,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 value={filterName}
                 onChangeText={setFilterName}
                 placeholder="Enter filter name"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={colors.text.muted}
+                cursorColor={colors.accent}
               />
             </View>
 
@@ -390,8 +393,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             {/* Genres */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Genres</Text>
-              <View style={styles.genresContainer}>
-                {getFilteredGenres().map(genre => (
+              <FlatList
+                data={getFilteredGenres()}
+                scrollEnabled={false}
+                renderItem={({item: genre}) => (
                   <Chip
                     key={genre.id}
                     label={genre.name}
@@ -401,8 +406,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     }
                     onPress={() => handleGenreToggle(genre.id)}
                   />
-                ))}
-              </View>
+                )}
+                keyExtractor={genre => genre.id.toString()}
+                numColumns={3}
+                contentContainerStyle={styles.genresContainer}
+              />
             </View>
 
             {/* Sort By with Order Toggle */}
@@ -425,7 +433,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   onValueChange={handleSortChange}
                   style={styles.picker}
                   dropdownIconColor={colors.text.primary}>
-                  <Picker.Item label="Select..." value="" />
+                  <Picker.Item label="Select" value="" />
                   {SORT_OPTIONS.map(option => (
                     <Picker.Item
                       key={option.value}
@@ -476,8 +484,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 step={0.5}
                 value={filters['vote_average.gte'] || 0}
                 onValueChange={handleRatingChange}
+                thumbTintColor={colors.accent}
                 minimumTrackTintColor={colors.accent}
-                maximumTrackTintColor={colors.text.secondary}
+                maximumTrackTintColor={colors.background.primary}
               />
             </View>
 
@@ -512,22 +521,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               </View>
             </View>
 
-            {/* Runtime */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Minimum Runtime: {filters.with_runtime_gte || 0} min
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={360}
-                step={15}
-                value={filters.with_runtime_gte || 0}
-                onValueChange={handleRuntimeChange}
-                minimumTrackTintColor={colors.accent}
-                maximumTrackTintColor={colors.text.secondary}
-              />
-            </View>
+            <View style={{height: 150}} />
           </ScrollView>
 
           {/* Date Pickers */}
@@ -569,7 +563,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </TouchableOpacity>
             {editingFilter && (
               <TouchableOpacity
-                style={[styles.footerButton, styles.resetButton]}
+                style={[
+                  styles.footerButton,
+                  styles.resetButton,
+                  {backgroundColor: colors.button.delete},
+                ]}
                 onPress={() => handleDelete(editingFilter)}>
                 <Text style={styles.resetButtonText}>Delete</Text>
               </TouchableOpacity>
@@ -581,154 +579,4 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    flex: 1,
-    marginTop: 60,
-    backgroundColor: colors.background.primary,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  modalTitle: {
-    color: colors.text.primary,
-    ...typography.h2,
-  },
-  closeButton: {
-    padding: spacing.sm,
-  },
-  scrollContent: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    color: colors.text.primary,
-    ...typography.body1,
-  },
-  contentTypeContainer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  contentTypeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    padding: spacing.md,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  activeButton: {
-    borderColor: colors.accent,
-    backgroundColor: colors.background.tertiary,
-  },
-  contentTypeText: {
-    color: colors.text.secondary,
-    ...typography.button,
-  },
-  activeText: {
-    color: colors.accent,
-  },
-  pickerContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  picker: {
-    color: colors.text.primary,
-    height: 50,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  dateButton: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  dateButtonText: {
-    color: colors.text.primary,
-    ...typography.body2,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.background.secondary,
-  },
-  footerButton: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  resetButton: {
-    backgroundColor: colors.background.secondary,
-  },
-  resetButtonText: {
-    color: colors.text.primary,
-    ...typography.button,
-  },
-  saveButton: {
-    backgroundColor: colors.accent,
-  },
-  saveButtonText: {
-    color: colors.background.primary,
-    ...typography.button,
-  },
-  loadingContainer: {
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  genresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  sortOrderButton: {
-    padding: spacing.sm,
-  },
-});
+const styles = StyleSheet.create(modalStyles);

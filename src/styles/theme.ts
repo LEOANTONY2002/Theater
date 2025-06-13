@@ -13,6 +13,7 @@ export const colors = {
   gradient: {
     primary: ['rgba(0, 0, 14, 0)', 'rgba(0, 0, 18, 0.4)'],
     secondary: ['#212144', '#15152B'],
+    tertiary: ['rgba(218, 218, 255, 0.48)', 'rgba(255, 255, 255, 0.81)'],
   },
   text: {
     primary: '#FFFFFF',
@@ -30,6 +31,8 @@ export const colors = {
     secondary: '#FF5E87',
     tertiary: '#4DCFFF',
     disabled: '#2A2A3A',
+    reset: '#141424',
+    delete: 'rgb(212, 0, 0)',
   },
   status: {
     error: '#FF5E87',
@@ -38,6 +41,14 @@ export const colors = {
     info: '#4DCFFF',
   },
   divider: 'rgba(255, 255, 255, 0.08)',
+  modal: {
+    background: 'rgba(1, 19, 46, 0.1)',
+    blur: 'rgba(255, 255, 255, 0.11)',
+    header: 'rgba(1, 19, 46, 0.1)',
+    content: 'rgba(1, 19, 46, 0.1)',
+    border: 'rgba(170, 78, 255, 0.15)',
+    active: 'rgba(197, 197, 197, 0.27)',
+  },
 };
 
 export const spacing = {

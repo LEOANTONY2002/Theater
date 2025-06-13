@@ -279,23 +279,11 @@ export const MyFiltersScreen = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Filters</Text>
-        <TouchableOpacity onPress={() => setShowAddModal(true)}>
-          <LinearGradient
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            colors={colors.gradient.secondary}
-            style={styles.addButton}>
-            <Ionicons name="add" size={15} color={colors.text.primary} />
-            <Text
-              style={{
-                ...typography.button,
-                paddingRight: spacing.sm,
-                color: colors.text.primary,
-              }}>
-              Create
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        {savedFilters.length > 0 && (
+          <TouchableOpacity onPress={() => setShowAddModal(true)}>
+            <Ionicons name="add" size={20} color={colors.text.primary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {isLoading ? (
@@ -307,6 +295,36 @@ export const MyFiltersScreen = () => {
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No filters found</Text>
+          <TouchableOpacity
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: spacing.md,
+            }}
+            onPress={() => setShowAddModal(true)}>
+            <LinearGradient
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              colors={colors.gradient.tertiary}
+              style={[
+                styles.addButton,
+                {height: 60, borderRadius: borderRadius.round},
+              ]}>
+              <Ionicons
+                name="add"
+                size={25}
+                color={colors.background.secondary}
+              />
+              <Text
+                style={{
+                  ...typography.button,
+                  paddingRight: spacing.sm,
+                  color: colors.background.secondary,
+                }}>
+                Create Your First Filter
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -359,9 +377,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: '60%',
+    paddingBottom: 200,
   },
   emptyText: {
-    color: colors.text.primary,
+    color: colors.text.muted,
     ...typography.body1,
   },
   filterItem: {
@@ -418,28 +438,4 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     ...typography.body2,
   },
-
-  // filterActions: {
-  //   flexDirection: 'row',
-  //   gap: spacing.md,
-  // },
-  // actionButton: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   gap: spacing.xs,
-  //   paddingVertical: spacing.sm,
-  //   paddingHorizontal: spacing.md,
-  //   borderRadius: borderRadius.md,
-  //   backgroundColor: colors.background.tertiary,
-  // },
-  // actionText: {
-  //   color: colors.text.primary,
-  //   ...typography.button,
-  // },
-  // deleteButton: {
-  //   backgroundColor: colors.background.primary,
-  // },
-  // deleteText: {
-  //   color: colors.status.error,
-  // },
 });
