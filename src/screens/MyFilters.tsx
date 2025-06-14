@@ -295,7 +295,10 @@ export const MyFiltersScreen = () => {
         <View style={styles.content}>{savedFilters.map(renderFilterItem)}</View>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No filters found</Text>
+          <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
+          <Text style={styles.emptyStateText}>
+            Create your first filter to apply on the search
+          </Text>
           <CreateButton
             onPress={() => setShowAddModal(true)}
             title="Create Your First Filter"
@@ -356,9 +359,14 @@ const styles = StyleSheet.create({
     marginTop: '60%',
     paddingBottom: 200,
   },
-  emptyText: {
-    color: colors.text.muted,
+  emptyStateTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  emptyStateText: {
     ...typography.body1,
+    color: colors.text.secondary,
   },
   filterItem: {
     backgroundColor: colors.background.tag,

@@ -166,7 +166,7 @@ export const WatchlistsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Watchlists</Text>
+        <Text style={styles.title}>Watchlists</Text>
         {!showCreateModal && (
           <TouchableOpacity
             style={styles.createButton}
@@ -351,7 +351,6 @@ const styles = StyleSheet.create({
   emptyStateText: {
     ...typography.body2,
     color: colors.text.secondary,
-    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   emptyStateButton: {

@@ -453,11 +453,20 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
               </ScrollView>
             ) : (
               <View style={styles.noEpisodesContainer}>
-                <Text style={styles.noEpisodesText}>
+                {/* <Text style={styles.noEpisodesText}>
                   {selectedSeason?.season_number === 0
                     ? 'No special episodes available'
                     : 'No episodes available for this season'}
-                </Text>
+                </Text> */}
+                <View style={styles.noEpisodesContainer}>
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.text.tertiary}
+                  />
+                  <Text style={styles.noEpisodesText}>
+                    Fetching episodes...
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -494,7 +503,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       (season: TVShowDetailsType['seasons'][0]) => (
                         <TouchableOpacity
                           key={season.id}
-                          style={styles.seasonItem}
+                          style={[
+                            styles.seasonItem,
+                            selectedSeason?.id === season.id && {
+                              backgroundColor: colors.modal.active,
+                              borderWidth: 1,
+                              borderColor: colors.text.tertiary,
+                            },
+                          ]}
                           onPress={() => {
                             setSelectedSeason(season);
                             setShowSeasonModal(false);
@@ -795,20 +811,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'rgba(10, 10, 32, 0.8)',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -832,9 +837,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    backgroundColor: colors.modal.blur,
     borderRadius: 8,
     marginBottom: 8,
     paddingHorizontal: 12,
@@ -864,8 +867,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   noEpisodesText: {
-    color: colors.text.secondary,
+    color: colors.text.tertiary,
     ...typography.body1,
     textAlign: 'center',
+    marginTop: spacing.sm,
   },
 });
