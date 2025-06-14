@@ -12,12 +12,13 @@ export const colors = {
   },
   gradient: {
     primary: ['rgba(0, 0, 14, 0)', 'rgba(0, 0, 18, 0.4)'],
-    secondary: ['#212144', '#15152B'],
+    secondary: ['rgba(50, 37, 139, 0)', 'rgba(255, 255, 255, 0.82)'],
     tertiary: ['rgba(218, 218, 255, 0.48)', 'rgba(255, 255, 255, 0.81)'],
   },
   text: {
     primary: '#FFFFFF',
     secondary: '#BBBAE3',
+    tertiary: 'rgba(255, 255, 255, 0.35)',
     accent: '#AA4EFF',
     muted: '#83839C',
   },

@@ -1,6 +1,7 @@
+import {StyleSheet} from 'react-native';
 import {borderRadius, colors, spacing, typography} from './theme';
 
-export const modalStyles = {
+export const modalStyles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: colors.modal.background,
@@ -170,4 +171,4 @@ export const modalStyles = {
     borderBottomWidth: 1,
     borderBottomColor: colors.background.secondary,
   },
-};
+});

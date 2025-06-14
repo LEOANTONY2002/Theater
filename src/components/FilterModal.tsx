@@ -586,4 +586,4 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create(modalStyles);
+const styles = modalStyles;

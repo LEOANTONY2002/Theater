@@ -394,4 +394,4 @@ const styles = StyleSheet.create({
   },
 });
 
-const modalStyle: any = StyleSheet.create(modalStyles);
+const modalStyle: any = modalStyles;

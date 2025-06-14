@@ -20,6 +20,9 @@ import {
 import {Watchlist} from '../store/watchlists';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
+import LinearGradient from 'react-native-linear-gradient';
+import {modalStyles} from '../styles/styles';
+import CreateButton from './createButton';
 
 interface WatchlistModalProps {
   visible: boolean;
@@ -96,8 +99,8 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
             style={StyleSheet.absoluteFill}
             blurType="dark"
             blurAmount={10}
-            overlayColor="rgba(23, 17, 42, 0.87)"
-            reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
+            overlayColor={colors.modal.blur}
+            reducedTransparencyFallbackColor={colors.modal.blur}
           />
 
           <View style={styles.modalHeader}>
@@ -112,29 +115,36 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
           <View style={styles.modalBody}>
             {showCreateForm ? (
               <View style={styles.createForm}>
-                <Text style={styles.formLabel}>Watchlist Name</Text>
+                <Text style={modalStyles.sectionTitle}>Watchlist Name</Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[
+                    modalStyles.input,
+                    {
+                      marginBottom: 100,
+                      height: 50,
+                      marginTop: spacing.sm,
+                    },
+                  ]}
                   value={newWatchlistName}
                   onChangeText={setNewWatchlistName}
                   placeholder="Enter watchlist name"
                   placeholderTextColor={colors.text.muted}
                   autoFocus
                 />
-                <View style={styles.formButtons}>
+                <View style={[modalStyles.footer, {marginBottom: 0}]}>
                   <TouchableOpacity
-                    style={[styles.button, styles.cancelButton]}
+                    style={[modalStyles.footerButton, modalStyles.resetButton]}
                     onPress={() => setShowCreateForm(false)}>
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={modalStyles.resetButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.button, styles.createButton]}
+                    style={[modalStyles.footerButton, modalStyles.applyButton]}
                     onPress={handleCreateWatchlist}
                     disabled={
                       createWatchlistMutation.isPending ||
                       addToWatchlistMutation.isPending
                     }>
-                    <Text style={styles.createButtonText}>
+                    <Text style={modalStyles.applyButtonText}>
                       {createWatchlistMutation.isPending ||
                       addToWatchlistMutation.isPending
                         ? 'Creating...'
@@ -143,25 +153,46 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                   </TouchableOpacity>
                 </View>
               </View>
-            ) : (
-              <ScrollView style={styles.watchlistList}>
+            ) : watchlists.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{gap: spacing.md}}
+                style={styles.watchlistList}>
                 {watchlists.map(watchlist => (
                   <TouchableOpacity
-                    key={watchlist.id}
-                    style={styles.watchlistItem}
-                    onPress={() => handleAddToWatchlist(watchlist)}>
-                    <View style={styles.watchlistInfo}>
-                      <Text style={styles.watchlistName}>{watchlist.name}</Text>
-                      <Text style={styles.watchlistCount}>
-                        {watchlist.itemCount}{' '}
-                        {watchlist.itemCount === 1 ? 'item' : 'items'}
-                      </Text>
+                    style={{
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => handleAddToWatchlist(watchlist)}
+                    key={watchlist.id}>
+                    <View style={styles.watchlistItem}>
+                      <LinearGradient
+                        colors={colors.gradient.secondary}
+                        start={{x: 0.5, y: 0.5}}
+                        end={{x: 1, y: 1}}
+                        style={styles.watchlistGradient}
+                      />
+                      <View>
+                        <Text numberOfLines={1} style={styles.watchlistName}>
+                          {watchlist.name}
+                        </Text>
+                        <Text style={styles.watchlistCount}>
+                          {watchlist.itemCount > 0 && watchlist.itemCount}{' '}
+                          {watchlist.itemCount === 0
+                            ? 'No content'
+                            : watchlist.itemCount === 1
+                            ? 'content'
+                            : 'contents'}
+                        </Text>
+                      </View>
                     </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={colors.text.secondary}
-                    />
+                    <Text
+                      numberOfLines={1}
+                      style={{color: colors.text.primary, textAlign: 'center'}}>
+                      {watchlist.name}
+                    </Text>
                   </TouchableOpacity>
                 ))}
 
@@ -169,13 +200,28 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                   style={styles.createNewButton}
                   onPress={() => setShowCreateForm(true)}>
                   <Ionicons
-                    name="add-circle-outline"
+                    name="add"
                     size={24}
-                    color={colors.accent}
+                    color={colors.text.secondary}
                   />
-                  <Text style={styles.createNewText}>Create New Watchlist</Text>
+                  <Text style={styles.createNewText}>New Watchlist</Text>
                 </TouchableOpacity>
               </ScrollView>
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
+                <Text style={styles.emptyStateText}>
+                  Create your first watchlist to start organizing your favorite
+                  movies and shows
+                </Text>
+                <CreateButton
+                  onPress={() => {
+                    setShowCreateForm(true);
+                  }}
+                  title="Create Your First Watchlist"
+                  icon="add"
+                />
+              </View>
             )}
           </View>
         </View>
@@ -187,10 +233,10 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(1, 19, 46, 0.1)',
+    backgroundColor: colors.modal.background,
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    flex: 1,
     marginTop: 60,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
@@ -202,57 +248,63 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(170, 78, 255, 0.15)',
-    backgroundColor: 'rgba(1, 19, 46, 0.1)',
+    borderBottomColor: colors.modal.border,
+    backgroundColor: colors.modal.header,
   },
   modalTitle: {
     color: colors.text.primary,
     ...typography.h2,
   },
   modalBody: {
-    flex: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
   },
   watchlistList: {
-    flex: 1,
+    paddingHorizontal: spacing.md,
   },
   watchlistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
+    width: 150,
+    height: 150,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.modal.active,
+    padding: spacing.md,
   },
-  watchlistInfo: {
-    flex: 1,
+  watchlistGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.5,
+    height: 150,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
   },
   watchlistName: {
-    color: colors.text.primary,
-    ...typography.body1,
-    fontWeight: '600',
+    color: colors.text.tertiary,
+    ...typography.h1,
+    fontWeight: '900',
   },
   watchlistCount: {
-    color: colors.text.secondary,
+    color: colors.text.tertiary,
     ...typography.body2,
     marginTop: spacing.xs,
   },
   createNewButton: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.md,
+    justifyContent: 'center',
+    gap: spacing.sm,
+    width: 150,
+    height: 150,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.modal.blur,
+    opacity: 0.5,
   },
   createNewText: {
-    color: colors.accent,
+    color: colors.text.secondary,
     ...typography.body1,
-    fontWeight: '600',
-    marginLeft: spacing.sm,
   },
   createForm: {
-    flex: 1,
     paddingHorizontal: spacing.lg,
   },
   formLabel: {
@@ -294,6 +346,32 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: colors.background.primary,
     ...typography.body1,
+    fontWeight: '600',
+  },
+  emptyState: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  emptyStateTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  emptyStateText: {
+    ...typography.body2,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  emptyStateButton: {
+    backgroundColor: colors.accent,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+  },
+  emptyStateButtonText: {
+    ...typography.body2,
+    color: colors.text.primary,
     fontWeight: '600',
   },
 });

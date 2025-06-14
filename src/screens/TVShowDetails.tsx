@@ -476,8 +476,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     style={styles.blurView}
                     blurType="dark"
                     blurAmount={10}
-                    overlayColor="rgba(23, 20, 48, 0.87)"
-                    reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
+                    overlayColor={colors.modal.blur}
+                    reducedTransparencyFallbackColor={colors.modal.blur}
                   />
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Select Season</Text>
