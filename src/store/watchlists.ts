@@ -138,49 +138,32 @@ class WatchlistManager {
 
   async deleteWatchlist(id: string): Promise<void> {
     try {
-      console.log('Attempting to delete watchlist:', id);
-
       const watchlists = await this.getWatchlists();
-      console.log('Current watchlists:', watchlists.length);
 
       // Check if watchlist exists
       const watchlistExists = watchlists.find(w => w.id === id);
       if (!watchlistExists) {
-        console.log('Watchlist not found:', id);
         return;
       }
-
-      console.log(
-        'Found watchlist to delete:',
-        watchlistExists.name,
-        'with',
-        watchlistExists.itemCount,
-        'items',
-      );
 
       // Remove all items from this watchlist first
       const keys = await AsyncStorage.getAllKeys();
       const watchlistItemKeys = keys.filter(key =>
         key.startsWith(`${STORAGE_KEYS.WATCHLIST_ITEMS}_${id}_`),
       );
-      console.log('Found', watchlistItemKeys.length, 'items to remove');
 
       if (watchlistItemKeys.length > 0) {
         await AsyncStorage.multiRemove(watchlistItemKeys);
-        console.log('Removed all items from watchlist');
       }
 
       // Remove the watchlist itself
       const filteredWatchlists = watchlists.filter(w => w.id !== id);
       await this.saveWatchlists(filteredWatchlists);
-      console.log('Removed watchlist from list');
 
       // Invalidate queries
       queryClient.invalidateQueries({queryKey: ['watchlists']});
       queryClient.invalidateQueries({queryKey: ['watchlist', id]});
       this.notifyListeners();
-
-      console.log('Watchlist deletion completed successfully');
     } catch (error) {
       console.error('Error deleting watchlist:', error);
       throw error;

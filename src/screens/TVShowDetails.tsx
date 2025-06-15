@@ -349,9 +349,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           </View>
         )}
 
-        {watchProviders?.results?.US && (
-          <WatchProviders providers={watchProviders.results.US} />
-        )}
+        {watchProviders && <WatchProviders providers={watchProviders} />}
 
         {showDetails?.seasons && (
           <View style={styles.seasonsSection}>

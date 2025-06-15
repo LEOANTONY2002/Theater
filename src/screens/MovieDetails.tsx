@@ -303,9 +303,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           </View>
         )}
 
-        {watchProviders?.results?.US && (
-          <WatchProviders providers={watchProviders.results.US} />
-        )}
+        {watchProviders && <WatchProviders providers={watchProviders} />}
 
         {similarMoviesData.length > 0 && (
           <HorizontalList

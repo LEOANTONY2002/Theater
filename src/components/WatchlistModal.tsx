@@ -98,8 +98,8 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
           <BlurView
             style={StyleSheet.absoluteFill}
             blurType="dark"
-            blurAmount={10}
-            overlayColor={colors.modal.blur}
+            blurAmount={20}
+            overlayColor={`rgba(16, 14, 35, 0.43)`}
             reducedTransparencyFallbackColor={colors.modal.blur}
           />
 

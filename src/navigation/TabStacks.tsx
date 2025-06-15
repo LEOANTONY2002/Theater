@@ -170,6 +170,14 @@ export const MoviesStackNavigator = () => (
         ...modalScreenOptions,
       }}
     />
+    <MoviesStack.Screen
+      name="TVShowDetails"
+      component={TVShowDetailsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
   </MoviesStack.Navigator>
 );
 
@@ -207,6 +215,14 @@ export const TVShowsStackNavigator = () => (
     <TVShowsStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <TVShowsStack.Screen
+      name="MovieDetails"
+      component={MovieDetailsScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,

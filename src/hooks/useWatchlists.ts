@@ -54,23 +54,15 @@ export const useDeleteWatchlist = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      console.log('useDeleteWatchlist mutation called with id:', id);
       const result = await watchlistManager.deleteWatchlist(id);
-      console.log('useDeleteWatchlist mutation completed');
       return result;
     },
     onSuccess: (_, id) => {
-      console.log('useDeleteWatchlist onSuccess called for id:', id);
       queryClient.invalidateQueries({queryKey: ['watchlists']});
       queryClient.invalidateQueries({queryKey: ['watchlist', id]});
     },
     onError: (error, id) => {
-      console.error(
-        'useDeleteWatchlist onError called for id:',
-        id,
-        'error:',
-        error,
-      );
+      console.error('useDeleteWatchlist onError called for id:', id, error);
     },
   });
 };
