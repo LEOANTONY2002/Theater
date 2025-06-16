@@ -306,25 +306,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  style={styles.savedFiltersScroll}>
+                  style={styles.scrollContent}>
                   {savedFilters.map(filter => (
                     <TouchableOpacity
                       key={filter.id}
                       style={[
-                        styles.savedFilterChip,
+                        styles.tag,
                         JSON.stringify(filters) ===
                           JSON.stringify(filter.params) &&
                           contentType === filter.type &&
-                          styles.activeSavedFilter,
+                          styles.activeTag,
                       ]}
                       onPress={() => handleSavedFilterSelect(filter)}>
                       <Text
+                        numberOfLines={1}
                         style={[
-                          styles.savedFilterText,
+                          styles.tagText,
                           JSON.stringify(filters) ===
                             JSON.stringify(filter.params) &&
                             contentType === filter.type &&
-                            styles.activeSavedFilterText,
+                            styles.activeTagText,
                         ]}>
                         {filter.name}
                       </Text>
