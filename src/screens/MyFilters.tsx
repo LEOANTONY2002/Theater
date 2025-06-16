@@ -30,6 +30,8 @@ export const MyFiltersScreen = () => {
     queryFn: FiltersManager.getSavedFilters,
   });
 
+  console.log('savedFilters', savedFilters, 'isLoading', isLoading);
+
   const handleSaveFilter = useCallback(
     (filter: SavedFilter) => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
@@ -72,6 +74,8 @@ export const MyFiltersScreen = () => {
 
   const renderFilterItem = useCallback(
     (filter: SavedFilter) => {
+      console.log(filter);
+
       const type = filter?.type;
       const sortBy = filter?.params?.sort_by?.split('.')[0][0];
       const sortOrder = filter?.params?.sort_by?.split('.')[1];

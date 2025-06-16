@@ -8,6 +8,7 @@ export const FiltersManager = {
   async getSavedFilters(): Promise<SavedFilter[]> {
     try {
       const savedFilters = await AsyncStorage.getItem(STORAGE_KEY);
+      console.log('savedFilters AsyncStorage', savedFilters);
       return savedFilters ? JSON.parse(savedFilters) : [];
     } catch (error) {
       console.error('Error loading saved filters:', error);

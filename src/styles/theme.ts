@@ -14,6 +14,7 @@ export const colors = {
     primary: ['rgba(0, 0, 14, 0)', 'rgba(0, 0, 18, 0.4)'],
     secondary: ['rgba(50, 37, 139, 0)', 'rgba(255, 255, 255, 0.82)'],
     tertiary: ['rgba(255, 255, 255, 0.18)', 'rgba(255, 255, 255, 0.27)'],
+    filter: ['rgba(255, 255, 255, 0.06)', 'rgba(255, 255, 255, 0.1)'],
   },
   text: {
     primary: '#FFFFFF',

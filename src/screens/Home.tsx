@@ -30,6 +30,9 @@ import {
 } from '../components/LoadingSkeleton';
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
 import {useRegion} from '../hooks/useApp';
+import {HomeFilterCard} from '../components/HomeFilterCard';
+import {useQuery} from '@tanstack/react-query';
+import {FiltersManager} from '../store/filters';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -39,6 +42,11 @@ export const HomeScreen = () => {
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
+
+  const {data: savedFilters} = useQuery({
+    queryKey: ['savedFilters'],
+    queryFn: () => FiltersManager.getSavedFilters(),
+  });
 
   const {
     data: popularMovies,
@@ -287,6 +295,10 @@ export const HomeScreen = () => {
             isSeeAll={false}
             isTop10={true}
           />
+        )}
+
+        {savedFilters && savedFilters.length > 0 && (
+          <HomeFilterCard savedFilters={savedFilters} />
         )}
 
         {popularTVShows?.pages?.[0]?.results?.length && (

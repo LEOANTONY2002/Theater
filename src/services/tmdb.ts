@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {tmdbApi} from './api';
-import {FilterParams} from '../types/filters';
+import {FilterParams, SavedFilter} from '../types/filters';
 import {SettingsManager} from '../store/settings';
 import languageData from '../utils/language.json';
 import regionData from '../utils/region.json';
@@ -340,6 +340,20 @@ export const discoverTVShows = async (params: any = {}, page = 1) => {
     },
   });
   return response.data;
+};
+
+export const discoverContent = async (savedFilters: any = []) => {
+  return await Promise.all(
+    savedFilters.map(async (filter: SavedFilter) => {
+      if (filter.type === 'movie') {
+        console.log('filter.params', filter.params);
+        return await discoverMovies(filter.params);
+      } else if (filter.type === 'tv') {
+        console.log('filter.params', filter.params);
+        return await discoverTVShows(filter.params);
+      }
+    }),
+  );
 };
 
 export const getSeasonDetails = async (tvId: number, seasonNumber: number) => {
