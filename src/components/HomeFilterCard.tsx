@@ -6,7 +6,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
-import {colors, spacing, borderRadius} from '../styles/theme';
+import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {useDiscoverMovies} from '../hooks/useMovies';
 import {useDiscoverTVShows} from '../hooks/useTVShows';
 import LinearGradient from 'react-native-linear-gradient';
@@ -31,10 +31,10 @@ export const HomeFilterCard = ({savedFilters = []}: {savedFilters: any[]}) => {
   const {data: content, isLoading} = useSavedFilterContent(savedFilters || []);
 
   // Build the posters array from the resolved content
-  const posters = (content || []).map((item: any) =>
-    item?.results?.[0]?.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.results[0].poster_path}`
-      : null,
+  const posters = (content || []).map(
+    (item: any) =>
+      item?.results?.[0]?.poster_path &&
+      `https://image.tmdb.org/t/p/w500${item.results[0].poster_path}`,
   );
 
   // Only render UI if there are filters
@@ -80,23 +80,25 @@ export const HomeFilterCard = ({savedFilters = []}: {savedFilters: any[]}) => {
       <LinearGradient colors={colors.gradient.filter} style={styles.gradient} />
       {/* Animated Titles */}
       <View style={styles.titleContainer} pointerEvents="none">
-        {savedFilters?.map((filter, idx) => {
+        {content?.map((filter, idx) => {
           // Only render if we have an animated style for this index
-          if (idx >= MAX_FILTERS) return null;
-          return (
-            <Animated.Text
-              key={filter.id || idx}
-              style={[styles.filterName, animatedTitleStyles[idx]]}
-              numberOfLines={1}>
-              {filter.name}
-            </Animated.Text>
-          );
+          if (filter?.results !== null) {
+            if (idx >= MAX_FILTERS) return null;
+            return (
+              <Animated.Text
+                key={filter.id || idx}
+                style={[styles.filterName, animatedTitleStyles[idx]]}
+                numberOfLines={1}>
+                {filter?.name}
+              </Animated.Text>
+            );
+          }
         })}
       </View>
       <Carousel
         width={SCREEN_WIDTH}
         height={CARD_HEIGHT}
-        data={savedFilters.slice(0, MAX_FILTERS)} // Limit carousel items to MAX_FILTERS
+        data={content?.slice(0, MAX_FILTERS) || []} // Limit carousel items to MAX_FILTERS
         mode="horizontal-stack"
         modeConfig={{
           snapDirection: 'left',
@@ -157,7 +159,7 @@ export const HomeFilterCard = ({savedFilters = []}: {savedFilters: any[]}) => {
       />
       {/* Animated Pagination Dots */}
       <View style={styles.pagination}>
-        {savedFilters?.slice(0, MAX_FILTERS).map((_, idx) => (
+        {content?.slice(0, MAX_FILTERS).map((_, idx) => (
           <View key={idx} style={styles.dot} />
         ))}
         <Animated.View style={[styles.activeDot, animatedDotStyle]} />
@@ -172,9 +174,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: SCREEN_WIDTH,
-    marginTop: 80,
+    marginTop: 50,
     paddingBottom: spacing.xxl,
-
     marginBottom: spacing.xxl,
   },
   gradient: {
@@ -187,9 +188,10 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
     borderRadius: 50,
-    borderWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.11)',
-    display: 'none',
+    // display: 'none',
   },
   titleContainer: {
     position: 'absolute',

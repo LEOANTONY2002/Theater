@@ -5,6 +5,7 @@ import {
   discoverMovies,
   discoverTVShows,
   getTrending,
+  searchFilterContent,
 } from '../services/tmdb';
 import {SavedFilter} from '../types/filters';
 import {useDiscoverMovies} from './useMovies';
@@ -52,7 +53,7 @@ export const useTrending = (timeWindow: 'day' | 'week' = 'day') => {
 export const useSavedFilterContent = (savedFilters: any = []) => {
   return useQuery({
     queryKey: ['savedFilterContent', savedFilters],
-    queryFn: () => discoverContent(savedFilters),
+    queryFn: () => searchFilterContent(savedFilters),
     gcTime: CACHE_TIME,
     staleTime: STALE_TIME,
   });

@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     backgroundColor: colors.modal.blur,
     opacity: 0.5,
+    marginRight: spacing.xl,
   },
   createNewText: {
     color: colors.text.secondary,

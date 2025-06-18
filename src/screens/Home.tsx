@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {View, ScrollView, StyleSheet, Dimensions} from 'react-native';
+import {View, ScrollView, StyleSheet, Dimensions, Text} from 'react-native';
 import {
   useMoviesList,
   useTop10MoviesTodayByRegion,
@@ -22,7 +22,7 @@ import {
   TVShowCategoryType,
   ContentType,
 } from '../types/navigation';
-import {colors, spacing} from '../styles/theme';
+import {colors, spacing, typography} from '../styles/theme';
 import {
   BannerHomeSkeleton,
   HeadingSkeleton,
@@ -230,6 +230,12 @@ export const HomeScreen = () => {
       // marginBottom: spacing.xl,
       marginTop: spacing.xxl,
     },
+    heading: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginBottom: spacing.md,
+      marginLeft: spacing.md,
+    },
   });
 
   if (isInitialLoading) {
@@ -298,7 +304,10 @@ export const HomeScreen = () => {
         )}
 
         {savedFilters && savedFilters.length > 0 && (
-          <HomeFilterCard savedFilters={savedFilters} />
+          <View style={{marginTop: spacing.xxl}}>
+            <Text style={styles.heading}>My Filters</Text>
+            <HomeFilterCard savedFilters={savedFilters} />
+          </View>
         )}
 
         {popularTVShows?.pages?.[0]?.results?.length && (
