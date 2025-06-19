@@ -2,7 +2,7 @@ import {Movie} from './movie';
 import {TVShow} from './tvshow';
 import {NavigatorScreenParams} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
-import {SavedFilter} from './filters';
+import {SavedFilter, FilterParams} from './filters';
 
 export type MovieCategoryType =
   | 'latest'
@@ -53,9 +53,9 @@ export type MoviesStackParamList = {
   MovieDetails: {movie: Movie};
   Category: {
     title: string;
-    categoryType: MovieCategoryType;
+    categoryType?: MovieCategoryType;
     contentType: 'movie';
-    genreId?: number;
+    filter?: FilterParams;
   };
   Genre: {
     genreId: number;
@@ -74,9 +74,9 @@ export type TVShowsStackParamList = {
   TVShowDetails: {show: TVShow};
   Category: {
     title: string;
-    categoryType: TVShowCategoryType;
+    categoryType?: TVShowCategoryType;
     contentType: 'tv';
-    genreId?: number;
+    filter?: FilterParams;
   };
   Genre: {
     genreId: number;

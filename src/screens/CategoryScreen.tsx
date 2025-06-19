@@ -12,7 +12,8 @@ import {
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {
-  RootStackParamList,
+  MoviesStackParamList,
+  TVShowsStackParamList,
   MovieCategoryType,
   TVShowCategoryType,
 } from '../types/navigation';
@@ -26,37 +27,52 @@ import {
   shadows,
   borderRadius,
 } from '../styles/theme';
-import {useMoviesList} from '../hooks/useMovies';
-import {useTVShowsList} from '../hooks/useTVShows';
+import {useMoviesList, useDiscoverMovies} from '../hooks/useMovies';
+import {useTVShowsList, useDiscoverTVShows} from '../hooks/useTVShows';
+import {useSavedFilterContent} from '../hooks/useApp';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {MovieCard} from '../components/MovieCard';
+import {SavedFilter} from '../types/filters';
 
-type CategoryScreenNavigationProp =
-  NativeStackNavigationProp<RootStackParamList>;
+type CategoryScreenNavigationProp = NativeStackNavigationProp<
+  MoviesStackParamList | TVShowsStackParamList,
+  'Category'
+>;
 
-type CategoryScreenRouteProp = RouteProp<RootStackParamList, 'Category'>;
+type CategoryScreenRouteProp = RouteProp<
+  MoviesStackParamList | TVShowsStackParamList,
+  'Category'
+>;
 
 export const CategoryScreen = () => {
   const navigation = useNavigation<CategoryScreenNavigationProp>();
   const route = useRoute<CategoryScreenRouteProp>();
-  const {title, categoryType, contentType} = route.params;
+  const {title, categoryType, contentType, filter} = route.params;
 
   // Define internal item press handler
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (contentType === 'movie') {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
+        (
+          navigation as NativeStackNavigationProp<MoviesStackParamList>
+        ).navigate('MovieDetails', {
+          movie: item as Movie,
+        });
       } else if (contentType === 'tv') {
-        navigation.navigate('TVShowDetails', {show: item as TVShow});
+        (
+          navigation as NativeStackNavigationProp<TVShowsStackParamList>
+        ).navigate('TVShowDetails', {
+          show: item as TVShow,
+        });
       }
     },
     [navigation, contentType],
   );
 
-  // Use the hooks based on content type
+  // Use the appropriate hooks based on content type and whether we have filters
   const movieCategoryType =
     contentType === 'movie' ? (categoryType as MovieCategoryType) : 'popular';
   const tvCategoryType =
@@ -65,7 +81,31 @@ export const CategoryScreen = () => {
   const moviesList = useMoviesList(movieCategoryType);
   const tvShowsList = useTVShowsList(tvCategoryType);
 
-  // Select the correct data source based on content type
+  // Create a SavedFilter object if filter params are provided
+  const savedFilter = useMemo(() => {
+    if (filter) {
+      return [
+        {
+          id: 'temp',
+          name: title,
+          params: filter,
+          type: contentType,
+          createdAt: Date.now(),
+        },
+      ] as SavedFilter[];
+    }
+    return [];
+  }, [filter, title, contentType]);
+
+  // Use the appropriate data source based on whether we have filters
+  const {
+    data: filterContent,
+    isLoading: isFilterLoading,
+    fetchNextPage: fetchNextFilterPage,
+    hasNextPage: hasNextFilterPage,
+    isFetchingNextPage: isFetchingNextFilterPage,
+  } = useSavedFilterContent(savedFilter);
+
   const {
     data,
     fetchNextPage,
@@ -76,103 +116,103 @@ export const CategoryScreen = () => {
     isRefetching,
   } = contentType === 'movie' ? moviesList : tvShowsList;
 
-  const isLoading = isInitialLoading || isRefetching || isFetchingNextPage;
+  const isLoading = isInitialLoading || isRefetching || isFilterLoading;
 
-  // Transform data based on content type
+  // Transform data based on content type and filter presence
   const transformedData = useMemo(() => {
+    if (filter && filterContent?.pages) {
+      return filterContent.pages.flatMap(page =>
+        page[0]?.results.map((item: Movie | TVShow) => ({
+          ...item,
+          type: contentType,
+        })),
+      ) as ContentItem[];
+    }
+
     return (data?.pages.flatMap(page =>
       page.results.map(item => ({
         ...item,
         type: contentType,
       })),
     ) || []) as ContentItem[];
-  }, [data, contentType]);
+  }, [data, contentType, filter, filterContent]);
 
   const renderItem = ({item, index}: {item: ContentItem; index: number}) => (
-    <View style={styles.cardContainer}>
-      <MovieCard item={item} onPress={handleItemPress} />
-    </View>
+    <MovieCard item={item} onPress={handleItemPress} />
   );
 
   const handleEndReached = () => {
-    if (hasNextPage && !isFetchingNextPage) {
+    if (filter) {
+      if (hasNextFilterPage && !isFetchingNextFilterPage) {
+        fetchNextFilterPage();
+      }
+    } else if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   };
 
   return (
-    <GradientBackground variant="cinematic">
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{title}</Text>
-          </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{title}</Text>
         </View>
-
-        <View style={styles.contentContainer}>
-          <FlatList
-            data={transformedData}
-            renderItem={renderItem}
-            keyExtractor={item => item.id.toString()}
-            numColumns={3}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.5}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefetching || false}
-                onRefresh={refetch}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
-            ListFooterComponent={
-              <View style={styles.footerLoader}>
-                {isFetchingNextPage && (
-                  <View style={styles.loadingIndicatorContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>Loading more...</Text>
-                  </View>
-                )}
-                <View style={styles.footerSpace} />
-              </View>
-            }
-            ListEmptyComponent={
-              !isLoading ? (
-                <View style={styles.emptyContainer}>
-                  <Icon
-                    name="alert-circle"
-                    size={48}
-                    color={colors.text.muted}
-                  />
-                  <Text style={styles.emptyText}>No items found</Text>
-                  <TouchableOpacity
-                    style={styles.retryButton}
-                    onPress={() => refetch()}>
-                    <Text style={styles.retryText}>Try Again</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null
-            }
-          />
-        </View>
-
-        {isInitialLoading && (
-          <View style={styles.fullScreenLoader}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingTitle}>Loading</Text>
-            <Text style={styles.loadingSubtitle}>{title}</Text>
-          </View>
-        )}
       </View>
-    </GradientBackground>
+
+      <View style={styles.contentContainer}>
+        <FlatList
+          data={transformedData}
+          renderItem={renderItem}
+          keyExtractor={item => item.id.toString()}
+          numColumns={3}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingNextPage || isFetchingNextFilterPage ? (
+              <ActivityIndicator
+                size="large"
+                style={{marginVertical: spacing.xl}}
+                color={colors.primary}
+              />
+            ) : null
+          }
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.emptyContainer}>
+                <Icon name="alert-circle" size={48} color={colors.text.muted} />
+                <Text style={styles.emptyText}>No items found</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => refetch()}>
+                  <Text style={styles.retryText}>Try Again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+        />
+      </View>
+
+      {isLoading && (
+        <View style={styles.fullScreenLoader}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingTitle}>Loading</Text>
+          <Text style={styles.loadingSubtitle}>{title}</Text>
+        </View>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  cardContainer: {
+    flex: 1,
+    margin: spacing.xs,
   },
   header: {
     flexDirection: 'row',
@@ -248,22 +288,22 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: colors.primary,
-    ...typography.button,
+    ...typography.body2,
   },
   fullScreenLoader: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+    backgroundColor: colors.background.primary + 'CC',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 10, 26, 0.85)',
+    justifyContent: 'center',
   },
   loadingTitle: {
     ...typography.h3,
     color: colors.text.primary,
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
   loadingSubtitle: {
     ...typography.body2,
     color: colors.text.secondary,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
 });

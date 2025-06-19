@@ -51,9 +51,17 @@ export const useTrending = (timeWindow: 'day' | 'week' = 'day') => {
 };
 
 export const useSavedFilterContent = (savedFilters: any = []) => {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['savedFilterContent', savedFilters],
-    queryFn: () => searchFilterContent(savedFilters),
+    queryFn: ({pageParam = 1}) =>
+      searchFilterContent(savedFilters, pageParam as number),
+    getNextPageParam: (lastPage: any) => {
+      if (!lastPage?.[0]) return undefined;
+      return lastPage[0].page < lastPage[0].total_pages
+        ? lastPage[0].page + 1
+        : undefined;
+    },
+    initialPageParam: 1,
     gcTime: CACHE_TIME,
     staleTime: STALE_TIME,
   });

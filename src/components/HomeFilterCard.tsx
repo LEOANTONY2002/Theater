@@ -1,5 +1,12 @@
-import React, {useState, useMemo} from 'react';
-import {StyleSheet, Text, View, Image, Dimensions} from 'react-native';
+import React, {useState, useMemo, useCallback} from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  Dimensions,
+  TouchableOpacity,
+} from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 import Animated, {
   interpolate,
@@ -13,6 +20,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useQuery} from '@tanstack/react-query';
 import {FiltersManager} from '../store/filters';
 import {useSavedFilterContent} from '../hooks/useApp';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {MoviesStackParamList, TVShowsStackParamList} from '../types/navigation';
+import {SavedFilter} from '../types/filters';
+
+type NavigationProp = NativeStackNavigationProp<
+  MoviesStackParamList | TVShowsStackParamList
+>;
 
 const CARD_WIDTH = 170;
 const CARD_HEIGHT = 280;
@@ -23,18 +38,65 @@ const DOT_SIZE = 10;
 const DOT_SPACING = 12;
 const MAX_FILTERS = 10; // Maximum number of filters we'll support
 
-export const HomeFilterCard = ({savedFilters = []}: {savedFilters: any[]}) => {
+export const HomeFilterCard = ({
+  savedFilters = [],
+}: {
+  savedFilters: SavedFilter[];
+}) => {
+  const navigation = useNavigation<NavigationProp>();
   const [currentIndex, setCurrentIndex] = useState(0);
   const progressValue = useSharedValue(0);
 
   // Always call the hook, even if savedFilters is empty
-  const {data: content, isLoading} = useSavedFilterContent(savedFilters || []);
+  const {data: filterContent, isLoading} = useSavedFilterContent(
+    savedFilters || [],
+  );
+
+  // Get the first page of results for each filter
+  const firstPageContent = useMemo(() => {
+    if (!filterContent?.pages?.[0]) return [];
+    return filterContent.pages[0];
+  }, [filterContent]);
 
   // Build the posters array from the resolved content
-  const posters = (content || []).map(
-    (item: any) =>
-      item?.results?.[0]?.poster_path &&
-      `https://image.tmdb.org/t/p/w500${item.results[0].poster_path}`,
+  const posters = useMemo(() => {
+    return (firstPageContent || []).map(
+      (item: any) =>
+        item?.results?.[0]?.poster_path &&
+        `https://image.tmdb.org/t/p/w500${item.results[0].poster_path}`,
+    );
+  }, [firstPageContent]);
+
+  const handlePosterPress = useCallback(
+    (filter: SavedFilter) => {
+      if (filter.type === 'movie') {
+        (
+          navigation as NativeStackNavigationProp<MoviesStackParamList>
+        ).navigate('Category', {
+          title: filter.name,
+          contentType: 'movie',
+          filter: filter.params,
+        });
+      } else if (filter.type === 'tv') {
+        (
+          navigation as NativeStackNavigationProp<TVShowsStackParamList>
+        ).navigate('Category', {
+          title: filter.name,
+          contentType: 'tv',
+          filter: filter.params,
+        });
+      } else {
+        // For 'all' type, default to movie
+        (
+          navigation as NativeStackNavigationProp<MoviesStackParamList>
+        ).navigate('Category', {
+          title: filter.name,
+          contentType: 'movie',
+          filter: filter.params,
+        });
+      }
+    },
+    [navigation],
   );
 
   // Only render UI if there are filters
@@ -80,7 +142,7 @@ export const HomeFilterCard = ({savedFilters = []}: {savedFilters: any[]}) => {
       <LinearGradient colors={colors.gradient.filter} style={styles.gradient} />
       {/* Animated Titles */}
       <View style={styles.titleContainer} pointerEvents="none">
-        {content?.map((filter, idx) => {
+        {firstPageContent?.map((filter: any, idx: number) => {
           // Only render if we have an animated style for this index
           if (filter?.results !== null) {
             if (idx >= MAX_FILTERS) return null;
@@ -98,7 +160,7 @@ export const HomeFilterCard = ({savedFilters = []}: {savedFilters: any[]}) => {
       <Carousel
         width={SCREEN_WIDTH}
         height={CARD_HEIGHT}
-        data={content?.slice(0, MAX_FILTERS) || []} // Limit carousel items to MAX_FILTERS
+        data={firstPageContent?.slice(0, MAX_FILTERS) || []} // Limit carousel items to MAX_FILTERS
         mode="horizontal-stack"
         modeConfig={{
           snapDirection: 'left',
@@ -138,28 +200,32 @@ export const HomeFilterCard = ({savedFilters = []}: {savedFilters: any[]}) => {
           // Only show the first poster for this filter
           const poster = posters[index];
           return (
-            <Animated.View style={[styles.cardStack, animatedStyle]}>
-              {poster ? (
-                <Image
-                  source={{uri: poster}}
-                  style={[styles.card, {zIndex: 2}]}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.card,
-                    {zIndex: 2, backgroundColor: colors.background.secondary},
-                  ]}
-                />
-              )}
-            </Animated.View>
+            <TouchableOpacity
+              onPress={() => handlePosterPress(savedFilters[index])}
+              activeOpacity={0.7}>
+              <Animated.View style={[styles.cardStack, animatedStyle]}>
+                {poster ? (
+                  <Image
+                    source={{uri: poster}}
+                    style={[styles.card, {zIndex: 2}]}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.card,
+                      {zIndex: 2, backgroundColor: colors.background.secondary},
+                    ]}
+                  />
+                )}
+              </Animated.View>
+            </TouchableOpacity>
           );
         }}
       />
       {/* Animated Pagination Dots */}
       <View style={styles.pagination}>
-        {content?.slice(0, MAX_FILTERS).map((_, idx) => (
+        {firstPageContent?.slice(0, MAX_FILTERS).map((_, idx) => (
           <View key={idx} style={styles.dot} />
         ))}
         <Animated.View style={[styles.activeDot, animatedDotStyle]} />

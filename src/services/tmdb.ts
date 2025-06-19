@@ -205,26 +205,27 @@ export const searchTVShows = async (
   return searchResponse.data;
 };
 
-export const searchFilterContent = async (savedFilters: any = []) => {
+export const searchFilterContent = async (savedFilters: any = [], page = 1) => {
   const results = await Promise.all(
     savedFilters.map(async (filter: SavedFilter) => {
       if (filter.type === 'movie' || filter.type === 'all') {
-        console.log('filter.params', filter.params);
-        let res = await searchMovies('', 1, filter.params);
-        console.log('res', res);
+        let res = await searchMovies('', page, filter.params);
         if (res?.results?.length > 0) {
           return {
             ...filter,
             results: res.results,
+            page: res.page,
+            total_pages: res.total_pages,
           };
         }
       } else if (filter.type === 'tv') {
-        console.log('filter.params', filter.params);
-        let res = await searchTVShows('', 1, filter.params);
+        let res = await searchTVShows('', page, filter.params);
         if (res?.results?.length > 0) {
           return {
             ...filter,
             results: res.results,
+            page: res.page,
+            total_pages: res.total_pages,
           };
         }
       }
@@ -374,10 +375,8 @@ export const discoverContent = async (savedFilters: any = []) => {
   return await Promise.all(
     savedFilters.map(async (filter: SavedFilter) => {
       if (filter.type === 'movie' || filter.type === 'all') {
-        console.log('filter.params', filter.params);
         return await discoverMovies(filter.params);
       } else if (filter.type === 'tv') {
-        console.log('filter.params', filter.params);
         return await discoverTVShows(filter.params);
       }
     }),
