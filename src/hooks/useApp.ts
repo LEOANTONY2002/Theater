@@ -50,11 +50,11 @@ export const useTrending = (timeWindow: 'day' | 'week' = 'day') => {
   });
 };
 
-export const useSavedFilterContent = (savedFilters: any = []) => {
+export const useSavedFilterContent = (savedFilter: SavedFilter) => {
   return useInfiniteQuery({
-    queryKey: ['savedFilterContent', savedFilters],
+    queryKey: ['savedFilterContent', savedFilter],
     queryFn: ({pageParam = 1}) =>
-      searchFilterContent(savedFilters, pageParam as number),
+      searchFilterContent(savedFilter, pageParam as number),
     getNextPageParam: (lastPage: any) => {
       if (!lastPage?.[0]) return undefined;
       return lastPage[0].page < lastPage[0].total_pages

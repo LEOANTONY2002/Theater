@@ -81,22 +81,6 @@ export const CategoryScreen = () => {
   const moviesList = useMoviesList(movieCategoryType);
   const tvShowsList = useTVShowsList(tvCategoryType);
 
-  // Create a SavedFilter object if filter params are provided
-  const savedFilter = useMemo(() => {
-    if (filter) {
-      return [
-        {
-          id: 'temp',
-          name: title,
-          params: filter,
-          type: contentType,
-          createdAt: Date.now(),
-        },
-      ] as SavedFilter[];
-    }
-    return [];
-  }, [filter, title, contentType]);
-
   // Use the appropriate data source based on whether we have filters
   const {
     data: filterContent,
@@ -104,7 +88,10 @@ export const CategoryScreen = () => {
     fetchNextPage: fetchNextFilterPage,
     hasNextPage: hasNextFilterPage,
     isFetchingNextPage: isFetchingNextFilterPage,
-  } = useSavedFilterContent(savedFilter);
+  } = useSavedFilterContent(filter as SavedFilter);
+
+  console.log('saved filter in CategoryScreen', filter);
+  console.log('filterContent in CategoryScreen', filterContent);
 
   const {
     data,
@@ -117,25 +104,6 @@ export const CategoryScreen = () => {
   } = contentType === 'movie' ? moviesList : tvShowsList;
 
   const isLoading = isInitialLoading || isRefetching || isFilterLoading;
-
-  // Transform data based on content type and filter presence
-  const transformedData = useMemo(() => {
-    if (filter && filterContent?.pages) {
-      return filterContent.pages.flatMap(page =>
-        page[0]?.results.map((item: Movie | TVShow) => ({
-          ...item,
-          type: contentType,
-        })),
-      ) as ContentItem[];
-    }
-
-    return (data?.pages.flatMap(page =>
-      page.results.map(item => ({
-        ...item,
-        type: contentType,
-      })),
-    ) || []) as ContentItem[];
-  }, [data, contentType, filter, filterContent]);
 
   const renderItem = ({item, index}: {item: ContentItem; index: number}) => (
     <MovieCard item={item} onPress={handleItemPress} />
@@ -161,7 +129,7 @@ export const CategoryScreen = () => {
 
       <View style={styles.contentContainer}>
         <FlatList
-          data={transformedData}
+          data={filterContent?.pages?.[0]?.results}
           renderItem={renderItem}
           keyExtractor={item => item.id.toString()}
           numColumns={3}

@@ -55,7 +55,7 @@ export type MoviesStackParamList = {
     title: string;
     categoryType?: MovieCategoryType;
     contentType: 'movie';
-    filter?: FilterParams;
+    filter?: SavedFilter;
   };
   Genre: {
     genreId: number;

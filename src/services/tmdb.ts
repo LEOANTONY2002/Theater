@@ -205,33 +205,37 @@ export const searchTVShows = async (
   return searchResponse.data;
 };
 
-export const searchFilterContent = async (savedFilters: any = [], page = 1) => {
-  const results = await Promise.all(
-    savedFilters.map(async (filter: SavedFilter) => {
-      if (filter.type === 'movie' || filter.type === 'all') {
-        let res = await searchMovies('', page, filter.params);
-        if (res?.results?.length > 0) {
-          return {
-            ...filter,
-            results: res.results,
-            page: res.page,
-            total_pages: res.total_pages,
-          };
-        }
-      } else if (filter.type === 'tv') {
-        let res = await searchTVShows('', page, filter.params);
-        if (res?.results?.length > 0) {
-          return {
-            ...filter,
-            results: res.results,
-            page: res.page,
-            total_pages: res.total_pages,
-          };
-        }
-      }
-    }),
-  );
-  return results.filter(result => result !== undefined);
+export const searchFilterContent = async (
+  savedFilter: SavedFilter,
+  page = 1,
+) => {
+  if (savedFilter.type === 'movie' || savedFilter.type === 'all') {
+    let res = await searchMovies('', page, savedFilter.params);
+    if (res?.results?.length > 0) {
+      return {
+        ...savedFilter,
+        results: res.results.map((result: any) => ({
+          ...result,
+          type: 'movie',
+        })),
+        page: res.page,
+        total_pages: res.total_pages,
+      };
+    }
+  } else if (savedFilter.type === 'tv') {
+    let res = await searchTVShows('', page, savedFilter.params);
+    if (res?.results?.length > 0) {
+      return {
+        ...savedFilter,
+        results: res.results.map((result: any) => ({
+          ...result,
+          type: 'tv',
+        })),
+        page: res.page,
+        total_pages: res.total_pages,
+      };
+    }
+  }
 };
 
 export const getMovieDetails = async (movieId: number) => {

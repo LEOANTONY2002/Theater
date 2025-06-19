@@ -52,7 +52,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
     </View>
   );
 
-  if (!data.length) {
+  if (!data?.length) {
     return (
       <View>
         <HeadingSkeleton />
@@ -65,7 +65,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
     <View style={styles.container}>
       {title !== 'V2' ? (
         <View style={styles.headerContainer}>
-          {data.length > 0 && isSeeAll ? (
+          {data?.length > 0 && isSeeAll ? (
             <TouchableOpacity
               style={{
                 width: '100%',
@@ -96,7 +96,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
         horizontal
         data={data}
         renderItem={renderItem}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => item?.id?.toString()}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         onEndReached={onEndReached}

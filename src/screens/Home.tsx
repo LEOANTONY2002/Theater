@@ -29,10 +29,13 @@ import {
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
-import {useRegion} from '../hooks/useApp';
+import {useRegion, useSavedFilterContent} from '../hooks/useApp';
 import {HomeFilterCard} from '../components/HomeFilterCard';
 import {useQuery} from '@tanstack/react-query';
 import {FiltersManager} from '../store/filters';
+import {SavedFilter} from '../types/filters';
+import {searchFilterContent} from '../services/tmdb';
+import {HomeFilterRow} from '../components/HomeFilterRow';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -43,33 +46,25 @@ export const HomeScreen = () => {
     ContentItem[]
   >([]);
 
-  const {data: savedFilters} = useQuery({
-    queryKey: ['savedFilters'],
-    queryFn: () => FiltersManager.getSavedFilters(),
-  });
-
   const {
     data: popularMovies,
-    fetchNextPage: fetchNextPopular,
-    hasNextPage: hasNextPopular,
-    isFetchingNextPage: isFetchingPopular,
-    refetch: refetchPopular,
+    fetchNextPage: fetchNextPopularMovies,
+    hasNextPage: hasNextPopularMovies,
+    isFetchingNextPage: isFetchingPopularMovies,
   } = useMoviesList('popular');
 
   const {
     data: topRatedMovies,
-    fetchNextPage: fetchNextTopRated,
-    hasNextPage: hasNextTopRated,
-    isFetchingNextPage: isFetchingTopRated,
-    refetch: refetchTopRated,
+    fetchNextPage: fetchNextTopRatedMovies,
+    hasNextPage: hasNextTopRatedMovies,
+    isFetchingNextPage: isFetchingTopRatedMovies,
   } = useMoviesList('top_rated');
 
   const {
     data: upcomingMovies,
-    fetchNextPage: fetchNextUpcoming,
-    hasNextPage: hasNextUpcoming,
-    isFetchingNextPage: isFetchingUpcoming,
-    refetch: refetchUpcoming,
+    fetchNextPage: fetchNextUpcomingMovies,
+    hasNextPage: hasNextUpcomingMovies,
+    isFetchingNextPage: isFetchingUpcomingMovies,
   } = useMoviesList('upcoming');
 
   const {
@@ -77,7 +72,6 @@ export const HomeScreen = () => {
     fetchNextPage: fetchNextPopularTV,
     hasNextPage: hasNextPopularTV,
     isFetchingNextPage: isFetchingPopularTV,
-    refetch: refetchPopularTV,
   } = useTVShowsList('popular');
 
   const {
@@ -85,16 +79,14 @@ export const HomeScreen = () => {
     fetchNextPage: fetchNextTopRatedTV,
     hasNextPage: hasNextTopRatedTV,
     isFetchingNextPage: isFetchingTopRatedTV,
-    refetch: refetchTopRatedTV,
   } = useTVShowsList('top_rated');
 
   // Recent Movies (Now Playing)
   const {
     data: recentMovies,
-    fetchNextPage: fetchNextRecent,
-    hasNextPage: hasNextRecent,
-    isFetchingNextPage: isFetchingRecent,
-    refetch: refetchRecent,
+    fetchNextPage: fetchNextRecentMovies,
+    hasNextPage: hasNextRecentMovies,
+    isFetchingNextPage: isFetchingRecentMovies,
   } = useMoviesList('latest');
 
   // Recent TV Shows (On Air)
@@ -103,37 +95,74 @@ export const HomeScreen = () => {
     fetchNextPage: fetchNextRecentTV,
     hasNextPage: hasNextRecentTV,
     isFetchingNextPage: isFetchingRecentTV,
-    refetch: refetchRecentTV,
   } = useTVShowsList('latest');
 
-  // Trending Movies
-  const {
-    data: trendingMovies,
-    fetchNextPage: fetchNextTrendingMovies,
-    hasNextPage: hasNextTrendingMovies,
-    isFetchingNextPage: isFetchingTrendingMovies,
-    refetch: refetchTrendingMovies,
-  } = useTrendingMovies('day');
+  // // Trending Movies
+  // const {
+  //   data: trendingMovies,
+  //   fetchNextPage: fetchNextTrendingMovies,
+  //   hasNextPage: hasNextTrendingMovies,
+  //   isFetchingNextPage: isFetchingTrendingMovies,
+  //   refetch: refetchTrendingMovies,
+  // } = useTrendingMovies('day');
 
-  // Trending TV Shows
-  const {
-    data: trendingTVShows,
-    fetchNextPage: fetchNextTrendingTVShows,
-    hasNextPage: hasNextTrendingTVShows,
-    isFetchingNextPage: isFetchingTrendingTVShows,
-    refetch: refetchTrendingTVShows,
-  } = useTrendingTVShows('day');
+  // // Trending TV Shows
+  // const {
+  //   data: trendingTVShows,
+  //   fetchNextPage: fetchNextTrendingTVShows,
+  //   hasNextPage: hasNextTrendingTVShows,
+  //   isFetchingNextPage: isFetchingTrendingTVShows,
+  //   refetch: refetchTrendingTVShows,
+  // } = useTrendingTVShows('day');
 
   // Get a random popular item for the banner
-  const featuredItem = useMemo(() => {
-    if (!recentMovies?.pages?.[0]?.results) return null;
-    const items = recentMovies.pages[0].results;
+  const featuredItems = useMemo(() => {
+    const items = [];
     const randomIndex = Math.floor(Math.random() * Math.min(items.length, 5));
-    return {
-      item: items[randomIndex],
-      type: 'movie' as const,
-    };
-  }, [recentMovies]);
+
+    if (recentMovies?.pages?.[0]?.results) {
+      items.push({
+        item: recentMovies.pages[0].results[randomIndex],
+        type: 'movie',
+        title: 'Latest',
+      });
+    }
+    // if (recentTVShows?.pages?.[0]?.results) {
+    //   items.push({
+    //     item: recentTVShows.pages[0].results[randomIndex],
+    //     type: 'tv',
+    //     title: 'Recent Shows',
+    //   });
+    // }
+    if (popularMovies?.pages?.[0]?.results) {
+      items.push({
+        item: popularMovies.pages[0].results[randomIndex],
+        type: 'movie',
+        title: 'Popular',
+      });
+    }
+    if (topRatedMovies?.pages?.[0]?.results) {
+      items.push({
+        item: topRatedMovies.pages[0].results[randomIndex],
+        type: 'movie',
+        title: 'Top Rated',
+      });
+    }
+    // if (topRatedTVShows?.pages?.[0]?.results) {
+    //   items.push({
+    //     item: topRatedTVShows.pages[0].results[randomIndex],
+    //     type: 'tv',
+    //     title: 'Top Rated TV Shows',
+    //   });
+    // }
+    return items;
+  }, [
+    recentMovies,
+    recentTVShows,
+    popularMovies,
+    topRatedMovies,
+    topRatedTVShows,
+  ]);
 
   const {
     data: top10MoviesTodayByRegion,
@@ -165,6 +194,25 @@ export const HomeScreen = () => {
       setTop10ContentByRegion(sortedContent.slice(0, 10));
     }
   }, [top10MoviesTodayByRegion, top10ShowsTodayByRegion]);
+
+  const {data: savedFilters, isLoading: isLoadingSavedFilters} = useQuery({
+    queryKey: ['savedFilters'],
+    queryFn: () => FiltersManager.getSavedFilters(),
+  });
+
+  const filterContent = useMemo(() => {
+    if (savedFilters && savedFilters?.length > 0) {
+      return savedFilters.map(async (filter: SavedFilter) => {
+        const data = await searchFilterContent(filter);
+        return {
+          ...data,
+          isLoading: false,
+        };
+      });
+    }
+  }, [savedFilters]);
+
+  console.log('filterContents', filterContent);
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -205,15 +253,15 @@ export const HomeScreen = () => {
   const WIDTH = Dimensions.get('window').width;
 
   const isInitialLoading =
-    (!popularMovies?.pages?.length && isFetchingPopular) ||
+    (!popularMovies?.pages?.length && isFetchingPopularMovies) ||
     (!popularTVShows?.pages?.length && isFetchingPopularTV) ||
-    (!topRatedMovies?.pages?.length && isFetchingTopRated) ||
+    (!topRatedMovies?.pages?.length && isFetchingTopRatedMovies) ||
     (!topRatedTVShows?.pages?.length && isFetchingTopRatedTV) ||
-    (!recentMovies?.pages?.length && isFetchingRecent) ||
+    (!recentMovies?.pages?.length && isFetchingRecentMovies) ||
     (!recentTVShows?.pages?.length && isFetchingRecentTV) ||
-    (!upcomingMovies?.pages?.length && isFetchingUpcoming) ||
-    (!trendingMovies?.pages?.length && isFetchingTrendingMovies) ||
-    (!trendingTVShows?.pages?.length && isFetchingTrendingTVShows) ||
+    // (!upcomingMovies?.pages?.length && isFetchingUpcoming) ||
+    // (!trendingMovies?.pages?.length && isFetchingTrendingMovies) ||
+    // (!trendingTVShows?.pages?.length && isFetchingTrendingTVShows) ||
     (!top10MoviesTodayByRegion?.length && isFetchingTop10MoviesTodayByRegion) ||
     (!top10ShowsTodayByRegion?.length && isFetchingTop10ShowsTodayByRegion);
 
@@ -232,9 +280,9 @@ export const HomeScreen = () => {
     },
     heading: {
       ...typography.h3,
-      color: colors.text.primary,
-      marginBottom: spacing.md,
-      marginLeft: spacing.md,
+      color: colors.text.secondary,
+      marginVertical: spacing.md,
+      textAlign: 'center',
     },
   });
 
@@ -255,11 +303,8 @@ export const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {featuredItem ? (
-          <FeaturedBannerHome
-            item={featuredItem.item}
-            type={featuredItem.type}
-          />
+        {featuredItems.length > 0 ? (
+          <FeaturedBannerHome items={featuredItems} />
         ) : (
           <View style={styles.skeletonContainer}>
             <BannerHomeSkeleton />
@@ -270,9 +315,11 @@ export const HomeScreen = () => {
           <HorizontalList
             title="Recent Movies"
             data={getMoviesFromData(recentMovies)}
-            isLoading={isFetchingRecent}
+            isLoading={isFetchingRecentMovies}
             onItemPress={handleItemPress}
-            onEndReached={hasNextRecent ? fetchNextRecent : undefined}
+            onEndReached={
+              hasNextRecentMovies ? fetchNextRecentMovies : undefined
+            }
             onSeeAllPress={() =>
               handleSeeAllPress('Recent Movies', 'latest', 'movie')
             }
@@ -303,12 +350,12 @@ export const HomeScreen = () => {
           />
         )}
 
-        {savedFilters && savedFilters.length > 0 && (
+        {/* {savedFilters && savedFilters.length > 0 && (
           <View style={{marginTop: spacing.xxl}}>
             <Text style={styles.heading}>My Filters</Text>
             <HomeFilterCard savedFilters={savedFilters} />
           </View>
-        )}
+        )} */}
 
         {popularTVShows?.pages?.[0]?.results?.length && (
           <HorizontalList
@@ -327,9 +374,11 @@ export const HomeScreen = () => {
           <HorizontalList
             title="Top Rated Movies"
             data={getMoviesFromData(topRatedMovies)}
-            isLoading={isFetchingTopRated}
+            isLoading={isFetchingTopRatedMovies}
             onItemPress={handleItemPress}
-            onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
+            onEndReached={
+              hasNextTopRatedMovies ? fetchNextTopRatedMovies : undefined
+            }
             onSeeAllPress={() =>
               handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie')
             }
@@ -353,14 +402,33 @@ export const HomeScreen = () => {
           <HorizontalList
             title="Upcoming Movies"
             data={getMoviesFromData(upcomingMovies)}
-            isLoading={isFetchingUpcoming}
+            isLoading={isFetchingUpcomingMovies}
             onItemPress={handleItemPress}
-            onEndReached={hasNextUpcoming ? fetchNextUpcoming : undefined}
+            onEndReached={
+              hasNextUpcomingMovies ? fetchNextUpcomingMovies : undefined
+            }
             onSeeAllPress={() =>
               handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
             }
           />
         )}
+
+        {isLoadingSavedFilters ? (
+          <View style={{marginTop: spacing.xxl}}>
+            <HorizontalListSkeleton />
+          </View>
+        ) : (
+          savedFilters &&
+          savedFilters?.length > 0 && (
+            <View style={{marginTop: spacing.xxl}}>
+              <Text style={styles.heading}>My Filters</Text>
+              {savedFilters?.map((filter: SavedFilter) => (
+                <HomeFilterRow savedFilter={filter} />
+              ))}
+            </View>
+          )
+        )}
+
         <View style={{height: 100}} />
       </ScrollView>
     </View>

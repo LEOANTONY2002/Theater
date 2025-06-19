@@ -99,7 +99,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
             style={StyleSheet.absoluteFill}
             blurType="dark"
             blurAmount={20}
-            overlayColor={`rgba(16, 14, 35, 0.43)`}
+            overlayColor={`rgba(16, 14, 35, 0.3)`}
             reducedTransparencyFallbackColor={colors.modal.blur}
           />
 
@@ -168,12 +168,12 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                     onPress={() => handleAddToWatchlist(watchlist)}
                     key={watchlist.id}>
                     <View style={styles.watchlistItem}>
-                      <LinearGradient
+                      {/* <LinearGradient
                         colors={colors.gradient.secondary}
                         start={{x: 0.5, y: 0.5}}
                         end={{x: 1, y: 1}}
                         style={styles.watchlistGradient}
-                      />
+                      /> */}
                       <View>
                         <Text numberOfLines={1} style={styles.watchlistName}>
                           {watchlist.name}
@@ -267,6 +267,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     backgroundColor: colors.modal.active,
     padding: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   watchlistGradient: {
     position: 'absolute',

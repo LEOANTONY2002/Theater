@@ -303,8 +303,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             {showDetails?.genres
               ?.slice(0, 3)
               .map((genre: Genre, index: number) => (
-                <View key={genre.id} style={styles.genreWrapper}>
-                  <Text style={styles.genre}>{genre.name}</Text>
+                <View key={genre?.id} style={styles.genreWrapper}>
+                  <Text style={styles.genre}>{genre?.name}</Text>
                   {index < Math.min(showDetails.genres.length - 1, 2) && (
                     <Text style={styles.genreDivider}>|</Text>
                   )}
@@ -324,12 +324,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
               showsHorizontalScrollIndicator={false}>
               {showDetails.credits.cast.slice(0, 10).map((person: Cast) => (
                 <TouchableOpacity
-                  key={person.id}
+                  key={person?.id}
                   style={styles.castItem}
                   onPress={() =>
                     navigation.navigate('PersonCredits', {
-                      personId: person.id,
-                      personName: person.name,
+                      personId: person?.id,
+                      personName: person?.name,
                       contentType: 'tv',
                     })
                   }>

@@ -24,6 +24,7 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MoviesStackParamList, TVShowsStackParamList} from '../types/navigation';
 import {SavedFilter} from '../types/filters';
+import {FilterCardStyles} from '../styles/styles';
 
 type NavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList
@@ -234,101 +235,10 @@ export const HomeFilterCard = ({
   ) : null;
 };
 
-const styles = StyleSheet.create({
-  wrapper: {
-    // flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: SCREEN_WIDTH,
-    marginTop: 50,
-    paddingBottom: spacing.xxl,
-    marginBottom: spacing.xxl,
-  },
-  gradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: -1,
-    height: 300,
-    marginHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-    borderRadius: 50,
-    borderBottomWidth: 1,
-    borderLeftWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.11)',
-    // display: 'none',
-  },
-  titleContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 0,
-    pointerEvents: 'none',
-    opacity: 0.2,
-  },
-  filterName: {
-    color: colors.text.primary,
-    paddingHorizontal: spacing.lg,
-    fontSize: 70,
-    fontWeight: '900',
-    textAlign: 'center',
-    position: 'absolute',
-    top: -60,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  cardStack: {
-    width: SCREEN_WIDTH,
-    height: CARD_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    marginBottom: spacing.md,
-    // marginLeft: -30,
-    padding: 20,
-  },
-  card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: borderRadius.lg || 18,
-    position: 'absolute',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 40,
-    backgroundColor: colors.background.primary,
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    height: DOT_SIZE + 2,
-    position: 'relative',
-  },
-  dot: {
-    width: DOT_SIZE,
-    height: DOT_SIZE,
-    borderRadius: DOT_SIZE / 2,
-    backgroundColor: colors.text.secondary,
-    marginHorizontal: DOT_SPACING / 2,
-    opacity: 0.3,
-  },
-  activeDot: {
-    position: 'absolute',
-    width: DOT_SIZE + 4,
-    height: DOT_SIZE + 4,
-    borderRadius: (DOT_SIZE + 4) / 2,
-    backgroundColor: colors.accent,
-    top: -2,
-    left: 4,
-    zIndex: 2,
-  },
-});
+const styles = FilterCardStyles(
+  SCREEN_WIDTH,
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  DOT_SIZE,
+  DOT_SPACING,
+);
