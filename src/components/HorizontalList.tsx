@@ -46,19 +46,26 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     useEffect(() => {
       if (data && data.length > 0) {
         setIsDebouncing(true);
-        const timer = setTimeout(() => {
-          setDebouncedData(data);
-          setIsDebouncing(false);
-          // Delay actual rendering to prevent blocking
-          setTimeout(() => setShouldRender(true), 100);
-        }, 200); // Increased debounce to prevent rapid updates
+        const timer = setTimeout(
+          () => {
+            setDebouncedData(data);
+            setIsDebouncing(false);
+            // Delay actual rendering to prevent blocking, but not for V2 (recent searches)
+            if (title === 'V2') {
+              setShouldRender(true);
+            } else {
+              setTimeout(() => setShouldRender(true), 100);
+            }
+          },
+          title === 'V2' ? 50 : 200,
+        ); // Shorter delay for V2 (recent searches)
         return () => clearTimeout(timer);
       } else {
         setDebouncedData([]);
         setIsDebouncing(false);
         setShouldRender(false);
       }
-    }, [data]);
+    }, [data, title]);
 
     const renderItem = useCallback(
       ({item, index}: {item: ContentItem; index: number}) => (

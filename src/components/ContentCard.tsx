@@ -13,10 +13,10 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
-    // Use smallest possible image size for maximum performance
+    // Use better quality for V2 (recent searches), small size for performance elsewhere
     const imageUrl = getOptimizedImageUrl(
       v2 ? item.backdrop_path : item?.poster_path,
-      'small', // Use smallest size for maximum performance
+      v2 ? 'medium' : 'small', // Better quality for V2, small for performance
     );
 
     const title =
@@ -31,11 +31,14 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
 
     // Ultra-aggressive image loading delay to prevent FPS drops
     useEffect(() => {
-      const timer = setTimeout(() => {
-        setShouldLoadImage(true);
-      }, 300); // Increased delay to prevent stuttering
+      const timer = setTimeout(
+        () => {
+          setShouldLoadImage(true);
+        },
+        v2 ? 100 : 300,
+      ); // Shorter delay for V2 (recent searches)
       return () => clearTimeout(timer);
-    }, []);
+    }, [v2]);
 
     const handlePress = useCallback(() => {
       onPress(item);

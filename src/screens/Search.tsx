@@ -217,13 +217,16 @@ export const SearchScreen = () => {
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
+      // Save to recent searches
+      saveRecentItem(item);
+
       if (item.type === 'movie') {
         navigateWithLimit('MovieDetails', {movie: item as Movie});
       } else {
         navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
     },
-    [navigateWithLimit],
+    [navigateWithLimit, saveRecentItem],
   );
 
   const isLoading = isLoadingMovies || isLoadingTV;

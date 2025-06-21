@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Modal,
@@ -8,6 +8,9 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Keyboard,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -39,10 +42,32 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
 }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newWatchlistName, setNewWatchlistName] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const {data: watchlists = [], isLoading} = useWatchlists();
   const createWatchlistMutation = useCreateWatchlist();
   const addToWatchlistMutation = useAddToWatchlist();
+
+  // Handle keyboard show/hide events with height
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      event => {
+        setKeyboardHeight(event.endCoordinates.height);
+      },
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      },
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   const handleAddToWatchlist = async (watchlist: Watchlist) => {
     try {
@@ -94,7 +119,14 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
       transparent={true}
       onRequestClose={handleClose}>
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            keyboardHeight > 0 && {
+              marginTop: 0,
+              marginBottom: keyboardHeight,
+            },
+          ]}>
           <BlurView
             style={StyleSheet.absoluteFill}
             blurType="dark"
