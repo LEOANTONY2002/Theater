@@ -35,6 +35,18 @@ export const MoviesScreen = () => {
   const {navigateWithLimit} = useNavigationState();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
+  const [renderPhase, setRenderPhase] = useState(0);
+
+  // Staggered loading to reduce initial render load
+  useEffect(() => {
+    const timer1 = setTimeout(() => setRenderPhase(1), 100);
+    const timer2 = setTimeout(() => setRenderPhase(2), 300);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
 
   useEffect(() => {
     const loadGenres = async () => {
@@ -189,7 +201,7 @@ export const MoviesScreen = () => {
           isLoading={isLoadingGenres}
         />
 
-        {recentMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 1 && recentMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Recent Movies"
             data={getMoviesFromData(recentMovies)}
@@ -200,7 +212,7 @@ export const MoviesScreen = () => {
           />
         )}
 
-        {popularMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 2 && popularMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Popular Movies"
             data={getMoviesFromData(popularMovies)}
@@ -211,18 +223,7 @@ export const MoviesScreen = () => {
           />
         )}
 
-        {top10MoviesTodayByRegionData?.length && (
-          <HorizontalList
-            title={`Top 10 Movies in ${region?.english_name}`}
-            data={top10MoviesTodayByRegionData}
-            onItemPress={handleMoviePress}
-            isLoading={isFetchingTop10MoviesTodayByRegion}
-            isSeeAll={false}
-            isTop10={true}
-          />
-        )}
-
-        {topRatedMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 1 && topRatedMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Top Rated Movies"
             data={getMoviesFromData(topRatedMovies)}
@@ -235,7 +236,7 @@ export const MoviesScreen = () => {
           />
         )}
 
-        {nowPlayingMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 2 && nowPlayingMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Now Playing"
             data={getMoviesFromData(nowPlayingMovies)}
@@ -248,7 +249,7 @@ export const MoviesScreen = () => {
           />
         )}
 
-        {upcomingMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 2 && upcomingMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Upcoming Movies"
             data={getMoviesFromData(upcomingMovies)}
@@ -258,6 +259,17 @@ export const MoviesScreen = () => {
             onSeeAllPress={() =>
               handleSeeAllPress('Upcoming Movies', 'upcoming')
             }
+          />
+        )}
+
+        {top10MoviesTodayByRegionData?.length && (
+          <HorizontalList
+            title={`Top 10 in ${region?.english_name}`}
+            data={top10MoviesTodayByRegionData}
+            isLoading={top10MoviesTodayByRegionData.length === 0}
+            onItemPress={handleMoviePress}
+            isSeeAll={false}
+            isTop10={true}
           />
         )}
 

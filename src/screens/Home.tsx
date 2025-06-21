@@ -37,6 +37,7 @@ import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
 import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {PerformanceMonitor} from '../components/PerformanceMonitor';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -47,6 +48,20 @@ export const HomeScreen = () => {
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
+  const [renderPhase, setRenderPhase] = useState(0);
+
+  // Staggered loading to reduce initial render load
+  useEffect(() => {
+    const timer1 = setTimeout(() => setRenderPhase(1), 100);
+    const timer2 = setTimeout(() => setRenderPhase(2), 300);
+    const timer3 = setTimeout(() => setRenderPhase(3), 500);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, []);
 
   const {
     data: popularMovies,
@@ -308,7 +323,10 @@ export const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <PerformanceMonitor screenName="Home" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}>
         {featuredItems.length > 0 ? (
           // <FeaturedBannerHome items={featuredItems} />
           <View></View>
@@ -318,7 +336,7 @@ export const HomeScreen = () => {
           </View>
         )}
 
-        {recentMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 1 && recentMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Recent Movies"
             data={getMoviesFromData(recentMovies)}
@@ -333,7 +351,7 @@ export const HomeScreen = () => {
           />
         )}
 
-        {recentTVShows?.pages?.[0]?.results?.length && (
+        {renderPhase >= 2 && recentTVShows?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Latest Shows"
             data={getTVShowsFromData(recentTVShows)}
@@ -346,7 +364,7 @@ export const HomeScreen = () => {
           />
         )}
 
-        {top10ContentByRegion?.length && (
+        {renderPhase >= 1 && top10ContentByRegion?.length && (
           <HorizontalList
             title={`Top 10 in ${region?.english_name}`}
             data={top10ContentByRegion}
@@ -364,7 +382,7 @@ export const HomeScreen = () => {
           </View>
         )} */}
 
-        {popularTVShows?.pages?.[0]?.results?.length && (
+        {renderPhase >= 3 && popularTVShows?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Popular Shows"
             data={getTVShowsFromData(popularTVShows)}
@@ -377,7 +395,7 @@ export const HomeScreen = () => {
           />
         )}
 
-        {topRatedMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 2 && topRatedMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Top Rated Movies"
             data={getMoviesFromData(topRatedMovies)}
@@ -392,7 +410,7 @@ export const HomeScreen = () => {
           />
         )}
 
-        {topRatedTVShows?.pages?.[0]?.results?.length && (
+        {renderPhase >= 3 && topRatedTVShows?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Top Rated TV Shows"
             data={getTVShowsFromData(topRatedTVShows)}
@@ -405,7 +423,7 @@ export const HomeScreen = () => {
           />
         )}
 
-        {upcomingMovies?.pages?.[0]?.results?.length && (
+        {renderPhase >= 3 && upcomingMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Upcoming Movies"
             data={getMoviesFromData(upcomingMovies)}
@@ -430,7 +448,7 @@ export const HomeScreen = () => {
             <View style={{marginTop: spacing.xxl}}>
               <Text style={styles.heading}>My Filters</Text>
               {savedFilters?.map((filter: SavedFilter) => (
-                <HomeFilterRow savedFilter={filter} />
+                <HomeFilterRow key={filter.id} savedFilter={filter} />
               ))}
             </View>
           )

@@ -264,6 +264,21 @@ export const getImageUrl = (
   return `https://image.tmdb.org/t/p/${size}${path}`;
 };
 
+export const getOptimizedImageUrl = (
+  path: string,
+  size: 'small' | 'medium' | 'large' = 'medium',
+) => {
+  if (!path) return '';
+
+  const sizes = {
+    small: 'w185', // 185px - for thumbnails
+    medium: 'w342', // 342px - for cards (reduced from w500)
+    large: 'w780', // 780px - for banners
+  };
+
+  return `https://image.tmdb.org/t/p/${sizes[size]}${path}`;
+};
+
 export const getSimilarMovies = async (movieId: number, page = 1) => {
   const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/discover/movie`, {

@@ -1,8 +1,9 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback, memo} from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {colors, spacing, borderRadius} from '../styles/theme';
 import {ContentItem} from './MovieList';
 import {MoivieCardSkeleton} from './LoadingSkeleton';
+import {getOptimizedImageUrl} from '../services/tmdb';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -10,87 +11,105 @@ interface ContentCardProps {
   v2?: boolean;
 }
 
-export const ContentCard: React.FC<ContentCardProps> = ({
-  item,
-  onPress,
-  v2 = false,
-}) => {
-  const imageUrl = `https://image.tmdb.org/t/p/w500${
-    v2 ? item.backdrop_path : item?.poster_path
-  }`;
+export const ContentCard: React.FC<ContentCardProps> = memo(
+  ({item, onPress, v2 = false}) => {
+    // Use optimized image sizes for better performance
+    const imageUrl = getOptimizedImageUrl(
+      v2 ? item.backdrop_path : item?.poster_path,
+      'medium',
+    );
 
-  const title = 'title' in item ? item.title : 'name' in item ? item.name : '';
+    const title =
+      'title' in item ? item.title : 'name' in item ? item.name : '';
 
-  const CARD_WIDTH = v2 ? 180 : 120; // Slightly wider cards
-  const CARD_HEIGHT = v2 ? 100 : 180; // Slightly taller aspect ratio
+    const CARD_WIDTH = v2 ? 180 : 120;
+    const CARD_HEIGHT = v2 ? 100 : 180;
 
-  const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
-  const styles = StyleSheet.create({
-    container: {
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
-      flexDirection: 'column',
-      alignItems: 'center',
-      position: 'relative',
-    },
-    skeletonContainer: {
-      width: '100%',
-      height: '100%',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      zIndex: 1,
-    },
-    image: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'cover',
-      borderRadius: borderRadius.md,
-    },
-    infoContainer: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: spacing.sm,
-    },
+    const handlePress = useCallback(() => {
+      onPress(item);
+    }, [onPress, item]);
 
-    title: {
-      fontSize: 12,
-      color: colors.text.secondary,
-      fontWeight: '600',
-      marginBottom: spacing.xs,
-      width: 150,
-    },
-  });
+    const handleImageLoad = useCallback(() => {
+      setImageLoaded(true);
+    }, []);
 
-  return (
-    <>
-      <TouchableOpacity
-        style={styles.container}
-        onPress={() => onPress(item)}
-        activeOpacity={0.9}>
-        {!imageLoaded && (
-          <View style={styles.skeletonContainer}>
-            <MoivieCardSkeleton v2={v2} />
+    const handleImageError = useCallback(() => {
+      setImageLoaded(true);
+      setImageError(true);
+    }, []);
+
+    const styles = StyleSheet.create({
+      container: {
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        flexDirection: 'column',
+        alignItems: 'center',
+        position: 'relative',
+      },
+      skeletonContainer: {
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        zIndex: 1,
+      },
+      image: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+        borderRadius: borderRadius.md,
+      },
+      infoContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: spacing.sm,
+      },
+      title: {
+        fontSize: 12,
+        color: colors.text.secondary,
+        fontWeight: '600',
+        marginBottom: spacing.xs,
+        width: 150,
+      },
+    });
+
+    return (
+      <>
+        <TouchableOpacity
+          style={styles.container}
+          onPress={handlePress}
+          activeOpacity={0.9}>
+          {(!imageLoaded || imageError) && (
+            <View style={styles.skeletonContainer}>
+              <MoivieCardSkeleton v2={v2} />
+            </View>
+          )}
+          {!imageError && (
+            <Image
+              source={{uri: imageUrl}}
+              style={styles.image}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              fadeDuration={0}
+              // Performance optimizations
+              resizeMethod="resize"
+            />
+          )}
+        </TouchableOpacity>
+        {v2 && (
+          <View style={styles.infoContainer}>
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
           </View>
         )}
-        <Image
-          source={{uri: imageUrl}}
-          style={styles.image}
-          onLoad={() => setImageLoaded(true)}
-          onError={() => setImageLoaded(true)}
-          fadeDuration={0}
-        />
-      </TouchableOpacity>
-      {v2 && (
-        <View style={styles.infoContainer}>
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
-        </View>
-      )}
-    </>
-  );
-};
+      </>
+    );
+  },
+);

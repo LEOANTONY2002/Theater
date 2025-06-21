@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback, memo} from 'react';
 import {
   View,
   Text,
@@ -26,110 +26,137 @@ interface HorizontalListProps {
   isTop10?: boolean;
 }
 
-export const HorizontalList: React.FC<HorizontalListProps> = ({
-  title,
-  data,
-  onItemPress,
-  onEndReached,
-  isLoading,
-  onSeeAllPress,
-  isSeeAll = true,
-  isTop10 = false,
-}) => {
-  const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
-  const [isDebouncing, setIsDebouncing] = useState(false);
+export const HorizontalList: React.FC<HorizontalListProps> = memo(
+  ({
+    title,
+    data,
+    onItemPress,
+    onEndReached,
+    isLoading,
+    onSeeAllPress,
+    isSeeAll = true,
+    isTop10 = false,
+  }) => {
+    const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
+    const [isDebouncing, setIsDebouncing] = useState(false);
 
-  // Debounce data changes to prevent rapid re-renders
-  useEffect(() => {
-    if (data && data.length > 0) {
-      setIsDebouncing(true);
-      const timer = setTimeout(() => {
-        setDebouncedData(data);
+    // Debounce data changes to prevent rapid re-renders
+    useEffect(() => {
+      if (data && data.length > 0) {
+        setIsDebouncing(true);
+        const timer = setTimeout(() => {
+          setDebouncedData(data);
+          setIsDebouncing(false);
+        }, 150); // Increased debounce time for better performance
+        return () => clearTimeout(timer);
+      } else {
+        setDebouncedData([]);
         setIsDebouncing(false);
-      }, 100); // 100ms debounce
-      return () => clearTimeout(timer);
-    } else {
-      setDebouncedData([]);
-      setIsDebouncing(false);
-    }
-  }, [data]);
+      }
+    }, [data]);
 
-  const renderItem = ({item, index}: {item: ContentItem; index: number}) => (
-    <View
-      style={
-        isTop10
-          ? {...styles.itemContainer, marginLeft: spacing.xxl}
-          : {...styles.itemContainer}
-      }>
-      <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
-      {isTop10 && (
-        <View style={styles.top10}>
-          <Text style={styles.top10Number}>{index + 1}</Text>
+    const renderItem = useCallback(
+      ({item, index}: {item: ContentItem; index: number}) => (
+        <View
+          style={
+            isTop10
+              ? {...styles.itemContainer, marginLeft: spacing.xxl}
+              : {...styles.itemContainer}
+          }>
+          <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
+          {isTop10 && (
+            <View style={styles.top10}>
+              <Text style={styles.top10Number}>{index + 1}</Text>
+            </View>
+          )}
         </View>
-      )}
-    </View>
-  );
-
-  if (!debouncedData?.length && !isDebouncing) {
-    return (
-      <View>
-        <HeadingSkeleton />
-        <HorizontalListSkeleton />
-      </View>
+      ),
+      [isTop10, title, onItemPress],
     );
-  }
 
-  return (
-    <View style={styles.container}>
-      {title !== 'V2' ? (
-        <View style={styles.headerContainer}>
-          {debouncedData?.length > 0 && isSeeAll ? (
-            <TouchableOpacity
-              style={{
-                width: '100%',
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-              onPress={onSeeAllPress}>
+    const keyExtractor = useCallback(
+      (item: ContentItem) => item?.id?.toString(),
+      [],
+    );
+
+    const getItemLayout = useCallback(
+      (data: any, index: number) => ({
+        length: isTop10 ? 200 : 140, // Approximate item width
+        offset: (isTop10 ? 200 : 140) * index,
+        index,
+      }),
+      [isTop10],
+    );
+
+    if (!debouncedData?.length && !isDebouncing) {
+      return (
+        <View>
+          <HeadingSkeleton />
+          <HorizontalListSkeleton />
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        {title !== 'V2' ? (
+          <View style={styles.headerContainer}>
+            {debouncedData?.length > 0 && isSeeAll ? (
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+                onPress={onSeeAllPress}>
+                <Text style={styles.title} numberOfLines={1}>
+                  {title}
+                </Text>
+                <Ionicon
+                  name="chevron-forward-outline"
+                  size={20}
+                  style={{marginTop: -spacing.xs}}
+                  color={colors.text.muted}
+                />
+              </TouchableOpacity>
+            ) : (
               <Text style={styles.title} numberOfLines={1}>
                 {title}
               </Text>
-              <Ionicon
-                name="chevron-forward-outline"
-                size={20}
-                style={{marginTop: -spacing.xs}}
-                color={colors.text.muted}
-              />
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.title} numberOfLines={1}>
-              {title}
-            </Text>
-          )}
-        </View>
-      ) : null}
-      <FlatList
-        horizontal
-        data={debouncedData}
-        renderItem={renderItem}
-        keyExtractor={item => item?.id?.toString()}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.5}
-        style={isTop10 ? {marginLeft: -spacing.md} : {}}
-        ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={5}
-        windowSize={3}
-        initialNumToRender={5}
-        getItemLayout={undefined}
-      />
-    </View>
-  );
-};
+            )}
+          </View>
+        ) : null}
+        <FlatList
+          horizontal
+          data={debouncedData}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          style={isTop10 ? {marginLeft: -spacing.md} : {}}
+          ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
+          // Performance optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={3}
+          windowSize={2}
+          initialNumToRender={3}
+          getItemLayout={getItemLayout}
+          updateCellsBatchingPeriod={50}
+          disableVirtualization={false}
+          // Reduce memory usage
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+        />
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {
