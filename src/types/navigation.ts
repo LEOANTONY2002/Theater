@@ -118,11 +118,7 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
-  HomeTab: NavigatorScreenParams<HomeStackParamList>;
-  Search: NavigatorScreenParams<SearchStackParamList>;
-  Movies: NavigatorScreenParams<MoviesStackParamList>;
-  TVShows: NavigatorScreenParams<TVShowsStackParamList>;
-  MySpace: NavigatorScreenParams<MySpaceStackParamList>;
+  Main: NavigatorScreenParams<TabParamList>;
 };
 
 export interface PersonDetails {

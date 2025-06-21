@@ -42,7 +42,10 @@ export const useUserContent = (type: ContentType) => {
   const {data: content = [], isLoading} = useQuery({
     queryKey: [type],
     queryFn: () => loadContent(storageKey),
-    staleTime: 0, // Always consider data stale to ensure fresh data
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const addItem = useCallback(

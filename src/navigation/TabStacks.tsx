@@ -16,7 +16,7 @@ import {
   TVShowsStackParamList,
   MySpaceStackParamList,
 } from '../types/navigation';
-import {Genre} from '../screens/Genre';
+import {GenreScreen} from '../screens/Genre';
 import {MyFiltersScreen} from '../screens/MyFilters';
 import {WatchlistsScreen} from '../screens/Watchlists';
 
@@ -80,7 +80,7 @@ export const HomeStackNavigator = () => (
     />
     <HomeStack.Screen
       name="Genre"
-      component={Genre}
+      component={GenreScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,
@@ -156,7 +156,7 @@ export const MoviesStackNavigator = () => (
     />
     <MoviesStack.Screen
       name="Genre"
-      component={Genre}
+      component={GenreScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,
@@ -198,7 +198,7 @@ export const TVShowsStackNavigator = () => (
     />
     <TVShowsStack.Screen
       name="Genre"
-      component={Genre}
+      component={GenreScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,

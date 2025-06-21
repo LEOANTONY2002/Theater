@@ -88,9 +88,9 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
     gcTime: CACHE_TIME,
-    staleTime: 0, // Always consider data stale
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 };
@@ -113,16 +113,20 @@ export const useTop10MoviesTodayByRegion = () => {
   const {data: region} = useQuery<{iso_3166_1: string; english_name: string}>({
     queryKey: ['region'],
     queryFn: SettingsManager.getRegion,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   return useQuery({
     queryKey: ['top_10_movies_today_by_region', region?.iso_3166_1],
     queryFn: () => getTop10MoviesTodayByRegion(),
     gcTime: CACHE_TIME,
-    staleTime: 0, // Always consider the data stale
+    staleTime: 1000 * 60 * 10, // 10 minutes
     enabled: !!region?.iso_3166_1,
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 };

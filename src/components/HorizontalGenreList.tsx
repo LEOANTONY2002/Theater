@@ -78,6 +78,11 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
         keyExtractor={item => item.id.toString()}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tagContent}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={8}
+        windowSize={3}
+        initialNumToRender={8}
+        getItemLayout={undefined}
       />
     </View>
   );

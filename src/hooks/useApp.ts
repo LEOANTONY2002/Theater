@@ -19,9 +19,9 @@ export const useRegion = () => {
   return useQuery({
     queryKey: ['region'],
     queryFn: () => SettingsManager.getRegion(),
-    staleTime: 0,
+    staleTime: 1000 * 60 * 30, // 30 minutes - region doesn't change often
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 };
@@ -31,10 +31,10 @@ export const useSelectedLanguages = () => {
     queryKey: ['selectedLanguages'],
     queryFn: () => SettingsManager.getContentLanguages(),
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     enabled: true,
-    staleTime: 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 

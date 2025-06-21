@@ -7,9 +7,9 @@ export const useWatchlists = () => {
   return useQuery({
     queryKey: ['watchlists'],
     queryFn: () => watchlistManager.getWatchlists(),
-    staleTime: 0,
+    staleTime: 1000 * 60 * 2, // 2 minutes
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 };
@@ -18,9 +18,9 @@ export const useWatchlistItems = (watchlistId: string) => {
   return useQuery({
     queryKey: ['watchlist', watchlistId],
     queryFn: () => watchlistManager.getWatchlistItems(watchlistId),
-    staleTime: 0,
+    staleTime: 1000 * 60 * 2, // 2 minutes
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 };
@@ -121,7 +121,7 @@ export const useIsItemInWatchlist = (watchlistId: string, itemId: number) => {
   return useQuery({
     queryKey: ['isItemInWatchlist', watchlistId, itemId],
     queryFn: () => watchlistManager.isItemInWatchlist(watchlistId, itemId),
-    staleTime: 0,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
 
@@ -129,7 +129,7 @@ export const useIsItemInAnyWatchlist = (itemId: number) => {
   return useQuery({
     queryKey: ['isItemInAnyWatchlist', itemId],
     queryFn: () => watchlistManager.isItemInAnyWatchlist(itemId),
-    staleTime: 0,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
 
@@ -137,6 +137,6 @@ export const useWatchlistContainingItem = (itemId: number) => {
   return useQuery({
     queryKey: ['watchlistContainingItem', itemId],
     queryFn: () => watchlistManager.getWatchlistContainingItem(itemId),
-    staleTime: 0,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };

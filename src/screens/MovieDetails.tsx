@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  InteractionManager,
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
@@ -17,12 +18,12 @@ import {
   useSimilarMovies,
   useMovieRecommendations,
 } from '../hooks/useMovies';
-import {getImageUrl, getLanguage} from '../services/tmdb';
+import {getImageUrl} from '../services/tmdb';
 import {Movie, MovieDetails as MovieDetailsType} from '../types/movie';
 import {Video, Genre, Cast} from '../types/movie';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 import {MySpaceStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -42,20 +43,31 @@ import {
   useIsItemInAnyWatchlist,
   useWatchlistContainingItem,
   useRemoveFromWatchlist,
+  useAddToWatchlist,
 } from '../hooks/useWatchlists';
+import {useFocusEffect} from '@react-navigation/native';
+import {useNavigationState} from '../hooks/useNavigationState';
+import languageData from '../utils/language.json';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
+type MovieDetailsScreenRouteProp = RouteProp<
+  MySpaceStackParamList,
+  'MovieDetails'
+>;
 
 interface MovieDetailsScreenProps {
-  route: {
-    params: {
-      movie: Movie;
-    };
-  };
+  navigation: MovieDetailsScreenNavigationProp;
+  route: MovieDetailsScreenRouteProp;
 }
 
 const {width} = Dimensions.get('window');
+
+// Simple function to get language name
+const getLanguage = (code: string) => {
+  const language = languageData.find(lang => lang.iso_639_1 === code);
+  return language?.english_name || code.toUpperCase();
+};
 
 export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   route,
@@ -65,30 +77,45 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
-  const {data: movieDetails, isLoading} = useMovieDetails(movie.id);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [canRenderContent, setCanRenderContent] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const {isNavigating, handleNavigation} = useNavigationState();
 
-  const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(movie.id);
+  // Defer heavy rendering to prevent FPS drops
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCanRenderContent(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Set loading to false after a short delay to allow smooth transition
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const {data: movieDetails, isLoading: isLoadingDetails} = useMovieDetails(
+    movie.id,
+  );
+  const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
+    movie.id,
+  );
+  const {data: recommendations, isLoading: isLoadingRecommendations} =
+    useMovieRecommendations(movie.id);
+  const {data: isInWatchlist} = useIsItemInAnyWatchlist(movie.id);
+  const addToWatchlistMutation = useAddToWatchlist();
+
   const {data: watchlistContainingItem} = useWatchlistContainingItem(movie.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
-
-  const {
-    data: similarMovies,
-    fetchNextPage: fetchNextSimilar,
-    hasNextPage: hasNextSimilar,
-    isFetchingNextPage: isFetchingSimilar,
-  } = useSimilarMovies(movie.id);
-
-  const {
-    data: recommendedMovies,
-    fetchNextPage: fetchNextRecommended,
-    hasNextPage: hasNextRecommended,
-    isFetchingNextPage: isFetchingRecommended,
-  } = useMovieRecommendations(movie.id);
 
   const {data: watchProviders} = useWatchProviders(movie.id, 'movie');
 
   const handleWatchlistPress = useCallback(async () => {
-    if (isInAnyWatchlist && watchlistContainingItem) {
+    if (isInWatchlist && watchlistContainingItem) {
       // If item is already in a watchlist, remove it
       try {
         await removeFromWatchlistMutation.mutateAsync({
@@ -103,7 +130,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       setShowWatchlistModal(true);
     }
   }, [
-    isInAnyWatchlist,
+    isInWatchlist,
     watchlistContainingItem,
     removeFromWatchlistMutation,
     movie.id,
@@ -113,41 +140,68 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
   );
 
-  const handleSimilarMoviePress = useCallback(
+  const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
         navigation.navigate('MovieDetails', {movie: item as Movie});
+      } else {
+        navigation.navigate('TVShowDetails', {show: item as any});
       }
     },
     [navigation],
   );
 
-  const handleRecommendedMoviePress = useCallback(
-    (item: ContentItem) => {
-      if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
+  const handleBackPress = useCallback(() => {
+    handleNavigation(() => navigation.goBack());
+  }, [navigation, handleNavigation]);
+
+  const handleAddToWatchlist = useCallback(
+    async (watchlistId: string) => {
+      try {
+        await addToWatchlistMutation.mutateAsync({
+          watchlistId,
+          item: movie,
+          itemType: 'movie',
+        });
+        setShowWatchlistModal(false);
+      } catch (error) {
+        console.error('Error adding to watchlist:', error);
       }
     },
-    [navigation],
+    [movie, addToWatchlistMutation],
   );
 
-  if (isLoading) {
+  const similarMoviesData = useMemo(() => {
+    return (
+      similarMovies?.pages?.flatMap(page =>
+        page.results.map((movie: Movie) => ({
+          ...movie,
+          type: 'movie' as const,
+        })),
+      ) || []
+    );
+  }, [similarMovies]);
+
+  const recommendationsData = useMemo(() => {
+    return (
+      recommendations?.pages?.flatMap(page =>
+        page.results.map((movie: Movie) => ({
+          ...movie,
+          type: 'movie' as const,
+        })),
+      ) || []
+    );
+  }, [recommendations]);
+
+  // Show loading state immediately to prevent FPS drop
+  if (!canRenderContent) {
     return (
       <View style={styles.loadingContainer}>
-        <DetailScreenSkeleton />
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
-
-  const similarMoviesData =
-    similarMovies?.pages.flatMap(page =>
-      page.results.map((movie: Movie) => ({...movie, type: 'movie' as const})),
-    ) || [];
-
-  const recommendedMoviesData =
-    recommendedMovies?.pages.flatMap(page =>
-      page.results.map((movie: Movie) => ({...movie, type: 'movie' as const})),
-    ) || [];
 
   return (
     <View style={styles.container}>
@@ -225,7 +279,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     alignItems: 'center',
                     gap: spacing.xs,
                   }}>
-                  <Ionicons name="star" size={12} color="#ffffff70" />
+                  <Icon name="star" size={12} color="#ffffff70" />
                   <Text style={styles.info}>
                     {movieDetails.vote_average.toFixed(1)}
                   </Text>
@@ -246,10 +300,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               style={styles.addButton}
               onPress={handleWatchlistPress}
               disabled={removeFromWatchlistMutation.isPending}>
-              <Ionicons
-                name={isInAnyWatchlist ? 'checkmark' : 'add'}
+              <Icon
+                name={isInWatchlist ? 'checkmark' : 'add'}
                 size={24}
-                color={isInAnyWatchlist ? colors.accent : '#fff'}
+                color={isInWatchlist ? colors.accent : '#fff'}
               />
             </TouchableOpacity>
           </View>
@@ -309,21 +363,17 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           <HorizontalList
             title="Similar Movies"
             data={similarMoviesData}
-            onItemPress={handleSimilarMoviePress}
-            onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
-            isLoading={isFetchingSimilar}
-            isSeeAll={false}
+            onItemPress={handleItemPress}
+            isLoading={isLoadingSimilar}
           />
         )}
 
-        {recommendedMoviesData.length > 0 && (
+        {recommendationsData.length > 0 && (
           <HorizontalList
             title="Recommended Movies"
-            data={recommendedMoviesData}
-            onItemPress={handleRecommendedMoviePress}
-            onEndReached={hasNextRecommended ? fetchNextRecommended : undefined}
-            isLoading={isFetchingRecommended}
-            isSeeAll={false}
+            data={recommendationsData}
+            onItemPress={handleItemPress}
+            isLoading={isLoadingRecommendations}
           />
         )}
         <View style={{height: 100}} />
@@ -335,6 +385,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         item={movie}
         itemType="movie"
       />
+
+      {(isInitialLoading || isNavigating) && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </View>
   );
 };
@@ -346,7 +402,14 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.background.primary,
+  },
+  loadingText: {
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    ...typography.body1,
   },
   gradientShade: {
     position: 'absolute',
@@ -607,5 +670,50 @@ const styles = StyleSheet.create({
   recommendedSection: {
     flexDirection: 'column',
     gap: 16,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    padding: 16,
+  },
+  watchlistButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  movieInfo: {
+    flexDirection: 'column',
+    gap: 16,
+  },
+  details: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailText: {
+    ...typography.body2,
+    color: 'rgba(255, 255, 255, 0.68)',
   },
 });

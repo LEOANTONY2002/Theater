@@ -59,6 +59,11 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
         }
         onEndReachedThreshold={0.5}
         ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        initialNumToRender={6}
+        getItemLayout={undefined}
       />
     </View>
   );

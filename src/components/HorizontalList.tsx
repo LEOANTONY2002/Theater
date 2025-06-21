@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,24 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
   isSeeAll = true,
   isTop10 = false,
 }) => {
+  const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
+  const [isDebouncing, setIsDebouncing] = useState(false);
+
+  // Debounce data changes to prevent rapid re-renders
+  useEffect(() => {
+    if (data && data.length > 0) {
+      setIsDebouncing(true);
+      const timer = setTimeout(() => {
+        setDebouncedData(data);
+        setIsDebouncing(false);
+      }, 100); // 100ms debounce
+      return () => clearTimeout(timer);
+    } else {
+      setDebouncedData([]);
+      setIsDebouncing(false);
+    }
+  }, [data]);
+
   const renderItem = ({item, index}: {item: ContentItem; index: number}) => (
     <View
       style={
@@ -52,7 +70,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
     </View>
   );
 
-  if (!data?.length) {
+  if (!debouncedData?.length && !isDebouncing) {
     return (
       <View>
         <HeadingSkeleton />
@@ -65,7 +83,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
     <View style={styles.container}>
       {title !== 'V2' ? (
         <View style={styles.headerContainer}>
-          {data?.length > 0 && isSeeAll ? (
+          {debouncedData?.length > 0 && isSeeAll ? (
             <TouchableOpacity
               style={{
                 width: '100%',
@@ -94,7 +112,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
       ) : null}
       <FlatList
         horizontal
-        data={data}
+        data={debouncedData}
         renderItem={renderItem}
         keyExtractor={item => item?.id?.toString()}
         showsHorizontalScrollIndicator={false}
@@ -103,6 +121,11 @@ export const HorizontalList: React.FC<HorizontalListProps> = ({
         onEndReachedThreshold={0.5}
         style={isTop10 ? {marginLeft: -spacing.md} : {}}
         ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={3}
+        initialNumToRender={5}
+        getItemLayout={undefined}
       />
     </View>
   );

@@ -198,6 +198,10 @@ export const HomeScreen = () => {
   const {data: savedFilters, isLoading: isLoadingSavedFilters} = useQuery({
     queryKey: ['savedFilters'],
     queryFn: () => FiltersManager.getSavedFilters(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const filterContent = useMemo(() => {
@@ -304,7 +308,8 @@ export const HomeScreen = () => {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {featuredItems.length > 0 ? (
-          <FeaturedBannerHome items={featuredItems} />
+          // <FeaturedBannerHome items={featuredItems} />
+          <View></View>
         ) : (
           <View style={styles.skeletonContainer}>
             <BannerHomeSkeleton />

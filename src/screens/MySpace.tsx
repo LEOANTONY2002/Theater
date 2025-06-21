@@ -63,18 +63,19 @@ export const MySpaceScreen = () => {
   const {data: savedFilters = [], isLoading: isLoadingFilters} = useQuery({
     queryKey: ['savedFilters'],
     queryFn: FiltersManager.getSavedFilters,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 
   const {data: currentRegion} = useQuery<Region>({
     queryKey: ['region'],
     queryFn: SettingsManager.getRegion,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 
@@ -91,8 +92,15 @@ export const MySpaceScreen = () => {
   useEffect(() => {
     // Listen for both language and region changes
     const handleSettingsChange = () => {
-      // Invalidate all queries to refetch with new settings
-      queryClient.invalidateQueries();
+      // Only invalidate specific queries that depend on settings
+      queryClient.invalidateQueries({queryKey: ['selectedLanguages']});
+      queryClient.invalidateQueries({queryKey: ['region']});
+      queryClient.invalidateQueries({
+        queryKey: ['top_10_movies_today_by_region'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['top_10_shows_today_by_region'],
+      });
     };
 
     SettingsManager.addChangeListener(handleSettingsChange);

@@ -125,6 +125,11 @@ export const WatchlistDetailsScreen: React.FC<WatchlistDetailsScreenProps> = ({
           keyExtractor={item => `${item.id}-${item.type}`}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          getItemLayout={undefined}
         />
       )}
     </View>

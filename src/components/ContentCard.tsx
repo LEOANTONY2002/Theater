@@ -81,6 +81,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({
           style={styles.image}
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageLoaded(true)}
+          fadeDuration={0}
         />
       </TouchableOpacity>
       {v2 && (

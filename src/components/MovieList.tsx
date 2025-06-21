@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   FlatList,
@@ -38,6 +38,20 @@ export const MovieList: React.FC<MovieListProps> = ({
   emptyText,
   emptySubtext,
 }) => {
+  const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
+
+  // Debounce data changes to prevent rapid re-renders
+  useEffect(() => {
+    if (data && data.length > 0) {
+      const timer = setTimeout(() => {
+        setDebouncedData(data);
+      }, 100); // 100ms debounce
+      return () => clearTimeout(timer);
+    } else {
+      setDebouncedData([]);
+    }
+  }, [data]);
+
   const renderFooter = () => {
     if (!isLoading) return null;
     return (
@@ -66,7 +80,7 @@ export const MovieList: React.FC<MovieListProps> = ({
 
   return (
     <FlatList
-      data={data}
+      data={debouncedData}
       renderItem={renderItem}
       keyExtractor={item => `${item.type}-${item.id}`}
       numColumns={3}
@@ -83,6 +97,12 @@ export const MovieList: React.FC<MovieListProps> = ({
           />
         ) : undefined
       }
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={6}
+      windowSize={5}
+      initialNumToRender={6}
+      getItemLayout={undefined}
+      showsVerticalScrollIndicator={false}
     />
   );
 };

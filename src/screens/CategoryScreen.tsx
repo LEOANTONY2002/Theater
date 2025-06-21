@@ -9,7 +9,12 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
-import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  RouteProp,
+  useFocusEffect,
+} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {
   MoviesStackParamList,
@@ -36,6 +41,7 @@ import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {MovieCard} from '../components/MovieCard';
 import {SavedFilter} from '../types/filters';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList,
@@ -51,6 +57,25 @@ export const CategoryScreen = () => {
   const navigation = useNavigation<CategoryScreenNavigationProp>();
   const route = useRoute<CategoryScreenRouteProp>();
   const {title, categoryType, contentType, filter} = route.params;
+  const [canRenderContent, setCanRenderContent] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const {isNavigating} = useNavigationState();
+
+  // Defer heavy rendering to prevent FPS drops
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCanRenderContent(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Set loading to false after a short delay to allow smooth transition
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Define internal item press handler
   const handleItemPress = useCallback(
@@ -99,11 +124,11 @@ export const CategoryScreen = () => {
     hasNextPage,
     isFetchingNextPage,
     refetch,
-    isLoading: isInitialLoading,
+    isLoading: isInitialLoadingData,
     isRefetching,
   } = contentType === 'movie' ? moviesList : tvShowsList;
 
-  const isLoading = isInitialLoading || isRefetching || isFilterLoading;
+  const isLoading = isInitialLoadingData || isRefetching || isFilterLoading;
 
   // Flatten the pages data for infinite queries
   const flattenedData = useMemo(() => {
@@ -118,13 +143,7 @@ export const CategoryScreen = () => {
     }
   }, [filter, filterContent, data]);
 
-  const renderItem: ({
-    item,
-    index,
-  }: {
-    item: ContentItem;
-    index: number;
-  }) => JSX.Element = ({item, index}) => (
+  const renderItem = ({item}: {item: ContentItem}) => (
     <MovieCard item={item} onPress={handleItemPress} />
   );
 
@@ -137,6 +156,16 @@ export const CategoryScreen = () => {
       fetchNextPage();
     }
   };
+
+  // Show loading screen until content can be rendered
+  if (!canRenderContent) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -178,14 +207,17 @@ export const CategoryScreen = () => {
               </View>
             ) : null
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          initialNumToRender={6}
+          getItemLayout={undefined}
         />
       </View>
 
-      {isLoading && (
-        <View style={styles.fullScreenLoader}>
+      {(isInitialLoading || isNavigating) && (
+        <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingTitle}>Loading</Text>
-          <Text style={styles.loadingSubtitle}>{title}</Text>
         </View>
       )}
     </View>
@@ -249,9 +281,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   loadingText: {
-    marginTop: spacing.sm,
     color: colors.text.primary,
-    ...typography.body2,
+    marginTop: spacing.md,
+    ...typography.body1,
   },
   emptyContainer: {
     padding: spacing.xxl,
@@ -292,5 +324,17 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.text.secondary,
     marginTop: spacing.sm,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.primary,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.background.primary + 'CC',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

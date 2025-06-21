@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {
   View,
   StyleSheet,
@@ -6,9 +6,16 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   FlatList,
+  Dimensions,
+  Image,
 } from 'react-native';
-import {useRoute, RouteProp, useNavigation} from '@react-navigation/native';
-import {RootStackParamList} from '../types/navigation';
+import {
+  useRoute,
+  RouteProp,
+  useNavigation,
+  useFocusEffect,
+} from '@react-navigation/native';
+import {HomeStackParamList} from '../types/navigation';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {getContentByGenre} from '../services/tmdb';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
@@ -19,12 +26,43 @@ import {MovieCard} from '../components/MovieCard';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {ContentItem} from '../components/MovieList';
 import {GridSkeleton} from '../components/LoadingSkeleton';
+import {getImageUrl} from '../services/tmdb';
+import {useNavigationState} from '../hooks/useNavigationState';
 
-export const Genre = () => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'Genre'>>();
+type GenreScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
+type GenreScreenRouteProp = RouteProp<HomeStackParamList, 'Genre'>;
+
+interface GenreScreenProps {
+  navigation: GenreScreenNavigationProp;
+  route: GenreScreenRouteProp;
+}
+
+const {width} = Dimensions.get('window');
+const numColumns = 3;
+const itemWidth = (width - spacing.md * 4) / numColumns;
+
+export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
+  const navigation = useNavigation<GenreScreenNavigationProp>();
   const {genreId, genreName, contentType} = route.params;
+  const [canRenderContent, setCanRenderContent] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const {isNavigating, handleNavigation} = useNavigationState();
+
+  // Defer heavy rendering to prevent FPS drops
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCanRenderContent(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Set loading to false after a short delay to allow smooth transition
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const {
     data,
@@ -68,97 +106,117 @@ export const Genre = () => {
     }
   }, [genreId, contentType, refetch]);
 
-  const handleItemPress = (item: ContentItem) => {
-    if (item.type === 'movie') {
-      navigation.navigate('MovieDetails', {movie: item as Movie});
-    } else {
-      navigation.navigate('TVShowDetails', {show: item as TVShow});
-    }
-  };
-
-  const renderItem = ({item}: {item: ContentItem}) => (
-    <MovieCard
-      item={item}
-      onPress={() => handleItemPress(item)}
-      size="normal"
-    />
+  const handleItemPress = useCallback(
+    (item: ContentItem) => {
+      if (item.type === 'movie') {
+        navigation.navigate('MovieDetails', {movie: item as Movie});
+      } else {
+        navigation.navigate('TVShowDetails', {show: item as TVShow});
+      }
+    },
+    [navigation],
   );
 
-  const handleEndReached = () => {
+  const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Show loading state only during initial load
-  // if (isLoading) {
-  //   return (
-  //     <View style={styles.fullScreenLoader}>
-  //       <GridSkeleton />
-  //     </View>
-  //   );
-  // }
+  const renderItem = useCallback(
+    ({item}: {item: ContentItem}) => (
+      <MovieCard
+        item={item}
+        onPress={() => handleItemPress(item)}
+        size="normal"
+      />
+    ),
+    [handleItemPress],
+  );
+
+  const renderFooter = useCallback(() => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading more...</Text>
+      </View>
+    );
+  }, [isFetchingNextPage]);
+
+  // Show loading screen until content can be rendered
+  if (!canRenderContent) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{genreName}</Text>
-          </View>
-        </View>
-
-        <View style={styles.contentContainer}>
-          {isLoading ? (
-            <GridSkeleton />
-          ) : (
-            <FlatList
-              data={allItems}
-              renderItem={renderItem}
-              keyExtractor={item => item.id.toString()}
-              numColumns={3}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={[
-                styles.listContent,
-                allItems.length === 0 && styles.emptyListContent,
-              ]}
-              onEndReached={handleEndReached}
-              onEndReachedThreshold={0.5}
-              ListFooterComponent={
-                <View style={styles.footerLoader}>
-                  {isFetchingNextPage && (
-                    <View style={styles.loadingIndicatorContainer}>
-                      <ActivityIndicator size="large" color={colors.primary} />
-                      <Text style={styles.loadingText}>Loading more...</Text>
-                    </View>
-                  )}
-                  <View style={styles.footerSpace} />
-                </View>
-              }
-              ListEmptyComponent={
-                !isLoading && !isFetching ? (
-                  <View style={styles.emptyContainer}>
-                    <Icon
-                      name="alert-circle-outline"
-                      size={48}
-                      color={colors.text.muted}
-                    />
-                    <Text style={styles.emptyText}>
-                      No {contentType === 'movie' ? 'movies' : 'TV shows'} found
-                      in this genre
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.retryButton}
-                      onPress={() => refetch()}>
-                      <Text style={styles.retryText}>Try Again</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : null
-              }
-            />
-          )}
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{genreName}</Text>
         </View>
       </View>
+
+      <View style={styles.contentContainer}>
+        {isLoading ? (
+          <GridSkeleton />
+        ) : (
+          <FlatList
+            data={allItems}
+            renderItem={renderItem}
+            keyExtractor={item => `${item.id}-${item.type}`}
+            showsVerticalScrollIndicator={false}
+            numColumns={numColumns}
+            contentContainerStyle={[
+              styles.listContent,
+              allItems.length === 0 && styles.emptyListContent,
+            ]}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={
+              !isLoading && !isFetching ? (
+                <View style={styles.emptyContainer}>
+                  <Icon
+                    name="alert-circle-outline"
+                    size={48}
+                    color={colors.text.muted}
+                  />
+                  <Text style={styles.emptyText}>
+                    No {contentType === 'movie' ? 'movies' : 'TV shows'} found
+                    in this genre
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={() => refetch()}>
+                    <Text style={styles.retryText}>Try Again</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null
+            }
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={6}
+            windowSize={10}
+            initialNumToRender={8}
+            getItemLayout={(data, index) => ({
+              length: itemWidth * 1.5,
+              offset: itemWidth * 1.5 * Math.floor(index / numColumns),
+              index,
+            })}
+          />
+        )}
+      </View>
+
+      {(isInitialLoading || isNavigating) && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </View>
   );
 };
@@ -249,8 +307,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
     ...typography.button,
   },
-  fullScreenLoader: {
-    ...StyleSheet.absoluteFillObject,
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background.primary,
@@ -265,5 +323,15 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.text.secondary,
     marginTop: spacing.xs,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.background.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
