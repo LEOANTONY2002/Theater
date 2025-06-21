@@ -53,7 +53,9 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
         overlayColor={colors.modal.content}
       />
       <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
-      <Text style={styles.tagText}>{item?.name}</Text>
+      <Text style={styles.tagText} numberOfLines={2}>
+        {item?.name}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -129,16 +131,19 @@ const styles = StyleSheet.create({
   tagBgText: {
     position: 'absolute',
     zIndex: 1,
-    color: colors.text.primary,
+    color: colors.text.tertiary,
     opacity: 0.2,
     fontSize: 60,
     fontWeight: '900',
   },
   tagText: {
     color: colors.text.primary,
-    ...typography.h3,
     opacity: 0.7,
+    fontSize: 13,
     textAlign: 'center',
     zIndex: 2,
+    width: '100%',
+    height: '100%',
+    textAlignVertical: 'center',
   },
 });
