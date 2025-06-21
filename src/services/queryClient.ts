@@ -3,55 +3,46 @@ import {QueryClient} from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Ultra-aggressive cache management to prevent memory bloat
-      staleTime: 1000 * 30, // 30 seconds - very short
-      gcTime: 1000 * 60, // 1 minute - very aggressive
+      // Better cache management for improved performance
+      staleTime: 1000 * 60 * 5, // 5 minutes - reasonable cache time
+      gcTime: 1000 * 60 * 10, // 10 minutes - keep in cache longer
       // Reduce retries to prevent excessive API calls
-      retry: 0, // No retries to prevent blocking
-      retryDelay: 0,
-      // Disable all refetching to prevent FPS drops
+      retry: 1, // Allow 1 retry for failed requests
+      retryDelay: 1000,
+      // Smart refetching to balance freshness and performance
       refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
+      refetchOnReconnect: true, // Refetch on reconnect for fresh data
+      refetchOnMount: false, // Don't refetch on mount if data is fresh
       // Prevent too many concurrent queries
       networkMode: 'online',
     },
     mutations: {
-      retry: 0,
-      retryDelay: 0,
+      retry: 1,
+      retryDelay: 1000,
     },
   },
 });
 
-// Ultra-aggressive cache cleanup to prevent memory bloat
+// Moderate cache cleanup to prevent memory bloat
 setInterval(() => {
   queryClient.removeQueries({
     predicate: query => {
-      // Remove queries older than 2 minutes
-      const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+      // Remove queries older than 15 minutes (increased from 2 minutes)
+      const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
       return (
-        !query.state.dataUpdatedAt || query.state.dataUpdatedAt < twoMinutesAgo
+        !query.state.dataUpdatedAt ||
+        query.state.dataUpdatedAt < fifteenMinutesAgo
       );
     },
   });
-}, 30 * 1000); // Run every 30 seconds - very aggressive
+}, 5 * 60 * 1000); // Run every 5 minutes (increased from 30 seconds)
 
 // Emergency cleanup when too many queries
 setInterval(() => {
   const allQueries = queryClient.getQueryCache().getAll();
-  if (allQueries.length > 20) {
+  if (allQueries.length > 50) {
+    // Increased threshold from 20
     console.warn('Too many queries - clearing cache');
     queryClient.clear();
   }
-}, 10 * 1000); // Check every 10 seconds
-
-// Limit concurrent queries
-queryClient.setDefaultOptions({
-  queries: {
-    ...queryClient.getDefaultOptions().queries,
-    // Cancel previous queries when new ones start
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  },
-});
+}, 30 * 1000); // Check every 30 seconds (increased from 10 seconds)
