@@ -21,6 +21,7 @@ import {TVShow} from '../types/tvshow';
 import {ContentItem} from '../components/MovieList';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type WatchlistDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -38,6 +39,7 @@ export const WatchlistDetailsScreen: React.FC<WatchlistDetailsScreenProps> = ({
 }) => {
   const navigation = useNavigation<WatchlistDetailsScreenNavigationProp>();
   const {watchlistId} = route.params;
+  const {navigateWithLimit} = useNavigationState();
 
   const {data: watchlistItems = [], isLoading} = useWatchlistItems(watchlistId);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
@@ -45,16 +47,16 @@ export const WatchlistDetailsScreen: React.FC<WatchlistDetailsScreenProps> = ({
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {
+        navigateWithLimit('MovieDetails', {
           movie: item as Movie,
         });
       } else {
-        navigation.navigate('TVShowDetails', {
+        navigateWithLimit('TVShowDetails', {
           show: item as TVShow,
         });
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const handleRemoveItem = useCallback(

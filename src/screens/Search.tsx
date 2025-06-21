@@ -39,6 +39,7 @@ import {RootStackParamList} from '../types/navigation';
 import {FilterModal} from '../components/FilterModal';
 import {FilterParams} from '../types/filters';
 import {useTrending} from '../hooks/useApp';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -67,6 +68,7 @@ const NoResults = ({query}: {query: string}) => (
 
 export const SearchScreen = () => {
   const navigation = useNavigation<SearchScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [recentItems, setRecentItems] = useState<ContentItem[]>([]);
@@ -215,14 +217,13 @@ export const SearchScreen = () => {
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
-      saveRecentItem(item);
       if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
       } else {
-        navigation.navigate('TVShowDetails', {show: item as TVShow});
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const isLoading = isLoadingMovies || isLoadingTV;

@@ -26,6 +26,8 @@ import {
   useRemoveFromWatchlist,
   useWatchlistContainingItem,
 } from '../hooks/useWatchlists';
+import {useNavigationState} from '../hooks/useNavigationState';
+
 const {width} = Dimensions.get('window');
 const BANNER_HEIGHT = 680;
 
@@ -78,7 +80,7 @@ type FeaturedBannerProps = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
+export const FeaturedBanner = ({item, type}: FeaturedBannerProps) => {
   const [loading, setLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const title =
@@ -92,7 +94,8 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
     addItem: addToWatchlist,
     removeItem: removeFromWatchlist,
   } = useUserContent('WATCHLIST');
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation();
+  const {navigateWithLimit} = useNavigationState();
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
@@ -105,13 +108,13 @@ export const FeaturedBanner: React.FC<FeaturedBannerProps> = ({item, type}) => {
     }
   };
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (type === 'movie') {
-      navigation.navigate('MovieDetails', {movie: item as Movie});
+      navigateWithLimit('MovieDetails', {movie: item as Movie});
     } else {
-      navigation.navigate('TVShowDetails', {show: item as TVShow});
+      navigateWithLimit('TVShowDetails', {show: item as TVShow});
     }
-  };
+  }, [navigateWithLimit, item, type]);
 
   if (item?.poster_path === null) {
     return (

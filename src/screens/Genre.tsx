@@ -46,7 +46,8 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const {genreId, genreName, contentType} = route.params;
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const {isNavigating, handleNavigation} = useNavigationState();
+  const {isNavigating, handleNavigation, navigateWithLimit} =
+    useNavigationState();
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -109,12 +110,12 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
       } else {
-        navigation.navigate('TVShowDetails', {show: item as TVShow});
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const handleLoadMore = useCallback(() => {

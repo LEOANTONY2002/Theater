@@ -48,6 +48,8 @@ import {
 import {useFocusEffect} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import languageData from '../utils/language.json';
+import {useDeepNavigationProtection} from '../hooks/useDeepNavigationProtection';
+import {useQueryClient} from '@tanstack/react-query';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -80,7 +82,19 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const {isNavigating, handleNavigation} = useNavigationState();
+  const {navigateWithLimit} = useNavigationState();
+  const {isDeepNavigation} = useDeepNavigationProtection();
+  const queryClient = useQueryClient();
+
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clean up queries when screen unmounts
+      queryClient.removeQueries({
+        queryKey: ['movie', movie.id],
+      });
+    };
+  }, [movie.id]);
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -143,17 +157,17 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
       } else {
-        navigation.navigate('TVShowDetails', {show: item as any});
+        navigateWithLimit('TVShowDetails', {show: item as any});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const handleBackPress = useCallback(() => {
-    handleNavigation(() => navigation.goBack());
-  }, [navigation, handleNavigation]);
+    navigation.goBack();
+  }, [navigation]);
 
   const handleAddToWatchlist = useCallback(
     async (watchlistId: string) => {
@@ -192,6 +206,17 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       ) || []
     );
   }, [recommendations]);
+
+  const handlePersonPress = useCallback(
+    (personId: number, personName: string) => {
+      navigateWithLimit('PersonCredits', {
+        personId,
+        personName,
+        contentType: 'movie',
+      });
+    },
+    [navigateWithLimit],
+  );
 
   // Show loading state immediately to prevent FPS drop
   if (!canRenderContent) {
@@ -334,13 +359,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 <TouchableOpacity
                   key={person.id}
                   style={styles.castItem}
-                  onPress={() =>
-                    navigation.navigate('PersonCredits', {
-                      personId: person.id,
-                      personName: person.name,
-                      contentType: 'movie',
-                    })
-                  }>
+                  onPress={() => handlePersonPress(person.id, person.name)}>
                   <PersonCard
                     item={getImageUrl(person.profile_path || '', 'original')}
                     onPress={() => {}}
@@ -386,7 +405,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         itemType="movie"
       />
 
-      {(isInitialLoading || isNavigating) && (
+      {isInitialLoading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>

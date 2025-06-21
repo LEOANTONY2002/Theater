@@ -8,17 +8,31 @@ import {useNavigation} from '@react-navigation/native';
 import {SavedFilter} from '../types/filters';
 import {useSavedFilterContent} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
   const navigation = useNavigation();
-  const handleItemPress = useCallback((item: ContentItem) => {
-    if (item.type === 'movie') {
-      navigation.navigate('MovieDetails', {movie: item as Movie});
-    } else if (item.type === 'tv') {
-      console.log('item', item);
-      navigation.navigate('TVShowDetails', {show: item as unknown as TVShow});
-    }
-  }, []);
+  const {navigateWithLimit} = useNavigationState();
+
+  const handleItemPress = useCallback(
+    (item: ContentItem) => {
+      if (item.type === 'movie') {
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else if (item.type === 'tv') {
+        console.log('item', item);
+        navigateWithLimit('TVShowDetails', {show: item as unknown as TVShow});
+      }
+    },
+    [navigateWithLimit],
+  );
+
+  const handleSeeAllPress = useCallback(() => {
+    navigateWithLimit('Category', {
+      title: savedFilter.name,
+      contentType: savedFilter.type,
+      filter: savedFilter,
+    });
+  }, [navigateWithLimit, savedFilter]);
 
   const {data: filterContent, isLoading: isLoadingFilterContent} =
     useSavedFilterContent(savedFilter);
@@ -34,13 +48,7 @@ export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
           isLoading={isLoadingFilterContent}
           onItemPress={handleItemPress}
           onEndReached={() => {}}
-          onSeeAllPress={() => {
-            navigation.navigate('Category', {
-              title: savedFilter.name,
-              contentType: savedFilter.type,
-              filter: savedFilter,
-            } as any);
-          }}
+          onSeeAllPress={handleSeeAllPress}
         />
       )}
     </View>

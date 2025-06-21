@@ -39,12 +39,16 @@ const defaultScreenOptions = {
   },
   animation: 'slide_from_right' as const,
   presentation: 'transparentModal' as const,
+  unmountOnBlur: true,
+  detachInactiveScreens: true,
 };
 
 const modalScreenOptions = {
   ...defaultScreenOptions,
   animation: 'slide_from_bottom' as const,
   presentation: 'transparentModal' as const,
+  unmountOnBlur: true,
+  detachInactiveScreens: true,
 };
 
 export const HomeStackNavigator = () => (

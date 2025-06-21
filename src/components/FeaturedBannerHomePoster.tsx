@@ -26,6 +26,7 @@ import {
   useRemoveFromWatchlist,
   useWatchlistContainingItem,
 } from '../hooks/useWatchlists';
+import {useNavigationState} from '../hooks/useNavigationState';
 const {width} = Dimensions.get('window');
 const BANNER_HEIGHT = 680;
 
@@ -86,26 +87,21 @@ export const FeaturedBannerHomePoster: React.FC<
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
-  // const title =
-  //   type === 'movie' ? (item as Movie).title : (item as TVShow).name;
-  // const releaseDate =
-  //   type === 'movie'
-  //     ? (item as Movie).release_date
-  //     : (item as TVShow).first_air_date;
   const {
     isItemInContent: checkInWatchlist,
     addItem: addToWatchlist,
     removeItem: removeFromWatchlist,
   } = useUserContent('WATCHLIST');
   const navigation = useNavigation<NavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (type === 'movie') {
-      navigation.navigate('MovieDetails', {movie: item as Movie});
+      navigateWithLimit('MovieDetails', {movie: item as Movie});
     } else {
-      navigation.navigate('TVShowDetails', {show: item as TVShow});
+      navigateWithLimit('TVShowDetails', {show: item as TVShow});
     }
-  };
+  }, [navigateWithLimit, item, type]);
 
   const handleWatchlistPress = useCallback(async () => {
     if (isInAnyWatchlist && watchlistContainingItem) {

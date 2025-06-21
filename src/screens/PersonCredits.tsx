@@ -25,6 +25,7 @@ import {TVShow} from '../types/tvshow';
 import {MovieCard} from '../components/MovieCard';
 import {getImageUrl} from '../services/tmdb';
 import {LinearGradient} from 'react-native-linear-gradient';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type PersonCreditsScreenNavigationProp =
   NativeStackNavigationProp<HomeStackParamList>;
@@ -37,6 +38,7 @@ export const PersonCreditsScreen = () => {
   const navigation = useNavigation<PersonCreditsScreenNavigationProp>();
   const route = useRoute<PersonCreditsScreenRouteProp>();
   const {personId, personName} = route.params;
+  const {navigateWithLimit} = useNavigationState();
 
   // Get person details
   const {data: personDetails, isLoading: isLoadingDetails} =
@@ -89,12 +91,12 @@ export const PersonCreditsScreen = () => {
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
-      } else if (item.type === 'tv') {
-        navigation.navigate('TVShowDetails', {show: item as TVShow});
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const renderItem = ({item}: {item: ContentItem}) => (

@@ -36,12 +36,14 @@ import {FiltersManager} from '../store/filters';
 import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
 import {HomeFilterRow} from '../components/HomeFilterRow';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
 export const HomeScreen = () => {
   const {data: region} = useRegion();
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
@@ -221,12 +223,12 @@ export const HomeScreen = () => {
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
-        navigation.navigate('MovieDetails', {movie: item as unknown as Movie});
+        navigateWithLimit('MovieDetails', {movie: item as unknown as Movie});
       } else {
-        navigation.navigate('TVShowDetails', {show: item as unknown as TVShow});
+        navigateWithLimit('TVShowDetails', {show: item as unknown as TVShow});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const getMoviesFromData = (data: any) =>
@@ -245,13 +247,13 @@ export const HomeScreen = () => {
       categoryType: MovieCategoryType | TVShowCategoryType,
       contentType: ContentType,
     ) => {
-      navigation.navigate('Category', {
+      navigateWithLimit('Category', {
         title,
         categoryType,
         contentType,
       });
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const WIDTH = Dimensions.get('window').width;

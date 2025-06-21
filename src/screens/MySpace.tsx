@@ -37,6 +37,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useSelectedLanguages} from '../hooks/useApp';
 import {useWatchlists} from '../hooks/useWatchlists';
 import {Watchlist} from '../store/watchlists';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type MySpaceScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'MySpace'>,
@@ -51,6 +52,7 @@ interface Region {
 
 export const MySpaceScreen = () => {
   const navigation = useNavigation<MySpaceScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
@@ -112,16 +114,16 @@ export const MySpaceScreen = () => {
 
   const handleWatchlistPress = useCallback(
     (watchlist: Watchlist) => {
-      navigation.navigate('WatchlistDetails', {watchlistId: watchlist.id});
+      navigateWithLimit('WatchlistDetails', {watchlistId: watchlist.id});
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const handleFilterPress = useCallback(
     (filter: SavedFilter) => {
-      navigation.navigate('SearchScreen', {filter});
+      navigateWithLimit('SearchScreen', {filter});
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const handleRegionSelect = async (region: Region) => {
@@ -148,7 +150,7 @@ export const MySpaceScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.headerContainer}
-        onPress={() => navigation.navigate('WatchlistsScreen')}
+        onPress={() => navigateWithLimit('WatchlistsScreen')}
         testID="watchlistsHeader">
         <Text style={styles.sectionTitle}>Watchlists</Text>
         <Ionicons
@@ -251,7 +253,7 @@ export const MySpaceScreen = () => {
 
       <TouchableOpacity
         style={styles.headerContainer}
-        onPress={() => navigation.navigate('MyFiltersScreen')}
+        onPress={() => navigateWithLimit('MyFiltersScreen')}
         testID="myFiltersButton">
         <Text style={styles.sectionTitle}>My Filters</Text>
         <Ionicons
@@ -285,7 +287,7 @@ export const MySpaceScreen = () => {
           ))}
           <TouchableOpacity
             style={styles.addTag}
-            onPress={() => navigation.navigate('MyFiltersScreen')}>
+            onPress={() => navigateWithLimit('MyFiltersScreen')}>
             <Ionicons name="add" size={30} color={'rgba(255, 255, 255, 0.3)'} />
           </TouchableOpacity>
         </ScrollView>

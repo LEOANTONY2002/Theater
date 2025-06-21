@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import CreateButton from '../components/createButton';
 import {modalStyles} from '../styles/styles';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -127,6 +128,7 @@ export const WatchlistsScreen: React.FC = () => {
   const createWatchlistMutation = useCreateWatchlist();
   const deleteWatchlistMutation = useDeleteWatchlist();
   const navigation = useNavigation<WatchlistsScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
 
   const handleCreateWatchlist = async () => {
     if (!newWatchlistName.trim()) {
@@ -150,13 +152,16 @@ export const WatchlistsScreen: React.FC = () => {
     deleteWatchlistMutation.mutate(watchlistId);
   };
 
-  const handleItemPress = (item: ContentItem) => {
-    if (item.type === 'movie') {
-      navigation.navigate('MovieDetails', {movie: item as Movie});
-    } else {
-      navigation.navigate('TVShowDetails', {show: item as TVShow});
-    }
-  };
+  const handleItemPress = useCallback(
+    (item: ContentItem) => {
+      if (item.type === 'movie') {
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
+      }
+    },
+    [navigateWithLimit],
+  );
 
   const handleCloseModal = () => {
     setShowCreateModal(false);

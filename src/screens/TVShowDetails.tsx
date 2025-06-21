@@ -24,10 +24,11 @@ import {
   TVShowDetails as TVShowDetailsType,
   Episode,
 } from '../types/tvshow';
-import {Video, Genre, Cast} from '../types/movie';
+import {Video, Genre, Cast, Movie} from '../types/movie';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {useNavigation} from '@react-navigation/native';
+import {useNavigationState} from '../hooks/useNavigationState';
 import {ContentItem} from '../components/MovieList';
 import {MySpaceStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -66,6 +67,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   route,
 }) => {
   const navigation = useNavigation<TVShowDetailsScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
   const {show} = route.params;
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
@@ -144,22 +146,30 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
   );
 
-  const handleSimilarShowPress = useCallback(
+  const handleItemPress = useCallback(
     (item: ContentItem) => {
-      if (item.type === 'tv') {
-        navigation.navigate('TVShowDetails', {show: item as TVShow});
+      if (item.type === 'movie') {
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
-  const handleRecommendedShowPress = useCallback(
-    (item: ContentItem) => {
-      if (item.type === 'tv') {
-        navigation.navigate('TVShowDetails', {show: item as TVShow});
-      }
+  const handleBackPress = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  const handlePersonPress = useCallback(
+    (personId: number, personName: string) => {
+      navigateWithLimit('PersonCredits', {
+        personId,
+        personName,
+        contentType: 'tv',
+      });
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   if (isLoading) {
@@ -326,13 +336,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 <TouchableOpacity
                   key={person?.id}
                   style={styles.castItem}
-                  onPress={() =>
-                    navigation.navigate('PersonCredits', {
-                      personId: person?.id,
-                      personName: person?.name,
-                      contentType: 'tv',
-                    })
-                  }>
+                  onPress={() => handlePersonPress(person?.id, person?.name)}>
                   <PersonCard
                     item={getImageUrl(person.profile_path || '', 'original')}
                     onPress={() => {}}
@@ -543,7 +547,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           <HorizontalList
             title="Similar TV Shows"
             data={similarShowsData}
-            onItemPress={handleSimilarShowPress}
+            onItemPress={handleItemPress}
             onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
             isLoading={isFetchingSimilar}
             isSeeAll={false}
@@ -554,7 +558,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           <HorizontalList
             title="Recommended TV Shows"
             data={recommendedShowsData}
-            onItemPress={handleRecommendedShowPress}
+            onItemPress={handleItemPress}
             onEndReached={hasNextRecommended ? fetchNextRecommended : undefined}
             isLoading={isFetchingRecommended}
             isSeeAll={false}

@@ -32,6 +32,8 @@ import {getGenres} from '../services/tmdb';
 import {Genre} from '../types/movie';
 import {useRegion} from '../hooks/useApp';
 import {HorizontalGenreList} from '../components/HorizontalGenreList';
+import {useNavigationState} from '../hooks/useNavigationState';
+import {Movie} from '../types/movie';
 
 type TVShowsScreenNavigationProp =
   NativeStackNavigationProp<TVShowsStackParamList>;
@@ -39,6 +41,7 @@ type TVShowsScreenNavigationProp =
 export const TVShowsScreen = () => {
   const {data: region} = useRegion();
   const navigation = useNavigation<TVShowsScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
 
@@ -57,7 +60,7 @@ export const TVShowsScreen = () => {
   }, []);
 
   const handleGenrePress = (genre: Genre) => {
-    navigation.navigate('Genre', {
+    navigateWithLimit('Genre', {
       genreId: genre.id,
       genreName: genre.name,
       contentType: 'tv',
@@ -101,9 +104,9 @@ export const TVShowsScreen = () => {
 
   const handleFeaturedPress = useCallback(() => {
     if (featuredShow) {
-      navigation.navigate('TVShowDetails', {show: featuredShow});
+      navigateWithLimit('TVShowDetails', {show: featuredShow});
     }
-  }, [navigation, featuredShow]);
+  }, [navigateWithLimit, featuredShow]);
 
   // Top Rated TV Shows
   const {
@@ -121,13 +124,13 @@ export const TVShowsScreen = () => {
 
   const handleShowPress = useCallback(
     (item: ContentItem) => {
-      if (item.type !== 'movie') {
-        navigation.navigate('TVShowDetails', {show: item as TVShow});
+      if (item.type === 'tv') {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       } else {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const getShowsFromData = (data: any) =>
@@ -137,13 +140,13 @@ export const TVShowsScreen = () => {
 
   const handleSeeAllPress = useCallback(
     (title: string, categoryType: TVShowCategoryType) => {
-      navigation.navigate('Category', {
+      navigateWithLimit('Category', {
         title,
         categoryType,
         contentType: 'tv',
       });
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const isInitialLoading =

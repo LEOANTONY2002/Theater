@@ -25,12 +25,14 @@ import {Genre} from '../types/movie';
 import {useRegion} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
 import {HorizontalGenreList} from '../components/HorizontalGenreList';
+import {useNavigationState} from '../hooks/useNavigationState';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const MoviesScreen = () => {
   const {data: region} = useRegion();
   const navigation = useNavigation<MoviesScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
 
@@ -107,19 +109,19 @@ export const MoviesScreen = () => {
 
   const handleFeaturedPress = useCallback(() => {
     if (featuredMovie) {
-      navigation.navigate('MovieDetails', {movie: featuredMovie});
+      navigateWithLimit('MovieDetails', {movie: featuredMovie});
     }
-  }, [navigation, featuredMovie]);
+  }, [navigateWithLimit, featuredMovie]);
 
   const handleMoviePress = useCallback(
     (item: ContentItem) => {
       if (item.type !== 'tv') {
-        navigation.navigate('MovieDetails', {movie: item as Movie});
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
       } else {
-        navigation.navigate('TVShowDetails', {tv: item as TVShow});
+        navigateWithLimit('TVShowDetails', {tv: item as TVShow});
       }
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const getMoviesFromData = (data: any) =>
@@ -129,17 +131,17 @@ export const MoviesScreen = () => {
 
   const handleSeeAllPress = useCallback(
     (title: string, categoryType: MovieCategoryType) => {
-      navigation.navigate('Category', {
+      navigateWithLimit('Category', {
         title,
         categoryType,
         contentType: 'movie',
       });
     },
-    [navigation],
+    [navigateWithLimit],
   );
 
   const handleGenrePress = (genre: Genre) => {
-    navigation.navigate('Genre', {
+    navigateWithLimit('Genre', {
       genreId: genre.id,
       genreName: genre.name,
       contentType: 'movie',
