@@ -56,9 +56,9 @@ export const useSavedFilterContent = (savedFilter: SavedFilter) => {
     queryFn: ({pageParam = 1}) =>
       searchFilterContent(savedFilter, pageParam as number),
     getNextPageParam: (lastPage: any) => {
-      if (!lastPage?.[0]) return undefined;
-      return lastPage[0].page < lastPage[0].total_pages
-        ? lastPage[0].page + 1
+      if (!lastPage) return undefined;
+      return lastPage.page < lastPage.total_pages
+        ? lastPage.page + 1
         : undefined;
     },
     initialPageParam: 1,

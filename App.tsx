@@ -6,7 +6,7 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {StatusBar} from 'react-native';
+import {LogBox, StatusBar} from 'react-native';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
 import {LoadingScreen} from './src/components/LoadingScreen';
@@ -17,6 +17,8 @@ import {queryClient} from './src/services/queryClient';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
+
+  LogBox.ignoreAllLogs();
 
   useEffect(() => {
     const initializeApp = async () => {

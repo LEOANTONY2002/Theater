@@ -105,7 +105,26 @@ export const CategoryScreen = () => {
 
   const isLoading = isInitialLoading || isRefetching || isFilterLoading;
 
-  const renderItem = ({item, index}: {item: ContentItem; index: number}) => (
+  // Flatten the pages data for infinite queries
+  const flattenedData = useMemo(() => {
+    if (filter) {
+      // For filter content, flatten all pages
+      return (filterContent?.pages?.flatMap(page => page?.results || []) ??
+        []) as ContentItem[];
+    } else {
+      // For regular content, flatten all pages
+      return (data?.pages?.flatMap(page => page?.results || []) ??
+        []) as ContentItem[];
+    }
+  }, [filter, filterContent, data]);
+
+  const renderItem: ({
+    item,
+    index,
+  }: {
+    item: ContentItem;
+    index: number;
+  }) => JSX.Element = ({item, index}) => (
     <MovieCard item={item} onPress={handleItemPress} />
   );
 
@@ -128,10 +147,10 @@ export const CategoryScreen = () => {
       </View>
 
       <View style={styles.contentContainer}>
-        <FlatList
-          data={filterContent?.pages?.[0]?.results}
+        <FlatList<ContentItem>
+          data={flattenedData}
           renderItem={renderItem}
-          keyExtractor={item => item.id.toString()}
+          keyExtractor={item => `${item.type}-${item.id}`}
           numColumns={3}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
