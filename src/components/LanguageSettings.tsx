@@ -67,16 +67,6 @@ export const LanguageSettings = () => {
   useEffect(() => {
     if (savedLanguages.length > 0) {
       setSelectedLanguages(savedLanguages);
-    } else if (!isLoadingSaved) {
-      // If no saved languages and not loading, set English as default
-      const englishLanguage = languages.find(
-        (lang: Language) => lang.iso_639_1 === 'en',
-      );
-      if (englishLanguage) {
-        const defaultLanguages = [englishLanguage];
-        setSelectedLanguages(defaultLanguages);
-        SettingsManager.setContentLanguages(defaultLanguages);
-      }
     }
   }, [savedLanguages, isLoadingSaved, languages]);
 
@@ -87,10 +77,7 @@ export const LanguageSettings = () => {
 
     let newSelectedLanguages: Language[];
     if (isSelected) {
-      // Prevent removing the last language
-      if (selectedLanguages.length === 1) {
-        return;
-      }
+      // Allow removing any language, including the last one
       newSelectedLanguages = selectedLanguages.filter(
         (lang: Language) => lang.iso_639_1 !== language.iso_639_1,
       );

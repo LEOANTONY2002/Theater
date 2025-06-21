@@ -60,16 +60,8 @@ class WatchlistManager {
         STORAGE_KEYS.WATCHLISTS,
       );
       if (!watchlistsJson) {
-        // Create default watchlist if none exist
-        const defaultWatchlist: Watchlist = {
-          id: 'default',
-          name: 'My Watchlist',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          itemCount: 0,
-        };
-        await this.saveWatchlists([defaultWatchlist]);
-        return [defaultWatchlist];
+        // Return empty array if no watchlists exist
+        return [];
       }
       return JSON.parse(watchlistsJson);
     } catch (error) {
