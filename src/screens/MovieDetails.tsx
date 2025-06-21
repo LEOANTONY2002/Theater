@@ -361,8 +361,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   style={styles.castItem}
                   onPress={() => handlePersonPress(person.id, person.name)}>
                   <PersonCard
-                    item={getImageUrl(person.profile_path || '', 'original')}
-                    onPress={() => {}}
+                    item={getImageUrl(person.profile_path || '', 'w300')}
+                    onPress={() => handlePersonPress(person.id, person.name)}
                   />
                   <Text style={styles.castName} numberOfLines={2}>
                     {person.name}

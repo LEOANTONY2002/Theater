@@ -338,8 +338,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   style={styles.castItem}
                   onPress={() => handlePersonPress(person?.id, person?.name)}>
                   <PersonCard
-                    item={getImageUrl(person.profile_path || '', 'original')}
-                    onPress={() => {}}
+                    item={getImageUrl(person.profile_path || '', 'w300')}
+                    onPress={() => handlePersonPress(person.id, person.name)}
                   />
                   <Text style={styles.castName} numberOfLines={2}>
                     {person.name}
@@ -388,7 +388,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     <Image
                       source={{
                         uri: episode.still_path
-                          ? getImageUrl(episode.still_path)
+                          ? getImageUrl(episode.still_path, 'w300')
                           : 'https://via.placeholder.com/200x112',
                       }}
                       style={styles.episodeImage}
