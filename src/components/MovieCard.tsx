@@ -27,7 +27,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({
         <Image
           source={{
             uri: item?.poster_path
-              ? getImageUrl(item?.poster_path)
+              ? getImageUrl(item?.poster_path, 'w185')
               : 'https://via.placeholder.com/300x450',
           }}
           style={[

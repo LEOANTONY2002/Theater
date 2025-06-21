@@ -1,9 +1,9 @@
-import React, {useState, useCallback, memo, useEffect} from 'react';
+import React, {useState, useEffect, useCallback, memo} from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {colors, spacing, borderRadius} from '../styles/theme';
 import {ContentItem} from './MovieList';
 import {MoivieCardSkeleton} from './LoadingSkeleton';
-import {getOptimizedImageUrl} from '../services/tmdb';
+import {getImageUrl} from '../services/tmdb';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -13,32 +13,42 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
-    // Use better quality for V2 (recent searches), small size for performance elsewhere
-    const imageUrl = getOptimizedImageUrl(
+    // Progressive image loading like Netflix
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const [shouldLoadImage, setShouldLoadImage] = useState(false);
+    const [currentImageUrl, setCurrentImageUrl] = useState('');
+
+    const CARD_WIDTH = v2 ? 180 : 120;
+    const CARD_HEIGHT = v2 ? 100 : 180;
+
+    // Netflix-style progressive loading
+    const lowQualityUrl = getImageUrl(
       v2 ? item.backdrop_path : item?.poster_path,
-      v2 ? 'medium' : 'small', // Better quality for V2, small for performance
+      'w185', // Low quality placeholder (smallest supported)
+    );
+
+    const highQualityUrl = getImageUrl(
+      v2 ? item.backdrop_path : item?.poster_path,
+      'w185', // High quality final image
     );
 
     const title =
       'title' in item ? item.title : 'name' in item ? item.name : '';
 
-    const CARD_WIDTH = v2 ? 180 : 120;
-    const CARD_HEIGHT = v2 ? 100 : 180;
-
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [imageError, setImageError] = useState(false);
-    const [shouldLoadImage, setShouldLoadImage] = useState(false);
-
-    // Ultra-aggressive image loading delay to prevent FPS drops
+    // Aggressive image loading optimization
     useEffect(() => {
-      const timer = setTimeout(
-        () => {
-          setShouldLoadImage(true);
-        },
-        v2 ? 100 : 300,
-      ); // Shorter delay for V2 (recent searches)
+      // Start with low quality immediately
+      setCurrentImageUrl(lowQualityUrl);
+
+      // Load high quality after a short delay
+      const timer = setTimeout(() => {
+        setShouldLoadImage(true);
+        setCurrentImageUrl(highQualityUrl);
+      }, 50); // Very short delay for smooth experience
+
       return () => clearTimeout(timer);
-    }, [v2]);
+    }, [lowQualityUrl, highQualityUrl]);
 
     const handlePress = useCallback(() => {
       onPress(item);
@@ -97,7 +107,7 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
           style={styles.container}
           onPress={handlePress}
           activeOpacity={0.9}
-          // Disable all delays for maximum performance
+          // Netflix-style touch optimization
           delayPressIn={0}
           delayPressOut={0}
           delayLongPress={0}>
@@ -106,19 +116,21 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
               <MoivieCardSkeleton v2={v2} />
             </View>
           )}
-          {!imageError && shouldLoadImage && (
+
+          {!imageError && (
             <Image
-              source={{uri: imageUrl}}
+              source={{uri: currentImageUrl}}
               style={styles.image}
               onLoad={handleImageLoad}
               onError={handleImageError}
-              fadeDuration={0}
+              fadeDuration={0} // No fade for instant loading
               resizeMethod="resize"
-              // Disable all image optimizations that cause FPS drops
+              // Netflix-style image optimizations
               blurRadius={0}
             />
           )}
         </TouchableOpacity>
+
         {v2 && (
           <View style={styles.infoContainer}>
             <Text style={styles.title} numberOfLines={1}>

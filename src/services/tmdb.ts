@@ -259,7 +259,7 @@ export const getGenres = async (type: 'movie' | 'tv' = 'movie') => {
 
 export const getImageUrl = (
   path: string,
-  size: 'w300' | 'w500' | 'original' = 'w500',
+  size: 'w185' | 'w300' | 'w500' | 'original' = 'w500',
 ) => {
   return `https://image.tmdb.org/t/p/${size}${path}`;
 };

@@ -245,7 +245,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
           {!isPlaying ? (
             <Image
-              source={{uri: getImageUrl(movie.backdrop_path || '', 'original')}}
+              source={{uri: getImageUrl(movie.backdrop_path || '', 'w500')}}
               style={styles.backdrop}
               onLoadEnd={() => setIsPosterLoading(false)}
               resizeMode="cover"
@@ -361,7 +361,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   style={styles.castItem}
                   onPress={() => handlePersonPress(person.id, person.name)}>
                   <PersonCard
-                    item={getImageUrl(person.profile_path || '', 'w300')}
+                    item={getImageUrl(person.profile_path || '', 'w185')}
                     onPress={() => handlePersonPress(person.id, person.name)}
                   />
                   <Text style={styles.castName} numberOfLines={2}>

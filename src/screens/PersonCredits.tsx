@@ -124,7 +124,7 @@ export const PersonCreditsScreen = () => {
       <View style={styles.profileContainer}>
         <Image
           source={{
-            uri: getImageUrl(personDetails?.profile_path || '', 'w300'),
+            uri: getImageUrl(personDetails?.profile_path || '', 'w185'),
           }}
           style={styles.profileImage}
         />

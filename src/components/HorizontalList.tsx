@@ -153,27 +153,24 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
             ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
-            // Ultra-aggressive performance optimizations
+            // Netflix-style ultra-aggressive performance optimizations
             removeClippedSubviews={true}
-            maxToRenderPerBatch={2}
-            windowSize={1}
-            initialNumToRender={2}
+            maxToRenderPerBatch={1} // Render one at a time for smoothness
+            windowSize={1} // Minimal window size
+            initialNumToRender={1} // Start with just one item
             getItemLayout={getItemLayout}
-            updateCellsBatchingPeriod={100}
+            updateCellsBatchingPeriod={50} // Faster batching
             disableVirtualization={false}
-            // Disable scroll events to prevent FPS drops
-            scrollEventThrottle={0}
+            // Netflix-style scroll optimizations
+            scrollEventThrottle={0} // Disable scroll events for performance
             decelerationRate="fast"
             // Memory optimizations
             maintainVisibleContentPosition={{
               minIndexForVisible: 0,
               autoscrollToTopThreshold: 10,
             }}
-            // Disable extra features that cause FPS drops
-            extraData={null}
-            onScrollBeginDrag={() => {}}
-            onScrollEndDrag={() => {}}
-            onMomentumScrollEnd={() => {}}
+            // Disable all animations for performance
+            disableIntervalMomentum={true}
           />
         )}
       </View>
