@@ -37,7 +37,7 @@ const defaultScreenOptions = {
   contentStyle: {
     backgroundColor: 'transparent',
   },
-  animation: 'slide_from_right' as const,
+  animation: 'none' as const,
   presentation: 'transparentModal' as const,
   unmountOnBlur: true,
   detachInactiveScreens: true,
@@ -45,7 +45,6 @@ const defaultScreenOptions = {
 
 const modalScreenOptions = {
   ...defaultScreenOptions,
-  animation: 'slide_from_bottom' as const,
   presentation: 'transparentModal' as const,
   unmountOnBlur: true,
   detachInactiveScreens: true,

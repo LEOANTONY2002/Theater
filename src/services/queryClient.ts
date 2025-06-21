@@ -3,9 +3,13 @@ import {QueryClient} from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutes - even shorter
-      gcTime: 1 * 60 * 1000, // 1 minute - very aggressive
-      retry: 1, // Reduce retries
+      // Ultra-aggressive cache management to prevent memory bloat
+      staleTime: 1000 * 30, // 30 seconds - very short
+      gcTime: 1000 * 60, // 1 minute - very aggressive
+      // Reduce retries to prevent excessive API calls
+      retry: 0, // No retries to prevent blocking
+      retryDelay: 0,
+      // Disable all refetching to prevent FPS drops
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: false,
@@ -13,37 +17,33 @@ export const queryClient = new QueryClient({
       networkMode: 'online',
     },
     mutations: {
-      retry: 1,
+      retry: 0,
+      retryDelay: 0,
     },
   },
 });
 
-// Very aggressive cache cleanup to prevent memory bloat
+// Ultra-aggressive cache cleanup to prevent memory bloat
 setInterval(() => {
-  // Remove queries older than 1 minute
   queryClient.removeQueries({
     predicate: query => {
-      const isOld =
-        !query.state.dataUpdatedAt ||
-        Date.now() - query.state.dataUpdatedAt > 1 * 60 * 1000;
-      return isOld;
+      // Remove queries older than 2 minutes
+      const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+      return (
+        !query.state.dataUpdatedAt || query.state.dataUpdatedAt < twoMinutesAgo
+      );
     },
   });
-}, 10000); // Every 10 seconds - very aggressive
+}, 30 * 1000); // Run every 30 seconds - very aggressive
 
 // Emergency cleanup when too many queries
-let queryCount = 0;
-const originalFetchQuery = queryClient.fetchQuery.bind(queryClient);
-queryClient.fetchQuery = (...args) => {
-  queryCount++;
-  if (queryCount > 15) {
-    // Lower threshold
-    // Emergency cleanup
-    queryClient.removeQueries();
-    queryCount = 0;
+setInterval(() => {
+  const allQueries = queryClient.getQueryCache().getAll();
+  if (allQueries.length > 20) {
+    console.warn('Too many queries - clearing cache');
+    queryClient.clear();
   }
-  return originalFetchQuery(...args);
-};
+}, 10 * 1000); // Check every 10 seconds
 
 // Limit concurrent queries
 queryClient.setDefaultOptions({

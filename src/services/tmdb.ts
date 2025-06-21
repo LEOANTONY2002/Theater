@@ -265,18 +265,21 @@ export const getImageUrl = (
 };
 
 export const getOptimizedImageUrl = (
-  path: string,
-  size: 'small' | 'medium' | 'large' = 'medium',
-) => {
-  if (!path) return '';
+  path: string | null | undefined,
+  size: 'small' | 'medium' | 'large' = 'small',
+): string => {
+  if (!path) {
+    return 'https://via.placeholder.com/120x180/333/666?text=No+Image';
+  }
 
-  const sizes = {
-    small: 'w185', // 185px - for thumbnails
-    medium: 'w342', // 342px - for cards (reduced from w500)
-    large: 'w780', // 780px - for banners
+  // Use smallest possible images for maximum performance
+  const sizeMap = {
+    small: 'w92', // Smallest poster size
+    medium: 'w154', // Small backdrop size
+    large: 'w185', // Medium size
   };
 
-  return `https://image.tmdb.org/t/p/${sizes[size]}${path}`;
+  return `https://image.tmdb.org/t/p/${sizeMap[size]}${path}`;
 };
 
 export const getSimilarMovies = async (movieId: number, page = 1) => {

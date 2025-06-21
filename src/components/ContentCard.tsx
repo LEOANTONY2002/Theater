@@ -1,4 +1,4 @@
-import React, {useState, useCallback, memo} from 'react';
+import React, {useState, useCallback, memo, useEffect} from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {colors, spacing, borderRadius} from '../styles/theme';
 import {ContentItem} from './MovieList';
@@ -13,10 +13,10 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
-    // Use optimized image sizes for better performance
+    // Use smallest possible image size for maximum performance
     const imageUrl = getOptimizedImageUrl(
       v2 ? item.backdrop_path : item?.poster_path,
-      'medium',
+      'small', // Use smallest size for maximum performance
     );
 
     const title =
@@ -27,6 +27,15 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
 
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
+    const [shouldLoadImage, setShouldLoadImage] = useState(false);
+
+    // Ultra-aggressive image loading delay to prevent FPS drops
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setShouldLoadImage(true);
+      }, 300); // Increased delay to prevent stuttering
+      return () => clearTimeout(timer);
+    }, []);
 
     const handlePress = useCallback(() => {
       onPress(item);
@@ -84,21 +93,26 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
         <TouchableOpacity
           style={styles.container}
           onPress={handlePress}
-          activeOpacity={0.9}>
+          activeOpacity={0.9}
+          // Disable all delays for maximum performance
+          delayPressIn={0}
+          delayPressOut={0}
+          delayLongPress={0}>
           {(!imageLoaded || imageError) && (
             <View style={styles.skeletonContainer}>
               <MoivieCardSkeleton v2={v2} />
             </View>
           )}
-          {!imageError && (
+          {!imageError && shouldLoadImage && (
             <Image
               source={{uri: imageUrl}}
               style={styles.image}
               onLoad={handleImageLoad}
               onError={handleImageError}
               fadeDuration={0}
-              // Performance optimizations
               resizeMethod="resize"
+              // Disable all image optimizations that cause FPS drops
+              blurRadius={0}
             />
           )}
         </TouchableOpacity>

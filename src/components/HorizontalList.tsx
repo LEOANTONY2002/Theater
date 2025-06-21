@@ -14,6 +14,7 @@ import {colors, spacing, typography} from '../styles/theme';
 import {HeadingSkeleton, HorizontalListSkeleton} from './LoadingSkeleton';
 import Ionicon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import {useScrollOptimization} from '../hooks/useScrollOptimization';
 
 interface HorizontalListProps {
   title: string;
@@ -39,19 +40,23 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
   }) => {
     const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
     const [isDebouncing, setIsDebouncing] = useState(false);
+    const [shouldRender, setShouldRender] = useState(false);
 
-    // Debounce data changes to prevent rapid re-renders
+    // Ultra-aggressive debouncing to prevent FPS drops
     useEffect(() => {
       if (data && data.length > 0) {
         setIsDebouncing(true);
         const timer = setTimeout(() => {
           setDebouncedData(data);
           setIsDebouncing(false);
-        }, 150); // Increased debounce time for better performance
+          // Delay actual rendering to prevent blocking
+          setTimeout(() => setShouldRender(true), 100);
+        }, 200); // Increased debounce to prevent rapid updates
         return () => clearTimeout(timer);
       } else {
         setDebouncedData([]);
         setIsDebouncing(false);
+        setShouldRender(false);
       }
     }, [data]);
 
@@ -81,7 +86,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
 
     const getItemLayout = useCallback(
       (data: any, index: number) => ({
-        length: isTop10 ? 200 : 140, // Approximate item width
+        length: isTop10 ? 200 : 140,
         offset: (isTop10 ? 200 : 140) * index,
         index,
       }),
@@ -128,31 +133,42 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             )}
           </View>
         ) : null}
-        <FlatList
-          horizontal
-          data={debouncedData}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.5}
-          style={isTop10 ? {marginLeft: -spacing.md} : {}}
-          ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
-          // Performance optimizations
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={3}
-          windowSize={2}
-          initialNumToRender={3}
-          getItemLayout={getItemLayout}
-          updateCellsBatchingPeriod={50}
-          disableVirtualization={false}
-          // Reduce memory usage
-          maintainVisibleContentPosition={{
-            minIndexForVisible: 0,
-            autoscrollToTopThreshold: 10,
-          }}
-        />
+
+        {shouldRender && (
+          <FlatList
+            horizontal
+            data={debouncedData}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            onEndReached={onEndReached}
+            onEndReachedThreshold={0.5}
+            style={isTop10 ? {marginLeft: -spacing.md} : {}}
+            ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
+            // Ultra-aggressive performance optimizations
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={2}
+            windowSize={1}
+            initialNumToRender={2}
+            getItemLayout={getItemLayout}
+            updateCellsBatchingPeriod={100}
+            disableVirtualization={false}
+            // Disable scroll events to prevent FPS drops
+            scrollEventThrottle={0}
+            decelerationRate="fast"
+            // Memory optimizations
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10,
+            }}
+            // Disable extra features that cause FPS drops
+            extraData={null}
+            onScrollBeginDrag={() => {}}
+            onScrollEndDrag={() => {}}
+            onMomentumScrollEnd={() => {}}
+          />
+        )}
       </View>
     );
   },

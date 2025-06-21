@@ -38,6 +38,7 @@ import {searchFilterContent} from '../services/tmdb';
 import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {PerformanceMonitor} from '../components/PerformanceMonitor';
+import {useScrollOptimization} from '../hooks/useScrollOptimization';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -45,16 +46,23 @@ export const HomeScreen = () => {
   const {data: region} = useRegion();
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
+  const {
+    handleScroll,
+    handleScrollBeginDrag,
+    handleScrollEndDrag,
+    handleMomentumScrollEnd,
+  } = useScrollOptimization();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
   const [renderPhase, setRenderPhase] = useState(0);
+  const [showMoreContent, setShowMoreContent] = useState(false);
 
-  // Staggered loading to reduce initial render load
+  // Ultra-aggressive staggered loading to prevent FPS drops
   useEffect(() => {
-    const timer1 = setTimeout(() => setRenderPhase(1), 100);
-    const timer2 = setTimeout(() => setRenderPhase(2), 300);
-    const timer3 = setTimeout(() => setRenderPhase(3), 500);
+    const timer1 = setTimeout(() => setRenderPhase(1), 500);
+    const timer2 = setTimeout(() => setRenderPhase(2), 1000);
+    const timer3 = setTimeout(() => setShowMoreContent(true), 2000);
 
     return () => {
       clearTimeout(timer1);
@@ -326,7 +334,19 @@ export const HomeScreen = () => {
       <PerformanceMonitor screenName="Home" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}>
+        removeClippedSubviews={true}
+        // Ultra-aggressive scroll optimizations
+        scrollEventThrottle={0}
+        decelerationRate="fast"
+        // Disable all scroll features that cause FPS drops
+        bounces={false}
+        alwaysBounceVertical={false}
+        alwaysBounceHorizontal={false}
+        // Disable scroll event handlers
+        onScroll={() => {}}
+        onScrollBeginDrag={() => {}}
+        onScrollEndDrag={() => {}}
+        onMomentumScrollEnd={() => {}}>
         {featuredItems.length > 0 ? (
           // <FeaturedBannerHome items={featuredItems} />
           <View></View>
@@ -336,6 +356,7 @@ export const HomeScreen = () => {
           </View>
         )}
 
+        {/* Only show 1 list initially to prevent FPS drops */}
         {renderPhase >= 1 && recentMovies?.pages?.[0]?.results?.length && (
           <HorizontalList
             title="Recent Movies"
@@ -364,78 +385,78 @@ export const HomeScreen = () => {
           />
         )}
 
-        {renderPhase >= 1 && top10ContentByRegion?.length && (
-          <HorizontalList
-            title={`Top 10 in ${region?.english_name}`}
-            data={top10ContentByRegion}
-            isLoading={top10ContentByRegion.length === 0}
-            onItemPress={handleItemPress}
-            isSeeAll={false}
-            isTop10={true}
-          />
-        )}
+        {/* Show additional content only after delay to prevent FPS drops */}
+        {showMoreContent && (
+          <>
+            {top10ContentByRegion?.length && (
+              <HorizontalList
+                title={`Top 10 in ${region?.english_name}`}
+                data={top10ContentByRegion}
+                isLoading={top10ContentByRegion.length === 0}
+                onItemPress={handleItemPress}
+                isSeeAll={false}
+                isTop10={true}
+              />
+            )}
 
-        {/* {savedFilters && savedFilters.length > 0 && (
-          <View style={{marginTop: spacing.xxl}}>
-            <Text style={styles.heading}>My Filters</Text>
-            <HomeFilterCard savedFilters={savedFilters} />
-          </View>
-        )} */}
+            {popularTVShows?.pages?.[0]?.results?.length && (
+              <HorizontalList
+                title="Popular Shows"
+                data={getTVShowsFromData(popularTVShows)}
+                isLoading={isFetchingPopularTV}
+                onItemPress={handleItemPress}
+                onEndReached={hasNextPopularTV ? fetchNextPopularTV : undefined}
+                onSeeAllPress={() =>
+                  handleSeeAllPress('Popular Shows', 'popular', 'tv')
+                }
+              />
+            )}
 
-        {renderPhase >= 3 && popularTVShows?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Popular Shows"
-            data={getTVShowsFromData(popularTVShows)}
-            isLoading={isFetchingPopularTV}
-            onItemPress={handleItemPress}
-            onEndReached={hasNextPopularTV ? fetchNextPopularTV : undefined}
-            onSeeAllPress={() =>
-              handleSeeAllPress('Popular Shows', 'popular', 'tv')
-            }
-          />
-        )}
+            {topRatedMovies?.pages?.[0]?.results?.length && (
+              <HorizontalList
+                title="Top Rated Movies"
+                data={getMoviesFromData(topRatedMovies)}
+                isLoading={isFetchingTopRatedMovies}
+                onItemPress={handleItemPress}
+                onEndReached={
+                  hasNextTopRatedMovies ? fetchNextTopRatedMovies : undefined
+                }
+                onSeeAllPress={() =>
+                  handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie')
+                }
+              />
+            )}
 
-        {renderPhase >= 2 && topRatedMovies?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Top Rated Movies"
-            data={getMoviesFromData(topRatedMovies)}
-            isLoading={isFetchingTopRatedMovies}
-            onItemPress={handleItemPress}
-            onEndReached={
-              hasNextTopRatedMovies ? fetchNextTopRatedMovies : undefined
-            }
-            onSeeAllPress={() =>
-              handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie')
-            }
-          />
-        )}
+            {topRatedTVShows?.pages?.[0]?.results?.length && (
+              <HorizontalList
+                title="Top Rated TV Shows"
+                data={getTVShowsFromData(topRatedTVShows)}
+                isLoading={isFetchingTopRatedTV}
+                onItemPress={handleItemPress}
+                onEndReached={
+                  hasNextTopRatedTV ? fetchNextTopRatedTV : undefined
+                }
+                onSeeAllPress={() =>
+                  handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv')
+                }
+              />
+            )}
 
-        {renderPhase >= 3 && topRatedTVShows?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Top Rated TV Shows"
-            data={getTVShowsFromData(topRatedTVShows)}
-            isLoading={isFetchingTopRatedTV}
-            onItemPress={handleItemPress}
-            onEndReached={hasNextTopRatedTV ? fetchNextTopRatedTV : undefined}
-            onSeeAllPress={() =>
-              handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv')
-            }
-          />
-        )}
-
-        {renderPhase >= 3 && upcomingMovies?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Upcoming Movies"
-            data={getMoviesFromData(upcomingMovies)}
-            isLoading={isFetchingUpcomingMovies}
-            onItemPress={handleItemPress}
-            onEndReached={
-              hasNextUpcomingMovies ? fetchNextUpcomingMovies : undefined
-            }
-            onSeeAllPress={() =>
-              handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
-            }
-          />
+            {upcomingMovies?.pages?.[0]?.results?.length && (
+              <HorizontalList
+                title="Upcoming Movies"
+                data={getMoviesFromData(upcomingMovies)}
+                isLoading={isFetchingUpcomingMovies}
+                onItemPress={handleItemPress}
+                onEndReached={
+                  hasNextUpcomingMovies ? fetchNextUpcomingMovies : undefined
+                }
+                onSeeAllPress={() =>
+                  handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
+                }
+              />
+            )}
+          </>
         )}
 
         {isLoadingSavedFilters ? (
