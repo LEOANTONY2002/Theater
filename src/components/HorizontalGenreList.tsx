@@ -17,6 +17,7 @@ import {
 import Ionicon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {Genre} from '../types/movie';
+import {BlurView} from '@react-native-community/blur';
 
 interface HorizontalGenreListProps {
   title: string;
@@ -34,11 +35,24 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
   const renderItem = ({item, index}: {item: Genre; index: number}) => (
     <TouchableOpacity style={styles.tag} onPress={() => onItemPress(item)}>
       <LinearGradient
-        colors={['transparent', 'transparent', tagGradientColors[index]]}
+        colors={[
+          tagGradientColors[index],
+          'transparent',
+          'transparent',
+          tagGradientColors[index],
+        ]}
         start={{x: 0, y: 0}}
         end={{x: 1, y: 1}}
         style={styles.tagGradient}
       />
+      <BlurView
+        style={styles.blurView}
+        blurType="light"
+        blurAmount={10}
+        blurRadius={20}
+        overlayColor={colors.modal.content}
+      />
+      <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
       <Text style={styles.tagText}>{item?.name}</Text>
     </TouchableOpacity>
   );
@@ -85,16 +99,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   tag: {
-    backgroundColor: colors.background.tag,
-    padding: spacing.md,
+    backgroundColor: colors.background.secondary,
     borderRadius: borderRadius.lg,
+    width: 120,
     height: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.background.secondary,
-    minWidth: 120,
-    maxWidth: 200,
+    position: 'relative',
+    overflow: 'hidden',
   },
   tagGradient: {
     position: 'absolute',
@@ -103,14 +115,29 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 100,
-    zIndex: 1,
+    zIndex: 0,
     borderRadius: borderRadius.lg,
   },
+  blurView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  tagBgText: {
+    position: 'absolute',
+    zIndex: 1,
+    color: colors.text.primary,
+    opacity: 0.2,
+    fontSize: 60,
+    fontWeight: '900',
+  },
   tagText: {
-    color: colors.text.secondary,
+    color: colors.text.primary,
     ...typography.h3,
-    // fontWeight: '900',
-    opacity: 0.4,
+    opacity: 0.7,
     textAlign: 'center',
     zIndex: 2,
   },
