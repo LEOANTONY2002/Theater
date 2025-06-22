@@ -2,11 +2,11 @@ import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {MoviesScreen} from '../screens/Movies';
 import {MovieDetailsScreen} from '../screens/MovieDetails';
-import {CategoryScreen} from '../screens/Category';
+import {CategoryScreen} from '../screens/CategoryScreen';
 import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {MoviesStackParamList} from '../types/navigation';
-import {colors} from '../theme';
+import {colors} from '../styles/theme';
 
 const Stack = createNativeStackNavigator<MoviesStackParamList>();
 

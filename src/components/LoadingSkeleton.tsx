@@ -1,7 +1,6 @@
-import React from 'react';
-import {Image, StyleSheet, Text, View} from 'react-native';
+import React, {useEffect, useRef} from 'react';
+import {View, StyleSheet, Animated, Dimensions} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import {borderRadius} from '../styles/theme';
 
 const shimmerColors = [
@@ -10,192 +9,121 @@ const shimmerColors = [
   'rgb(21, 21, 32)',
 ];
 
+const AnimatedShimmer = ({width, height, radius = 8}) => {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ).start();
+  }, [shimmerAnim]);
+
+  const shimmerTranslate = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-width, width * 2],
+  });
+
+  return (
+    <View
+      style={{
+        width,
+        height,
+        backgroundColor: shimmerColors[0],
+        borderRadius: radius,
+        overflow: 'hidden',
+      }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: width * 0.4,
+          height: '100%',
+          borderRadius: radius,
+          backgroundColor: shimmerColors[1],
+          transform: [{translateX: shimmerTranslate}],
+        }}
+      />
+    </View>
+  );
+};
+
 export const BannerSkeleton = () => (
-  <ShimmerPlaceholder
-    LinearGradient={LinearGradient}
-    shimmerColors={shimmerColors}
-    style={{
-      width: '100%',
-      height: '100%',
-    }}></ShimmerPlaceholder>
+  <AnimatedShimmer
+    width={Dimensions.get('window').width}
+    height={200}
+    radius={0}
+  />
 );
 
 export const BannerHomeSkeleton = () => (
-  <ShimmerPlaceholder
-    LinearGradient={LinearGradient}
-    shimmerColors={shimmerColors}
-    style={{
-      width: '100%',
-      height: '100%',
-      borderRadius: 20,
-    }}></ShimmerPlaceholder>
+  <AnimatedShimmer
+    width={Dimensions.get('window').width}
+    height={200}
+    radius={20}
+  />
 );
 
 export const HeadingSkeleton = () => (
-  <ShimmerPlaceholder
-    LinearGradient={LinearGradient}
-    shimmerColors={shimmerColors}
-    style={{
-      width: '70%',
-      height: 40,
-      borderRadius: 10,
-      margin: 20,
-    }}></ShimmerPlaceholder>
+  <AnimatedShimmer
+    width={Dimensions.get('window').width * 0.7}
+    height={40}
+    radius={10}
+  />
 );
 
 export const HorizontalListSkeleton = () => (
-  <View style={styles.container}>
-    {[...Array(5)].map((_, index) => (
-      <ShimmerPlaceholder
-        key={index}
-        LinearGradient={LinearGradient}
-        shimmerColors={shimmerColors}
-        style={{
-          width: 120,
-          height: 180,
-          borderRadius: 20,
-        }}
-      />
+  <View style={styles.row}>
+    {[...Array(5)].map((_, i) => (
+      <AnimatedShimmer key={i} width={120} height={180} radius={20} />
     ))}
   </View>
 );
 
 export const RecentListSkeleton = () => (
-  <View style={styles.container}>
-    {[...Array(3)].map((_, index) => (
-      <ShimmerPlaceholder
-        key={index}
-        LinearGradient={LinearGradient}
-        shimmerColors={shimmerColors}
-        style={{
-          width: 150,
-          height: 100,
-          borderRadius: 10,
-        }}
-      />
+  <View style={styles.row}>
+    {[...Array(3)].map((_, i) => (
+      <AnimatedShimmer key={i} width={150} height={100} radius={10} />
     ))}
   </View>
 );
 
 export const GridSkeleton = () => (
-  <View
-    style={{
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexWrap: 'wrap',
-      gap: 10,
-      margin: 'auto',
-    }}>
-    {[...Array(16)].map((_, idx) => (
-      <ShimmerPlaceholder
-        LinearGradient={LinearGradient}
-        shimmerColors={shimmerColors}
-        key={idx}
-        style={{
-          width: 120,
-          height: 180,
-          borderRadius: 8,
-        }}></ShimmerPlaceholder>
+  <View style={styles.grid}>
+    {[...Array(16)].map((_, i) => (
+      <AnimatedShimmer key={i} width={120} height={180} radius={8} />
     ))}
   </View>
 );
 
 export const MoivieCardSkeleton = ({v2 = false}: {v2?: boolean}) => (
-  <View>
-    <ShimmerPlaceholder
-      LinearGradient={LinearGradient}
-      shimmerColors={shimmerColors}
-      style={{
-        width: v2 ? 180 : 120,
-        height: v2 ? 100 : 180,
-        borderRadius: borderRadius.sm,
-      }}></ShimmerPlaceholder>
-  </View>
+  <AnimatedShimmer
+    width={v2 ? 180 : 120}
+    height={v2 ? 100 : 180}
+    radius={borderRadius.sm}
+  />
 );
 
 export const PersonCardSkeleton = () => (
-  <View>
-    <ShimmerPlaceholder
-      LinearGradient={LinearGradient}
-      shimmerColors={shimmerColors}
-      style={{
-        width: 100,
-        height: 150,
-        borderRadius: borderRadius.sm,
-      }}></ShimmerPlaceholder>
-  </View>
+  <AnimatedShimmer width={100} height={150} radius={borderRadius.sm} />
 );
 
 export const DetailScreenSkeleton = () => (
-  <View
-    style={{
-      flex: 1,
-      width: '100%',
-      alignItems: 'flex-start',
-    }}>
-    <ShimmerPlaceholder
-      LinearGradient={LinearGradient}
-      shimmerColors={shimmerColors}
-      style={{
-        width: '100%',
-        height: 300,
-      }}></ShimmerPlaceholder>
-    <View
-      style={{
-        width: '100%',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}>
-      <ShimmerPlaceholder
-        LinearGradient={LinearGradient}
-        shimmerColors={shimmerColors}
-        style={{
-          width: 300,
-          height: 60,
-          marginVertical: 20,
-          borderRadius: 10,
-        }}></ShimmerPlaceholder>
-      <ShimmerPlaceholder
-        LinearGradient={LinearGradient}
-        shimmerColors={shimmerColors}
-        style={{
-          width: 300,
-          height: 30,
-          borderRadius: 5,
-        }}></ShimmerPlaceholder>
+  <View style={styles.detail}>
+    <AnimatedShimmer
+      width={Dimensions.get('window').width}
+      height={300}
+      radius={0}
+    />
+    <View style={styles.centered}>
+      <AnimatedShimmer width={300} height={60} radius={10} />
+      <AnimatedShimmer width={300} height={30} radius={5} />
     </View>
-    <ShimmerPlaceholder
-      LinearGradient={LinearGradient}
-      shimmerColors={shimmerColors}
-      style={{
-        width: '90%',
-        height: 30,
-        borderRadius: 5,
-        marginTop: 20,
-        marginHorizontal: 'auto',
-      }}></ShimmerPlaceholder>
-    <ShimmerPlaceholder
-      LinearGradient={LinearGradient}
-      shimmerColors={shimmerColors}
-      style={{
-        width: '90%',
-        height: 30,
-        borderRadius: 5,
-        marginTop: 5,
-        marginHorizontal: 'auto',
-      }}></ShimmerPlaceholder>
-    <ShimmerPlaceholder
-      LinearGradient={LinearGradient}
-      shimmerColors={shimmerColors}
-      style={{
-        width: '90%',
-        height: 30,
-        borderRadius: 5,
-        marginTop: 5,
-        marginHorizontal: 'auto',
-      }}></ShimmerPlaceholder>
+    <AnimatedShimmer width={'90%'} height={30} radius={5} />
+    <AnimatedShimmer width={'90%'} height={30} radius={5} />
+    <AnimatedShimmer width={'90%'} height={30} radius={5} />
     <HeadingSkeleton />
     <HorizontalListSkeleton />
     <HeadingSkeleton />
@@ -204,27 +132,39 @@ export const DetailScreenSkeleton = () => (
 );
 
 export const LanguageSkeleton = () => (
-  <View style={styles.container}>
-    {[...Array(10)].map((_, index) => (
-      <ShimmerPlaceholder
-        key={index}
-        LinearGradient={LinearGradient}
-        shimmerColors={shimmerColors}
-        style={{
-          width: 100,
-          height: 100,
-          borderRadius: 10,
-        }}
-      />
+  <View style={styles.row}>
+    {[...Array(10)].map((_, i) => (
+      <AnimatedShimmer key={i} width={100} height={100} radius={10} />
     ))}
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     marginHorizontal: 20,
+    flexWrap: 'wrap',
+  },
+  grid: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+    margin: 'auto',
+  },
+  detail: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'flex-start',
+  },
+  centered: {
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 20,
   },
 });

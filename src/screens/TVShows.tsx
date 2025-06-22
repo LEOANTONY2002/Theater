@@ -1,11 +1,6 @@
 import React, {useCallback, useMemo, useEffect, useState} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {FlashList} from '@shopify/flash-list';
 import {
   useTop10ShowsTodayByRegion,
   useTrendingTVShows,
@@ -149,6 +144,144 @@ export const TVShowsScreen = () => {
     [navigateWithLimit],
   );
 
+  // Create sections for FlashList
+  const sections = useMemo(() => {
+    const sectionsList = [];
+
+    // Featured banner section
+    if (featuredShow) {
+      sectionsList.push({
+        id: 'featured',
+        type: 'featured',
+        data: featuredShow,
+      });
+    }
+
+    // Genres section
+    sectionsList.push({
+      id: 'genres',
+      type: 'genres',
+      data: genres,
+      isLoading: isLoadingGenres,
+      onItemPress: handleGenrePress,
+    });
+
+    // Latest Shows section
+    if (latestShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'latestShows',
+        type: 'horizontalList',
+        title: 'Latest Shows',
+        data: getShowsFromData(latestShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextLatest ? fetchNextLatest : undefined,
+        isLoading: isFetchingLatest,
+        onSeeAllPress: () => handleSeeAllPress('Latest Shows', 'latest'),
+      });
+    }
+
+    // Popular Shows section
+    if (popularShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'popularShows',
+        type: 'horizontalList',
+        title: 'Popular Shows',
+        data: getShowsFromData(popularShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextPopular ? fetchNextPopular : undefined,
+        isLoading: isFetchingPopular,
+        onSeeAllPress: () => handleSeeAllPress('Popular Shows', 'popular'),
+      });
+    }
+
+    // Top Rated Shows section
+    if (topRatedShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'topRatedShows',
+        type: 'horizontalList',
+        title: 'Top Rated Shows',
+        data: getShowsFromData(topRatedShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextTopRated ? fetchNextTopRated : undefined,
+        isLoading: isFetchingTopRated,
+        onSeeAllPress: () => handleSeeAllPress('Top Rated Shows', 'top_rated'),
+      });
+    }
+
+    // Top 10 section
+    if (top10ShowsTodayByRegion?.length) {
+      sectionsList.push({
+        id: 'top10',
+        type: 'horizontalList',
+        title: `Top 10 in ${region?.english_name}`,
+        data: top10ShowsTodayByRegion,
+        isLoading: top10ShowsTodayByRegion.length === 0,
+        onItemPress: handleShowPress,
+        isSeeAll: false,
+        isTop10: true,
+      });
+    }
+
+    return sectionsList;
+  }, [
+    featuredShow,
+    genres,
+    isLoadingGenres,
+    latestShows,
+    popularShows,
+    topRatedShows,
+    top10ShowsTodayByRegion,
+    region,
+    handleGenrePress,
+    handleShowPress,
+    handleSeeAllPress,
+    isFetchingLatest,
+    isFetchingPopular,
+    isFetchingTopRated,
+    hasNextLatest,
+    hasNextPopular,
+    hasNextTopRated,
+    fetchNextLatest,
+    fetchNextPopular,
+    fetchNextTopRated,
+  ]);
+
+  const renderSection = useCallback(({item}: {item: any}) => {
+    switch (item.type) {
+      case 'featured':
+        return <FeaturedBanner item={item.data} type="tv" />;
+
+      case 'genres':
+        return (
+          <HorizontalGenreList
+            title="Genres"
+            data={item.data}
+            onItemPress={item.onItemPress}
+            isLoading={item.isLoading}
+          />
+        );
+
+      case 'horizontalList':
+        return (
+          <HorizontalList
+            title={item.title}
+            data={item.data}
+            onItemPress={item.onItemPress}
+            onEndReached={item.onEndReached}
+            isLoading={item.isLoading}
+            onSeeAllPress={item.onSeeAllPress}
+            isSeeAll={item.isSeeAll}
+            isTop10={item.isTop10}
+          />
+        );
+
+      default:
+        return null;
+    }
+  }, []);
+
+  const keyExtractor = useCallback((item: any) => item.id, []);
+
   const isInitialLoading =
     (!trendingShows?.pages?.length && isFetchingTrending) ||
     (!popularShows?.pages?.length && isFetchingPopular) ||
@@ -166,64 +299,31 @@ export const TVShowsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {featuredShow && <FeaturedBanner item={featuredShow} type="tv" />}
-
-        <HorizontalGenreList
-          title="Genres"
-          data={genres}
-          onItemPress={handleGenrePress}
-          isLoading={isLoadingGenres}
-        />
-
-        {latestShows?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Latest Shows"
-            data={getShowsFromData(latestShows)}
-            onItemPress={handleShowPress}
-            onEndReached={hasNextLatest ? fetchNextLatest : undefined}
-            isLoading={isFetchingLatest}
-            onSeeAllPress={() => handleSeeAllPress('Latest Shows', 'latest')}
-          />
-        )}
-
-        {popularShows?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Popular Shows"
-            data={getShowsFromData(popularShows)}
-            onItemPress={handleShowPress}
-            onEndReached={hasNextPopular ? fetchNextPopular : undefined}
-            isLoading={isFetchingPopular}
-            onSeeAllPress={() => handleSeeAllPress('Popular Shows', 'popular')}
-          />
-        )}
-
-        {top10ShowsTodayByRegion?.length && (
-          <HorizontalList
-            title={`Top 10 Shows in ${region?.english_name}`}
-            data={top10ShowsTodayByRegion}
-            onItemPress={handleShowPress}
-            isLoading={isFetchingTop10ShowsTodayByRegion}
-            isSeeAll={false}
-            isTop10={true}
-          />
-        )}
-
-        {topRatedShows?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Top Rated Shows"
-            data={getShowsFromData(topRatedShows)}
-            onItemPress={handleShowPress}
-            onEndReached={hasNextTopRated ? fetchNextTopRated : undefined}
-            isLoading={isFetchingTopRated}
-            onSeeAllPress={() =>
-              handleSeeAllPress('Top Rated Shows', 'top_rated')
-            }
-          />
-        )}
-
-        <View style={{height: 100}} />
-      </ScrollView>
+      <FlashList
+        data={sections}
+        renderItem={renderSection}
+        keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{paddingBottom: 100}}
+        estimatedItemSize={300}
+        // FlashList optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        initialNumToRender={2}
+        updateCellsBatchingPeriod={50}
+        // Scroll optimizations
+        scrollEventThrottle={16}
+        decelerationRate="normal"
+        // Performance optimizations
+        extraData={null}
+        onScrollBeginDrag={() => {}}
+        onScrollEndDrag={() => {}}
+        onMomentumScrollEnd={() => {}}
+        // Memory management
+        legacyImplementation={false}
+        disableIntervalMomentum={false}
+      />
     </View>
   );
 };

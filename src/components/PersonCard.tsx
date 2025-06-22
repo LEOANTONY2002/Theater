@@ -1,6 +1,6 @@
-import React, {useState} from 'react';
-import {View, Image, StyleSheet} from 'react-native';
-import {PersonCardSkeleton} from './LoadingSkeleton';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
+import {View, StyleSheet, Animated, Easing, Dimensions} from 'react-native';
+import FastImage from 'react-native-fast-image';
 
 interface PersonCardProps {
   item: string;
@@ -8,24 +8,57 @@ interface PersonCardProps {
   size?: 'normal' | 'large';
 }
 
+const {width: screenWidth} = Dimensions.get('window');
+
 export const PersonCard: React.FC<PersonCardProps> = ({item}) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  const handleImageFinish = useCallback(() => {
+    setImageLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ).start();
+  }, [shimmerAnim]);
+
+  const shimmerTranslate = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-100, 200],
+  });
 
   return (
     <View style={styles.container}>
-      {!imageLoaded && <PersonCardSkeleton />}
-      <Image
-        source={{
-          uri: item ? item : 'https://via.placeholder.com/300x450',
-        }}
-        style={[
-          styles?.poster,
-          !imageLoaded && {position: 'absolute', width: 0, height: 0},
-        ]}
-        resizeMode="cover"
-        onLoad={() => setImageLoaded(true)}
-        onError={() => setImageLoaded(true)}
+      <FastImage
+        source={{uri: item || 'https://via.placeholder.com/300x450'}}
+        style={styles.poster}
+        resizeMode={FastImage.resizeMode.cover}
+        onLoad={handleImageFinish}
+        onError={handleImageFinish}
+        priority={FastImage.priority.normal}
+        cache={FastImage.cacheControl.immutable}
       />
+      {!imageLoaded && (
+        <View style={StyleSheet.absoluteFill}>
+          <View style={styles.skeleton}>
+            <Animated.View
+              style={[
+                styles.shimmer,
+                {
+                  transform: [{translateX: shimmerTranslate}],
+                },
+              ]}
+            />
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -42,5 +75,19 @@ const styles = StyleSheet.create({
     width: 100,
     height: 150,
     backgroundColor: '#2a2a2a',
+  },
+  skeleton: {
+    flex: 1,
+    backgroundColor: '#2a2a2a',
+    overflow: 'hidden',
+  },
+  shimmer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: 60,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    opacity: 0.7,
   },
 });

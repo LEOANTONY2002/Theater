@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {View, ScrollView, StyleSheet, Dimensions, Text} from 'react-native';
+import {View, FlatList, StyleSheet, Dimensions, Text} from 'react-native';
 import {
   useMoviesList,
   useTop10MoviesTodayByRegion,
@@ -295,6 +295,227 @@ export const HomeScreen = () => {
     (!top10MoviesTodayByRegion?.length && isFetchingTop10MoviesTodayByRegion) ||
     (!top10ShowsTodayByRegion?.length && isFetchingTop10ShowsTodayByRegion);
 
+  // Create sections for FlatList - moved before early return
+  const sections = useMemo(() => {
+    const sectionsList = [];
+
+    // Featured banner section
+    if (featuredItems.length > 0) {
+      sectionsList.push({
+        id: 'featured',
+        type: 'featured',
+        data: featuredItems,
+      });
+    } else {
+      sectionsList.push({
+        id: 'featuredSkeleton',
+        type: 'featuredSkeleton',
+        data: [],
+      });
+    }
+
+    // Recent Movies section
+    if (renderPhase >= 1 && recentMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'recentMovies',
+        type: 'horizontalList',
+        title: 'Recent Movies',
+        data: getMoviesFromData(recentMovies),
+        isLoading: isFetchingRecentMovies,
+        onEndReached: hasNextRecentMovies ? fetchNextRecentMovies : undefined,
+        onSeeAllPress: () =>
+          handleSeeAllPress('Recent Movies', 'latest', 'movie'),
+      });
+    }
+
+    // Latest Shows section
+    if (renderPhase >= 2 && recentTVShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'latestShows',
+        type: 'horizontalList',
+        title: 'Latest Shows',
+        data: getTVShowsFromData(recentTVShows),
+        isLoading: isFetchingRecentTV,
+        onEndReached: hasNextRecentTV ? fetchNextRecentTV : undefined,
+        onSeeAllPress: () => handleSeeAllPress('Latest Shows', 'latest', 'tv'),
+      });
+    }
+
+    // Additional content sections
+    if (showMoreContent) {
+      // Top 10 section
+      if (top10ContentByRegion?.length) {
+        sectionsList.push({
+          id: 'top10',
+          type: 'horizontalList',
+          title: `Top 10 in ${region?.english_name}`,
+          data: top10ContentByRegion,
+          isLoading: top10ContentByRegion.length === 0,
+          isSeeAll: false,
+          isTop10: true,
+        });
+      }
+
+      // Popular Shows section
+      if (popularTVShows?.pages?.[0]?.results?.length) {
+        sectionsList.push({
+          id: 'popularShows',
+          type: 'horizontalList',
+          title: 'Popular Shows',
+          data: getTVShowsFromData(popularTVShows),
+          isLoading: isFetchingPopularTV,
+          onEndReached: hasNextPopularTV ? fetchNextPopularTV : undefined,
+          onSeeAllPress: () =>
+            handleSeeAllPress('Popular Shows', 'popular', 'tv'),
+        });
+      }
+
+      // Top Rated Movies section
+      if (topRatedMovies?.pages?.[0]?.results?.length) {
+        sectionsList.push({
+          id: 'topRatedMovies',
+          type: 'horizontalList',
+          title: 'Top Rated Movies',
+          data: getMoviesFromData(topRatedMovies),
+          isLoading: isFetchingTopRatedMovies,
+          onEndReached: hasNextTopRatedMovies
+            ? fetchNextTopRatedMovies
+            : undefined,
+          onSeeAllPress: () =>
+            handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie'),
+        });
+      }
+
+      // Top Rated TV Shows section
+      if (topRatedTVShows?.pages?.[0]?.results?.length) {
+        sectionsList.push({
+          id: 'topRatedTVShows',
+          type: 'horizontalList',
+          title: 'Top Rated TV Shows',
+          data: getTVShowsFromData(topRatedTVShows),
+          isLoading: isFetchingTopRatedTV,
+          onEndReached: hasNextTopRatedTV ? fetchNextTopRatedTV : undefined,
+          onSeeAllPress: () =>
+            handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv'),
+        });
+      }
+
+      // Upcoming Movies section
+      if (upcomingMovies?.pages?.[0]?.results?.length) {
+        sectionsList.push({
+          id: 'upcomingMovies',
+          type: 'horizontalList',
+          title: 'Upcoming Movies',
+          data: getMoviesFromData(upcomingMovies),
+          isLoading: isFetchingUpcomingMovies,
+          onEndReached: hasNextUpcomingMovies
+            ? fetchNextUpcomingMovies
+            : undefined,
+          onSeeAllPress: () =>
+            handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie'),
+        });
+      }
+    }
+
+    // Saved Filters section
+    if (!isLoadingSavedFilters && savedFilters && savedFilters.length > 0) {
+      sectionsList.push({
+        id: 'savedFilters',
+        type: 'savedFilters',
+        data: savedFilters,
+      });
+    }
+
+    return sectionsList;
+  }, [
+    featuredItems,
+    renderPhase,
+    recentMovies,
+    recentTVShows,
+    showMoreContent,
+    top10ContentByRegion,
+    popularTVShows,
+    topRatedMovies,
+    topRatedTVShows,
+    upcomingMovies,
+    savedFilters,
+    isLoadingSavedFilters,
+    region,
+    isFetchingRecentMovies,
+    isFetchingRecentTV,
+    isFetchingPopularTV,
+    isFetchingTopRatedMovies,
+    isFetchingTopRatedTV,
+    isFetchingUpcomingMovies,
+    hasNextRecentMovies,
+    hasNextRecentTV,
+    hasNextPopularTV,
+    hasNextTopRatedMovies,
+    hasNextTopRatedTV,
+    hasNextUpcomingMovies,
+    fetchNextRecentMovies,
+    fetchNextRecentTV,
+    fetchNextPopularTV,
+    fetchNextTopRatedMovies,
+    fetchNextTopRatedTV,
+    fetchNextUpcomingMovies,
+    handleSeeAllPress,
+  ]);
+
+  const renderSection = useCallback(
+    ({item}: {item: any}) => {
+      switch (item.type) {
+        case 'featured':
+          return <FeaturedBannerHome items={item.data} />;
+
+        case 'featuredSkeleton':
+          return (
+            <View style={styles.skeletonContainer}>
+              <BannerHomeSkeleton />
+            </View>
+          );
+
+        case 'horizontalList':
+          return (
+            <HorizontalList
+              title={item.title}
+              data={item.data}
+              isLoading={item.isLoading}
+              onItemPress={handleItemPress}
+              onEndReached={item.onEndReached}
+              onSeeAllPress={item.onSeeAllPress}
+              isSeeAll={item.isSeeAll}
+              isTop10={item.isTop10}
+            />
+          );
+
+        case 'savedFilters':
+          return (
+            <View style={{marginTop: spacing.xxl}}>
+              <View style={styles.heading}>
+                <LinearGradient
+                  colors={['transparent', colors.background.primary]}
+                  start={{x: 0.5, y: 0}}
+                  end={{x: 0.5, y: 1}}
+                  style={styles.gradient}
+                />
+                <Text style={styles.headingText}>My Filters</Text>
+              </View>
+              {item.data?.map((filter: SavedFilter) => (
+                <HomeFilterRow key={filter.id} savedFilter={filter} />
+              ))}
+            </View>
+          );
+
+        default:
+          return null;
+      }
+    },
+    [handleItemPress],
+  );
+
+  const keyExtractor = useCallback((item: any) => item.id, []);
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -348,163 +569,28 @@ export const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <PerformanceMonitor screenName="Home" />
-      <ScrollView
+      <FlatList
+        data={sections}
+        renderItem={renderSection}
+        keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
-        // Netflix-style scroll optimizations
-        scrollEventThrottle={0}
-        decelerationRate="fast"
-        // Disable all scroll features that cause FPS drops
-        bounces={false}
-        alwaysBounceVertical={false}
-        alwaysBounceHorizontal={false}
-        // Disable scroll event handlers
-        onScroll={() => {}}
-        onScrollBeginDrag={() => {}}
-        onScrollEndDrag={() => {}}
-        onMomentumScrollEnd={() => {}}
-        // Virtualization optimizations
         contentContainerStyle={{paddingBottom: 100}}
+        // Optimized settings to prevent jumping
+        removeClippedSubviews={false}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        initialNumToRender={3}
+        updateCellsBatchingPeriod={100}
+        disableVirtualization={false}
+        // Scroll optimizations
+        scrollEventThrottle={0}
+        decelerationRate="normal"
         // Performance optimizations
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag">
-        {featuredItems.length > 0 ? (
-          <FeaturedBannerHome items={featuredItems} />
-        ) : (
-          <View style={styles.skeletonContainer}>
-            <BannerHomeSkeleton />
-          </View>
-        )}
-
-        {/* Only show 1 list initially to prevent FPS drops */}
-        {renderPhase >= 1 && recentMovies?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Recent Movies"
-            data={getMoviesFromData(recentMovies)}
-            isLoading={isFetchingRecentMovies}
-            onItemPress={handleItemPress}
-            onEndReached={
-              hasNextRecentMovies ? fetchNextRecentMovies : undefined
-            }
-            onSeeAllPress={() =>
-              handleSeeAllPress('Recent Movies', 'latest', 'movie')
-            }
-          />
-        )}
-
-        {renderPhase >= 2 && recentTVShows?.pages?.[0]?.results?.length && (
-          <HorizontalList
-            title="Latest Shows"
-            data={getTVShowsFromData(recentTVShows)}
-            isLoading={isFetchingRecentTV}
-            onItemPress={handleItemPress}
-            onEndReached={hasNextRecentTV ? fetchNextRecentTV : undefined}
-            onSeeAllPress={() =>
-              handleSeeAllPress('Latest Shows', 'latest', 'tv')
-            }
-          />
-        )}
-
-        {/* Show additional content only after delay to prevent FPS drops */}
-        {showMoreContent && (
-          <>
-            {top10ContentByRegion?.length && (
-              <HorizontalList
-                title={`Top 10 in ${region?.english_name}`}
-                data={top10ContentByRegion}
-                isLoading={top10ContentByRegion.length === 0}
-                onItemPress={handleItemPress}
-                isSeeAll={false}
-                isTop10={true}
-              />
-            )}
-
-            {popularTVShows?.pages?.[0]?.results?.length && (
-              <HorizontalList
-                title="Popular Shows"
-                data={getTVShowsFromData(popularTVShows)}
-                isLoading={isFetchingPopularTV}
-                onItemPress={handleItemPress}
-                onEndReached={hasNextPopularTV ? fetchNextPopularTV : undefined}
-                onSeeAllPress={() =>
-                  handleSeeAllPress('Popular Shows', 'popular', 'tv')
-                }
-              />
-            )}
-
-            {topRatedMovies?.pages?.[0]?.results?.length && (
-              <HorizontalList
-                title="Top Rated Movies"
-                data={getMoviesFromData(topRatedMovies)}
-                isLoading={isFetchingTopRatedMovies}
-                onItemPress={handleItemPress}
-                onEndReached={
-                  hasNextTopRatedMovies ? fetchNextTopRatedMovies : undefined
-                }
-                onSeeAllPress={() =>
-                  handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie')
-                }
-              />
-            )}
-
-            {topRatedTVShows?.pages?.[0]?.results?.length && (
-              <HorizontalList
-                title="Top Rated TV Shows"
-                data={getTVShowsFromData(topRatedTVShows)}
-                isLoading={isFetchingTopRatedTV}
-                onItemPress={handleItemPress}
-                onEndReached={
-                  hasNextTopRatedTV ? fetchNextTopRatedTV : undefined
-                }
-                onSeeAllPress={() =>
-                  handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv')
-                }
-              />
-            )}
-
-            {upcomingMovies?.pages?.[0]?.results?.length && (
-              <HorizontalList
-                title="Upcoming Movies"
-                data={getMoviesFromData(upcomingMovies)}
-                isLoading={isFetchingUpcomingMovies}
-                onItemPress={handleItemPress}
-                onEndReached={
-                  hasNextUpcomingMovies ? fetchNextUpcomingMovies : undefined
-                }
-                onSeeAllPress={() =>
-                  handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie')
-                }
-              />
-            )}
-          </>
-        )}
-
-        {isLoadingSavedFilters ? (
-          <View style={{marginTop: spacing.xxl}}>
-            <HorizontalListSkeleton />
-          </View>
-        ) : (
-          savedFilters &&
-          savedFilters?.length > 0 && (
-            <View style={{marginTop: spacing.xxl}}>
-              <View style={styles.heading}>
-                <LinearGradient
-                  colors={['transparent', colors.background.primary]}
-                  start={{x: 0.5, y: 0}}
-                  end={{x: 0.5, y: 1}}
-                  style={styles.gradient}
-                />
-                <Text style={styles.headingText}>My Filters</Text>
-              </View>
-              {savedFilters?.map((filter: SavedFilter) => (
-                <HomeFilterRow key={filter.id} savedFilter={filter} />
-              ))}
-            </View>
-          )
-        )}
-
-        <View style={{height: 100}} />
-      </ScrollView>
+        extraData={null}
+        // Memory management
+        legacyImplementation={false}
+        disableIntervalMomentum={false}
+      />
     </View>
   );
 };

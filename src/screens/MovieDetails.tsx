@@ -12,6 +12,7 @@ import {
   Alert,
   InteractionManager,
 } from 'react-native';
+import {FlashList} from '@shopify/flash-list';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
   useMovieDetails,
@@ -82,9 +83,23 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [renderPhase, setRenderPhase] = useState(0);
   const {navigateWithLimit} = useNavigationState();
   const {isDeepNavigation} = useDeepNavigationProtection();
   const queryClient = useQueryClient();
+
+  // Progressive loading like home screen
+  useEffect(() => {
+    const timer1 = setTimeout(() => setRenderPhase(1), 100);
+    const timer2 = setTimeout(() => setRenderPhase(2), 300);
+    const timer3 = setTimeout(() => setRenderPhase(3), 500);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, []);
 
   // Cleanup on unmount to prevent memory leaks
   useEffect(() => {
@@ -95,6 +110,25 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       });
     };
   }, [movie.id]);
+
+  // Memory cleanup when screen loses focus
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        // Clean up when screen loses focus to free memory
+        queryClient.removeQueries({
+          queryKey: ['movie', movie.id],
+        });
+        // Clear any cached data for this movie
+        queryClient.invalidateQueries({
+          queryKey: ['similarMovies', movie.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['recommendations', movie.id],
+        });
+      };
+    }, [movie.id, queryClient]),
+  );
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -230,173 +264,217 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
-          style={styles.gradientShade}
-          start={{x: 0, y: 0}}
-          end={{x: 0.5, y: 0.5}}
-        />
-
-        <View style={styles.main}>
-          {isPosterLoading && <BannerHomeSkeleton />}
-
-          {!isPlaying ? (
-            <Image
-              source={{uri: getImageUrl(movie.backdrop_path || '', 'w500')}}
-              style={styles.backdrop}
-              onLoadEnd={() => setIsPosterLoading(false)}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.trailerContainer}>
-              <YoutubePlayer
-                height={width * 0.5625}
-                play={isPlaying}
-                videoId={trailer?.key}
-                webViewProps={{
-                  allowsInlineMediaPlayback: true,
-                  allowsPictureInPicture: true,
-                  allowsFullscreenVideo: true,
-                  allowsPictureInPictureMediaPlayback: true,
-                }}
-                key={trailer?.key}
-                onChangeState={(state: string) => {
-                  if (state === 'ended') setIsPlaying(false);
-                }}
-              />
-            </View>
-          )}
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.title}>{movie.title}</Text>
-          <View style={styles.infoContainer}>
-            <Text style={styles.info}>
-              {new Date(movie.release_date).getFullYear()}
-            </Text>
-            {movieDetails?.runtime && (
-              <>
-                <Text style={styles.infoDot}>•</Text>
-                <Text style={styles.info}>
-                  {Math.floor(movieDetails.runtime / 60)}h{' '}
-                  {movieDetails.runtime % 60}m
-                </Text>
-              </>
-            )}
-            {movieDetails?.original_language && (
-              <>
-                <Text style={styles.infoDot}>•</Text>
-                <Text style={styles.info}>
-                  {getLanguage(movieDetails?.original_language)}
-                </Text>
-              </>
-            )}
-            {movieDetails?.vote_average && (
-              <>
-                <Text style={styles.infoDot}>•</Text>
-                <View
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                  }}>
-                  <Icon name="star" size={12} color="#ffffff70" />
-                  <Text style={styles.info}>
-                    {movieDetails.vote_average.toFixed(1)}
-                  </Text>
-                </View>
-              </>
-            )}
-          </View>
-          <View style={styles.buttonRow}>
-            <GradientButton
-              title="Watch Now"
-              onPress={() => {
-                setIsPlaying(true);
-              }}
-              style={styles.watchButton}
-              textStyle={styles.watchButtonText}
-            />
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleWatchlistPress}
-              disabled={removeFromWatchlistMutation.isPending}>
-              <Icon
-                name={isInWatchlist ? 'checkmark' : 'add'}
-                size={24}
-                color={isInWatchlist ? colors.accent : '#fff'}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.genreContainer}>
-            {movieDetails?.genres
-              ?.slice(0, 3)
-              .map((genre: Genre, index: number) => (
-                <View key={genre.id} style={styles.genreWrapper}>
-                  <Text style={styles.genre}>{genre.name}</Text>
-                  {index < Math.min(movieDetails.genres.length - 1, 2) && (
-                    <Text style={styles.genreDivider}>|</Text>
-                  )}
-                </View>
-              ))}
-          </View>
-        </View>
-
-        <Text style={styles.overview}>{movie.overview}</Text>
-
-        {movieDetails?.credits?.cast?.length > 0 && (
-          <View style={{marginVertical: spacing.lg, marginTop: 0}}>
-            <Text style={styles.sectionTitle}>Cast</Text>
-            <ScrollView
-              style={{paddingHorizontal: 16}}
-              horizontal
-              showsHorizontalScrollIndicator={false}>
-              {movieDetails.credits.cast.slice(0, 10).map((person: Cast) => (
-                <TouchableOpacity
-                  key={person.id}
-                  style={styles.castItem}
-                  onPress={() => handlePersonPress(person.id, person.name)}>
-                  <PersonCard
-                    item={getImageUrl(person.profile_path || '', 'w154')}
-                    onPress={() => handlePersonPress(person.id, person.name)}
+      <FlashList
+        data={[
+          {type: 'header', id: 'header'},
+          {type: 'content', id: 'content'},
+          ...(renderPhase >= 1 ? [{type: 'cast', id: 'cast'}] : []),
+          ...(renderPhase >= 2 ? [{type: 'providers', id: 'providers'}] : []),
+          ...(renderPhase >= 3
+            ? [
+                {type: 'similar', id: 'similar'},
+                {type: 'recommendations', id: 'recommendations'},
+              ]
+            : []),
+        ]}
+        renderItem={({item}: {item: any}) => {
+          switch (item.type) {
+            case 'header':
+              return (
+                <View>
+                  <LinearGradient
+                    colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
+                    style={styles.gradientShade}
+                    start={{x: 0, y: 0}}
+                    end={{x: 0.5, y: 0.5}}
                   />
-                  <Text style={styles.castName} numberOfLines={2}>
-                    {person.name}
-                  </Text>
-                  <Text style={styles.character} numberOfLines={1}>
-                    {person.character}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {watchProviders && <WatchProviders providers={watchProviders} />}
-
-        {similarMoviesData.length > 0 && (
-          <HorizontalList
-            title="Similar Movies"
-            data={similarMoviesData}
-            onItemPress={handleItemPress}
-            isLoading={isLoadingSimilar}
-          />
-        )}
-
-        {recommendationsData.length > 0 && (
-          <HorizontalList
-            title="Recommended Movies"
-            data={recommendationsData}
-            onItemPress={handleItemPress}
-            isLoading={isLoadingRecommendations}
-          />
-        )}
-        <View style={{height: 100}} />
-      </ScrollView>
+                  <View style={styles.main}>
+                    {isPosterLoading && <BannerHomeSkeleton />}
+                    {!isPlaying ? (
+                      <Image
+                        source={{
+                          uri: getImageUrl(movie.backdrop_path || '', 'w300'),
+                        }}
+                        style={styles.backdrop}
+                        onLoadEnd={() => setIsPosterLoading(false)}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.trailerContainer}>
+                        <YoutubePlayer
+                          height={width * 0.5625}
+                          play={isPlaying}
+                          videoId={trailer?.key}
+                          webViewProps={{
+                            allowsInlineMediaPlayback: true,
+                            allowsPictureInPicture: true,
+                            allowsFullscreenVideo: true,
+                            allowsPictureInPictureMediaPlayback: true,
+                          }}
+                          key={trailer?.key}
+                          onChangeState={(state: string) => {
+                            if (state === 'ended') setIsPlaying(false);
+                          }}
+                        />
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            case 'content':
+              return (
+                <View style={styles.content}>
+                  <Text style={styles.title}>{movie.title}</Text>
+                  <View style={styles.infoContainer}>
+                    <Text style={styles.info}>
+                      {new Date(movie.release_date).getFullYear()}
+                    </Text>
+                    {movieDetails?.runtime && (
+                      <>
+                        <Text style={styles.infoDot}>•</Text>
+                        <Text style={styles.info}>
+                          {Math.floor(movieDetails.runtime / 60)}h{' '}
+                          {movieDetails.runtime % 60}m
+                        </Text>
+                      </>
+                    )}
+                    {movieDetails?.original_language && (
+                      <>
+                        <Text style={styles.infoDot}>•</Text>
+                        <Text style={styles.info}>
+                          {getLanguage(movieDetails?.original_language)}
+                        </Text>
+                      </>
+                    )}
+                    {movieDetails?.vote_average && (
+                      <>
+                        <Text style={styles.infoDot}>•</Text>
+                        <View
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: spacing.xs,
+                          }}>
+                          <Icon name="star" size={12} color="#ffffff70" />
+                          <Text style={styles.info}>
+                            {movieDetails.vote_average.toFixed(1)}
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                  <View style={styles.buttonRow}>
+                    <GradientButton
+                      title="Watch Now"
+                      onPress={() => {
+                        setIsPlaying(true);
+                      }}
+                      style={styles.watchButton}
+                      textStyle={styles.watchButtonText}
+                    />
+                    <TouchableOpacity
+                      style={styles.addButton}
+                      onPress={handleWatchlistPress}
+                      disabled={removeFromWatchlistMutation.isPending}>
+                      <Icon
+                        name={isInWatchlist ? 'checkmark' : 'add'}
+                        size={24}
+                        color={isInWatchlist ? colors.accent : '#fff'}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.genreContainer}>
+                    {movieDetails?.genres
+                      ?.slice(0, 3)
+                      .map((genre: Genre, index: number) => (
+                        <View key={genre.id} style={styles.genreWrapper}>
+                          <Text style={styles.genre}>{genre.name}</Text>
+                          {index <
+                            Math.min(movieDetails.genres.length - 1, 2) && (
+                            <Text style={styles.genreDivider}>|</Text>
+                          )}
+                        </View>
+                      ))}
+                  </View>
+                  <Text style={styles.overview}>{movie.overview}</Text>
+                </View>
+              );
+            case 'cast':
+              return movieDetails?.credits?.cast?.length > 0 ? (
+                <View style={{marginVertical: spacing.lg, marginTop: 0}}>
+                  <Text style={styles.sectionTitle}>Cast</Text>
+                  <FlashList
+                    data={movieDetails.credits.cast.slice(0, 10)}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{paddingHorizontal: 16}}
+                    renderItem={({item: person}: {item: Cast}) => (
+                      <TouchableOpacity
+                        style={styles.castItem}
+                        onPress={() =>
+                          handlePersonPress(person.id, person.name)
+                        }>
+                        <PersonCard
+                          item={getImageUrl(person.profile_path || '', 'w154')}
+                          onPress={() =>
+                            handlePersonPress(person.id, person.name)
+                          }
+                        />
+                        <Text style={styles.castName} numberOfLines={2}>
+                          {person.name}
+                        </Text>
+                        <Text style={styles.character} numberOfLines={1}>
+                          {person.character}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    keyExtractor={(person: Cast) => person.id.toString()}
+                    estimatedItemSize={100}
+                  />
+                </View>
+              ) : null;
+            case 'providers':
+              return watchProviders ? (
+                <WatchProviders providers={watchProviders} />
+              ) : null;
+            case 'similar':
+              return similarMoviesData.length > 0 ? (
+                <View style={{marginVertical: spacing.lg}}>
+                  <Text style={styles.sectionTitle}>Similar Movies</Text>
+                  <HorizontalList
+                    title=""
+                    data={similarMoviesData}
+                    onItemPress={handleItemPress}
+                    isSeeAll={false}
+                  />
+                </View>
+              ) : null;
+            case 'recommendations':
+              return recommendationsData.length > 0 ? (
+                <View style={{marginVertical: spacing.lg, marginBottom: 100}}>
+                  <Text style={styles.sectionTitle}>Recommended</Text>
+                  <HorizontalList
+                    title=""
+                    data={recommendationsData}
+                    onItemPress={handleItemPress}
+                    isSeeAll={false}
+                  />
+                </View>
+              ) : null;
+            default:
+              return null;
+          }
+        }}
+        keyExtractor={(item: any) => item.id}
+        showsVerticalScrollIndicator={false}
+        estimatedItemSize={400}
+        ListHeaderComponent={
+          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+        }
+      />
 
       <WatchlistModal
         visible={showWatchlistModal}

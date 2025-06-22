@@ -1,4 +1,4 @@
-import React, {useMemo, useCallback} from 'react';
+import React, {useMemo, useCallback, useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import {MovieCard} from '../components/MovieCard';
 import {getImageUrl} from '../services/tmdb';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {useScrollOptimization} from '../hooks/useScrollOptimization';
 
 type PersonCreditsScreenNavigationProp =
   NativeStackNavigationProp<HomeStackParamList>;
@@ -39,6 +40,27 @@ export const PersonCreditsScreen = () => {
   const route = useRoute<PersonCreditsScreenRouteProp>();
   const {personId, personName} = route.params;
   const {navigateWithLimit} = useNavigationState();
+  const [renderPhase, setRenderPhase] = useState(0);
+  const [showMoreContent, setShowMoreContent] = useState(false);
+  const {
+    handleScroll,
+    handleScrollBeginDrag,
+    handleScrollEndDrag,
+    handleMomentumScrollEnd,
+  } = useScrollOptimization();
+
+  // Ultra-aggressive staggered loading to prevent FPS drops
+  useEffect(() => {
+    const timer1 = setTimeout(() => setRenderPhase(1), 500);
+    const timer2 = setTimeout(() => setRenderPhase(2), 1000);
+    const timer3 = setTimeout(() => setShowMoreContent(true), 2000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, []);
 
   // Get person details
   const {data: personDetails, isLoading: isLoadingDetails} =
@@ -119,6 +141,16 @@ export const PersonCreditsScreen = () => {
     tvCredits.refetch();
   };
 
+  // Only render content after renderPhase allows it
+  if (renderPhase < 1) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading content...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.profileContainer}>
@@ -159,6 +191,10 @@ export const PersonCreditsScreen = () => {
         contentContainerStyle={styles.listContent}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
+        onScroll={handleScroll}
+        onScrollBeginDrag={handleScrollBeginDrag}
+        onScrollEndDrag={handleScrollEndDrag}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.titleContainer}>
@@ -249,9 +285,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   loadingText: {
-    marginTop: spacing.sm,
     color: colors.text.primary,
-    ...typography.body2,
+    marginTop: spacing.md,
+    ...typography.body1,
   },
   emptyContainer: {
     padding: spacing.xxl,
@@ -308,5 +344,10 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -15,10 +15,11 @@ import {detectRegion} from './src/services/regionDetection';
 import {getRegions} from './src/services/tmdb';
 import {SettingsManager} from './src/store/settings';
 import {queryClient} from './src/services/queryClient';
+import {enableScreens} from 'react-native-screens';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
-
+  enableScreens();
   LogBox.ignoreAllLogs();
 
   useEffect(() => {

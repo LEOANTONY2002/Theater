@@ -2,12 +2,12 @@ import React, {useState, useEffect, useCallback, memo} from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import {FlashList} from '@shopify/flash-list';
 import {ContentItem} from './MovieList';
 import {ContentCard} from './ContentCard';
 import {colors, spacing, typography} from '../styles/theme';
@@ -39,31 +39,25 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     isTop10 = false,
   }) => {
     const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
-    const [isDebouncing, setIsDebouncing] = useState(false);
-    const [shouldRender, setShouldRender] = useState(false);
+    const {
+      handleScroll,
+      handleScrollBeginDrag,
+      handleScrollEndDrag,
+      handleMomentumScrollEnd,
+    } = useScrollOptimization();
 
-    // Ultra-aggressive debouncing to prevent FPS drops
+    // Simple debouncing
     useEffect(() => {
       if (data && data.length > 0) {
-        setIsDebouncing(true);
         const timer = setTimeout(
           () => {
             setDebouncedData(data);
-            setIsDebouncing(false);
-            // Delay actual rendering to prevent blocking, but not for V2 (recent searches)
-            if (title === 'V2') {
-              setShouldRender(true);
-            } else {
-              setTimeout(() => setShouldRender(true), 100);
-            }
           },
-          title === 'V2' ? 50 : 200,
-        ); // Shorter delay for V2 (recent searches)
+          title === 'V2' ? 0 : 50,
+        );
         return () => clearTimeout(timer);
       } else {
         setDebouncedData([]);
-        setIsDebouncing(false);
-        setShouldRender(false);
       }
     }, [data, title]);
 
@@ -91,16 +85,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       [],
     );
 
-    const getItemLayout = useCallback(
-      (data: any, index: number) => ({
-        length: isTop10 ? 200 : 140,
-        offset: (isTop10 ? 200 : 140) * index,
-        index,
-      }),
-      [isTop10],
-    );
-
-    if (!debouncedData?.length && !isDebouncing) {
+    if (!debouncedData?.length) {
       return (
         <View>
           <HeadingSkeleton />
@@ -141,8 +126,8 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
           </View>
         ) : null}
 
-        {shouldRender && (
-          <FlatList
+        <View style={styles.listWrapper}>
+          <FlashList
             horizontal
             data={debouncedData}
             renderItem={renderItem}
@@ -153,26 +138,18 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
             ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
-            // Netflix-style ultra-aggressive performance optimizations
+            estimatedItemSize={isTop10 ? 200 : 140}
+            onScroll={handleScroll}
+            onScrollBeginDrag={handleScrollBeginDrag}
+            onScrollEndDrag={handleScrollEndDrag}
+            onMomentumScrollEnd={handleMomentumScrollEnd}
+            // Minimal FlashList settings for horizontal scrolling
             removeClippedSubviews={true}
-            maxToRenderPerBatch={1} // Render one at a time for smoothness
-            windowSize={1} // Minimal window size
-            initialNumToRender={1} // Start with just one item
-            getItemLayout={getItemLayout}
-            updateCellsBatchingPeriod={50} // Faster batching
-            disableVirtualization={false}
-            // Netflix-style scroll optimizations
-            scrollEventThrottle={0} // Disable scroll events for performance
-            decelerationRate="fast"
-            // Memory optimizations
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 0,
-              autoscrollToTopThreshold: 10,
-            }}
-            // Disable all animations for performance
-            disableIntervalMomentum={true}
+            scrollEventThrottle={0}
+            decelerationRate="normal"
+            extraData={null}
           />
-        )}
+        </View>
       </View>
     );
   },
@@ -229,5 +206,8 @@ const styles = StyleSheet.create({
     width: 100,
     letterSpacing: -10,
     textAlign: 'center',
+  },
+  listWrapper: {
+    flex: 1,
   },
 });
