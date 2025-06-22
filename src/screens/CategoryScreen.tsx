@@ -185,6 +185,28 @@ export const CategoryScreen = () => {
           contentContainerStyle={styles.listContent}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
+          // Netflix-style virtualization for grid performance
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={3} // Render 3 items at a time for grid
+          windowSize={3} // Keep 3 screens worth of items
+          initialNumToRender={6} // Start with 6 items (2 rows)
+          updateCellsBatchingPeriod={50} // Fast batching
+          disableVirtualization={false} // Enable virtualization
+          // Scroll optimizations
+          scrollEventThrottle={0} // Disable scroll events for performance
+          decelerationRate="fast"
+          // Memory optimizations
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+          // Disable extra features for performance
+          extraData={null}
+          onScrollBeginDrag={() => {}}
+          onScrollEndDrag={() => {}}
+          onMomentumScrollEnd={() => {}}
+          // Grid-specific optimizations
+          columnWrapperStyle={styles.row}
           ListFooterComponent={
             isFetchingNextPage || isFetchingNextFilterPage ? (
               <ActivityIndicator
@@ -198,20 +220,10 @@ export const CategoryScreen = () => {
             !isLoading ? (
               <View style={styles.emptyContainer}>
                 <Icon name="alert-circle" size={48} color={colors.text.muted} />
-                <Text style={styles.emptyText}>No items found</Text>
-                <TouchableOpacity
-                  style={styles.retryButton}
-                  onPress={() => refetch()}>
-                  <Text style={styles.retryText}>Try Again</Text>
-                </TouchableOpacity>
+                <Text style={styles.emptyText}>No content found</Text>
               </View>
             ) : null
           }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={6}
-          windowSize={5}
-          initialNumToRender={6}
-          getItemLayout={undefined}
         />
       </View>
 
@@ -336,5 +348,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary + 'CC',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  row: {
+    flexDirection: 'row',
   },
 });

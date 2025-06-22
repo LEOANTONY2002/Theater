@@ -143,44 +143,44 @@ export const HomeScreen = () => {
 
   // Get a random popular item for the banner
   const featuredItems = useMemo(() => {
-    const items = [];
+    const items: Array<{item: any; type: 'movie' | 'tv'; title: string}> = [];
     const randomIndex = Math.floor(Math.random() * Math.min(items.length, 5));
 
     if (recentMovies?.pages?.[0]?.results) {
       items.push({
         item: recentMovies.pages[0].results[randomIndex],
-        type: 'movie',
+        type: 'movie' as const,
         title: 'Latest',
       });
     }
-    // if (recentTVShows?.pages?.[0]?.results) {
-    //   items.push({
-    //     item: recentTVShows.pages[0].results[randomIndex],
-    //     type: 'tv',
-    //     title: 'Recent Shows',
-    //   });
-    // }
+    if (recentTVShows?.pages?.[0]?.results) {
+      items.push({
+        item: recentTVShows.pages[0].results[randomIndex],
+        type: 'tv' as const,
+        title: 'Recent Shows',
+      });
+    }
     if (popularMovies?.pages?.[0]?.results) {
       items.push({
         item: popularMovies.pages[0].results[randomIndex],
-        type: 'movie',
+        type: 'movie' as const,
         title: 'Popular',
       });
     }
     if (topRatedMovies?.pages?.[0]?.results) {
       items.push({
         item: topRatedMovies.pages[0].results[randomIndex],
-        type: 'movie',
+        type: 'movie' as const,
         title: 'Top Rated',
       });
     }
-    // if (topRatedTVShows?.pages?.[0]?.results) {
-    //   items.push({
-    //     item: topRatedTVShows.pages[0].results[randomIndex],
-    //     type: 'tv',
-    //     title: 'Top Rated TV Shows',
-    //   });
-    // }
+    if (topRatedTVShows?.pages?.[0]?.results) {
+      items.push({
+        item: topRatedTVShows.pages[0].results[randomIndex],
+        type: 'tv' as const,
+        title: 'Top Rated TV Shows',
+      });
+    }
     return items;
   }, [
     recentMovies,
@@ -351,7 +351,7 @@ export const HomeScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
-        // Ultra-aggressive scroll optimizations
+        // Netflix-style scroll optimizations
         scrollEventThrottle={0}
         decelerationRate="fast"
         // Disable all scroll features that cause FPS drops
@@ -362,7 +362,12 @@ export const HomeScreen = () => {
         onScroll={() => {}}
         onScrollBeginDrag={() => {}}
         onScrollEndDrag={() => {}}
-        onMomentumScrollEnd={() => {}}>
+        onMomentumScrollEnd={() => {}}
+        // Virtualization optimizations
+        contentContainerStyle={{paddingBottom: 100}}
+        // Performance optimizations
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag">
         {featuredItems.length > 0 ? (
           <FeaturedBannerHome items={featuredItems} />
         ) : (
