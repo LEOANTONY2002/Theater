@@ -38,7 +38,6 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
         colors={[
           tagGradientColors[index],
           'transparent',
-          'transparent',
           tagGradientColors[index],
         ]}
         start={{x: 0, y: 0}}
@@ -50,7 +49,7 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
         blurType="light"
         blurAmount={10}
         blurRadius={20}
-        overlayColor={colors.modal.content}
+        overlayColor={colors.modal.header}
       />
       <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
       <Text style={styles.tagText} numberOfLines={2}>

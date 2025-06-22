@@ -338,7 +338,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   style={styles.castItem}
                   onPress={() => handlePersonPress(person?.id, person?.name)}>
                   <PersonCard
-                    item={getImageUrl(person.profile_path || '', 'w185')}
+                    item={getImageUrl(person.profile_path || '', 'w154')}
                     onPress={() => handlePersonPress(person.id, person.name)}
                   />
                   <Text style={styles.castName} numberOfLines={2}>
@@ -395,7 +395,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     />
 
                     <View style={styles.episodeContent}>
-                      <Text style={styles.episodeTitle} numberOfLines={2}>
+                      <Text style={styles.episodeTitle} numberOfLines={1}>
                         {episode.name}
                       </Text>
 

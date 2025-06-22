@@ -39,6 +39,7 @@ import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {PerformanceMonitor} from '../components/PerformanceMonitor';
 import {useScrollOptimization} from '../hooks/useScrollOptimization';
+import LinearGradient from 'react-native-linear-gradient';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -308,10 +309,25 @@ export const HomeScreen = () => {
       marginTop: spacing.xxl,
     },
     heading: {
-      ...typography.h3,
-      color: colors.text.secondary,
+      position: 'relative',
+      // marginBottom: -50,
+    },
+    gradient: {
+      position: 'absolute',
+      left: 0,
+      bottom: 0,
+      height: 80,
+      width: '100%',
+      zIndex: 0,
+    },
+    headingText: {
+      fontSize: WIDTH / 6,
+      fontWeight: '900',
+      color: colors.text.tertiary,
       marginVertical: spacing.md,
       textAlign: 'center',
+      opacity: 0.3,
+      zIndex: -1,
     },
   });
 
@@ -348,8 +364,7 @@ export const HomeScreen = () => {
         onScrollEndDrag={() => {}}
         onMomentumScrollEnd={() => {}}>
         {featuredItems.length > 0 ? (
-          // <FeaturedBannerHome items={featuredItems} />
-          <View></View>
+          <FeaturedBannerHome items={featuredItems} />
         ) : (
           <View style={styles.skeletonContainer}>
             <BannerHomeSkeleton />
@@ -467,7 +482,15 @@ export const HomeScreen = () => {
           savedFilters &&
           savedFilters?.length > 0 && (
             <View style={{marginTop: spacing.xxl}}>
-              <Text style={styles.heading}>My Filters</Text>
+              <View style={styles.heading}>
+                <LinearGradient
+                  colors={['transparent', colors.background.primary]}
+                  start={{x: 0.5, y: 0}}
+                  end={{x: 0.5, y: 1}}
+                  style={styles.gradient}
+                />
+                <Text style={styles.headingText}>My Filters</Text>
+              </View>
               {savedFilters?.map((filter: SavedFilter) => (
                 <HomeFilterRow key={filter.id} savedFilter={filter} />
               ))}
