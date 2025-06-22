@@ -49,6 +49,7 @@ import {
   useWatchlistContainingItem,
   useRemoveFromWatchlist,
 } from '../hooks/useWatchlists';
+import {FlashList} from '@shopify/flash-list';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -170,6 +171,70 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       });
     },
     [navigateWithLimit],
+  );
+
+  const renderEpisodeItem = useCallback(
+    ({item: episode}: {item: Episode}) => (
+      <TouchableOpacity
+        key={episode.id}
+        style={styles.episodeCard}
+        onPress={() => {
+          // Handle episode selection
+        }}>
+        <Image
+          source={{
+            uri: episode.still_path
+              ? getImageUrl(episode.still_path, 'w185')
+              : 'https://via.placeholder.com/200x112',
+          }}
+          style={styles.episodeImage}
+        />
+        <View style={styles.episodeContent}>
+          <Text style={styles.episodeTitle} numberOfLines={1}>
+            {episode.name}
+          </Text>
+          <View style={styles.episodeInfo}>
+            {episode?.episode_number && (
+              <Text style={styles.info}>
+                S{episode.season_number} E{episode.episode_number}
+              </Text>
+            )}
+            <Text style={styles.infoDot}>•</Text>
+            <Text style={styles.info}>
+              {new Date(episode.air_date).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </Text>
+            {episode?.runtime && (
+              <>
+                <Text style={styles.infoDot}>•</Text>
+                <Text style={styles.info}>{episode.runtime} min</Text>
+              </>
+            )}
+            {episode?.vote_average && (
+              <>
+                <Text style={styles.infoDot}>•</Text>
+                <View
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                  }}>
+                  <Ionicons name="star" size={12} color="#ffffff70" />
+                  <Text style={styles.info}>
+                    {episode.vote_average.toFixed(1)}
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    ),
+    [],
   );
 
   if (isLoading) {
@@ -374,85 +439,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             </TouchableOpacity>
 
             {selectedSeason && episodes && episodes.episodes.length > 0 ? (
-              <ScrollView
+              <FlashList
+                data={episodes.episodes}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                style={styles.episodesContainer}>
-                {episodes.episodes.map((episode: Episode) => (
-                  <TouchableOpacity
-                    key={episode.id}
-                    style={styles.episodeCard}
-                    onPress={() => {
-                      // Handle episode selection
-                    }}>
-                    <Image
-                      source={{
-                        uri: episode.still_path
-                          ? getImageUrl(episode.still_path, 'w185')
-                          : 'https://via.placeholder.com/200x112',
-                      }}
-                      style={styles.episodeImage}
-                    />
-
-                    <View style={styles.episodeContent}>
-                      <Text style={styles.episodeTitle} numberOfLines={1}>
-                        {episode.name}
-                      </Text>
-
-                      <View style={styles.episodeInfo}>
-                        {episode?.episode_number && (
-                          <Text style={styles.info}>
-                            S{episode.season_number} E{episode.episode_number}
-                          </Text>
-                        )}
-                        <Text style={styles.infoDot}>•</Text>
-
-                        <Text style={styles.info}>
-                          {new Date(episode.air_date).toLocaleDateString(
-                            'en-US',
-                            {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                            },
-                          )}
-                        </Text>
-
-                        {episode?.runtime && (
-                          <>
-                            <Text style={styles.infoDot}>•</Text>
-                            <Text style={styles.info}>
-                              {episode.runtime} min
-                            </Text>
-                          </>
-                        )}
-
-                        {episode?.vote_average && (
-                          <>
-                            <Text style={styles.infoDot}>•</Text>
-                            <View
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: spacing.xs,
-                              }}>
-                              <Ionicons
-                                name="star"
-                                size={12}
-                                color="#ffffff70"
-                              />
-                              <Text style={styles.info}>
-                                {episode.vote_average.toFixed(1)}
-                              </Text>
-                            </View>
-                          </>
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                contentContainerStyle={styles.episodesContainer}
+                estimatedItemSize={280}
+                keyExtractor={(episode: Episode) => episode.id.toString()}
+                removeClippedSubviews={true}
+                renderItem={renderEpisodeItem}
+              />
             ) : (
               <View style={styles.noEpisodesContainer}>
                 {/* <Text style={styles.noEpisodesText}>
@@ -747,6 +743,7 @@ const styles = StyleSheet.create({
   },
   seasonsSection: {
     marginVertical: spacing.md,
+    marginBottom: spacing.xl,
   },
   seasonDropdown: {
     flexDirection: 'row',
@@ -766,8 +763,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   episodesContainer: {
-    marginTop: 16,
     paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   episodesScroll: {
     paddingHorizontal: 16,

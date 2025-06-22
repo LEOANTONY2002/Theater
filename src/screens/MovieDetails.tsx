@@ -257,7 +257,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -440,10 +439,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               ) : null;
             case 'similar':
               return similarMoviesData.length > 0 ? (
-                <View style={{marginVertical: spacing.lg}}>
-                  <Text style={styles.sectionTitle}>Similar Movies</Text>
+                <View>
                   <HorizontalList
-                    title=""
+                    title="Similar Movies"
                     data={similarMoviesData}
                     onItemPress={handleItemPress}
                     isSeeAll={false}
@@ -452,10 +450,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               ) : null;
             case 'recommendations':
               return recommendationsData.length > 0 ? (
-                <View style={{marginVertical: spacing.lg, marginBottom: 100}}>
-                  <Text style={styles.sectionTitle}>Recommended</Text>
+                <View style={{marginBottom: 100}}>
                   <HorizontalList
-                    title=""
+                    title="Recommended Movies"
                     data={recommendationsData}
                     onItemPress={handleItemPress}
                     isSeeAll={false}
@@ -484,7 +481,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       />
 
       {isInitialLoading && (
-        <View style={styles.loadingOverlay}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
@@ -499,14 +496,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: colors.background.primary,
-  },
-  loadingText: {
-    color: colors.text.primary,
-    marginTop: spacing.md,
-    ...typography.body1,
   },
   gradientShade: {
     position: 'absolute',
@@ -767,50 +757,5 @@ const styles = StyleSheet.create({
   recommendedSection: {
     flexDirection: 'column',
     gap: 16,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    padding: 16,
-  },
-  watchlistButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  movieInfo: {
-    flexDirection: 'column',
-    gap: 16,
-  },
-  details: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailText: {
-    ...typography.body2,
-    color: 'rgba(255, 255, 255, 0.68)',
   },
 });
