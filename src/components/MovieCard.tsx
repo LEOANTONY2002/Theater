@@ -1,15 +1,9 @@
-import React, {useState, useCallback, useEffect, useRef} from 'react';
-import {
-  View,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Easing,
-  Dimensions,
-} from 'react-native';
+import React, {useState, useCallback} from 'react';
+import {View, TouchableOpacity, StyleSheet, Dimensions} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
+import {MoivieCardSkeleton} from './LoadingSkeleton';
 
 interface MovieCardProps {
   item: ContentItem;
@@ -40,17 +34,8 @@ const styles = StyleSheet.create({
   },
   skeleton: {
     flex: 1,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: 'rgb(21, 21, 32)',
     overflow: 'hidden',
-  },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    height: '100%',
-    width: 60,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    opacity: 0.7,
   },
 });
 
@@ -60,27 +45,10 @@ export const MovieCard: React.FC<MovieCardProps> = ({
   size = 'normal',
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   const handleImageFinish = useCallback(() => {
     setImageLoaded(true);
   }, []);
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.timing(shimmerAnim, {
-        toValue: 1,
-        duration: 1000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    ).start();
-  }, [shimmerAnim]);
-
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-100, 200],
-  });
 
   return (
     <TouchableOpacity
@@ -104,14 +72,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({
         {!imageLoaded && (
           <View style={StyleSheet.absoluteFill}>
             <View style={styles.skeleton}>
-              <Animated.View
-                style={[
-                  styles.shimmer,
-                  {
-                    transform: [{translateX: shimmerTranslate}],
-                  },
-                ]}
-              />
+              <MoivieCardSkeleton />
             </View>
           </View>
         )}

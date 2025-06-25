@@ -32,6 +32,7 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
   DetailScreenSkeleton,
   BannerHomeSkeleton,
+  BannerSkeleton,
 } from '../components/LoadingSkeleton';
 import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
@@ -256,7 +257,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   if (!canRenderContent) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <DetailScreenSkeleton />
       </View>
     );
   }
@@ -288,7 +289,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     end={{x: 0.5, y: 0.5}}
                   />
                   <View style={styles.main}>
-                    {isPosterLoading && <BannerHomeSkeleton />}
+                    {isPosterLoading && <BannerSkeleton />}
                     {!isPlaying ? (
                       <Image
                         source={{

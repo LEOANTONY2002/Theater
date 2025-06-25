@@ -27,7 +27,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {MovieCard} from '../components/MovieCard';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {ContentItem} from '../components/MovieList';
-import {GridSkeleton} from '../components/LoadingSkeleton';
+import {GridListSkeleton, GridSkeleton} from '../components/LoadingSkeleton';
 import {getImageUrl} from '../services/tmdb';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {BlurView} from '@react-native-community/blur';
@@ -216,8 +216,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   if (!canRenderContent) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <GridListSkeleton />
       </View>
     );
   }
@@ -256,7 +255,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
       <View style={styles.contentContainer}>
         {isLoading ? (
-          <GridSkeleton />
+          <GridListSkeleton />
         ) : (
           <Animated.FlatList
             data={allItems}
@@ -309,8 +308,8 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       </View>
 
       {(isInitialLoading || isNavigating) && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View style={styles.loadingContainer}>
+          <GridListSkeleton />
         </View>
       )}
     </View>
@@ -421,11 +420,10 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background.primary,
-    paddingVertical: spacing.xxl,
+    paddingTop: 100,
   },
   loadingTitle: {
     ...typography.h3,

@@ -20,6 +20,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography} from '../styles/theme';
 import {
   BannerSkeleton,
+  GenreListSkeleton,
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
@@ -155,6 +156,12 @@ export const TVShowsScreen = () => {
         type: 'featured',
         data: featuredShow,
       });
+    } else if (isFetchingLatest) {
+      sectionsList.push({
+        id: 'featuredSkeleton',
+        type: 'featuredSkeleton',
+        data: null,
+      });
     }
 
     // Genres section
@@ -178,6 +185,11 @@ export const TVShowsScreen = () => {
         isLoading: isFetchingLatest,
         onSeeAllPress: () => handleSeeAllPress('Latest Shows', 'latest'),
       });
+    } else if (isFetchingLatest) {
+      sectionsList.push({
+        id: 'latestShowsSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Popular Shows section
@@ -191,6 +203,11 @@ export const TVShowsScreen = () => {
         onEndReached: hasNextPopular ? fetchNextPopular : undefined,
         isLoading: isFetchingPopular,
         onSeeAllPress: () => handleSeeAllPress('Popular Shows', 'popular'),
+      });
+    } else if (isFetchingPopular) {
+      sectionsList.push({
+        id: 'popularShowsSkeleton',
+        type: 'horizontalListSkeleton',
       });
     }
 
@@ -206,16 +223,26 @@ export const TVShowsScreen = () => {
         isLoading: isFetchingTopRated,
         onSeeAllPress: () => handleSeeAllPress('Top Rated Shows', 'top_rated'),
       });
+    } else if (isFetchingTopRated) {
+      sectionsList.push({
+        id: 'topRatedShowsSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Top 10 section
-    if (top10ShowsTodayByRegion?.length) {
+    if (isFetchingTop10ShowsTodayByRegion) {
+      sectionsList.push({
+        id: 'top10Skeleton',
+        type: 'horizontalListSkeleton',
+      });
+    } else if (top10ShowsTodayByRegion?.length) {
       sectionsList.push({
         id: 'top10',
         type: 'horizontalList',
         title: `Top 10 in ${region?.english_name}`,
         data: top10ShowsTodayByRegion,
-        isLoading: top10ShowsTodayByRegion.length === 0,
+        isLoading: false,
         onItemPress: handleShowPress,
         isSeeAll: false,
         isTop10: true,
@@ -238,6 +265,7 @@ export const TVShowsScreen = () => {
     isFetchingLatest,
     isFetchingPopular,
     isFetchingTopRated,
+    isFetchingTop10ShowsTodayByRegion,
     hasNextLatest,
     hasNextPopular,
     hasNextTopRated,
@@ -291,6 +319,8 @@ export const TVShowsScreen = () => {
     return (
       <View style={styles.container}>
         <BannerSkeleton />
+        <HeadingSkeleton />
+        <GenreListSkeleton />
         <HeadingSkeleton />
         <HorizontalListSkeleton />
       </View>

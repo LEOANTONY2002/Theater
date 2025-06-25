@@ -45,6 +45,7 @@ import {MovieCard} from '../components/MovieCard';
 import {SavedFilter} from '../types/filters';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {BlurView} from '@react-native-community/blur';
+import {GridListSkeleton} from '../components/LoadingSkeleton';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList,
@@ -232,8 +233,8 @@ export const CategoryScreen = () => {
   // Show loading screen until content can be rendered
   if (!canRenderContent) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.loadingOverlay}>
+        <GridListSkeleton />
       </View>
     );
   }
@@ -326,9 +327,9 @@ export const CategoryScreen = () => {
         />
       </View>
 
-      {(isInitialLoading || isNavigating) && (
+      {isInitialLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <GridListSkeleton />
         </View>
       )}
     </View>
@@ -460,10 +461,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.background.primary + 'CC',
+    backgroundColor: colors.background.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 120,
   },
   row: {
     flexDirection: 'row',

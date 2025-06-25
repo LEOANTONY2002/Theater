@@ -36,6 +36,7 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
   DetailScreenSkeleton,
   BannerHomeSkeleton,
+  BannerSkeleton,
 } from '../components/LoadingSkeleton';
 import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
@@ -275,7 +276,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         />
 
         <View style={styles.main}>
-          {isPosterLoading && <BannerHomeSkeleton />}
+          {isPosterLoading && <BannerSkeleton />}
 
           {!isPlaying ? (
             <Image

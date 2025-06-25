@@ -154,13 +154,13 @@ export const HomeScreen = () => {
         title: 'Latest',
       });
     }
-    if (recentTVShows?.pages?.[0]?.results) {
-      items.push({
-        item: recentTVShows.pages[0].results[randomIndex],
-        type: 'tv' as const,
-        title: 'Recent Shows',
-      });
-    }
+    // if (recentTVShows?.pages?.[0]?.results) {
+    //   items.push({
+    //     item: recentTVShows.pages[0].results[randomIndex],
+    //     type: 'tv' as const,
+    //     title: 'Recent Shows',
+    //   });
+    // }
     if (popularMovies?.pages?.[0]?.results) {
       items.push({
         item: popularMovies.pages[0].results[randomIndex],
@@ -172,16 +172,16 @@ export const HomeScreen = () => {
       items.push({
         item: topRatedMovies.pages[0].results[randomIndex],
         type: 'movie' as const,
-        title: 'Top Rated',
+        title: 'Top',
       });
     }
-    if (topRatedTVShows?.pages?.[0]?.results) {
-      items.push({
-        item: topRatedTVShows.pages[0].results[randomIndex],
-        type: 'tv' as const,
-        title: 'Top Rated TV Shows',
-      });
-    }
+    // if (topRatedTVShows?.pages?.[0]?.results) {
+    //   items.push({
+    //     item: topRatedTVShows.pages[0].results[randomIndex],
+    //     type: 'tv' as const,
+    //     title: 'Top Rated TV Shows',
+    //   });
+    // }
     return items;
   }, [
     recentMovies,

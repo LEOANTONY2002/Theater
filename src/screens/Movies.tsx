@@ -12,6 +12,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography} from '../styles/theme';
 import {
   BannerSkeleton,
+  GenreListSkeleton,
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
@@ -166,7 +167,7 @@ export const MoviesScreen = () => {
         type: 'featured',
         data: featuredMovie,
       });
-    } else {
+    } else if (isFetchingRecent) {
       sectionsList.push({
         id: 'featuredSkeleton',
         type: 'featuredSkeleton',
@@ -195,6 +196,11 @@ export const MoviesScreen = () => {
         isLoading: isFetchingRecent,
         onSeeAllPress: () => handleSeeAllPress('Recent Movies', 'latest'),
       });
+    } else if (isFetchingRecent) {
+      sectionsList.push({
+        id: 'recentMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Popular Movies section
@@ -208,6 +214,11 @@ export const MoviesScreen = () => {
         onEndReached: hasNextPopular ? fetchNextPopular : undefined,
         isLoading: isFetchingPopular,
         onSeeAllPress: () => handleSeeAllPress('Popular Movies', 'popular'),
+      });
+    } else if (isFetchingPopular) {
+      sectionsList.push({
+        id: 'popularMoviesSkeleton',
+        type: 'horizontalListSkeleton',
       });
     }
 
@@ -223,6 +234,11 @@ export const MoviesScreen = () => {
         isLoading: isFetchingTopRated,
         onSeeAllPress: () => handleSeeAllPress('Top Rated Movies', 'top_rated'),
       });
+    } else if (isFetchingTopRated) {
+      sectionsList.push({
+        id: 'topRatedMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Now Playing section
@@ -236,6 +252,11 @@ export const MoviesScreen = () => {
         onEndReached: hasNextNowPlaying ? fetchNextNowPlaying : undefined,
         isLoading: isFetchingNowPlaying,
         onSeeAllPress: () => handleSeeAllPress('Now Playing', 'now_playing'),
+      });
+    } else if (isFetchingNowPlaying) {
+      sectionsList.push({
+        id: 'nowPlayingSkeleton',
+        type: 'horizontalListSkeleton',
       });
     }
 
@@ -251,16 +272,26 @@ export const MoviesScreen = () => {
         isLoading: isFetchingUpcoming,
         onSeeAllPress: () => handleSeeAllPress('Upcoming Movies', 'upcoming'),
       });
+    } else if (isFetchingUpcoming) {
+      sectionsList.push({
+        id: 'upcomingMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Top 10 section
-    if (top10MoviesTodayByRegionData?.length) {
+    if (isFetchingTop10MoviesTodayByRegion) {
+      sectionsList.push({
+        id: 'top10Skeleton',
+        type: 'horizontalListSkeleton',
+      });
+    } else if (top10MoviesTodayByRegionData?.length) {
       sectionsList.push({
         id: 'top10',
         type: 'horizontalList',
         title: `Top 10 in ${region?.english_name}`,
         data: top10MoviesTodayByRegionData,
-        isLoading: top10MoviesTodayByRegionData.length === 0,
+        isLoading: false,
         onItemPress: handleMoviePress,
         isSeeAll: false,
         isTop10: true,
@@ -288,6 +319,7 @@ export const MoviesScreen = () => {
     isFetchingTopRated,
     isFetchingNowPlaying,
     isFetchingUpcoming,
+    isFetchingTop10MoviesTodayByRegion,
     hasNextRecent,
     hasNextPopular,
     hasNextTopRated,
@@ -353,6 +385,8 @@ export const MoviesScreen = () => {
     return (
       <View style={styles.container}>
         <BannerSkeleton />
+        <HeadingSkeleton />
+        <GenreListSkeleton />
         <HeadingSkeleton />
         <HorizontalListSkeleton />
         <HeadingSkeleton />

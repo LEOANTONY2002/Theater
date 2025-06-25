@@ -3,8 +3,10 @@ import {View, StyleSheet, Animated, Dimensions, ScrollView} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {borderRadius, spacing} from '../styles/theme';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
 const shimmerColors = [
-  'rgb(21, 21, 32)',
+  'rgba(21, 21, 32, 0.62)',
   'rgba(20, 20, 28, 0.81)',
   'rgb(21, 21, 32)',
 ];
@@ -16,7 +18,7 @@ const AnimatedShimmer = ({width, height, radius = 8}) => {
     Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 1500,
         useNativeDriver: true,
       }),
     ).start();
@@ -51,11 +53,13 @@ const AnimatedShimmer = ({width, height, radius = 8}) => {
 };
 
 export const BannerSkeleton = () => (
-  <AnimatedShimmer
-    width={Dimensions.get('window').width}
-    height={200}
-    radius={0}
-  />
+  <View style={styles.bannerContainer}>
+    <AnimatedShimmer
+      width={Dimensions.get('window').width}
+      height={580}
+      radius={0}
+    />
+  </View>
 );
 
 export const BannerHomeSkeleton = () => (
@@ -76,6 +80,20 @@ export const HeadingSkeleton = () => (
       radius={8}
     />
   </View>
+);
+
+export const GenreListSkeleton = () => (
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.horizontalListContent}
+    style={{marginBottom: spacing.md}}>
+    {[...Array(5)].map((_, i) => (
+      <View key={i} style={styles.horizontalCardContainer}>
+        <AnimatedShimmer width={120} height={100} radius={16} />
+      </View>
+    ))}
+  </ScrollView>
 );
 
 export const HorizontalListSkeleton = () => (
@@ -102,16 +120,37 @@ export const RecentListSkeleton = () => (
 
 export const GridSkeleton = () => (
   <View style={styles.grid}>
-    {[...Array(16)].map((_, i) => (
+    {[...Array(20)].map((_, i) => (
       <AnimatedShimmer key={i} width={120} height={180} radius={8} />
     ))}
   </View>
 );
 
-export const MoivieCardSkeleton = ({v2 = false}: {v2?: boolean}) => (
+export const GridListSkeleton = () => (
+  <View style={styles.grid}>
+    {[...Array(20)].map((_, i) => (
+      <AnimatedShimmer
+        key={i}
+        width={SCREEN_WIDTH / 3 - 15}
+        height={SCREEN_WIDTH / 2 - 10}
+        radius={8}
+      />
+    ))}
+  </View>
+);
+
+export const ContentCardSkeleton = ({v2 = false}: {v2?: boolean}) => (
   <AnimatedShimmer
     width={v2 ? 180 : 120}
     height={v2 ? 100 : 180}
+    radius={borderRadius.sm}
+  />
+);
+
+export const MoivieCardSkeleton = () => (
+  <AnimatedShimmer
+    width={SCREEN_WIDTH / 3 - 15}
+    height={SCREEN_WIDTH / 2 - 10}
     radius={borderRadius.sm}
   />
 );
@@ -123,21 +162,29 @@ export const PersonCardSkeleton = () => (
 export const DetailScreenSkeleton = () => (
   <View style={styles.detail}>
     <AnimatedShimmer
-      width={Dimensions.get('window').width}
-      height={300}
-      radius={0}
+      width={Dimensions.get('window').width - 32}
+      height={250}
+      radius={30}
     />
+    <View style={{height: 16}} />
     <View style={styles.centered}>
       <AnimatedShimmer width={300} height={60} radius={10} />
       <AnimatedShimmer width={300} height={30} radius={5} />
     </View>
-    <AnimatedShimmer width={'90%'} height={30} radius={5} />
-    <AnimatedShimmer width={'90%'} height={30} radius={5} />
-    <AnimatedShimmer width={'90%'} height={30} radius={5} />
-    <HeadingSkeleton />
-    <HorizontalListSkeleton />
-    <HeadingSkeleton />
-    <HorizontalListSkeleton />
+    <View style={{height: 16}} />
+    <AnimatedShimmer width={'100%'} height={70} radius={10} />
+    <View style={{height: 16}} />
+    <AnimatedShimmer width={300} height={30} radius={5} />
+    <View style={{height: 26}} />
+    <View style={{flex: 1, alignItems: 'flex-start', alignSelf: 'flex-start'}}>
+      <AnimatedShimmer width={200} height={40} radius={5} />
+      <View style={{height: 16}} />
+      <View style={{display: 'flex', flexDirection: 'row', gap: 6}}>
+        <AnimatedShimmer width={120} height={180} radius={10} />
+        <AnimatedShimmer width={120} height={180} radius={10} />
+        <AnimatedShimmer width={120} height={180} radius={10} />
+      </View>
+    </View>
   </View>
 );
 
@@ -178,8 +225,8 @@ const styles = StyleSheet.create({
   },
   headingSkeletonContainer: {
     marginLeft: spacing.md,
-    marginBottom: 8,
     alignSelf: 'flex-start',
+    marginBottom: 8,
   },
   horizontalListContent: {
     flexDirection: 'row',
@@ -194,7 +241,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginHorizontal: 20,
+    margin: 20,
     flexWrap: 'wrap',
   },
   grid: {
@@ -207,14 +254,16 @@ const styles = StyleSheet.create({
     margin: 'auto',
   },
   detail: {
-    flex: 1,
     width: '100%',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: spacing.md,
   },
   centered: {
     width: '100%',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 20,
+    gap: 10,
   },
 });

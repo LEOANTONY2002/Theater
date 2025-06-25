@@ -1,16 +1,10 @@
-import React, {useState, useCallback, useEffect, useRef, memo} from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Easing,
-} from 'react-native';
+import React, {useState, useCallback, memo} from 'react';
+import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
 import {colors, spacing, borderRadius} from '../styles/theme';
+import {ContentCardSkeleton} from './LoadingSkeleton';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -21,7 +15,6 @@ interface ContentCardProps {
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
     const [imageLoaded, setImageLoaded] = useState(false);
-    const shimmerAnim = useRef(new Animated.Value(0)).current;
 
     const CARD_WIDTH = v2 ? 180 : 120;
     const CARD_HEIGHT = v2 ? 100 : 180;
@@ -41,22 +34,6 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
     const handleImageFinish = useCallback(() => {
       setImageLoaded(true);
     }, []);
-
-    useEffect(() => {
-      Animated.loop(
-        Animated.timing(shimmerAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ).start();
-    }, [shimmerAnim]);
-
-    const shimmerTranslate = shimmerAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [-100, 200],
-    });
 
     return (
       <>
@@ -79,14 +56,7 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
           {!imageLoaded && (
             <View style={StyleSheet.absoluteFill}>
               <View style={styles.skeleton}>
-                <Animated.View
-                  style={[
-                    styles.shimmer,
-                    {
-                      transform: [{translateX: shimmerTranslate}],
-                    },
-                  ]}
-                />
+                <ContentCardSkeleton />
               </View>
             </View>
           )}
@@ -118,7 +88,7 @@ const styles = StyleSheet.create({
   },
   skeleton: {
     flex: 1,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: 'rgb(21, 21, 32)',
     overflow: 'hidden',
     borderRadius: borderRadius.md,
   },
