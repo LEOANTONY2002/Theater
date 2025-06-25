@@ -190,7 +190,7 @@ export const DetailScreenSkeleton = () => (
 
 export const LanguageSkeleton = () => (
   <View style={styles.row}>
-    {[...Array(10)].map((_, i) => (
+    {[...Array(3)].map((_, i) => (
       <AnimatedShimmer key={i} width={100} height={100} radius={10} />
     ))}
   </View>
@@ -238,11 +238,14 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   row: {
+    flex: 1,
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     margin: 20,
     flexWrap: 'wrap',
+    overflow: 'scroll',
   },
   grid: {
     width: '100%',

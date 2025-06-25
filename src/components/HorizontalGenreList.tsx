@@ -60,7 +60,7 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
 
   if (isLoading) {
     return (
-      <View style={{marginBottom: spacing.md, marginTop: -spacing.lg}}>
+      <View style={{marginBottom: spacing.md, marginTop: spacing.md}}>
         <HeadingSkeleton />
         <LanguageSkeleton />
       </View>
