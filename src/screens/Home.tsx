@@ -27,6 +27,7 @@ import {
   BannerHomeSkeleton,
   HeadingSkeleton,
   HorizontalListSkeleton,
+  HomeScreenSkeleton,
 } from '../components/LoadingSkeleton';
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
 import {useRegion, useSavedFilterContent} from '../hooks/useApp';
@@ -282,20 +283,6 @@ export const HomeScreen = () => {
 
   const WIDTH = Dimensions.get('window').width;
 
-  const isInitialLoading =
-    (!popularMovies?.pages?.length && isFetchingPopularMovies) ||
-    (!popularTVShows?.pages?.length && isFetchingPopularTV) ||
-    (!topRatedMovies?.pages?.length && isFetchingTopRatedMovies) ||
-    (!topRatedTVShows?.pages?.length && isFetchingTopRatedTV) ||
-    (!recentMovies?.pages?.length && isFetchingRecentMovies) ||
-    (!recentTVShows?.pages?.length && isFetchingRecentTV) ||
-    // (!upcomingMovies?.pages?.length && isFetchingUpcoming) ||
-    // (!trendingMovies?.pages?.length && isFetchingTrendingMovies) ||
-    // (!trendingTVShows?.pages?.length && isFetchingTrendingTVShows) ||
-    (!top10MoviesTodayByRegion?.length && isFetchingTop10MoviesTodayByRegion) ||
-    (!top10ShowsTodayByRegion?.length && isFetchingTop10ShowsTodayByRegion);
-
-  // Create sections for FlatList - moved before early return
   const sections = useMemo(() => {
     const sectionsList = [];
 
@@ -306,7 +293,13 @@ export const HomeScreen = () => {
         type: 'featured',
         data: featuredItems,
       });
-    } else {
+    } else if (
+      isFetchingRecentMovies ||
+      isFetchingRecentTV ||
+      isFetchingPopularMovies ||
+      isFetchingTopRatedMovies ||
+      isFetchingTopRatedTV
+    ) {
       sectionsList.push({
         id: 'featuredSkeleton',
         type: 'featuredSkeleton',
@@ -326,6 +319,11 @@ export const HomeScreen = () => {
         onSeeAllPress: () =>
           handleSeeAllPress('Recent Movies', 'latest', 'movie'),
       });
+    } else if (isFetchingRecentMovies) {
+      sectionsList.push({
+        id: 'recentMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Latest Shows section
@@ -339,25 +337,43 @@ export const HomeScreen = () => {
         onEndReached: hasNextRecentTV ? fetchNextRecentTV : undefined,
         onSeeAllPress: () => handleSeeAllPress('Latest Shows', 'latest', 'tv'),
       });
+    } else if (isFetchingRecentTV) {
+      sectionsList.push({
+        id: 'latestShowsSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Additional content sections
     if (showMoreContent) {
       // Top 10 section
-      if (top10ContentByRegion?.length) {
+      if (
+        isFetchingTop10MoviesTodayByRegion ||
+        isFetchingTop10ShowsTodayByRegion
+      ) {
+        sectionsList.push({
+          id: 'top10Skeleton',
+          type: 'horizontalListSkeleton',
+        });
+      } else if (top10ContentByRegion?.length) {
         sectionsList.push({
           id: 'top10',
           type: 'horizontalList',
           title: `Top 10 in ${region?.english_name}`,
           data: top10ContentByRegion,
-          isLoading: top10ContentByRegion.length === 0,
+          isLoading: false,
           isSeeAll: false,
           isTop10: true,
         });
       }
 
       // Popular Shows section
-      if (popularTVShows?.pages?.[0]?.results?.length) {
+      if (isFetchingPopularTV) {
+        sectionsList.push({
+          id: 'popularShowsSkeleton',
+          type: 'horizontalListSkeleton',
+        });
+      } else if (popularTVShows?.pages?.[0]?.results?.length) {
         sectionsList.push({
           id: 'popularShows',
           type: 'horizontalList',
@@ -371,7 +387,12 @@ export const HomeScreen = () => {
       }
 
       // Top Rated Movies section
-      if (topRatedMovies?.pages?.[0]?.results?.length) {
+      if (isFetchingTopRatedMovies) {
+        sectionsList.push({
+          id: 'topRatedMoviesSkeleton',
+          type: 'horizontalListSkeleton',
+        });
+      } else if (topRatedMovies?.pages?.[0]?.results?.length) {
         sectionsList.push({
           id: 'topRatedMovies',
           type: 'horizontalList',
@@ -387,7 +408,12 @@ export const HomeScreen = () => {
       }
 
       // Top Rated TV Shows section
-      if (topRatedTVShows?.pages?.[0]?.results?.length) {
+      if (isFetchingTopRatedTV) {
+        sectionsList.push({
+          id: 'topRatedTVShowsSkeleton',
+          type: 'horizontalListSkeleton',
+        });
+      } else if (topRatedTVShows?.pages?.[0]?.results?.length) {
         sectionsList.push({
           id: 'topRatedTVShows',
           type: 'horizontalList',
@@ -401,7 +427,12 @@ export const HomeScreen = () => {
       }
 
       // Upcoming Movies section
-      if (upcomingMovies?.pages?.[0]?.results?.length) {
+      if (isFetchingUpcomingMovies) {
+        sectionsList.push({
+          id: 'upcomingMoviesSkeleton',
+          type: 'horizontalListSkeleton',
+        });
+      } else if (upcomingMovies?.pages?.[0]?.results?.length) {
         sectionsList.push({
           id: 'upcomingMovies',
           type: 'horizontalList',
@@ -489,6 +520,16 @@ export const HomeScreen = () => {
             />
           );
 
+        case 'horizontalListSkeleton':
+          return (
+            <View style={{marginBottom: 32}}>
+              <View style={{alignItems: 'center', marginBottom: 12}}>
+                <HeadingSkeleton />
+              </View>
+              <HorizontalListSkeleton />
+            </View>
+          );
+
         case 'savedFilters':
           return (
             <View style={{marginTop: spacing.xxl}}>
@@ -552,16 +593,23 @@ export const HomeScreen = () => {
     },
   });
 
-  if (isInitialLoading) {
+  const isFullScreenLoading =
+    !featuredItems.length ||
+    !recentMovies?.pages?.[0]?.results?.length ||
+    !recentTVShows?.pages?.[0]?.results?.length;
+
+  if (isFullScreenLoading) {
     return (
       <View style={styles.container}>
-        <View style={styles.skeletonContainer}>
+        <View style={{marginTop: 24, marginBottom: 24}}>
           <BannerHomeSkeleton />
         </View>
-        <HeadingSkeleton />
-        <HorizontalListSkeleton />
-        <HeadingSkeleton />
-        <HorizontalListSkeleton />
+        {[...Array(3)].map((_, i) => (
+          <View key={i} style={{marginBottom: spacing.md}}>
+            <HeadingSkeleton />
+            <HorizontalListSkeleton />
+          </View>
+        ))}
       </View>
     );
   }

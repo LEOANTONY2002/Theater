@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Dimensions,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
@@ -15,6 +16,43 @@ interface MovieCardProps {
   onPress: (item: ContentItem) => void;
   size?: 'normal' | 'large';
 }
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+const styles = StyleSheet.create({
+  container: {
+    width: SCREEN_WIDTH / 3 - 15,
+    height: SCREEN_WIDTH / 2 - 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    margin: 5,
+  },
+  containerLarge: {
+    width: 120,
+  },
+  poster: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#2a2a2a',
+  },
+  posterLarge: {
+    height: 240,
+  },
+  skeleton: {
+    flex: 1,
+    backgroundColor: '#2a2a2a',
+    overflow: 'hidden',
+  },
+  shimmer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: 60,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    opacity: 0.7,
+  },
+});
 
 export const MovieCard: React.FC<MovieCardProps> = ({
   item,
@@ -81,37 +119,3 @@ export const MovieCard: React.FC<MovieCardProps> = ({
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    width: 120,
-    borderRadius: 8,
-    overflow: 'hidden',
-    margin: 5,
-  },
-  containerLarge: {
-    width: 120,
-  },
-  poster: {
-    width: '100%',
-    height: 180,
-    backgroundColor: '#2a2a2a',
-  },
-  posterLarge: {
-    height: 240,
-  },
-  skeleton: {
-    flex: 1,
-    backgroundColor: '#2a2a2a',
-    overflow: 'hidden',
-  },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    height: '100%',
-    width: 60,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    opacity: 0.7,
-  },
-});

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useMemo} from 'react';
+import React, {useState, useEffect, useCallback, useMemo, useRef} from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,8 @@ import {
   FlatList,
   Dimensions,
   Image,
+  Animated,
+  Easing,
 } from 'react-native';
 import {
   useRoute,
@@ -28,6 +30,7 @@ import {ContentItem} from '../components/MovieList';
 import {GridSkeleton} from '../components/LoadingSkeleton';
 import {getImageUrl} from '../services/tmdb';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {BlurView} from '@react-native-community/blur';
 
 type GenreScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 type GenreScreenRouteProp = RouteProp<HomeStackParamList, 'Genre'>;
@@ -48,6 +51,70 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {isNavigating, handleNavigation, navigateWithLimit} =
     useNavigationState();
+
+  // Animated value for scroll position
+  const scrollY = useRef(new Animated.Value(0)).current;
+  // Animated value for header animation (for smooth transition)
+  const headerAnim = useRef(new Animated.Value(0)).current;
+
+  // Smoothly animate headerAnim towards scrollY
+  useEffect(() => {
+    const id = scrollY.addListener(({value}) => {
+      Animated.timing(headerAnim, {
+        toValue: value,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false, // must be false for margin/background
+      }).start();
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY, headerAnim]);
+
+  // Interpolated styles for the animated title container (use headerAnim)
+  const animatedTitleStyle = {
+    marginTop: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 46],
+      extrapolate: 'clamp',
+    }),
+    paddingTop: headerAnim.interpolate({
+      inputRange: [0, 80],
+      outputRange: [50, 20],
+      extrapolate: 'clamp',
+    }),
+    marginHorizontal: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 16],
+      extrapolate: 'clamp',
+    }),
+    marginBottom: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 16],
+      extrapolate: 'clamp',
+    }),
+    borderRadius: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 24],
+      extrapolate: 'clamp',
+    }),
+    elevation: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 6],
+      extrapolate: 'clamp',
+    }),
+    shadowOpacity: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 0.15],
+      extrapolate: 'clamp',
+    }),
+    shadowRadius: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 8],
+      extrapolate: 'clamp',
+    }),
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+  };
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -157,17 +224,41 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, animatedTitleStyle]}>
+        <BlurView
+          style={styles.blurView}
+          blurType="dark"
+          blurAmount={10}
+          overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
+          reducedTransparencyFallbackColor={
+            colors.modal?.blur || 'rgba(255,255,255,0.11)'
+          }
+          pointerEvents="none"
+        />
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>{genreName}</Text>
+          <View
+            style={{
+              display: 'flex',
+              flex: 1,
+              alignItems: 'center',
+              gap: 20,
+              flexDirection: 'row',
+            }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{width: 30, height: 30, zIndex: 3}}>
+              <Icon name="chevron-left" size={30} color={colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={styles.title}>{genreName}</Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.contentContainer}>
         {isLoading ? (
           <GridSkeleton />
         ) : (
-          <FlatList
+          <Animated.FlatList
             data={allItems}
             renderItem={renderItem}
             keyExtractor={item => `${item.id}-${item.type}`}
@@ -209,6 +300,10 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
               offset: itemWidth * 1.5 * Math.floor(index / numColumns),
               index,
             })}
+            onScroll={Animated.event(
+              [{nativeEvent: {contentOffset: {y: scrollY}}}],
+              {useNativeDriver: false},
+            )}
           />
         )}
       </View>
@@ -231,9 +326,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: spacing.xxl,
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.modal.background,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: 0,
+    zIndex: 1,
+  },
+  blurView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -252,12 +358,18 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text.primary,
+    flex: 1,
+    textAlign: 'center',
+    marginLeft: -50,
   },
   contentContainer: {
-    alignSelf: 'center',
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
-    paddingBottom: 120,
+    paddingVertical: 120,
   },
   footerLoader: {
     paddingVertical: spacing.xl,

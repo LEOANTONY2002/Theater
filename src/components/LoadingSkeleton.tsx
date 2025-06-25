@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
-import {View, StyleSheet, Animated, Dimensions} from 'react-native';
+import {View, StyleSheet, Animated, Dimensions, ScrollView} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {borderRadius} from '../styles/theme';
+import {borderRadius, spacing} from '../styles/theme';
 
 const shimmerColors = [
   'rgb(21, 21, 32)',
@@ -59,27 +59,37 @@ export const BannerSkeleton = () => (
 );
 
 export const BannerHomeSkeleton = () => (
-  <AnimatedShimmer
-    width={Dimensions.get('window').width}
-    height={200}
-    radius={20}
-  />
+  <View style={styles.bannerContainer}>
+    <AnimatedShimmer
+      width={Dimensions.get('window').width - spacing.lg * 2}
+      height={580}
+      radius={32}
+    />
+  </View>
 );
 
 export const HeadingSkeleton = () => (
-  <AnimatedShimmer
-    width={Dimensions.get('window').width * 0.7}
-    height={40}
-    radius={10}
-  />
+  <View style={styles.headingSkeletonContainer}>
+    <AnimatedShimmer
+      width={Dimensions.get('window').width * 0.5}
+      height={32}
+      radius={8}
+    />
+  </View>
 );
 
 export const HorizontalListSkeleton = () => (
-  <View style={styles.row}>
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.horizontalListContent}
+    style={{marginBottom: spacing.md}}>
     {[...Array(5)].map((_, i) => (
-      <AnimatedShimmer key={i} width={120} height={180} radius={20} />
+      <View key={i} style={styles.horizontalCardContainer}>
+        <AnimatedShimmer width={120} height={180} radius={16} />
+      </View>
     ))}
-  </View>
+  </ScrollView>
 );
 
 export const RecentListSkeleton = () => (
@@ -139,7 +149,47 @@ export const LanguageSkeleton = () => (
   </View>
 );
 
+export const HomeScreenSkeleton = () => (
+  <View style={{flex: 1, backgroundColor: 'rgb(0,0,16)'}}>
+    <View style={{marginTop: 24, marginBottom: 24}}>
+      <BannerHomeSkeleton />
+    </View>
+    {[...Array(5)].map((_, i) => (
+      <View key={i} style={{marginBottom: 32}}>
+        <View style={{alignItems: 'center', marginBottom: 12}}>
+          <HeadingSkeleton />
+        </View>
+        <HorizontalListSkeleton />
+      </View>
+    ))}
+    <View style={{marginTop: 32, alignItems: 'center'}}>
+      <HeadingSkeleton />
+      <RecentListSkeleton />
+    </View>
+  </View>
+);
+
 const styles = StyleSheet.create({
+  bannerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  headingSkeletonContainer: {
+    marginLeft: spacing.md,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  horizontalListContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.md,
+    gap: 0,
+  },
+  horizontalCardContainer: {
+    marginRight: spacing.sm,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
+import React, {useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   RefreshControl,
   Image,
   TouchableOpacity,
+  Animated,
+  Easing,
 } from 'react-native';
 import {
   useNavigation,
@@ -42,6 +44,7 @@ import {TVShow} from '../types/tvshow';
 import {MovieCard} from '../components/MovieCard';
 import {SavedFilter} from '../types/filters';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {BlurView} from '@react-native-community/blur';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList,
@@ -60,6 +63,75 @@ export const CategoryScreen = () => {
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {isNavigating} = useNavigationState();
+
+  // Animated value for scroll position
+  const scrollY = useRef(new Animated.Value(0)).current;
+  // Animated value for header animation (for smooth transition)
+  const headerAnim = useRef(new Animated.Value(0)).current;
+
+  // Smoothly animate headerAnim towards scrollY
+  useEffect(() => {
+    const id = scrollY.addListener(({value}) => {
+      Animated.timing(headerAnim, {
+        toValue: value,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false, // must be false for margin/background
+      }).start();
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY, headerAnim]);
+
+  // Interpolated styles for the animated title container (use headerAnim)
+  const animatedTitleStyle = {
+    marginTop: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 46],
+      extrapolate: 'clamp',
+    }),
+    paddingTop: headerAnim.interpolate({
+      inputRange: [0, 80],
+      outputRange: [50, 20],
+      extrapolate: 'clamp',
+    }),
+    marginHorizontal: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 16],
+      extrapolate: 'clamp',
+    }),
+    marginBottom: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 16],
+      extrapolate: 'clamp',
+    }),
+    // backgroundColor: headerAnim.interpolate({
+    //   inputRange: [0, 40],
+    //   outputRange: ['rgba(0,0,0,0)', colors.background.primary + 'EE'],
+    //   extrapolate: 'clamp',
+    // }),
+    borderRadius: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 24],
+      extrapolate: 'clamp',
+    }),
+    elevation: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 6],
+      extrapolate: 'clamp',
+    }),
+    shadowOpacity: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 0.15],
+      extrapolate: 'clamp',
+    }),
+    shadowRadius: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [0, 8],
+      extrapolate: 'clamp',
+    }),
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+  };
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -162,21 +234,44 @@ export const CategoryScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, animatedTitleStyle]}>
+        <BlurView
+          style={styles.blurView}
+          blurType="dark"
+          blurAmount={10}
+          overlayColor={colors.modal.blur}
+          reducedTransparencyFallbackColor={colors.modal.blur}
+          pointerEvents="none"
+        />
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>{title}</Text>
+          <View
+            style={{
+              display: 'flex',
+              flex: 1,
+              alignItems: 'center',
+              gap: 20,
+              flexDirection: 'row',
+            }}>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.goBack();
+              }}
+              style={{width: 30, height: 30, zIndex: 3}}>
+              <Icon name="chevron-back" size={30} color={colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={styles.title}>{title}</Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.contentContainer}>
-        <FlatList<ContentItem>
+        <Animated.FlatList<ContentItem>
           data={flattenedData}
           renderItem={renderItem}
           keyExtractor={item => `${item.type}-${item.id}`}
@@ -193,7 +288,7 @@ export const CategoryScreen = () => {
           updateCellsBatchingPeriod={50} // Fast batching
           disableVirtualization={false} // Enable virtualization
           // Scroll optimizations
-          scrollEventThrottle={0} // Disable scroll events for performance
+          scrollEventThrottle={16} // Use 16ms for smooth animation
           decelerationRate="fast"
           // Memory optimizations
           maintainVisibleContentPosition={{
@@ -202,6 +297,10 @@ export const CategoryScreen = () => {
           }}
           // Disable extra features for performance
           extraData={null}
+          onScroll={Animated.event(
+            [{nativeEvent: {contentOffset: {y: scrollY}}}],
+            {useNativeDriver: false},
+          )}
           onScrollBeginDrag={() => {}}
           onScrollEndDrag={() => {}}
           onMomentumScrollEnd={() => {}}
@@ -249,14 +348,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: spacing.xxl,
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
+    // paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.modal.background,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: 0,
+    zIndex: 1,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  blurView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   titleIconContainer: {
     width: 36,
@@ -270,6 +382,9 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text.primary,
+    flex: 1,
+    textAlign: 'center',
+    marginLeft: -50,
   },
   contentContainer: {
     flex: 1,
@@ -278,7 +393,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    paddingBottom: 120,
+    paddingVertical: 120,
+    // flex: 1,
   },
   footerLoader: {
     paddingVertical: spacing.xl,
