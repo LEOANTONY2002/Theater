@@ -16,13 +16,17 @@ export const getMovies = async (
   page = 1,
 ) => {
   const today = new Date().toISOString().split('T')[0];
+  const start = new Date('2000-01-01').toISOString().split('T')[0];
   const with_original_language = await getLanguageParam();
   const params: any = {
     page,
     sort_by: 'release_date.desc',
     with_original_language,
     'release_date.lte': today,
-    'vote_count.gte': 6,
+    'release_date.gte': start,
+    'vote_average.gte': 4,
+    'vote_count.gte': 100,
+    with_adult: false,
   };
   if (type === 'latest') {
     const response = await tmdbApi.get('/discover/movie', {params});
@@ -30,13 +34,15 @@ export const getMovies = async (
   }
   if (type === 'popular') {
     params.sort_by = 'popularity.desc';
+    params['vote_average.gte'] = 6;
     const response = await tmdbApi.get('/discover/movie', {params});
     return response.data;
   }
   if (type === 'top_rated') {
     params.sort_by = 'vote_average.desc';
-    params['vote_count.gte'] = 7;
+    // params['vote_count.gte'] = 100;
     params['vote_average.gte'] = 7;
+    params['vote_average.lte'] = 9;
     const response = await tmdbApi.get('/discover/movie', {params});
     return response.data;
   }
@@ -53,6 +59,7 @@ export const getTVShows = async (
   page = 1,
 ) => {
   const today = new Date().toISOString().split('T')[0];
+  const start = new Date('2000-01-01').toISOString().split('T')[0];
   const with_original_language = await getLanguageParam();
   const params: any = {
     page,
@@ -60,7 +67,9 @@ export const getTVShows = async (
     without_genres: '10764,10767,10766,10763', // Reality, Talk Show, Soap, News
     with_original_language,
     'first_air_date.lte': today,
-    'vote_count.gte': 6,
+    'first_air_date.gte': start,
+    'vote_average.gte': 4,
+    'vote_count.gte': 100,
   };
   if (type === 'latest') {
     const response = await tmdbApi.get('/discover/tv', {params});
@@ -73,8 +82,8 @@ export const getTVShows = async (
   }
   if (type === 'top_rated') {
     params.sort_by = 'vote_average.desc';
-    params['vote_count.gte'] = 7;
     params['vote_average.gte'] = 7;
+    params['vote_average.lte'] = 9.5;
     const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }

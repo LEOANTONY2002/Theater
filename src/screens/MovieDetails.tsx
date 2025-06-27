@@ -47,7 +47,7 @@ import {
   useRemoveFromWatchlist,
   useAddToWatchlist,
 } from '../hooks/useWatchlists';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import languageData from '../utils/language.json';
 import {useDeepNavigationProtection} from '../hooks/useDeepNavigationProtection';
@@ -90,6 +90,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const {isDeepNavigation} = useDeepNavigationProtection();
   const queryClient = useQueryClient();
   const cinema = true;
+  const isFocused = useIsFocused();
 
   // Progressive loading like home screen
   useEffect(() => {
@@ -287,8 +288,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       />
                     ) : (
                       <View style={styles.trailerContainer}>
-                        {cinema ? (
-                          <Cinema id={movie.id} type="movie" />
+                        {cinema && isFocused ? (
+                          <Cinema id={movie.id.toString()} type="movie" />
                         ) : (
                           <YoutubePlayer
                             height={width * 0.5625}
@@ -457,11 +458,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         keyExtractor={(item: any) => item.id}
         showsVerticalScrollIndicator={false}
         estimatedItemSize={400}
-        ListHeaderComponent={
-          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-            <Icon name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-        }
+        // ListHeaderComponent={
+        //   <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+        //     <Icon name="arrow-back" size={24} color="#fff" />
+        //   </TouchableOpacity>
+        // }
       />
 
       <WatchlistModal
@@ -524,7 +525,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   trailerContainer: {
-    backgroundColor: '#000',
+    // backgroundColor: '#000',
+    zIndex: 100,
+    flex: 1,
   },
   title: {
     fontSize: 24,

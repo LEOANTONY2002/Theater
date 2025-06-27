@@ -19,7 +19,6 @@ export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
       if (item.type === 'movie') {
         navigateWithLimit('MovieDetails', {movie: item as Movie});
       } else if (item.type === 'tv') {
-        console.log('item', item);
         navigateWithLimit('TVShowDetails', {show: item as unknown as TVShow});
       }
     },
@@ -36,8 +35,6 @@ export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
 
   const {data: filterContent, isLoading: isLoadingFilterContent} =
     useSavedFilterContent(savedFilter);
-
-  console.log('filterContent', savedFilter);
 
   return (
     <View>

@@ -245,8 +245,6 @@ export const HomeScreen = () => {
     }
   }, [savedFilters]);
 
-  console.log('filterContents', filterContent);
-
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
@@ -361,7 +359,7 @@ export const HomeScreen = () => {
         sectionsList.push({
           id: 'top10',
           type: 'horizontalList',
-          title: `Top 10 in ${region?.english_name}`,
+          title: `Top 10 in ${region ? region?.english_name : 'your region'}`,
           data: top10ContentByRegion,
           isLoading: false,
           isSeeAll: false,
@@ -473,7 +471,6 @@ export const HomeScreen = () => {
     upcomingMovies,
     savedFilters,
     isLoadingSavedFilters,
-    region,
     isFetchingRecentMovies,
     isFetchingRecentTV,
     isFetchingPopularTV,
@@ -595,6 +592,25 @@ export const HomeScreen = () => {
     },
   });
 
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      queryClient.invalidateQueries({queryKey: ['movies']});
+      queryClient.invalidateQueries({queryKey: ['tvshows']});
+      queryClient.invalidateQueries({queryKey: ['discover_movies']});
+      queryClient.invalidateQueries({queryKey: ['discover_tv']});
+      queryClient.invalidateQueries({
+        queryKey: ['top_10_movies_today_by_region'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['top_10_shows_today_by_region'],
+      });
+    };
+    SettingsManager.addChangeListener(handleSettingsChange);
+    return () => {
+      SettingsManager.removeChangeListener(handleSettingsChange);
+    };
+  }, [queryClient]);
+
   const isFullScreenLoading =
     !featuredItems.length ||
     !recentMovies?.pages?.[0]?.results?.length ||
@@ -615,25 +631,6 @@ export const HomeScreen = () => {
       </View>
     );
   }
-
-  useEffect(() => {
-    const handleSettingsChange = () => {
-      queryClient.invalidateQueries({queryKey: ['movies']});
-      queryClient.invalidateQueries({queryKey: ['tvshows']});
-      queryClient.invalidateQueries({queryKey: ['discover_movies']});
-      queryClient.invalidateQueries({queryKey: ['discover_tv']});
-      queryClient.invalidateQueries({
-        queryKey: ['top_10_movies_today_by_region'],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['top_10_shows_today_by_region'],
-      });
-    };
-    SettingsManager.addChangeListener(handleSettingsChange);
-    return () => {
-      SettingsManager.removeChangeListener(handleSettingsChange);
-    };
-  }, [queryClient]);
 
   return (
     <View style={styles.container}>

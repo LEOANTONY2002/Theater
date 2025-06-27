@@ -27,7 +27,7 @@ import {
 import {Video, Genre, Cast, Movie} from '../types/movie';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
-import {useNavigation} from '@react-navigation/native';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {ContentItem} from '../components/MovieList';
 import {MySpaceStackParamList} from '../types/navigation';
@@ -51,6 +51,7 @@ import {
   useRemoveFromWatchlist,
 } from '../hooks/useWatchlists';
 import {FlashList} from '@shopify/flash-list';
+import Cinema from '../components/Cinema';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -75,10 +76,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const {data: showDetails, isLoading} = useTVShowDetails(show.id);
-
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
+  const cinema = true;
+  const isFocused = useIsFocused();
+  const [season, setSeason] = useState(1);
+  const [episode, setEpisode] = useState(1);
 
   const {
     data: similarShows,
@@ -179,9 +183,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       <TouchableOpacity
         key={episode.id}
         style={styles.episodeCard}
-        onPress={() => {
-          // Handle episode selection
-        }}>
+        activeOpacity={0.9}
+        onPress={() => setEpisode(episode.episode_number)}>
         <Image
           source={{
             uri: episode.still_path
@@ -287,21 +290,30 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             />
           ) : (
             <View style={styles.trailerContainer}>
-              <YoutubePlayer
-                height={width * 0.5625}
-                play={isPlaying}
-                videoId={trailer?.key}
-                webViewProps={{
-                  allowsInlineMediaPlayback: true,
-                  allowsPictureInPicture: true,
-                  allowsFullscreenVideo: true,
-                  allowsPictureInPictureMediaPlayback: true,
-                }}
-                key={trailer?.key}
-                onChangeState={(state: string) => {
-                  if (state === 'ended') setIsPlaying(false);
-                }}
-              />
+              {cinema && isFocused ? (
+                <Cinema
+                  id={show.id.toString()}
+                  type="tv"
+                  season={season}
+                  episode={episode}
+                />
+              ) : (
+                <YoutubePlayer
+                  height={width * 0.5625}
+                  play={isPlaying}
+                  videoId={trailer?.key}
+                  webViewProps={{
+                    allowsInlineMediaPlayback: true,
+                    allowsPictureInPicture: true,
+                    allowsFullscreenVideo: true,
+                    allowsPictureInPictureMediaPlayback: true,
+                  }}
+                  key={trailer?.key}
+                  onChangeState={(state: string) => {
+                    if (state === 'ended') setIsPlaying(false);
+                  }}
+                />
+              )}
             </View>
           )}
         </View>
@@ -477,7 +489,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
               onRequestClose={() => setShowSeasonModal(false)}>
               <TouchableOpacity
                 style={styles.modalOverlay}
-                activeOpacity={1}
+                activeOpacity={0.9}
                 onPress={() => setShowSeasonModal(false)}>
                 <View style={styles.modalContent}>
                   <BlurView
@@ -489,7 +501,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   />
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Select Season</Text>
-                    <TouchableOpacity onPress={() => setShowSeasonModal(false)}>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => setShowSeasonModal(false)}>
                       <Ionicons
                         name="close"
                         size={24}
@@ -502,6 +516,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       (season: TVShowDetailsType['seasons'][0]) => (
                         <TouchableOpacity
                           key={season.id}
+                          activeOpacity={0.9}
                           style={[
                             styles.seasonItem,
                             selectedSeason?.id === season.id && {
@@ -512,6 +527,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           ]}
                           onPress={() => {
                             setSelectedSeason(season);
+                            setSeason(season.season_number);
                             setShowSeasonModal(false);
                           }}>
                           <Image
@@ -583,6 +599,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
+  trailerContainer: {
+    // backgroundColor: '#000',
+    zIndex: 100,
+    flex: 1,
+  },
   gradientShade: {
     position: 'absolute',
     top: 0,
@@ -616,9 +637,6 @@ const styles = StyleSheet.create({
     gap: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  trailerContainer: {
-    backgroundColor: '#000',
   },
   title: {
     fontSize: 24,
