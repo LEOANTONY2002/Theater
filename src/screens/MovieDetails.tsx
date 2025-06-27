@@ -52,6 +52,7 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import languageData from '../utils/language.json';
 import {useDeepNavigationProtection} from '../hooks/useDeepNavigationProtection';
 import {useQueryClient} from '@tanstack/react-query';
+import Cinema from '../components/Cinema';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -88,6 +89,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const {navigateWithLimit} = useNavigationState();
   const {isDeepNavigation} = useDeepNavigationProtection();
   const queryClient = useQueryClient();
+  const cinema = true;
 
   // Progressive loading like home screen
   useEffect(() => {
@@ -204,22 +206,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     navigation.goBack();
   }, [navigation]);
 
-  const handleAddToWatchlist = useCallback(
-    async (watchlistId: string) => {
-      try {
-        await addToWatchlistMutation.mutateAsync({
-          watchlistId,
-          item: movie,
-          itemType: 'movie',
-        });
-        setShowWatchlistModal(false);
-      } catch (error) {
-        console.error('Error adding to watchlist:', error);
-      }
-    },
-    [movie, addToWatchlistMutation],
-  );
-
   const similarMoviesData = useMemo(() => {
     return (
       similarMovies?.pages?.flatMap(page =>
@@ -301,21 +287,25 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       />
                     ) : (
                       <View style={styles.trailerContainer}>
-                        <YoutubePlayer
-                          height={width * 0.5625}
-                          play={isPlaying}
-                          videoId={trailer?.key}
-                          webViewProps={{
-                            allowsInlineMediaPlayback: true,
-                            allowsPictureInPicture: true,
-                            allowsFullscreenVideo: true,
-                            allowsPictureInPictureMediaPlayback: true,
-                          }}
-                          key={trailer?.key}
-                          onChangeState={(state: string) => {
-                            if (state === 'ended') setIsPlaying(false);
-                          }}
-                        />
+                        {cinema ? (
+                          <Cinema id={movie.id} type="movie" />
+                        ) : (
+                          <YoutubePlayer
+                            height={width * 0.5625}
+                            play={isPlaying}
+                            videoId={trailer?.key}
+                            webViewProps={{
+                              allowsInlineMediaPlayback: true,
+                              allowsPictureInPicture: true,
+                              allowsFullscreenVideo: true,
+                              allowsPictureInPictureMediaPlayback: true,
+                            }}
+                            key={trailer?.key}
+                            onChangeState={(state: string) => {
+                              if (state === 'ended') setIsPlaying(false);
+                            }}
+                          />
+                        )}
                       </View>
                     )}
                   </View>

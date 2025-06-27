@@ -6,11 +6,13 @@ buildscript {
         targetSdkVersion = 35
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.0.21"
+        useExoplayer = true
     }
     repositories {
         google()
         mavenCentral()
     }
+    
     dependencies {
         classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
