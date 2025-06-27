@@ -46,6 +46,8 @@ import {SavedFilter} from '../types/filters';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {BlurView} from '@react-native-community/blur';
 import {GridListSkeleton} from '../components/LoadingSkeleton';
+import {useQueryClient} from '@tanstack/react-query';
+import {SettingsManager} from '../store/settings';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList,
@@ -229,6 +231,21 @@ export const CategoryScreen = () => {
       fetchNextPage();
     }
   };
+
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      queryClient.invalidateQueries({queryKey: ['movies']});
+      queryClient.invalidateQueries({queryKey: ['tvshows']});
+      queryClient.invalidateQueries({queryKey: ['discover_movies']});
+      queryClient.invalidateQueries({queryKey: ['discover_tv']});
+    };
+    SettingsManager.addChangeListener(handleSettingsChange);
+    return () => {
+      SettingsManager.removeChangeListener(handleSettingsChange);
+    };
+  }, [queryClient]);
 
   // Show loading screen until content can be rendered
   if (!canRenderContent) {

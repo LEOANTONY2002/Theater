@@ -18,7 +18,7 @@ import {
   useFocusEffect,
 } from '@react-navigation/native';
 import {HomeStackParamList} from '../types/navigation';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import {getContentByGenre} from '../services/tmdb';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
 import {Movie} from '../types/movie';
@@ -31,6 +31,7 @@ import {GridListSkeleton, GridSkeleton} from '../components/LoadingSkeleton';
 import {getImageUrl} from '../services/tmdb';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {BlurView} from '@react-native-community/blur';
+import {SettingsManager} from '../store/settings';
 
 type GenreScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 type GenreScreenRouteProp = RouteProp<HomeStackParamList, 'Genre'>;
@@ -132,6 +133,8 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     return () => clearTimeout(timer);
   }, []);
 
+  const queryClient = useQueryClient();
+
   const {
     data,
     fetchNextPage,
@@ -173,6 +176,19 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       refetch();
     }
   }, [genreId, contentType, refetch]);
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      queryClient.invalidateQueries({queryKey: ['movies']});
+      queryClient.invalidateQueries({queryKey: ['tvshows']});
+      queryClient.invalidateQueries({queryKey: ['discover_movies']});
+      queryClient.invalidateQueries({queryKey: ['discover_tv']});
+    };
+    SettingsManager.addChangeListener(handleSettingsChange);
+    return () => {
+      SettingsManager.removeChangeListener(handleSettingsChange);
+    };
+  }, [queryClient]);
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {

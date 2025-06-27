@@ -40,6 +40,8 @@ import {FilterModal} from '../components/FilterModal';
 import {FilterParams} from '../types/filters';
 import {useTrending} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {useQueryClient} from '@tanstack/react-query';
+import {SettingsManager} from '../store/settings';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -75,6 +77,7 @@ export const SearchScreen = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterParams>({});
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
+  const queryClient = useQueryClient();
 
   // Get trending content
   const {data: trendingMovies, isLoading: isLoadingTrendingMovies} =
@@ -353,6 +356,19 @@ export const SearchScreen = () => {
 
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
   const showSearchResults = debouncedQuery.length > 0 || hasActiveFilters;
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      queryClient.invalidateQueries({queryKey: ['movies']});
+      queryClient.invalidateQueries({queryKey: ['tvshows']});
+      queryClient.invalidateQueries({queryKey: ['discover_movies']});
+      queryClient.invalidateQueries({queryKey: ['discover_tv']});
+    };
+    SettingsManager.addChangeListener(handleSettingsChange);
+    return () => {
+      SettingsManager.removeChangeListener(handleSettingsChange);
+    };
+  }, [queryClient]);
 
   return (
     <View style={styles.container}>

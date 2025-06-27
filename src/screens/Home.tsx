@@ -32,7 +32,7 @@ import {
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
 import {useRegion, useSavedFilterContent} from '../hooks/useApp';
 import {HomeFilterCard} from '../components/HomeFilterCard';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {FiltersManager} from '../store/filters';
 import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
@@ -41,6 +41,7 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import {PerformanceMonitor} from '../components/PerformanceMonitor';
 import {useScrollOptimization} from '../hooks/useScrollOptimization';
 import LinearGradient from 'react-native-linear-gradient';
+import {SettingsManager} from '../store/settings';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -59,6 +60,7 @@ export const HomeScreen = () => {
   >([]);
   const [renderPhase, setRenderPhase] = useState(0);
   const [showMoreContent, setShowMoreContent] = useState(false);
+  const queryClient = useQueryClient();
 
   // Ultra-aggressive staggered loading to prevent FPS drops
   useEffect(() => {
@@ -613,6 +615,25 @@ export const HomeScreen = () => {
       </View>
     );
   }
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      queryClient.invalidateQueries({queryKey: ['movies']});
+      queryClient.invalidateQueries({queryKey: ['tvshows']});
+      queryClient.invalidateQueries({queryKey: ['discover_movies']});
+      queryClient.invalidateQueries({queryKey: ['discover_tv']});
+      queryClient.invalidateQueries({
+        queryKey: ['top_10_movies_today_by_region'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['top_10_shows_today_by_region'],
+      });
+    };
+    SettingsManager.addChangeListener(handleSettingsChange);
+    return () => {
+      SettingsManager.removeChangeListener(handleSettingsChange);
+    };
+  }, [queryClient]);
 
   return (
     <View style={styles.container}>
