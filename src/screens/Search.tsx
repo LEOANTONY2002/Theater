@@ -42,6 +42,7 @@ import {useTrending} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
+import {BlurView} from '@react-native-community/blur';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -373,17 +374,25 @@ export const SearchScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <BlurView
+          style={styles.blurView}
+          blurType="dark"
+          blurAmount={10}
+          overlayColor={colors.modal.blur}
+          reducedTransparencyFallbackColor={colors.modal.blur}
+          pointerEvents="none"
+        />
         <View style={styles.searchContainer}>
           <Icon
             name="search-outline"
             size={24}
-            color={colors.text.secondary}
+            color={colors.text.tertiary}
             style={styles.searchIcon}
           />
           <TextInput
             style={styles.searchInput}
             placeholder="Search movies & TV shows..."
-            placeholderTextColor={colors.text.secondary}
+            placeholderTextColor={colors.text.tertiary}
             value={query}
             onChangeText={setQuery}
           />
@@ -394,7 +403,7 @@ export const SearchScreen = () => {
               <Icon
                 name="close-circle"
                 size={20}
-                color={colors.text.secondary}
+                color={colors.text.tertiary}
               />
             </TouchableOpacity>
           )}
@@ -408,85 +417,88 @@ export const SearchScreen = () => {
           <Icon
             name="options-outline"
             size={24}
-            color={hasActiveFilters ? colors.primary : colors.text.secondary}
+            color={
+              hasActiveFilters ? colors.text.primary : colors.text.tertiary
+            }
           />
         </TouchableOpacity>
       </View>
 
-      {!showSearchResults ? (
-        <FlatList
-          data={[{key: 'content'}]}
-          renderItem={() => (
-            <>
-              {recentItems.length > 0 && (
-                <View style={styles.recentItemsContainer}>
-                  <View style={styles.recentItemsHeader}>
-                    <Text style={styles.sectionTitle}>Recent Searches</Text>
-                    <TouchableOpacity onPress={clearRecentItems}>
-                      <Text style={styles.clearAllText}>Clear All</Text>
-                    </TouchableOpacity>
+      <View>
+        {!showSearchResults ? (
+          <FlatList
+            style={{paddingTop: 120}}
+            data={[{key: 'content'}]}
+            renderItem={() => (
+              <>
+                {recentItems.length > 0 && (
+                  <View style={styles.recentItemsContainer}>
+                    <View style={styles.recentItemsHeader}>
+                      <Text style={styles.sectionTitle}>Recent Searches</Text>
+                      <TouchableOpacity onPress={clearRecentItems}>
+                        <Text style={styles.clearAllText}>Clear All</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <HorizontalList
+                      title="V2"
+                      data={recentItems}
+                      onItemPress={handleItemPress}
+                      isLoading={false}
+                    />
                   </View>
-                  <HorizontalList
-                    title="V2"
-                    data={recentItems}
-                    onItemPress={handleItemPress}
-                    isLoading={false}
-                  />
-                </View>
-              )}
+                )}
 
-              <TrendingGrid
-                data={
-                  trendingData?.pages?.flatMap((page: any) =>
-                    page.results.map((item: any) => ({
-                      ...item,
-                      type: item.media_type === 'movie' ? 'movie' : 'tv',
-                    })),
-                  ) || []
-                }
-                onItemPress={handleItemPress}
-                isLoading={isLoadingTrending}
-                fetchNextPage={fetchNextTrendingPage}
-                hasNextPage={hasNextTrendingPage}
-                isFetchingNextPage={isFetchingTrendingPage}
-              />
-            </>
-          )}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>
-                {debouncedQuery ? 'Searching...' : 'Applying filters...'}
-              </Text>
-            </View>
-          ) : hasError ? (
-            <View style={styles.errorContainer}>
-              <Icon
-                name="alert-circle-outline"
-                size={64}
-                color={colors.status.error}
-              />
-              <Text style={styles.errorTitle}>Oops!</Text>
-              <Text style={styles.errorText}>
-                Something went wrong. Please try again.
-              </Text>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={() => {
-                  refetchMovies();
-                  refetchTV();
-                }}>
-                <Text style={styles.retryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : hasNoResults ? (
-            <NoResults query={debouncedQuery} />
-          ) : (
-            <View style={{flex: 1}}>
+                <TrendingGrid
+                  data={
+                    trendingData?.pages?.flatMap((page: any) =>
+                      page.results.map((item: any) => ({
+                        ...item,
+                        type: item.media_type === 'movie' ? 'movie' : 'tv',
+                      })),
+                    ) || []
+                  }
+                  onItemPress={handleItemPress}
+                  isLoading={isLoadingTrending}
+                  fetchNextPage={fetchNextTrendingPage}
+                  hasNextPage={hasNextTrendingPage}
+                  isFetchingNextPage={isFetchingTrendingPage}
+                />
+              </>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.text.muted} />
+                <Text style={styles.loadingText}>
+                  {debouncedQuery ? 'Searching...' : 'Applying filters...'}
+                </Text>
+              </View>
+            ) : hasError ? (
+              <View style={styles.errorContainer}>
+                <Icon
+                  name="alert-circle-outline"
+                  size={64}
+                  color={colors.status.error}
+                />
+                <Text style={styles.errorTitle}>Oops!</Text>
+                <Text style={styles.errorText}>
+                  Something went wrong. Please try again.
+                </Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => {
+                    refetchMovies();
+                    refetchTV();
+                  }}>
+                  <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : hasNoResults ? (
+              <NoResults query={debouncedQuery} />
+            ) : (
               <MovieList
                 data={displayedContent}
                 isLoading={isFetchingMoviePage || isFetchingTVPage}
@@ -508,10 +520,10 @@ export const SearchScreen = () => {
                     : undefined
                 }
               />
-            </View>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </View>
 
       <FilterModal
         visible={showFilters}
@@ -528,27 +540,43 @@ export const SearchScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: spacing.lg,
     backgroundColor: colors.background.primary,
+    position: 'relative',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
     marginBottom: spacing.md,
+    backgroundColor: 'transparent',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1,
+    overflow: 'hidden',
+    paddingVertical: spacing.md,
+    margin: 20,
+    borderRadius: borderRadius.round,
+  },
+  blurView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.round,
     borderWidth: 1,
-    borderColor: colors.card.border,
-    ...shadows.small,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   searchIcon: {
     marginRight: spacing.sm,
@@ -582,12 +610,12 @@ const styles = StyleSheet.create({
     ...typography.body2,
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 400,
   },
   loadingText: {
-    color: colors.text.primary,
+    color: colors.text.muted,
     ...typography.body1,
     marginTop: spacing.md,
   },
@@ -646,15 +674,16 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 48,
     height: 48,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.round,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   filterButtonActive: {
-    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
 });

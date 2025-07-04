@@ -18,11 +18,17 @@ const Cinema = ({
   const webviewRef = useRef<any>(null);
   const servers = [
     type === 'movie'
-      ? `https://vidsrc.xyz/embed/movie?tmdb=${id}`
-      : `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`,
+      ? `https://vidfast.pro/movie/${id}`
+      : `https://vidfast.pro/tv/${id}/${season}/${episode}`,
     type === 'movie'
-      ? `https://vidsrc.in/embed/movie?tmdb=${id}`
-      : `https://vidsrc.in/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`,
+      ? `https://vidsrc.xyz/embed/movie?tmdb=${id}`
+      : `https://vidsrc.xyz/embed/tv?tmdb=${id}?season=${season}&episode=${episode}`,
+    type === 'movie'
+      ? `https://111movies.com/movie/${id}`
+      : `https://111movies.com/tv/${id}/${season}/${episode}`,
+    type === 'movie'
+      ? `https://player.videasy.net/movie/${id}`
+      : `https://player.videasy.net/tv/${id}/${season}/${episode}`,
   ];
 
   const initialUrl = servers[currentServer - 1];

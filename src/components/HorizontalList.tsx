@@ -85,13 +85,17 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       [],
     );
 
-    if (!debouncedData?.length) {
+    if (!debouncedData?.length && isLoading) {
       return (
         <View>
           <HeadingSkeleton />
           <HorizontalListSkeleton />
         </View>
       );
+    }
+
+    if (!debouncedData?.length) {
+      return null;
     }
 
     return (

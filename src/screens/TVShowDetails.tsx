@@ -282,7 +282,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         />
 
         <View style={styles.main}>
-          {isPosterLoading && <BannerSkeleton />}
+          {isPosterLoading && !isPlaying && <BannerSkeleton />}
 
           {!isPlaying ? (
             <Image
@@ -299,6 +299,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   type="tv"
                   season={season}
                   episode={episode}
+                  currentServer={currentServer || 1}
                 />
               ) : (
                 <YoutubePlayer
@@ -651,6 +652,7 @@ const styles = StyleSheet.create({
     width: width - 32,
     height: width * 0.5625,
     borderRadius: 40,
+    borderCurve: 'circular',
     overflow: 'hidden',
     margin: 16,
     elevation: 20,

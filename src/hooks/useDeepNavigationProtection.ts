@@ -16,7 +16,7 @@ export const useDeepNavigationProtection = () => {
     }
 
     // If we're too deep, start aggressive cleanup
-    if (navigationDepth.current > 3) {
+    if (navigationDepth.current > 5) {
       // Force cleanup of old queries
       setTimeout(() => {
         // Clear inactive queries to prevent memory bloat

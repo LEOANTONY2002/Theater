@@ -279,11 +279,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     end={{x: 0.5, y: 0.5}}
                   />
                   <View style={styles.main}>
-                    {isPosterLoading && <BannerSkeleton />}
+                    {isPosterLoading && !isPlaying && <BannerSkeleton />}
                     {!isPlaying ? (
                       <Image
                         source={{
-                          uri: getImageUrl(movie.backdrop_path || '', 'w300'),
+                          uri: getImageUrl(
+                            movie.backdrop_path || '',
+                            'original',
+                          ),
                         }}
                         style={styles.backdrop}
                         onLoadEnd={() => setIsPosterLoading(false)}
@@ -541,6 +544,7 @@ const styles = StyleSheet.create({
     width: width - 32,
     height: width * 0.5625,
     borderRadius: 40,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     margin: 16,
     elevation: 20,
