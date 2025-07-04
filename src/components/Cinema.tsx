@@ -7,18 +7,25 @@ const Cinema = ({
   type,
   season,
   episode,
+  currentServer = 1,
 }: {
   id: string;
   type: string;
   season?: number;
   episode?: number;
+  currentServer?: number;
 }) => {
   const webviewRef = useRef<any>(null);
-
-  const initialUrl =
+  const servers = [
     type === 'movie'
       ? `https://vidsrc.xyz/embed/movie?tmdb=${id}`
-      : `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`;
+      : `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`,
+    type === 'movie'
+      ? `https://vidsrc.in/embed/movie?tmdb=${id}`
+      : `https://vidsrc.in/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`,
+  ];
+
+  const initialUrl = servers[currentServer - 1];
 
   const handleShouldStartLoadWithRequest = (request: {url: string}) => {
     return false;

@@ -609,3 +609,15 @@ export const getPersonDetails = async (personId: number) => {
   });
   return response.data;
 };
+
+export const checkTMDB = async (): Promise<boolean> => {
+  try {
+    await axios.get('https://api.themoviedb.org/3/configuration', {
+      params: {api_key: 'ddc242ac9b33e6c9054b5193c541ffbb'},
+      timeout: 5000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};

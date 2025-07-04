@@ -6,21 +6,33 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {LogBox, StatusBar, AppState, InteractionManager} from 'react-native';
+import {
+  LogBox,
+  StatusBar,
+  AppState,
+  InteractionManager,
+  DevSettings,
+} from 'react-native';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
 import {LoadingScreen} from './src/components/LoadingScreen';
 import {PerformanceMonitor} from './src/components/PerformanceMonitor';
 import {detectRegion} from './src/services/regionDetection';
-import {getRegions} from './src/services/tmdb';
+import {getRegions, checkTMDB} from './src/services/tmdb';
 import {SettingsManager} from './src/store/settings';
 import {queryClient} from './src/services/queryClient';
 import {enableScreens} from 'react-native-screens';
+import {DNSInstructionsModal} from './src/components/DNSInstructionsModal';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [showDNSModal, setShowDNSModal] = useState(false);
   enableScreens();
   LogBox.ignoreAllLogs();
+
+  const handleTryAgain = () => {
+    DevSettings.reload();
+  };
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -47,6 +59,14 @@ const App = () => {
     };
 
     initializeApp();
+  }, []);
+
+  useEffect(() => {
+    const check = async () => {
+      const ok = await checkTMDB();
+      if (!ok) setShowDNSModal(true);
+    };
+    check();
   }, []);
 
   // Memory cleanup effect to prevent glitches
@@ -130,16 +150,23 @@ const App = () => {
   // }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A1A" />
-      <AppNavigator />
-      <PerformanceMonitor />
-      {(() => {
-        // Make queryClient globally accessible for monitoring
-        (global as any).queryClient = queryClient;
-        return null;
-      })()}
-    </QueryClientProvider>
+    <>
+      <QueryClientProvider client={queryClient}>
+        <StatusBar barStyle="light-content" backgroundColor="#0A0A1A" />
+        <AppNavigator />
+        <PerformanceMonitor />
+        {(() => {
+          // Make queryClient globally accessible for monitoring
+          (global as any).queryClient = queryClient;
+          return null;
+        })()}
+      </QueryClientProvider>
+      <DNSInstructionsModal
+        visible={showDNSModal}
+        onClose={() => setShowDNSModal(false)}
+        onTryAgain={handleTryAgain}
+      />
+    </>
   );
 };
 

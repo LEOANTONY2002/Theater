@@ -52,6 +52,7 @@ import {
 } from '../hooks/useWatchlists';
 import {FlashList} from '@shopify/flash-list';
 import Cinema from '../components/Cinema';
+import ServerModal from '../components/ServerModal';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -83,6 +84,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
+  const [currentServer, setCurrentServer] = useState<number | null>(1);
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
 
   const {
     data: similarShows,
@@ -368,14 +371,39 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             )}
           </View>
           <View style={styles.buttonRow}>
-            <GradientButton
-              title="Watch Now"
-              onPress={() => {
-                setIsPlaying(true);
-              }}
-              style={styles.watchButton}
-              textStyle={styles.watchButtonText}
-            />
+            {cinema && isFocused ? (
+              isPlaying ? (
+                <GradientButton
+                  title="Switch Server"
+                  onPress={() => {
+                    setIsServerModalOpen(true);
+                  }}
+                  style={styles.watchButton}
+                  textStyle={styles.watchButtonText}
+                />
+              ) : (
+                <GradientButton
+                  title="Watch Now"
+                  onPress={() => {
+                    setIsPlaying(true);
+                  }}
+                  style={styles.watchButton}
+                  textStyle={styles.watchButtonText}
+                />
+              )
+            ) : (
+              <GradientButton
+                title="Watch Now"
+                onPress={() => {
+                  setIsPlaying(true);
+                }}
+                style={{
+                  ...styles.watchButton,
+                  opacity: isPlaying ? 0.3 : 1,
+                }}
+                textStyle={styles.watchButtonText}
+              />
+            )}
             <TouchableOpacity
               style={styles.addButton}
               onPress={handleWatchlistPress}
@@ -585,6 +613,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         onClose={() => setShowWatchlistModal(false)}
         item={show}
         itemType="tv"
+      />
+
+      <ServerModal
+        visible={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+        currentServer={currentServer}
+        setCurrentServer={setCurrentServer}
       />
     </View>
   );

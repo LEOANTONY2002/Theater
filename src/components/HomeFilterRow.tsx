@@ -1,17 +1,14 @@
 import React, {useCallback} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View} from 'react-native';
 import {HorizontalList} from './HorizontalList';
-import {colors, spacing, typography} from '../styles/theme';
 import {ContentItem} from './MovieList';
 import {Movie} from '../types/movie';
-import {useNavigation} from '@react-navigation/native';
 import {SavedFilter} from '../types/filters';
 import {useSavedFilterContent} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
 import {useNavigationState} from '../hooks/useNavigationState';
 
 export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
-  const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
 
   const handleItemPress = useCallback(
@@ -51,12 +48,3 @@ export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  heading: {
-    ...typography.h3,
-    color: colors.text.secondary,
-    marginVertical: spacing.md,
-    textAlign: 'center',
-  },
-});

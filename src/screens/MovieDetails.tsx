@@ -53,6 +53,7 @@ import languageData from '../utils/language.json';
 import {useDeepNavigationProtection} from '../hooks/useDeepNavigationProtection';
 import {useQueryClient} from '@tanstack/react-query';
 import Cinema from '../components/Cinema';
+import {ServerModal} from '../components/ServerModal';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -91,6 +92,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const queryClient = useQueryClient();
   const cinema = true;
   const isFocused = useIsFocused();
+  const [currentServer, setCurrentServer] = useState<number | null>(1);
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
 
   // Progressive loading like home screen
   useEffect(() => {
@@ -289,7 +292,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     ) : (
                       <View style={styles.trailerContainer}>
                         {cinema && isFocused ? (
-                          <Cinema id={movie.id.toString()} type="movie" />
+                          <Cinema
+                            id={movie.id.toString()}
+                            type="movie"
+                            currentServer={currentServer || 1}
+                          />
                         ) : (
                           <YoutubePlayer
                             height={width * 0.5625}
@@ -356,14 +363,39 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     )}
                   </View>
                   <View style={styles.buttonRow}>
-                    <GradientButton
-                      title="Watch Now"
-                      onPress={() => {
-                        setIsPlaying(true);
-                      }}
-                      style={styles.watchButton}
-                      textStyle={styles.watchButtonText}
-                    />
+                    {cinema && isFocused ? (
+                      isPlaying ? (
+                        <GradientButton
+                          title="Switch Server"
+                          onPress={() => {
+                            setIsServerModalOpen(true);
+                          }}
+                          style={styles.watchButton}
+                          textStyle={styles.watchButtonText}
+                        />
+                      ) : (
+                        <GradientButton
+                          title="Watch Now"
+                          onPress={() => {
+                            setIsPlaying(true);
+                          }}
+                          style={styles.watchButton}
+                          textStyle={styles.watchButtonText}
+                        />
+                      )
+                    ) : (
+                      <GradientButton
+                        title="Watch Now"
+                        onPress={() => {
+                          setIsPlaying(true);
+                        }}
+                        style={{
+                          ...styles.watchButton,
+                          opacity: isPlaying ? 0.3 : 1,
+                        }}
+                        textStyle={styles.watchButtonText}
+                      />
+                    )}
                     <TouchableOpacity
                       style={styles.addButton}
                       onPress={handleWatchlistPress}
@@ -472,6 +504,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         itemType="movie"
       />
 
+      <ServerModal
+        visible={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+        currentServer={currentServer}
+        setCurrentServer={setCurrentServer}
+      />
+
       {isInitialLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -567,7 +606,6 @@ const styles = StyleSheet.create({
     marginTop: -spacing.sm,
   },
   watchButton: {
-    flex: 1,
     borderRadius: 24,
     paddingHorizontal: 36,
     paddingVertical: 14,
@@ -615,7 +653,6 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontSize: 14,
     lineHeight: 20,
-    marginHorizontal: 16,
     marginBottom: 30,
   },
   sectionTitle: {
