@@ -148,6 +148,9 @@ export const MySpaceScreen = () => {
 
   return (
     <View style={styles.container}>
+      <View style={{padding: spacing.md, marginBottom: -30}}>
+        <Text style={{color: colors.text.primary, flex: 1}}>My Space</Text>
+      </View>
       <TouchableOpacity
         style={styles.headerContainer}
         onPress={() => navigateWithLimit('WatchlistsScreen')}
@@ -155,7 +158,7 @@ export const MySpaceScreen = () => {
         <Text style={styles.sectionTitle}>Watchlists</Text>
         <Ionicons
           name="chevron-forward"
-          size={24}
+          size={14}
           color={colors.text.primary}
         />
       </TouchableOpacity>
@@ -193,23 +196,21 @@ export const MySpaceScreen = () => {
         </View>
       ) : null}
 
-      <View style={styles.section}>
-        <TouchableOpacity
-          style={styles.sectionHeader}
-          onPress={() => setShowRegionModal(true)}>
-          <Text style={styles.sectionTitle}>Region</Text>
-          <View style={styles.regionInfo}>
-            <Text style={styles.regionText}>
-              {currentRegion?.english_name || 'Select Region'}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={24}
-              color={colors.text.secondary}
-            />
-          </View>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={styles.headerContainer}
+        onPress={() => setShowRegionModal(true)}>
+        <Text style={styles.sectionTitle}>Region</Text>
+        <View style={styles.regionInfo}>
+          <Text style={styles.regionText}>
+            {currentRegion?.english_name || 'Select Region'}
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={14}
+            color={colors.text.primary}
+          />
+        </View>
+      </TouchableOpacity>
 
       <View>
         <TouchableOpacity
@@ -218,7 +219,7 @@ export const MySpaceScreen = () => {
           <Text style={styles.sectionTitle}>Languages</Text>
           <Ionicons
             name="chevron-forward"
-            size={24}
+            size={14}
             color={colors.text.primary}
           />
         </TouchableOpacity>
@@ -258,7 +259,7 @@ export const MySpaceScreen = () => {
         <Text style={styles.sectionTitle}>My Filters</Text>
         <Ionicons
           name="chevron-forward"
-          size={24}
+          size={14}
           color={colors.text.primary}
         />
       </TouchableOpacity>
@@ -305,8 +306,7 @@ export const MySpaceScreen = () => {
               style={StyleSheet.absoluteFill}
               blurType="dark"
               blurAmount={10}
-              overlayColor="rgba(23, 17, 42, 0.87)"
-              reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
+              overlayColor={colors.modal.blur}
             />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Language Settings</Text>
@@ -347,10 +347,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.secondary,
     borderRadius: 12,
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.background.secondary,
   },
   sectionTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
+    color: colors.text.secondary,
+    flex: 1,
+    fontWeight: 100,
   },
   watchlistContainer: {
     paddingBottom: spacing.md,
@@ -381,6 +384,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: colors.text.primary,
     ...typography.h3,
+    paddingVertical: spacing.sm,
   },
   modalBody: {
     flex: 1,
@@ -471,6 +475,7 @@ const styles = StyleSheet.create({
   },
   regionText: {
     color: colors.text.muted,
-    ...typography.body1,
+    ...typography.body2,
+    marginBottom: 2,
   },
 });

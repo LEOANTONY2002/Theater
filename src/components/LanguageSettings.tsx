@@ -93,7 +93,7 @@ export const LanguageSettings = () => {
   if (isLoadingLanguages || isLoadingSaved) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.text.muted} />
       </View>
     );
   }
@@ -125,13 +125,14 @@ export const LanguageSettings = () => {
             <TouchableOpacity
               key={language.iso_639_1}
               style={[styles.languageItem, isSelected && styles.selectedItem]}
+              activeOpacity={0.8}
               onPress={() => toggleLanguage(language)}>
               <View style={styles.languageInfo}>
                 <Text style={styles.languageName}>{language.english_name}</Text>
                 <Text style={styles.nativeName}>({language.name})</Text>
               </View>
               {isSelected && (
-                <Icon name="checkmark" size={24} color={colors.primary} />
+                <Icon name="checkmark" size={24} color={colors.text.primary} />
               )}
             </TouchableOpacity>
           );
@@ -200,12 +201,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.modal.header,
     marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
   },
   selectedItem: {
-    borderColor: colors.primary,
+    borderColor: colors.modal.active,
+    backgroundColor: colors.modal.active,
     borderWidth: 1,
   },
   languageInfo: {

@@ -285,7 +285,9 @@ export const MyFiltersScreen = () => {
       <View style={styles.header}>
         <Text style={styles.title}>My Filters</Text>
         {savedFilters.length > 0 && (
-          <TouchableOpacity onPress={() => setShowAddModal(true)}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowAddModal(true)}>
             <Ionicons name="add" size={20} color={colors.text.primary} />
           </TouchableOpacity>
         )}
@@ -347,7 +349,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
     borderRadius: borderRadius.md,
     height: 40,
   },
@@ -373,7 +374,9 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   filterItem: {
-    backgroundColor: colors.background.tag,
+    backgroundColor: colors.modal.header,
+    borderWidth: 1,
+    borderColor: colors.modal.blur,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -396,7 +399,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.background.card,
+    backgroundColor: colors.modal.content,
+    borderWidth: 1,
+    borderColor: colors.modal.content,
     borderRadius: borderRadius.md,
     width: 80,
     height: 80,

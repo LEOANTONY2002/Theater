@@ -41,14 +41,13 @@ export const RegionModal: React.FC<RegionModalProps> = ({
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType="dark"
-          blurAmount={10}
-          overlayColor="rgba(23, 20, 48, 0.87)"
-          reducedTransparencyFallbackColor="rgba(0, 0, 0, 0.5)"
-        />
         <View style={styles.modalContent}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={20}
+            overlayColor={colors.modal.blur}
+          />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Region</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -94,7 +93,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                     <Ionicons
                       name="checkmark"
                       size={24}
-                      color={colors.primary}
+                      color={colors.text.primary}
                       style={styles.checkmark}
                     />
                   )}
@@ -111,7 +110,6 @@ export const RegionModal: React.FC<RegionModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     flex: 1,
@@ -119,6 +117,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -130,7 +129,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: colors.text.primary,
-    ...typography.h2,
+    ...typography.h3,
   },
   closeButton: {
     padding: spacing.sm,
@@ -152,7 +151,7 @@ const styles = StyleSheet.create({
   },
   regionName: {
     flex: 1,
-    color: colors.text.primary,
+    color: colors.text.secondary,
     ...typography.body1,
   },
   nativeName: {
@@ -161,7 +160,7 @@ const styles = StyleSheet.create({
     ...typography.body2,
   },
   selectedRegionText: {
-    color: colors.primary,
+    color: colors.text.primary,
   },
   checkmark: {
     marginLeft: spacing.sm,

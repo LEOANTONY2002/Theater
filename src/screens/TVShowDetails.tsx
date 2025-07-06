@@ -650,7 +650,8 @@ const styles = StyleSheet.create({
   main: {
     position: 'relative',
     width: width - 32,
-    height: width * 0.5625,
+    height: 250,
+    alignSelf: 'center',
     borderRadius: 40,
     borderCurve: 'circular',
     overflow: 'hidden',

@@ -179,7 +179,6 @@ export const WatchlistsScreen: React.FC = () => {
               setShowCreateModal(true);
             }}>
             <Ionicons name="add" size={24} color={colors.text.primary} />
-            <Text style={styles.createButtonText}>Create New</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -302,10 +301,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
     borderRadius: borderRadius.md,
     height: 40,
-    backgroundColor: colors.modal.blur,
+    // backgroundColor: colors.modal.blur,
   },
   createButtonText: {
     ...typography.body2,

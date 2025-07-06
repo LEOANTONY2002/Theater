@@ -30,18 +30,27 @@ export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
     });
   }, [navigateWithLimit, savedFilter]);
 
-  const {data: filterContent, isLoading: isLoadingFilterContent} =
-    useSavedFilterContent(savedFilter);
+  const {
+    data: filterContent,
+    isLoading: isLoadingFilterContent,
+    fetchNextPage: fetchNextFilterPage,
+    hasNextPage: hasNextFilterPage,
+    isFetchingNextPage: isFetchingNextFilterPage,
+  } = useSavedFilterContent(savedFilter);
+
+  // Flatten all pages for infinite scrolling
+  const flattenedData =
+    filterContent?.pages?.flatMap(page => page?.results || []) || [];
 
   return (
     <View>
-      {filterContent?.pages?.[0]?.results?.length > 0 && (
+      {flattenedData.length > 0 && (
         <HorizontalList
           title={savedFilter.name}
-          data={filterContent?.pages?.[0]?.results}
-          isLoading={isLoadingFilterContent}
+          data={flattenedData}
+          isLoading={isFetchingNextFilterPage}
           onItemPress={handleItemPress}
-          onEndReached={() => {}}
+          onEndReached={hasNextFilterPage ? fetchNextFilterPage : undefined}
           onSeeAllPress={handleSeeAllPress}
         />
       )}

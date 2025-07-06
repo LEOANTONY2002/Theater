@@ -542,8 +542,9 @@ const styles = StyleSheet.create({
   main: {
     position: 'relative',
     width: width - 32,
-    height: width * 0.5625,
+    height: 250,
     borderRadius: 40,
+    alignSelf: 'center',
     borderCurve: 'continuous',
     overflow: 'hidden',
     margin: 16,

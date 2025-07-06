@@ -7,7 +7,11 @@ import {
   Platform,
   Linking,
   NativeModules,
+  StyleSheet,
 } from 'react-native';
+import {borderRadius, colors, spacing, typography} from '../styles/theme';
+import {GradientButton} from './GradientButton';
+import LinearGradient from 'react-native-linear-gradient';
 
 export const openDNSSettings = () => {
   if (Platform.OS === 'android') {
@@ -27,56 +31,100 @@ export const DNSInstructionsModal = ({
   visible,
   onClose,
   onTryAgain,
-}: DNSInstructionsModalProps) => (
-  <Modal visible={visible} transparent animationType="slide">
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.7)',
-      }}>
+}: DNSInstructionsModalProps) => {
+  const styles = StyleSheet.create({
+    heading: {
+      position: 'absolute',
+      top: -60,
+    },
+    gradient: {
+      position: 'absolute',
+      left: 0,
+      bottom: 70,
+      height: 30,
+      width: '100%',
+      zIndex: 0,
+    },
+    headingText: {
+      fontSize: 35,
+      fontWeight: '900',
+      color: colors.text.tertiary,
+      textAlign: 'center',
+      opacity: 0.7,
+      zIndex: -1,
+      width: '100%',
+    },
+  });
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
       <View
         style={{
-          backgroundColor: '#fff',
-          padding: 24,
-          borderRadius: 12,
+          flex: 1,
+          justifyContent: 'center',
           alignItems: 'center',
-          maxWidth: 340,
+          backgroundColor: 'rgba(0,0,0,0.7)',
         }}>
-        <Text
+        <View
           style={{
-            fontSize: 18,
-            fontWeight: 'bold',
-            marginBottom: 12,
-            textAlign: 'center',
+            backgroundColor: colors.modal.blur,
+            padding: 24,
+            borderRadius: 12,
+            alignItems: 'center',
+            maxWidth: 340,
           }}>
-          TMDB Not Reachable
-        </Text>
-        <Text style={{marginBottom: 16, textAlign: 'center'}}>
-          To use this app, please set your Private DNS to{' '}
-          <Text style={{fontWeight: 'bold'}}>dns.google</Text> in your device
-          settings.{'\n\n'}
-          <Text style={{fontWeight: 'bold'}}>Steps:</Text>
-          {'\n'}
-          1. Open <Text style={{fontWeight: 'bold'}}>Settings</Text>
-          {'\n'}
-          2. Tap <Text style={{fontWeight: 'bold'}}>Network & Internet</Text>
-          {'\n'}
-          3. Tap <Text style={{fontWeight: 'bold'}}>Private DNS</Text>
-          {'\n'}
-          4. Select{' '}
-          <Text style={{fontWeight: 'bold'}}>
-            Private DNS provider hostname
+          <View style={styles.heading}>
+            <LinearGradient
+              colors={['transparent', colors.background.primary]}
+              start={{x: 0.5, y: 0}}
+              end={{x: 0.5, y: 1}}
+              style={styles.gradient}
+            />
+            <Text style={styles.headingText}>TMDB Not Reachable</Text>
+            <Text style={{marginBottom: 16, textAlign: 'center'}}></Text>
+          </View>
+          <Text
+            style={{
+              color: colors.text.primary,
+              fontSize: 14,
+              textAlign: 'center',
+            }}>
+            To use this app, please set your Private DNS to{' '}
+            <Text
+              style={{fontWeight: 'bold', color: 'rgba(224, 194, 248, 0.88)'}}>
+              dns.google
+            </Text>{' '}
+            in your device settings.{'\n\n'}
           </Text>
-          {'\n'}
-          5. Enter: <Text style={{fontWeight: 'bold'}}>dns.google</Text>
-          {'\n'}
-          6. Save
-        </Text>
-        <Button title="Try Again" onPress={onTryAgain} />
-        <Button title="Close" onPress={onClose} color="#888" />
+          <Text
+            style={{
+              color: colors.text.muted,
+              fontWeight: 100,
+              fontSize: 12,
+              marginBottom: 20,
+              textAlign: 'center',
+            }}>
+            Go to Settings &gt; Network & Internet &gt; Private DNS &gt; Private
+            DNS Provider &gt; Enter hostname of DNS Provider: dns.google &gt;
+            Save
+          </Text>
+          <Text
+            style={{
+              marginBottom: 10,
+              textAlign: 'center',
+              fontWeight: 100,
+              color: colors.text.secondary,
+            }}>
+            Setup completed?
+          </Text>
+          <GradientButton
+            onPress={onTryAgain}
+            title="Try Again"
+            isIcon={false}
+            style={{borderRadius: borderRadius.round}}
+          />
+        </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};

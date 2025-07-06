@@ -18,7 +18,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS, SavedFilter} from '../types/filters';
-import {getLanguages, getGenres} from '../services/tmdb';
+import {getLanguages, getGenres, searchFilterContent} from '../services/tmdb';
 import {FiltersManager} from '../store/filters';
 import {Chip} from './Chip';
 import {queryClient} from '../services/queryClient';
@@ -59,6 +59,14 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
+  const [isValidatingFilter, setIsValidatingFilter] = useState(false);
+  const [filterValidationResult, setFilterValidationResult] = useState<{
+    hasData: boolean;
+    resultCount: number;
+  } | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [filterNameError, setFilterNameError] = useState<string | null>(null);
+  const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -70,6 +78,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         setFilterName('');
         setContentType('all');
         setFilters({});
+        setHasAttemptedSave(false);
+        setFilterNameError(null);
+        setValidationError(null);
       }
     }
   }, [visible, editingFilter]);
@@ -121,6 +132,16 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     }
   }, [contentType, editingFilter]);
 
+  // Auto-dismiss toast after 5 seconds
+  useEffect(() => {
+    if (validationError) {
+      const timer = setTimeout(() => {
+        setValidationError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [validationError]);
+
   const handleSortChange = (value: string) => {
     if (!value) {
       setFilters(prev => ({...prev, sort_by: undefined}));
@@ -167,15 +188,81 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     setFilters(prev => ({...prev, with_runtime_gte: value}));
   };
 
+  const validateFilter = async () => {
+    if (!filterName.trim()) {
+      return false;
+    }
+
+    // Don't validate if no filters are set
+    if (Object.keys(filters).length === 0) {
+      return true;
+    }
+
+    setIsValidatingFilter(true);
+    setFilterValidationResult(null);
+    setValidationError(null);
+
+    try {
+      const testFilter: SavedFilter = {
+        id: 'test',
+        name: filterName,
+        type: contentType,
+        params: filters,
+        createdAt: Date.now(),
+      };
+
+      const result = await searchFilterContent(testFilter, 1);
+
+      if (result && result.results && result.results.length > 0) {
+        setFilterValidationResult({
+          hasData: true,
+          resultCount: result.results.length,
+        });
+        return true;
+      } else {
+        setFilterValidationResult({
+          hasData: false,
+          resultCount: 0,
+        });
+        setValidationError(
+          'No content found from this filter combination. Please adjust your filter criteria.',
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error('Filter validation error:', error);
+      setValidationError(
+        'Failed to validate filter. Please check your internet connection and try again.',
+      );
+      return false;
+    } finally {
+      setIsValidatingFilter(false);
+    }
+  };
+
   const handleReset = () => {
     setFilters({});
     setContentType('all');
+    setFilterValidationResult(null);
+    setValidationError(null);
+    setFilterNameError(null);
+    setHasAttemptedSave(false);
   };
 
   const handleSave = async () => {
     try {
+      setHasAttemptedSave(true);
+
+      // Check filter name first
       if (!filterName.trim()) {
-        Alert.alert('Error', 'Please enter a filter name');
+        setFilterNameError('Please enter a filter name');
+        return;
+      }
+      setFilterNameError(null);
+
+      // Validate the filter before saving
+      const isValid = await validateFilter();
+      if (!isValid) {
         return;
       }
 
@@ -198,6 +285,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       setFilterName('');
       setContentType('all');
       setFilters({});
+      setFilterValidationResult(null);
+      setValidationError(null);
       onClose();
     } catch (error) {
       Alert.alert(
@@ -305,13 +394,31 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Filter Name</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  filterNameError && hasAttemptedSave && styles.inputError,
+                ]}
                 value={filterName}
-                onChangeText={setFilterName}
+                onChangeText={text => {
+                  setFilterName(text);
+                  if (filterNameError) setFilterNameError(null);
+                }}
                 placeholder="Enter filter name"
                 placeholderTextColor={colors.text.muted}
                 cursorColor={colors.accent}
               />
+              {filterNameError && hasAttemptedSave && (
+                <View style={styles.inputErrorContainer}>
+                  <Ionicons
+                    name="alert-circle"
+                    size={16}
+                    color={colors.status.error}
+                  />
+                  <Text style={styles.inputErrorMessage}>
+                    {filterNameError}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Content Type */}
@@ -520,9 +627,31 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 </TouchableOpacity>
               </View>
             </View>
-
             <View style={{height: 150}} />
           </ScrollView>
+
+          {/* Toast Notification */}
+          {validationError && (
+            <View style={styles.toastContainer}>
+              <View style={styles.toastContent}>
+                <Ionicons
+                  name="alert-circle"
+                  size={20}
+                  color={colors.text.primary}
+                />
+                <Text style={styles.toastMessage}>{validationError}</Text>
+                <TouchableOpacity
+                  onPress={() => setValidationError(null)}
+                  style={styles.toastCloseButton}>
+                  <Ionicons
+                    name="close"
+                    size={16}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {/* Date Pickers */}
           {showFromDate && (
@@ -556,10 +685,20 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.footerButton, styles.saveButton]}
-              onPress={handleSave}>
-              <Text style={styles.saveButtonText}>
-                {editingFilter ? 'Update' : 'Save'}
-              </Text>
+              onPress={handleSave}
+              disabled={isValidatingFilter}>
+              {isValidatingFilter ? (
+                <View style={styles.saveButtonLoading}>
+                  <ActivityIndicator
+                    color={colors.background.primary}
+                    size="small"
+                  />
+                </View>
+              ) : (
+                <Text style={styles.saveButtonText}>
+                  {editingFilter ? 'Update' : 'Save'}
+                </Text>
+              )}
             </TouchableOpacity>
             {editingFilter && (
               <TouchableOpacity

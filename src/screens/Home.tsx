@@ -387,12 +387,7 @@ export const HomeScreen = () => {
       }
 
       // Top Rated Movies section
-      if (isFetchingTopRatedMovies) {
-        sectionsList.push({
-          id: 'topRatedMoviesSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      } else if (topRatedMovies?.pages?.[0]?.results?.length) {
+      if (topRatedMovies?.pages?.[0]?.results?.length) {
         sectionsList.push({
           id: 'topRatedMovies',
           type: 'horizontalList',
@@ -405,15 +400,15 @@ export const HomeScreen = () => {
           onSeeAllPress: () =>
             handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie'),
         });
+      } else if (isFetchingTopRatedMovies) {
+        sectionsList.push({
+          id: 'topRatedMoviesSkeleton',
+          type: 'horizontalListSkeleton',
+        });
       }
 
       // Top Rated TV Shows section
-      if (isFetchingTopRatedTV) {
-        sectionsList.push({
-          id: 'topRatedTVShowsSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      } else if (topRatedTVShows?.pages?.[0]?.results?.length) {
+      if (topRatedTVShows?.pages?.[0]?.results?.length) {
         sectionsList.push({
           id: 'topRatedTVShows',
           type: 'horizontalList',
@@ -424,15 +419,15 @@ export const HomeScreen = () => {
           onSeeAllPress: () =>
             handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv'),
         });
+      } else if (isFetchingTopRatedTV) {
+        sectionsList.push({
+          id: 'topRatedTVShowsSkeleton',
+          type: 'horizontalListSkeleton',
+        });
       }
 
       // Upcoming Movies section
-      if (isFetchingUpcomingMovies) {
-        sectionsList.push({
-          id: 'upcomingMoviesSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      } else if (upcomingMovies?.pages?.[0]?.results?.length) {
+      if (upcomingMovies?.pages?.[0]?.results?.length) {
         sectionsList.push({
           id: 'upcomingMovies',
           type: 'horizontalList',
@@ -444,6 +439,11 @@ export const HomeScreen = () => {
             : undefined,
           onSeeAllPress: () =>
             handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie'),
+        });
+      } else if (isFetchingUpcomingMovies) {
+        sectionsList.push({
+          id: 'upcomingMoviesSkeleton',
+          type: 'horizontalListSkeleton',
         });
       }
     }

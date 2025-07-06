@@ -19,7 +19,7 @@ interface ServerModalProps {
   setCurrentServer: (server: number) => void;
 }
 
-const SERVERS = [1, 2, 3, 4, 5];
+const SERVERS = [1, 2, 3, 4];
 
 export const ServerModal: React.FC<ServerModalProps> = ({
   visible,

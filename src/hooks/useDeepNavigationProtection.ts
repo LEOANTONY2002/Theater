@@ -41,7 +41,7 @@ export const useDeepNavigationProtection = () => {
 
   return {
     navigationDepth: navigationDepth.current,
-    isDeepNavigation: navigationDepth.current > 3,
+    isDeepNavigation: navigationDepth.current > 5,
     isVeryDeepNavigation: navigationDepth.current > 5,
   };
 };
