@@ -80,12 +80,43 @@ const MyFilterItemWithResults = ({
   };
 
   return (
-    <View key={filter.id} style={{marginBottom: spacing.lg}}>
-      <TouchableOpacity
-        style={styles.filterItem}
-        onPress={() => onEdit(filter)}>
+    <View
+      key={filter.id}
+      style={{marginBottom: spacing.xl, position: 'relative'}}>
+      <View style={styles.filterItem}>
+        <LinearGradient
+          colors={['transparent', colors.background.primary]}
+          style={{
+            width: '180%',
+            height: '100%',
+            position: 'absolute',
+            bottom: -5,
+            left: -20,
+            paddingHorizontal: 10,
+            zIndex: 0,
+            transform: [{rotate: '-10deg'}],
+          }}
+          start={{x: 0, y: 0}}
+          end={{x: 0, y: 1}}
+        />
         <View style={styles.filterHeader}>
-          <Text style={styles.filterName}>{filter.name}</Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+            <Text style={styles.filterName}>{filter.name}</Text>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => onEdit(filter)}>
+              <Ionicons
+                name="pencil-outline"
+                size={15}
+                color={colors.text.primary}
+              />
+            </TouchableOpacity>
+          </View>
           {genreNames && (
             <View style={styles.genreContainer}>
               <Text style={styles.genreText} numberOfLines={1}>
@@ -222,6 +253,17 @@ const MyFilterItemWithResults = ({
         </View>
         {/* HorizontalList of filter search results */}
         <View style={styles.listContainer}>
+          <LinearGradient
+            colors={['transparent', colors.background.primary]}
+            style={{
+              width: '100%',
+              height: 100,
+              position: 'absolute',
+              bottom: 0,
+              paddingHorizontal: 10,
+              zIndex: 1,
+            }}
+          />
           <HorizontalList
             title={''}
             data={flattenedData}
@@ -232,7 +274,7 @@ const MyFilterItemWithResults = ({
             isFilter={true}
           />
         </View>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -398,7 +440,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     position: 'relative',
-    height: 380,
+    height: 300,
+    marginBottom: 50,
+    zIndex: 0,
   },
   filterHeader: {
     flexDirection: 'column',
@@ -425,6 +469,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     padding: spacing.xs,
+    zIndex: 1,
   },
   cardSmall: {
     flexDirection: 'row',
@@ -454,8 +499,7 @@ const styles = StyleSheet.create({
     // position: 'absolute',
     width: '120%',
     overflow: 'scroll',
-    // bottom: -150,
+    bottom: 10,
     left: -30,
-    // zIndex: 5,
   },
 });

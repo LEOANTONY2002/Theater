@@ -56,13 +56,10 @@ const getItemTitle = (item: ContentItem) => {
   return item.name;
 };
 
-const NoResults = ({query}: {query: string}) => (
+const NoResults = () => (
   <View style={styles.noResultsContainer}>
     <Icon name="search-outline" size={64} color={colors.text.secondary} />
     <Text style={styles.noResultsTitle}>No Results Found</Text>
-    <Text style={styles.noResultsText}>
-      We couldn't find any matches for "{query}"
-    </Text>
     <Text style={styles.noResultsSubtext}>
       Try checking your spelling or using different keywords
     </Text>
@@ -372,7 +369,7 @@ export const SearchScreen = () => {
   }, [queryClient]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {flex: 1}]}>
       <View style={styles.header}>
         <BlurView
           style={styles.blurView}
@@ -424,7 +421,7 @@ export const SearchScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <View>
+      <View style={{flex: 1}}>
         {!showSearchResults ? (
           <FlatList
             style={{paddingTop: 120}}
@@ -468,7 +465,7 @@ export const SearchScreen = () => {
             showsVerticalScrollIndicator={false}
           />
         ) : (
-          <>
+          <View style={{flex: 1}}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.text.muted} />
@@ -497,7 +494,7 @@ export const SearchScreen = () => {
                 </TouchableOpacity>
               </View>
             ) : hasNoResults ? (
-              <NoResults query={debouncedQuery} />
+              <NoResults />
             ) : (
               <MovieList
                 data={displayedContent}
@@ -521,7 +518,7 @@ export const SearchScreen = () => {
                 }
               />
             )}
-          </>
+          </View>
         )}
       </View>
 
@@ -651,26 +648,24 @@ const styles = StyleSheet.create({
   },
   noResultsContainer: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    backgroundColor: 'red',
+    justifyContent: 'center',
+    padding: 32,
+    width: '100%',
   },
   noResultsTitle: {
-    color: colors.text.primary,
+    color: colors.text.muted,
     ...typography.h2,
     marginTop: spacing.md,
   },
   noResultsText: {
-    color: colors.text.secondary,
+    color: colors.text.muted,
     ...typography.body1,
     textAlign: 'center',
     marginTop: spacing.sm,
   },
   noResultsSubtext: {
-    color: colors.text.secondary,
+    color: colors.text.muted,
     ...typography.body2,
     textAlign: 'center',
     marginTop: spacing.sm,

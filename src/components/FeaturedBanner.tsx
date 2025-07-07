@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   buttonWL: {
     marginTop: spacing.md,
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: colors.modal.header,
     borderRadius: borderRadius.round,
     width: 50,
     height: 50,

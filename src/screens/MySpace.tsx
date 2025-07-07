@@ -148,8 +148,15 @@ export const MySpaceScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={{padding: spacing.md, marginBottom: -30}}>
-        <Text style={{color: colors.text.primary, flex: 1}}>My Space</Text>
+      <View style={{padding: spacing.md}}>
+        <Text
+          style={{
+            color: colors.text.primary,
+            ...typography.h2,
+            marginBottom: 10,
+          }}>
+          My Space
+        </Text>
       </View>
       <TouchableOpacity
         style={styles.headerContainer}

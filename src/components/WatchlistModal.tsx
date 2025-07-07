@@ -131,8 +131,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
             style={StyleSheet.absoluteFill}
             blurType="dark"
             blurAmount={20}
-            overlayColor={`rgba(16, 14, 35, 0.3)`}
-            reducedTransparencyFallbackColor={colors.modal.blur}
+            overlayColor={colors.modal.blur}
           />
 
           <View style={styles.modalHeader}>
@@ -222,7 +221,11 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                     </View>
                     <Text
                       numberOfLines={1}
-                      style={{color: colors.text.primary, textAlign: 'center'}}>
+                      style={{
+                        color: colors.text.primary,
+                        textAlign: 'center',
+                        marginTop: 5,
+                      }}>
                       {watchlist.name}
                     </Text>
                   </TouchableOpacity>
@@ -265,7 +268,6 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.modal.background,
     justifyContent: 'flex-end',
   },
   modalContent: {
@@ -330,7 +332,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: borderRadius.xl,
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: colors.background.secondary,
     opacity: 0.5,
     marginRight: spacing.xl,
   },

@@ -62,6 +62,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       },
       listContent: {
         paddingHorizontal: isFilter ? 0 : spacing.md,
+        paddingLeft: isFilter ? 30 : spacing.md,
       },
       footerLoader: {
         paddingHorizontal: spacing.md,

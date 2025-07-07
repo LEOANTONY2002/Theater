@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.modal.header,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
