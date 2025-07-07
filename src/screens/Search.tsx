@@ -572,11 +572,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.modal.content,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.round,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: colors.modal.border,
   },
   searchIcon: {
     marginRight: spacing.sm,
@@ -604,6 +604,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text.primary,
     ...typography.h3,
+    marginBottom: spacing.sm,
   },
   clearAllText: {
     color: colors.text.muted,
@@ -650,9 +651,12 @@ const styles = StyleSheet.create({
   },
   noResultsContainer: {
     flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
+    backgroundColor: 'red',
   },
   noResultsTitle: {
     color: colors.text.primary,
@@ -675,15 +679,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: borderRadius.round,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.modal.content,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: colors.modal.border,
   },
   filterButtonActive: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: colors.modal.activeBorder,
   },
 });

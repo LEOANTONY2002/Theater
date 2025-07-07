@@ -15,11 +15,11 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const styles = StyleSheet.create({
   container: {
-    width: SCREEN_WIDTH / 3 - 15,
+    width: SCREEN_WIDTH / 3 - 5,
     height: SCREEN_WIDTH / 2 - 10,
     borderRadius: 8,
     overflow: 'hidden',
-    margin: 5,
+    margin: 3,
   },
   containerLarge: {
     width: 120,

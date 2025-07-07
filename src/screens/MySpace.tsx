@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text.secondary,
     flex: 1,
-    fontWeight: 100,
+    fontWeight: 400,
   },
   watchlistContainer: {
     paddingBottom: spacing.md,

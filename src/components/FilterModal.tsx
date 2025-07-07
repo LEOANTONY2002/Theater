@@ -287,9 +287,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
           <BlurView
             style={styles.blurView}
             blurType="dark"
-            blurAmount={10}
+            blurAmount={20}
             overlayColor={colors.modal.blur}
-            reducedTransparencyFallbackColor={colors.modal.blur}
+            reducedTransparencyFallbackColor={'rgb(255, 255, 255)'}
           />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filter</Text>
@@ -306,7 +306,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  style={styles.scrollContent}>
+                  style={{...styles.scrollContent, padding: 0}}>
                   {savedFilters.map(filter => (
                     <TouchableOpacity
                       key={filter.id}
@@ -436,18 +436,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
             {/* Sort By with Order Toggle */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Sort By</Text>
-                <TouchableOpacity
-                  style={styles.sortOrderButton}
-                  onPress={handleSortOrderToggle}>
+              <Text style={styles.sectionTitle}>Sort By</Text>
+              {/* <TouchableOpacity onPress={handleSortOrderToggle}>
                   <Ionicons
                     name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
                     size={20}
                     color={colors.text.primary}
                   />
-                </TouchableOpacity>
-              </View>
+                </TouchableOpacity> */}
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={filters.sort_by}

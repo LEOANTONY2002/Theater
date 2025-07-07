@@ -33,7 +33,10 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
   isLoading,
 }) => {
   const renderItem = ({item, index}: {item: Genre; index: number}) => (
-    <TouchableOpacity style={styles.tag} onPress={() => onItemPress(item)}>
+    <TouchableOpacity
+      style={styles.tag}
+      activeOpacity={0.9}
+      onPress={() => onItemPress(item)}>
       <LinearGradient
         colors={[
           tagGradientColors[index],
@@ -47,9 +50,9 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
       <BlurView
         style={styles.blurView}
         blurType="light"
-        blurAmount={10}
+        blurAmount={15}
         blurRadius={20}
-        overlayColor={colors.modal.header}
+        overlayColor={colors.modal.blur}
       />
       <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
       <Text style={styles.tagText} numberOfLines={2}>
@@ -105,7 +108,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   tag: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.primary,
     borderRadius: borderRadius.lg,
     width: 120,
     height: 100,
@@ -113,6 +116,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     overflow: 'hidden',
+    padding: spacing.md,
   },
   tagGradient: {
     position: 'absolute',
@@ -149,5 +153,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     textAlignVertical: 'center',
+    fontWeight: '600',
   },
 });

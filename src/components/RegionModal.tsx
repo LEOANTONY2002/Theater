@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.background.secondary,
   },
   selectedRegion: {
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: colors.modal.content,
   },
   regionName: {
     flex: 1,

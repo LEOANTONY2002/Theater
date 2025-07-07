@@ -19,6 +19,223 @@ import {Genre} from '../types/movie';
 import {getGenres} from '../services/tmdb';
 import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
 import CreateButton from '../components/createButton';
+import {HorizontalList} from '../components/HorizontalList';
+import {useSavedFilterContent} from '../hooks/useApp';
+import {useNavigationState} from '../hooks/useNavigationState';
+import {useNavigation} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
+
+// Child component to render a filter and its results
+const MyFilterItemWithResults = ({
+  filter,
+  allGenres,
+  onEdit,
+}: {
+  filter: SavedFilter;
+  allGenres: Genre[];
+  onEdit: (f: SavedFilter) => void;
+}) => {
+  const type = filter?.type;
+  const sortBy = filter?.params?.sort_by?.split('.')[0][0];
+  const sortOrder = filter?.params?.sort_by?.split('.')[1];
+  const rating = filter?.params?.['vote_average.gte'];
+  const language = filter?.params?.with_original_language
+    ? languageData.find(
+        (l: any) => l.iso_639_1 === filter?.params?.with_original_language,
+      )
+    : null;
+  const genres = filter?.params?.with_genres;
+  const genreNames = genres
+    ?.split(',')
+    .map(id => allGenres.find(genre => genre.id === parseInt(id))?.name)
+    .join(', ');
+  const fromDate =
+    filter?.params?.['primary_release_date.gte'] ||
+    filter?.params?.['first_air_date.gte'];
+  const toDate =
+    filter?.params?.['primary_release_date.lte'] ||
+    filter?.params?.['first_air_date.lte'];
+  const fromYear = fromDate ? new Date(fromDate).getFullYear() : null;
+  const toYear = toDate ? new Date(toDate).getFullYear() : null;
+
+  // Fetch filter content for this filter
+  const {
+    data: filterContent,
+    isLoading: isLoadingFilterContent,
+    fetchNextPage: fetchNextFilterPage,
+    hasNextPage: hasNextFilterPage,
+    isFetchingNextPage: isFetchingNextFilterPage,
+  } = useSavedFilterContent(filter);
+  // Flatten all pages for infinite scrolling
+  const flattenedData =
+    filterContent?.pages?.flatMap(page => page?.results || []) || [];
+
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const handleItemPress = (item: any) => {
+    if (item.type === 'movie') {
+      navigation.push('MovieDetails', {movie: item});
+    } else if (item.type === 'tv') {
+      navigation.push('TVShowDetails', {show: item});
+    }
+  };
+
+  return (
+    <View key={filter.id} style={{marginBottom: spacing.lg}}>
+      <TouchableOpacity
+        style={styles.filterItem}
+        onPress={() => onEdit(filter)}>
+        <View style={styles.filterHeader}>
+          <Text style={styles.filterName}>{filter.name}</Text>
+          {genreNames && (
+            <View style={styles.genreContainer}>
+              <Text style={styles.genreText} numberOfLines={1}>
+                {genreNames}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.filterContent}>
+          {type && (
+            <View style={styles.card}>
+              <Ionicons
+                name={
+                  type === 'movie'
+                    ? 'film-outline'
+                    : type === 'tv'
+                    ? 'tv-outline'
+                    : 'apps-outline'
+                }
+                size={15}
+                color={colors.text.primary}
+              />
+              <Text style={styles.cardText} numberOfLines={1}>
+                {type?.charAt(0).toUpperCase() + type?.slice(1)}
+              </Text>
+            </View>
+          )}
+          {sortBy && rating && language && (fromYear || toYear) ? (
+            <View
+              style={{
+                flexDirection: 'column',
+                gap: spacing.sm,
+                alignItems: 'flex-start',
+              }}>
+              {sortBy && (
+                <View style={styles.cardSmall}>
+                  <Ionicons
+                    name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                    size={15}
+                    color={colors.text.primary}
+                  />
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {sortBy.toString()}
+                  </Text>
+                </View>
+              )}
+              {rating && (
+                <View style={styles.cardSmall}>
+                  <Ionicons name="star" size={15} color={colors.text.primary} />
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {rating.toString()}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            <>
+              {sortBy && (
+                <View style={styles.card}>
+                  <Ionicons
+                    name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                    size={15}
+                    color={colors.text.primary}
+                  />
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {sortBy.toString()}
+                  </Text>
+                </View>
+              )}
+              {rating && (
+                <View style={styles.card}>
+                  <Ionicons name="star" size={15} color={colors.text.primary} />
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {rating.toString()}
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+          {language && (
+            <View style={styles.card}>
+              <Ionicons name="language" size={15} color={colors.text.primary} />
+              <Text style={styles.cardText} numberOfLines={1}>
+                {language?.name || language?.english_name}
+              </Text>
+            </View>
+          )}
+          {fromYear && toYear ? (
+            <View style={{flexDirection: 'column', gap: spacing.sm}}>
+              <View style={styles.cardSmall}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={15}
+                  color={colors.text.primary}
+                />
+                <Text style={styles.cardText} numberOfLines={1}>
+                  {fromYear}
+                </Text>
+              </View>
+              <View style={styles.cardSmall}>
+                <Text style={styles.cardText} numberOfLines={1}>
+                  {toYear}
+                </Text>
+                <Ionicons
+                  name="calendar-outline"
+                  size={15}
+                  color={colors.text.primary}
+                />
+              </View>
+            </View>
+          ) : fromYear && !toYear ? (
+            <View style={styles.card}>
+              <Ionicons
+                name="calendar-outline"
+                size={15}
+                color={colors.text.primary}
+              />
+              <Text style={styles.cardText} numberOfLines={1}>
+                {fromYear}
+              </Text>
+            </View>
+          ) : toYear && !fromYear ? (
+            <View style={styles.card}>
+              <Text style={styles.cardText} numberOfLines={1}>
+                {toYear}
+              </Text>
+              <Ionicons
+                name="calendar-outline"
+                size={15}
+                color={colors.text.primary}
+              />
+            </View>
+          ) : null}
+        </View>
+        {/* HorizontalList of filter search results */}
+        <View style={styles.listContainer}>
+          <HorizontalList
+            title={''}
+            data={flattenedData}
+            isLoading={isFetchingNextFilterPage}
+            onItemPress={handleItemPress}
+            onEndReached={hasNextFilterPage ? fetchNextFilterPage : undefined}
+            isSeeAll={false}
+            isFilter={true}
+          />
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -72,214 +289,6 @@ export const MyFiltersScreen = () => {
     fetchGenres();
   }, []);
 
-  const renderFilterItem = useCallback(
-    (filter: SavedFilter) => {
-      console.log(filter);
-
-      const type = filter?.type;
-      const sortBy = filter?.params?.sort_by?.split('.')[0][0];
-      const sortOrder = filter?.params?.sort_by?.split('.')[1];
-      const rating = filter?.params?.['vote_average.gte'];
-      const language = filter?.params?.with_original_language
-        ? getLanguage(filter?.params?.with_original_language)
-        : null;
-      const genres = filter?.params?.with_genres;
-      const genreNames = genres
-        ?.split(',')
-        .map(id => allGenres.find(genre => genre.id === parseInt(id))?.name)
-        .join(', ');
-      const fromDate =
-        filter?.params?.['primary_release_date.gte'] ||
-        filter?.params?.['first_air_date.gte'];
-      const toDate =
-        filter?.params?.['primary_release_date.lte'] ||
-        filter?.params?.['first_air_date.lte'];
-      const fromYear = fromDate ? new Date(fromDate).getFullYear() : null;
-      const toYear = toDate ? new Date(toDate).getFullYear() : null;
-
-      return (
-        <TouchableOpacity
-          key={filter.id}
-          style={styles.filterItem}
-          onPress={() => setEditingFilter(filter)}>
-          <View style={styles.filterHeader}>
-            <Text style={styles.filterName}>{filter.name}</Text>
-            {genreNames && (
-              <View style={styles.genreContainer}>
-                <Text style={styles.genreText} numberOfLines={1}>
-                  {genreNames}
-                </Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.filterContent}>
-            {type && (
-              <View style={styles.card}>
-                <Ionicons
-                  name={
-                    type === 'movie'
-                      ? 'film-outline'
-                      : type === 'tv'
-                      ? 'tv-outline'
-                      : 'apps-outline'
-                  }
-                  size={15}
-                  color={colors.text.primary}
-                />
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {type?.charAt(0).toUpperCase() + type?.slice(1)}
-                </Text>
-              </View>
-            )}
-            {sortBy && rating && language && (fromYear || toYear) ? (
-              <View
-                style={{
-                  flexDirection: 'column',
-                  gap: spacing.sm,
-                  alignItems: 'flex-start',
-                }}>
-                {sortBy && (
-                  <View style={styles.cardSmall}>
-                    <Ionicons
-                      name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {sortBy.toString()}
-                    </Text>
-                  </View>
-                )}
-                {rating && (
-                  <View style={styles.cardSmall}>
-                    <Ionicons
-                      name="star"
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {rating.toString()}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <>
-                {sortBy && (
-                  <View style={styles.card}>
-                    <Ionicons
-                      name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {sortBy.toString()}
-                    </Text>
-                  </View>
-                )}
-                {rating && (
-                  <View style={styles.card}>
-                    <Ionicons
-                      name="star"
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {rating.toString()}
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-
-            {language && (
-              <View style={styles.card}>
-                <Ionicons
-                  name="language"
-                  size={15}
-                  color={colors.text.primary}
-                />
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {language?.name || language?.english_name}
-                </Text>
-              </View>
-            )}
-            {fromYear && toYear ? (
-              <View style={{flexDirection: 'column', gap: spacing.sm}}>
-                <View style={styles.cardSmall}>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={15}
-                    color={colors.text.primary}
-                  />
-                  <Text style={styles.cardText} numberOfLines={1}>
-                    {fromYear}
-                  </Text>
-                </View>
-                <View style={styles.cardSmall}>
-                  <Text style={styles.cardText} numberOfLines={1}>
-                    {toYear}
-                  </Text>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={15}
-                    color={colors.text.primary}
-                  />
-                </View>
-              </View>
-            ) : fromYear && !toYear ? (
-              <View style={styles.card}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={15}
-                  color={colors.text.primary}
-                />
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {fromYear}
-                </Text>
-              </View>
-            ) : toYear && !fromYear ? (
-              <View style={styles.card}>
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {toYear}
-                </Text>
-                <Ionicons
-                  name="calendar-outline"
-                  size={15}
-                  color={colors.text.primary}
-                />
-              </View>
-            ) : null}
-          </View>
-
-          {/* <View style={styles.filterActions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => setEditingFilter(filter)}>
-              <Ionicons
-                name="create-outline"
-                size={20}
-                color={colors.text.primary}
-              />
-              <Text style={styles.actionText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.deleteButton]}
-              onPress={() => handleDelete(filter)}>
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                color={colors.status.error}
-              />
-              <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
-            </TouchableOpacity>
-          </View> */}
-        </TouchableOpacity>
-      );
-    },
-    [allGenres],
-  );
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -298,7 +307,16 @@ export const MyFiltersScreen = () => {
           <HorizontalListSkeleton />
         </View>
       ) : savedFilters.length > 0 ? (
-        <View style={styles.content}>{savedFilters.map(renderFilterItem)}</View>
+        <View style={styles.content}>
+          {savedFilters.map(filter => (
+            <MyFilterItemWithResults
+              key={filter.id}
+              filter={filter}
+              allGenres={allGenres}
+              onEdit={setEditingFilter}
+            />
+          ))}
+        </View>
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
@@ -374,12 +392,13 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   filterItem: {
-    backgroundColor: colors.modal.header,
+    backgroundColor: colors.background.tertiary,
     borderWidth: 1,
     borderColor: colors.modal.blur,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    marginBottom: spacing.md,
+    position: 'relative',
+    height: 380,
   },
   filterHeader: {
     flexDirection: 'column',
@@ -399,7 +418,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.background.card,
     borderWidth: 1,
     borderColor: colors.modal.content,
     borderRadius: borderRadius.md,
@@ -430,5 +449,13 @@ const styles = StyleSheet.create({
   genreText: {
     color: colors.text.muted,
     ...typography.body2,
+  },
+  listContainer: {
+    // position: 'absolute',
+    width: '120%',
+    overflow: 'scroll',
+    // bottom: -150,
+    left: -30,
+    // zIndex: 5,
   },
 });

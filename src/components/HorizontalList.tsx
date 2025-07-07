@@ -25,6 +25,7 @@ interface HorizontalListProps {
   onSeeAllPress?: () => void;
   isSeeAll?: boolean;
   isTop10?: boolean;
+  isFilter?: boolean;
 }
 
 export const HorizontalList: React.FC<HorizontalListProps> = memo(
@@ -37,7 +38,64 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     onSeeAllPress,
     isSeeAll = true,
     isTop10 = false,
+    isFilter = false,
   }) => {
+    const styles = StyleSheet.create({
+      container: {
+        marginBottom: spacing.md,
+      },
+      headerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: isFilter ? 0 : spacing.md,
+      },
+      title: {
+        ...typography.h3,
+        color: colors.text.primary,
+        marginBottom: isFilter ? 0 : spacing.sm,
+        flex: 1,
+      },
+      seeAll: {
+        ...typography.body2,
+        color: colors.text.muted,
+      },
+      listContent: {
+        paddingHorizontal: isFilter ? 0 : spacing.md,
+      },
+      footerLoader: {
+        paddingHorizontal: spacing.md,
+        justifyContent: 'center',
+      },
+      itemContainer: {
+        marginVertical: spacing.sm,
+        marginHorizontal: spacing.xs,
+        position: 'relative',
+        height: '100%',
+      },
+      top10: {
+        position: 'absolute',
+        top: 0,
+        bottom: -100,
+        left: -spacing.xl,
+        width: spacing.xl * 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 10,
+      },
+      top10Number: {
+        fontSize: 100,
+        opacity: 0.8,
+        fontWeight: 'bold',
+        color: 'white',
+        width: 100,
+        letterSpacing: -10,
+        textAlign: 'center',
+      },
+      listWrapper: {
+        flex: 1,
+      },
+    });
     const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
     const {
       handleScroll,
@@ -158,60 +216,3 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     );
   },
 );
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.md,
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  title: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-    flex: 1,
-  },
-  seeAll: {
-    ...typography.body2,
-    color: colors.text.muted,
-  },
-  listContent: {
-    paddingHorizontal: spacing.md,
-  },
-  footerLoader: {
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
-  },
-  itemContainer: {
-    marginVertical: spacing.sm,
-    marginHorizontal: spacing.xs,
-    position: 'relative',
-    height: '100%',
-  },
-  top10: {
-    position: 'absolute',
-    top: 0,
-    bottom: -100,
-    left: -spacing.xl,
-    width: spacing.xl * 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  top10Number: {
-    fontSize: 100,
-    opacity: 0.8,
-    fontWeight: 'bold',
-    color: 'white',
-    width: 100,
-    letterSpacing: -10,
-    textAlign: 'center',
-  },
-  listWrapper: {
-    flex: 1,
-  },
-});

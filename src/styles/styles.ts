@@ -26,8 +26,7 @@ export const modalStyles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.modal.border,
-    backgroundColor: colors.modal.header,
+    borderBottomColor: colors.background.secondary,
   },
   modalTitle: {
     color: colors.text.primary,
@@ -49,7 +48,7 @@ export const modalStyles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: colors.modal.active,
+    backgroundColor: colors.modal.content,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: colors.text.primary,
@@ -66,13 +65,13 @@ export const modalStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
     padding: spacing.md,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.modal.content,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: colors.modal.border,
   },
   activeButton: {
-    borderColor: colors.accent,
+    borderColor: colors.modal.activeBorder,
     backgroundColor: colors.modal.active,
   },
   contentTypeText: {
@@ -80,10 +79,10 @@ export const modalStyles = StyleSheet.create({
     ...typography.button,
   },
   activeText: {
-    color: colors.accent,
+    color: colors.modal.activeText,
   },
   pickerContainer: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.modal.content,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     paddingLeft: spacing.sm,
@@ -102,7 +101,7 @@ export const modalStyles = StyleSheet.create({
   },
   dateButton: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.modal.content,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
@@ -168,8 +167,6 @@ export const modalStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
   },
   tagContainer: {
     marginTop: -spacing.md,
@@ -182,7 +179,7 @@ export const modalStyles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   tag: {
-    backgroundColor: colors.background.tag,
+    backgroundColor: colors.modal.content,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xl,
     marginRight: spacing.sm,
@@ -214,7 +211,7 @@ export const modalStyles = StyleSheet.create({
   activeTag: {
     backgroundColor: colors.modal.active,
     borderWidth: 1,
-    borderColor: colors.accent,
+    borderColor: colors.modal.activeBorder,
   },
   activeTagText: {
     opacity: 1,
@@ -225,72 +222,6 @@ export const modalStyles = StyleSheet.create({
     opacity: 0.3,
     textAlign: 'center',
   },
-  // Validation styles
-  validationContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-  },
-  validationLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  validationText: {
-    color: colors.text.secondary,
-    ...typography.body2,
-  },
-  validationResult: {
-    alignItems: 'center',
-  },
-  validationSuccess: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  validationSuccessText: {
-    color: colors.status.success,
-    ...typography.body2,
-  },
-  validationError: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  validationErrorText: {
-    color: colors.status.error,
-    ...typography.body2,
-  },
-  validateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.accent,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  validateButtonText: {
-    color: colors.background.primary,
-    ...typography.button,
-  },
-  validationErrorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.status.error + '20',
-    borderWidth: 1,
-    borderColor: colors.status.error,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  validationErrorMessage: {
-    color: colors.status.error,
-    ...typography.body2,
-    flex: 1,
-  },
   saveButtonLoading: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -298,7 +229,7 @@ export const modalStyles = StyleSheet.create({
     gap: spacing.sm,
   },
   inputError: {
-    borderColor: colors.status.error,
+    borderColor: colors.modal.activeBorder,
     borderWidth: 1,
   },
   inputErrorContainer: {
@@ -329,7 +260,7 @@ export const modalStyles = StyleSheet.create({
   toastContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.modal.header,
+    backgroundColor: colors.modal.active,
     borderWidth: 1,
     borderColor: colors.modal.border,
     borderRadius: borderRadius.lg,

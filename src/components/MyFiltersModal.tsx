@@ -67,6 +67,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [filterNameError, setFilterNameError] = useState<string | null>(null);
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteFilter, setPendingDeleteFilter] =
+    useState<SavedFilter | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -141,6 +145,14 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       return () => clearTimeout(timer);
     }
   }, [validationError]);
+  useEffect(() => {
+    if (deleteError) {
+      const timer = setTimeout(() => {
+        setDeleteError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteError]);
 
   const handleSortChange = (value: string) => {
     if (!value) {
@@ -296,35 +308,28 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     }
   };
 
-  const handleDelete = useCallback(
-    async (filter: any) => {
-      Alert.alert(
-        'Delete Filter',
-        `Are you sure you want to delete "${filter.name}"?`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await FiltersManager.deleteFilter(filter.id);
-                queryClient.invalidateQueries({queryKey: ['savedFilters']});
-                onDelete(filter.id);
-                onClose();
-              } catch (error) {
-                Alert.alert('Error', 'Failed to delete filter');
-              }
-            },
-          },
-        ],
-      );
-    },
-    [queryClient],
-  );
+  // Replace handleDelete to show custom modal
+  const handleDelete = useCallback((filter: any) => {
+    setPendingDeleteFilter(filter);
+    setShowDeleteConfirm(true);
+  }, []);
+
+  // Confirm delete action
+  const confirmDelete = async () => {
+    if (!pendingDeleteFilter) return;
+    try {
+      await FiltersManager.deleteFilter(pendingDeleteFilter.id);
+      queryClient.invalidateQueries({queryKey: ['savedFilters']});
+      onDelete(pendingDeleteFilter.id);
+      setShowDeleteConfirm(false);
+      setPendingDeleteFilter(null);
+      onClose();
+    } catch (error) {
+      setDeleteError('Failed to delete filter');
+      setShowDeleteConfirm(false);
+      setPendingDeleteFilter(null);
+    }
+  };
 
   const getDateFromFilter = (key: string) => {
     const dateStr = filters[key as keyof FilterParams];
@@ -376,7 +381,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
           <BlurView
             style={styles.blurView}
             blurType="dark"
-            blurAmount={10}
+            blurAmount={30}
             overlayColor={colors.modal.blur}
             reducedTransparencyFallbackColor={colors.modal.blur}
           />
@@ -630,7 +635,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             <View style={{height: 150}} />
           </ScrollView>
 
-          {/* Toast Notification */}
+          {/* Toast Notification for validation error */}
           {validationError && (
             <View style={styles.toastContainer}>
               <View style={styles.toastContent}>
@@ -649,6 +654,54 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     color={colors.text.primary}
                   />
                 </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          {/* Toast Notification for delete error */}
+          {deleteError && (
+            <View style={styles.toastContainer}>
+              <View style={styles.toastContent}>
+                <Ionicons
+                  name="alert-circle"
+                  size={20}
+                  color={colors.text.primary}
+                />
+                <Text style={styles.toastMessage}>{deleteError}</Text>
+                <TouchableOpacity
+                  onPress={() => setDeleteError(null)}
+                  style={styles.toastCloseButton}>
+                  <Ionicons
+                    name="close"
+                    size={16}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          {/* Delete Confirmation Modal Overlay */}
+          {showDeleteConfirm && pendingDeleteFilter && (
+            <View style={styles.confirmOverlay}>
+              <View style={styles.confirmModal}>
+                <Text style={styles.confirmTitle}>Delete Filter</Text>
+                <Text style={styles.confirmMessage}>
+                  Are you sure you want to delete "{pendingDeleteFilter.name}"?
+                </Text>
+                <View style={styles.confirmActions}>
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.cancelButton]}
+                    onPress={() => {
+                      setShowDeleteConfirm(false);
+                      setPendingDeleteFilter(null);
+                    }}>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.deleteButton]}
+                    onPress={confirmDelete}>
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -718,4 +771,70 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   );
 };
 
-const styles = modalStyles;
+const styles = {
+  ...modalStyles,
+  confirmOverlay: {
+    position: 'absolute' as import('react-native').ViewStyle['position'],
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent:
+      'center' as import('react-native').ViewStyle['justifyContent'],
+    alignItems: 'center' as import('react-native').ViewStyle['alignItems'],
+    zIndex: 100,
+  },
+  confirmModal: {
+    width: 320 as import('react-native').ViewStyle['width'],
+    backgroundColor: colors.modal.active,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    alignItems: 'center' as import('react-native').ViewStyle['alignItems'],
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  confirmTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
+  },
+  confirmMessage: {
+    ...typography.body1,
+    color: colors.text.secondary,
+    textAlign: 'center' as import('react-native').TextStyle['textAlign'],
+    marginBottom: spacing.lg,
+  },
+  confirmActions: {
+    flexDirection: 'row' as import('react-native').ViewStyle['flexDirection'],
+    justifyContent:
+      'space-between' as import('react-native').ViewStyle['justifyContent'],
+    width: '100%' as never,
+    // gap: spacing.md, // Remove gap if unsupported
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center' as import('react-native').ViewStyle['alignItems'],
+  },
+  cancelButton: {
+    backgroundColor: colors.text.primary,
+    marginRight: spacing.sm,
+  },
+  deleteButton: {
+    backgroundColor: colors.modal.active,
+    marginLeft: spacing.sm,
+  },
+  cancelButtonText: {
+    color: colors.background.primary,
+    ...typography.button,
+  },
+  deleteButtonText: {
+    color: colors.text.primary,
+    ...typography.button,
+  },
+};

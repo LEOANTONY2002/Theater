@@ -45,8 +45,7 @@ export const ServerModal: React.FC<ServerModalProps> = ({
             style={StyleSheet.absoluteFill}
             blurType="dark"
             blurAmount={20}
-            overlayColor={`rgba(16, 14, 35, 0.3)`}
-            reducedTransparencyFallbackColor={colors.modal.blur}
+            overlayColor={colors.modal.blur}
           />
           <View style={modalStyles.modalHeader}>
             <Text style={modalStyles.modalTitle}>Select Server</Text>
@@ -119,7 +118,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: borderRadius.xl,
-    backgroundColor: colors.modal.background,
+    backgroundColor: colors.modal.content,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.modal.border,
@@ -129,7 +128,8 @@ const styles = StyleSheet.create({
   },
   selectedServer: {
     backgroundColor: colors.modal.active,
-    borderColor: colors.modal.border,
+    borderColor: colors.modal.activeBorder,
+    borderWidth: 1,
   },
   serverIconWrapper: {
     marginBottom: spacing.md,

@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-    backgroundColor: colors.modal.header,
+    backgroundColor: colors.modal.content,
     marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
   },

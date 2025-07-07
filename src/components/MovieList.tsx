@@ -110,11 +110,10 @@ export const MovieList: React.FC<MovieListProps> = ({
 const styles = StyleSheet.create({
   container: {
     // padding: spacing.md,
-    paddingTop: 120,
+    paddingTop: 130,
   },
   itemContainer: {
     flex: 1,
-    margin: spacing.xs,
     position: 'relative',
   },
   footer: {

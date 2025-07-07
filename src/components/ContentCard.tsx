@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: borderRadius.md,
     overflow: 'hidden',
-    margin: 5,
+    // margin: 5,
   },
   image: {
     width: '100%',
