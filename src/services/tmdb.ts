@@ -27,6 +27,7 @@ export const getMovies = async (
     'vote_average.gte': 4,
     'vote_count.gte': 100,
     with_adult: false,
+    include_adult: false,
   };
   if (type === 'latest') {
     const response = await tmdbApi.get('/discover/movie', {params});
@@ -70,6 +71,8 @@ export const getTVShows = async (
     'first_air_date.gte': start,
     'vote_average.gte': 4,
     'vote_count.gte': 100,
+    with_adult: false,
+    include_adult: false,
   };
   if (type === 'latest') {
     const response = await tmdbApi.get('/discover/tv', {params});
@@ -105,6 +108,8 @@ export const searchMovies = async (
   const params = {
     page,
     ...filters,
+    with_adult: false,
+    include_adult: false,
     // with_original_language:
     //   filters.with_original_language || with_original_language,
   };
@@ -164,6 +169,8 @@ export const searchTVShows = async (
   const params = {
     page,
     ...filters,
+    with_adult: false,
+    include_adult: false,
     // with_original_language:
     //   filters.with_original_language || with_original_language,
   };
@@ -300,6 +307,8 @@ export const getSimilarMovies = async (movieId: number, page = 1) => {
       with_genres: (await getMovieDetails(movieId)).genres
         .map((g: any) => g.id)
         .join(','),
+      with_adult: false,
+      include_adult: false,
     },
   });
   return response.data;
@@ -315,6 +324,8 @@ export const getMovieRecommendations = async (movieId: number, page = 1) => {
         .map((g: any) => g.id)
         .join(','),
       sort_by: 'vote_average.desc',
+      with_adult: false,
+      include_adult: false,
     },
   });
   return response.data;
@@ -329,6 +340,8 @@ export const getSimilarTVShows = async (tvId: number, page = 1) => {
       with_genres: (await getTVShowDetails(tvId)).genres
         .map((g: any) => g.id)
         .join(','),
+      with_adult: false,
+      include_adult: false,
     },
   });
   return response.data;
@@ -344,6 +357,8 @@ export const getTVShowRecommendations = async (tvId: number, page = 1) => {
         .map((g: any) => g.id)
         .join(','),
       sort_by: 'vote_average.desc',
+      with_adult: false,
+      include_adult: false,
     },
   });
   return response.data;
@@ -354,7 +369,7 @@ export const getTrending = async (
   page = 1,
 ) => {
   const response = await tmdbApi.get(`/trending/all/${timeWindow}`, {
-    params: {page},
+    params: {page, with_adult: false, include_adult: false},
   });
   return response.data;
 };
@@ -365,7 +380,7 @@ export const getTrendingMovies = async (
 ) => {
   const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/discover/movie/${timeWindow}`, {
-    params: {page},
+    params: {page, with_adult: false, include_adult: false},
   });
   return response.data;
 };
@@ -376,7 +391,7 @@ export const getTrendingTVShows = async (
 ) => {
   const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/discover/tv/${timeWindow}`, {
-    params: {page},
+    params: {page, with_adult: false, include_adult: false},
   });
   return response.data;
 };
@@ -386,6 +401,8 @@ export const discoverMovies = async (params: any = {}, page = 1) => {
     params: {
       page,
       ...params,
+      with_adult: false,
+      include_adult: false,
     },
   });
   return response.data;
@@ -396,6 +413,8 @@ export const discoverTVShows = async (params: any = {}, page = 1) => {
     params: {
       page,
       ...params,
+      with_adult: false,
+      include_adult: false,
       with_type: params.with_type || '0', // Default to scripted series
     },
   });
@@ -516,8 +535,9 @@ export const getContentByGenre = async (
     with_genres: genreId.toString(),
     with_original_language,
     sort_by: sortBy,
-    include_adult: false,
     include_null_first_air_dates: false,
+    with_adult: false,
+    include_adult: false,
   };
 
   // Only apply language filter if we have saved languages
@@ -533,6 +553,12 @@ export const getContentByGenre = async (
 
   try {
     const response = await tmdbApi.get(endpoint, {params});
+    // Client-side filter for adult content
+    if (Array.isArray(response.data.results)) {
+      response.data.results = response.data.results.filter(
+        (item: any) => !item.adult,
+      );
+    }
     const responseData = {
       status: response.status,
       page: response.data.page,
@@ -621,3 +647,10 @@ export const checkTMDB = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// Client-side filter for adult content in all movie results
+function filterAdult(results: any[]) {
+  return Array.isArray(results)
+    ? results.filter((item: any) => !item.adult)
+    : results;
+}

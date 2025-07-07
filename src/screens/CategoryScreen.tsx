@@ -36,7 +36,7 @@ import {
 } from '../styles/theme';
 import {useMoviesList, useDiscoverMovies} from '../hooks/useMovies';
 import {useTVShowsList, useDiscoverTVShows} from '../hooks/useTVShows';
-import {useSavedFilterContent} from '../hooks/useApp';
+import {useSavedFilterContent, useDynamicContentSource} from '../hooks/useApp';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {Movie} from '../types/movie';
@@ -172,63 +172,23 @@ export const CategoryScreen = () => {
     [navigation, contentType],
   );
 
-  // Use the appropriate hooks based on content type and whether we have filters
-  const movieCategoryType =
-    contentType === 'movie' ? (categoryType as MovieCategoryType) : 'popular';
-  const tvCategoryType =
-    contentType === 'tv' ? (categoryType as TVShowCategoryType) : 'popular';
-
-  const moviesList = useMoviesList(movieCategoryType);
-  const tvShowsList = useTVShowsList(tvCategoryType);
-
-  // Use the appropriate data source based on whether we have filters
-  const {
-    data: filterContent,
-    isLoading: isFilterLoading,
-    fetchNextPage: fetchNextFilterPage,
-    hasNextPage: hasNextFilterPage,
-    isFetchingNextPage: isFetchingNextFilterPage,
-  } = useSavedFilterContent(filter as SavedFilter);
-
-  console.log('saved filter in CategoryScreen', filter);
-  console.log('filterContent in CategoryScreen', filterContent);
-
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-    isLoading: isInitialLoadingData,
-    isRefetching,
-  } = contentType === 'movie' ? moviesList : tvShowsList;
-
-  const isLoading = isInitialLoadingData || isRefetching || isFilterLoading;
+  // Use the new dynamic content source hook
+  const {data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading} =
+    useDynamicContentSource({categoryType, contentType, filter});
 
   // Flatten the pages data for infinite queries
   const flattenedData = useMemo(() => {
-    if (filter) {
-      // For filter content, flatten all pages
-      return (filterContent?.pages?.flatMap(page => page?.results || []) ??
-        []) as ContentItem[];
-    } else {
-      // For regular content, flatten all pages
-      return (data?.pages?.flatMap(page => page?.results || []) ??
-        []) as ContentItem[];
-    }
-  }, [filter, filterContent, data]);
+    return (data?.pages?.flatMap(page => page?.results || []) ??
+      []) as ContentItem[];
+  }, [data]);
 
   const renderItem = ({item}: {item: ContentItem}) => (
     <MovieCard item={item} onPress={handleItemPress} />
   );
 
   const handleEndReached = () => {
-    if (filter) {
-      if (hasNextFilterPage && !isFetchingNextFilterPage) {
-        fetchNextFilterPage();
-      }
-    } else if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage?.();
     }
   };
 
@@ -325,7 +285,7 @@ export const CategoryScreen = () => {
           // Grid-specific optimizations
           columnWrapperStyle={styles.row}
           ListFooterComponent={
-            isFetchingNextPage || isFetchingNextFilterPage ? (
+            isFetchingNextPage ? (
               <ActivityIndicator
                 size="large"
                 style={{marginVertical: spacing.xl}}

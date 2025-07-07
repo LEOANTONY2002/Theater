@@ -14,12 +14,12 @@ export interface FilterParams {
   'first_air_date.gte'?: string;
   'first_air_date.lte'?: string;
   with_genres?: string;
+  without_genres?: string;
   with_original_language?: string;
   with_watch_providers?: string;
   watch_region?: string;
   with_runtime_gte?: number;
   with_runtime_lte?: number;
-  include_adult?: boolean;
 }
 
 export interface SavedFilter {

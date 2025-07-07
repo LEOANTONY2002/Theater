@@ -1,7 +1,11 @@
 import React, {useCallback, useMemo, useEffect, useState} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {FlashList} from '@shopify/flash-list';
-import {useMoviesList, useTop10MoviesTodayByRegion} from '../hooks/useMovies';
+import {
+  useMoviesList,
+  useTop10MoviesTodayByRegion,
+  useDiscoverMovies,
+} from '../hooks/useMovies';
 import {Movie} from '../types/movie';
 import {useNavigation} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
@@ -97,6 +101,58 @@ export const MoviesScreen = () => {
     hasNextPage: hasNextUpcoming,
     isFetchingNextPage: isFetchingUpcoming,
   } = useMoviesList('upcoming');
+
+  // Genre IDs
+  const kidsGenreId = 16;
+  const familyGenreId = 10751;
+  const comedyGenreId = 35;
+  const romanceGenreId = 10749;
+  const actionGenreId = 28;
+
+  const {
+    data: kidsMovies,
+    fetchNextPage: fetchNextKids,
+    hasNextPage: hasNextKids,
+    isFetchingNextPage: isFetchingKids,
+  } = useDiscoverMovies({
+    with_genres: kidsGenreId.toString(),
+  });
+
+  const {
+    data: familyMovies,
+    fetchNextPage: fetchNextFamily,
+    hasNextPage: hasNextFamily,
+    isFetchingNextPage: isFetchingFamily,
+  } = useDiscoverMovies({
+    with_genres: familyGenreId.toString(),
+  });
+
+  const {
+    data: comedyMovies,
+    fetchNextPage: fetchNextComedy,
+    hasNextPage: hasNextComedy,
+    isFetchingNextPage: isFetchingComedy,
+  } = useDiscoverMovies({
+    with_genres: comedyGenreId.toString(),
+  });
+
+  const {
+    data: romanceMovies,
+    fetchNextPage: fetchNextRomance,
+    hasNextPage: hasNextRomance,
+    isFetchingNextPage: isFetchingRomance,
+  } = useDiscoverMovies({
+    with_genres: romanceGenreId.toString(),
+  });
+
+  const {
+    data: actionMovies,
+    fetchNextPage: fetchNextAction,
+    hasNextPage: hasNextAction,
+    isFetchingNextPage: isFetchingAction,
+  } = useDiscoverMovies({
+    with_genres: actionGenreId.toString(),
+  });
 
   const {
     data: top10MoviesTodayByRegion,
@@ -298,6 +354,97 @@ export const MoviesScreen = () => {
       });
     }
 
+    // Kids Movies
+    if (kidsMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'kidsMovies',
+        type: 'horizontalList',
+        title: 'Kids',
+        data: getMoviesFromData(kidsMovies),
+        onItemPress: handleMoviePress,
+        onEndReached: hasNextKids ? fetchNextKids : undefined,
+        isLoading: isFetchingKids,
+        onSeeAllPress: () =>
+          navigateWithLimit('Category', {
+            title: 'Kids',
+            contentType: 'movie',
+            filter: {with_genres: kidsGenreId.toString()},
+          }),
+      });
+    }
+    // Family Movies
+    if (familyMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'familyMovies',
+        type: 'horizontalList',
+        title: 'Family',
+        data: getMoviesFromData(familyMovies),
+        onItemPress: handleMoviePress,
+        onEndReached: hasNextFamily ? fetchNextFamily : undefined,
+        isLoading: isFetchingFamily,
+        onSeeAllPress: () =>
+          navigateWithLimit('Category', {
+            title: 'Family',
+            contentType: 'movie',
+            filter: {with_genres: familyGenreId.toString()},
+          }),
+      });
+    }
+    // Comedy Movies
+    if (comedyMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'comedyMovies',
+        type: 'horizontalList',
+        title: 'Comedy',
+        data: getMoviesFromData(comedyMovies),
+        onItemPress: handleMoviePress,
+        onEndReached: hasNextComedy ? fetchNextComedy : undefined,
+        isLoading: isFetchingComedy,
+        onSeeAllPress: () =>
+          navigateWithLimit('Category', {
+            title: 'Comedy',
+            contentType: 'movie',
+            filter: {with_genres: comedyGenreId.toString()},
+          }),
+      });
+    }
+    // Romance Movies
+    if (romanceMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'romanceMovies',
+        type: 'horizontalList',
+        title: 'Romance',
+        data: getMoviesFromData(romanceMovies),
+        onItemPress: handleMoviePress,
+        onEndReached: hasNextRomance ? fetchNextRomance : undefined,
+        isLoading: isFetchingRomance,
+        onSeeAllPress: () =>
+          navigateWithLimit('Category', {
+            title: 'Romance',
+            contentType: 'movie',
+            filter: {with_genres: romanceGenreId.toString()},
+          }),
+      });
+    }
+    // Action Movies
+    if (actionMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'actionMovies',
+        type: 'horizontalList',
+        title: 'Action',
+        data: getMoviesFromData(actionMovies),
+        onItemPress: handleMoviePress,
+        onEndReached: hasNextAction ? fetchNextAction : undefined,
+        isLoading: isFetchingAction,
+        onSeeAllPress: () =>
+          navigateWithLimit('Category', {
+            title: 'Action',
+            contentType: 'movie',
+            filter: {with_genres: actionGenreId.toString()},
+          }),
+      });
+    }
+
     return sectionsList;
   }, [
     featuredMovie,
@@ -330,6 +477,26 @@ export const MoviesScreen = () => {
     fetchNextTopRated,
     fetchNextNowPlaying,
     fetchNextUpcoming,
+    kidsMovies,
+    isFetchingKids,
+    hasNextKids,
+    fetchNextKids,
+    familyMovies,
+    isFetchingFamily,
+    hasNextFamily,
+    fetchNextFamily,
+    comedyMovies,
+    isFetchingComedy,
+    hasNextComedy,
+    fetchNextComedy,
+    romanceMovies,
+    isFetchingRomance,
+    hasNextRomance,
+    fetchNextRomance,
+    actionMovies,
+    isFetchingAction,
+    hasNextAction,
+    fetchNextAction,
   ]);
 
   const renderSection = useCallback(({item}: {item: any}) => {

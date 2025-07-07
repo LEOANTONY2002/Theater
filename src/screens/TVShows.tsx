@@ -5,6 +5,7 @@ import {
   useTop10ShowsTodayByRegion,
   useTrendingTVShows,
   useTVShowsList,
+  useDiscoverTVShows,
 } from '../hooks/useTVShows';
 import {TVShow} from '../types/tvshow';
 import {useNavigation} from '@react-navigation/native';
@@ -117,6 +118,63 @@ export const TVShowsScreen = () => {
     data: top10ShowsTodayByRegion,
     isFetching: isFetchingTop10ShowsTodayByRegion,
   } = useTop10ShowsTodayByRegion();
+
+  // Genre IDs for TV
+  const kidsGenreId = 16;
+  const familyGenreId = 10751;
+  const comedyGenreId = 35;
+  const romanceGenreId = 10749;
+  const actionGenreId = 10759; // Action & Adventure for TV
+
+  const {
+    data: kidsShows,
+    fetchNextPage: fetchNextKids,
+    hasNextPage: hasNextKids,
+    isFetchingNextPage: isFetchingKids,
+  } = useDiscoverTVShows({
+    with_genres: kidsGenreId.toString(),
+    include_adult: false,
+  });
+
+  const {
+    data: familyShows,
+    fetchNextPage: fetchNextFamily,
+    hasNextPage: hasNextFamily,
+    isFetchingNextPage: isFetchingFamily,
+  } = useDiscoverTVShows({
+    with_genres: familyGenreId.toString(),
+    include_adult: false,
+  });
+
+  const {
+    data: comedyShows,
+    fetchNextPage: fetchNextComedy,
+    hasNextPage: hasNextComedy,
+    isFetchingNextPage: isFetchingComedy,
+  } = useDiscoverTVShows({
+    with_genres: comedyGenreId.toString(),
+    include_adult: false,
+  });
+
+  const {
+    data: romanceShows,
+    fetchNextPage: fetchNextRomance,
+    hasNextPage: hasNextRomance,
+    isFetchingNextPage: isFetchingRomance,
+  } = useDiscoverTVShows({
+    with_genres: romanceGenreId.toString(),
+    include_adult: false,
+  });
+
+  const {
+    data: actionShows,
+    fetchNextPage: fetchNextAction,
+    hasNextPage: hasNextAction,
+    isFetchingNextPage: isFetchingAction,
+  } = useDiscoverTVShows({
+    with_genres: actionGenreId.toString(),
+    include_adult: false,
+  });
 
   const handleShowPress = useCallback(
     (item: ContentItem) => {
@@ -249,6 +307,73 @@ export const TVShowsScreen = () => {
       });
     }
 
+    // Add after main lists
+    // Kids Shows
+    if (kidsShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'kidsShows',
+        type: 'horizontalList',
+        title: 'Kids',
+        data: getShowsFromData(kidsShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextKids ? fetchNextKids : undefined,
+        isLoading: isFetchingKids,
+        onSeeAllPress: () => handleSeeAllPress('Kids', 'popular'),
+      });
+    }
+    // Family Shows
+    if (familyShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'familyShows',
+        type: 'horizontalList',
+        title: 'Family',
+        data: getShowsFromData(familyShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextFamily ? fetchNextFamily : undefined,
+        isLoading: isFetchingFamily,
+        onSeeAllPress: () => handleSeeAllPress('Family', 'popular'),
+      });
+    }
+    // Comedy Shows
+    if (comedyShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'comedyShows',
+        type: 'horizontalList',
+        title: 'Comedy',
+        data: getShowsFromData(comedyShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextComedy ? fetchNextComedy : undefined,
+        isLoading: isFetchingComedy,
+        onSeeAllPress: () => handleSeeAllPress('Comedy', 'popular'),
+      });
+    }
+    // Romance Shows
+    if (romanceShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'romanceShows',
+        type: 'horizontalList',
+        title: 'Romance',
+        data: getShowsFromData(romanceShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextRomance ? fetchNextRomance : undefined,
+        isLoading: isFetchingRomance,
+        onSeeAllPress: () => handleSeeAllPress('Romance', 'popular'),
+      });
+    }
+    // Action Shows
+    if (actionShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'actionShows',
+        type: 'horizontalList',
+        title: 'Action',
+        data: getShowsFromData(actionShows),
+        onItemPress: handleShowPress,
+        onEndReached: hasNextAction ? fetchNextAction : undefined,
+        isLoading: isFetchingAction,
+        onSeeAllPress: () => handleSeeAllPress('Action', 'popular'),
+      });
+    }
+
     return sectionsList;
   }, [
     featuredShow,
@@ -272,6 +397,26 @@ export const TVShowsScreen = () => {
     fetchNextLatest,
     fetchNextPopular,
     fetchNextTopRated,
+    kidsShows,
+    hasNextKids,
+    fetchNextKids,
+    isFetchingKids,
+    familyShows,
+    hasNextFamily,
+    fetchNextFamily,
+    isFetchingFamily,
+    comedyShows,
+    hasNextComedy,
+    fetchNextComedy,
+    isFetchingComedy,
+    romanceShows,
+    hasNextRomance,
+    fetchNextRomance,
+    isFetchingRomance,
+    actionShows,
+    hasNextAction,
+    fetchNextAction,
+    isFetchingAction,
   ]);
 
   const renderSection = useCallback(({item}: {item: any}) => {
