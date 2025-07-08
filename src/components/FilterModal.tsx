@@ -10,6 +10,8 @@ import {
   TextInput,
   Switch,
   FlatList,
+  Alert,
+  Modal as RNModal,
 } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -18,7 +20,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS} from '../types/filters';
-import {getLanguages, getGenres} from '../services/tmdb';
+import {getLanguages, getGenres, searchFilterContent} from '../services/tmdb';
 import {Chip} from './Chip';
 import {FiltersManager} from '../store/filters';
 import type {SavedFilter} from '../types/filters';
@@ -42,6 +44,7 @@ interface FilterModalProps {
   initialFilters: FilterParams;
   initialContentType: 'all' | 'movie' | 'tv';
   onReset?: () => void;
+  savedFilters: SavedFilter[];
 }
 
 export const FilterModal: React.FC<FilterModalProps> = ({
@@ -63,22 +66,33 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [isApplyingSavedFilter, setIsApplyingSavedFilter] = useState(false);
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newFilterName, setNewFilterName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [checkingResults, setCheckingResults] = useState(false);
+  const [showNoResultsModal, setShowNoResultsModal] = useState(false);
 
+  useEffect(() => {
+    const fetchFilters = async () => {
+      const filters = await FiltersManager.getSavedFilters();
+      console.log('Fetched saved filters:', filters);
+      setSavedFilters(filters);
+    };
+    fetchFilters();
+  });
+
+  // Only set filters and contentType from props when modal is opened
   useEffect(() => {
     if (visible) {
       setFilters(initialFilters);
       setContentType(initialContentType);
-      // Set initial sort order based on initialFilters
-      if (initialFilters.sort_by) {
-        const [, order] = initialFilters.sort_by.split('.');
-        setSortOrder(order as 'asc' | 'desc');
-      } else {
-        setSortOrder('desc');
-      }
+      // Do NOT reset or reload any other state here
     }
-  }, [visible, initialFilters, initialContentType]);
+    // Only run when modal is opened
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   useEffect(() => {
     const fetchLanguages = async () => {
@@ -128,22 +142,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     }
     setIsApplyingSavedFilter(false);
   }, [contentType]);
-
-  useEffect(() => {
-    // Load saved filters when modal opens
-    const loadSavedFilters = async () => {
-      try {
-        const filters = await FiltersManager.getSavedFilters();
-        setSavedFilters(filters);
-      } catch (error) {
-        console.error('Error loading saved filters:', error);
-      }
-    };
-
-    if (visible) {
-      loadSavedFilters();
-    }
-  }, [visible]);
 
   const handleSortChange = (value: string) => {
     if (!value) {
@@ -275,6 +273,68 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     }
   };
 
+  // In the component body, add a helper to check if the current filter matches any saved filter
+  const isCurrentFilterSaved = savedFilters.some(
+    (filter: SavedFilter) =>
+      JSON.stringify(filters) === JSON.stringify(filter.params) &&
+      contentType === filter.type,
+  );
+
+  // Handler to save the current filter
+  const handleSaveCurrentFilter = async () => {
+    setCheckingResults(true);
+    try {
+      const res = await searchFilterContent(
+        {
+          type: contentType,
+          params: filters,
+          id: 'preview',
+          name: 'preview',
+          createdAt: Date.now(),
+        },
+        1,
+      );
+      if (res?.results?.length > 0) {
+        setShowSaveModal(true);
+        setNewFilterName('');
+      } else {
+        setShowNoResultsModal(true);
+      }
+    } catch (e) {
+      setShowNoResultsModal(true);
+    } finally {
+      setCheckingResults(false);
+    }
+  };
+
+  const handleConfirmSaveFilter = async () => {
+    if (!newFilterName.trim()) return;
+    setSaving(true);
+    try {
+      await FiltersManager.saveFilter(
+        newFilterName.trim(),
+        filters,
+        contentType,
+      );
+      const newFilters = await FiltersManager.getSavedFilters();
+      setSavedFilters(newFilters);
+      setShowSaveModal(false);
+    } catch (e) {
+      console.error('Failed to save filter:', e);
+      setShowSaveModal(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelSaveFilter = () => {
+    setShowSaveModal(false);
+    setNewFilterName('');
+  };
+
+  // If you do not have filteredContent, default hasResults to true
+  const hasResults = true; // TODO: Replace with real result check if available
+
   return (
     <Modal
       visible={visible}
@@ -307,7 +367,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   style={{...styles.scrollContent, padding: 0}}>
-                  {savedFilters.map(filter => (
+                  {savedFilters.map((filter: SavedFilter) => (
                     <TouchableOpacity
                       key={filter.id}
                       style={[
@@ -565,7 +625,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             />
           )}
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, {alignItems: 'center'}]}>
             <TouchableOpacity
               style={[styles.footerButton, styles.resetButton]}
               onPress={handleReset}>
@@ -576,7 +636,173 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               onPress={handleApply}>
               <Text style={styles.applyButtonText}>Apply</Text>
             </TouchableOpacity>
+            {!isCurrentFilterSaved &&
+              (checkingResults ? (
+                <View
+                  style={[
+                    {
+                      width: 40,
+                      marginRight: 8,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                  ]}>
+                  <ActivityIndicator size={28} color={colors.accent} />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={{
+                    marginRight: 8,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: colors.modal.active,
+                    borderRadius: borderRadius.round,
+                    width: 40,
+                    height: 40,
+                  }}
+                  onPress={handleSaveCurrentFilter}>
+                  <Ionicons
+                    name="add-outline"
+                    size={28}
+                    color={colors.accent}
+                  />
+                </TouchableOpacity>
+              ))}
           </View>
+
+          {/* Save Filter Modal */}
+          <RNModal
+            visible={showSaveModal}
+            transparent
+            animationType="fade"
+            onRequestClose={handleCancelSaveFilter}>
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.modal.blur,
+              }}>
+              <View
+                style={{
+                  backgroundColor: colors.modal.active,
+                  borderRadius: 16,
+                  padding: 24,
+                  width: 300,
+                  alignItems: 'center',
+                }}>
+                <Text
+                  style={{
+                    color: 'rgba(50, 50, 50, 0.8)',
+                    fontSize: 18,
+                    fontWeight: 800,
+                    marginBottom: 16,
+                  }}>
+                  Save Filter
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: colors.modal.active,
+                    color: '#fff',
+                    borderRadius: 8,
+                    padding: 10,
+                    width: '100%',
+                    height: 50,
+                    marginBottom: 16,
+                  }}
+                  placeholder="Filter name"
+                  placeholderTextColor="rgba(110, 110, 110, 0.27)"
+                  value={newFilterName}
+                  onChangeText={setNewFilterName}
+                  editable={!saving}
+                  autoFocus
+                />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                  }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1 / 2,
+                      marginRight: 8,
+                      padding: 10,
+                      borderRadius: 8,
+                      backgroundColor: '#444',
+                      alignItems: 'center',
+                    }}
+                    onPress={handleCancelSaveFilter}
+                    disabled={saving}>
+                    <Text style={{color: '#fff', fontWeight: 600}}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1 / 2,
+                      marginLeft: 8,
+                      padding: 10,
+                      borderRadius: 8,
+                      backgroundColor: colors.text.primary,
+                      alignItems: 'center',
+                      opacity: !newFilterName.trim() || saving ? 0.5 : 1,
+                    }}
+                    onPress={handleConfirmSaveFilter}
+                    disabled={!newFilterName.trim() || saving}>
+                    <Text style={{color: '#444', fontWeight: 600}}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </RNModal>
+
+          {/* No Results Modal */}
+          <RNModal
+            visible={showNoResultsModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowNoResultsModal(false)}>
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.modal.blur,
+              }}>
+              <View
+                style={{
+                  backgroundColor: colors.modal.active,
+                  borderRadius: 16,
+                  padding: 24,
+                  width: 300,
+                  alignItems: 'center',
+                }}>
+                <Text
+                  style={{
+                    color: '#444',
+                    fontSize: 18,
+                    marginBottom: 6,
+                    fontWeight: 800,
+                  }}>
+                  No Results
+                </Text>
+                <Text
+                  style={{color: '#fff', marginBottom: 16, fontWeight: 400}}>
+                  This filter has no content
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    padding: 10,
+                    borderRadius: 8,
+                    backgroundColor: colors.accent,
+                    alignItems: 'center',
+                    width: 100,
+                  }}
+                  onPress={() => setShowNoResultsModal(false)}>
+                  <Text style={{color: '#444', fontWeight: 'bold'}}>OK</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </RNModal>
         </View>
       </View>
     </Modal>

@@ -12,6 +12,7 @@ import {useDiscoverMovies, useMoviesList} from './useMovies';
 import {useDiscoverTVShows, useTVShowsList} from './useTVShows';
 import {FiltersManager} from '../store/filters';
 import {MovieCategoryType, TVShowCategoryType} from '../types/navigation';
+import {useState, useEffect} from 'react';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
@@ -124,4 +125,17 @@ export function useDynamicContentSource({
     hasNextPage: false,
     isFetchingNextPage: false,
   };
+}
+
+export function useSavedFilters() {
+  return (
+    useQuery({
+      queryKey: ['savedFilters'],
+      queryFn: () => FiltersManager.getSavedFilters(),
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    }).data || []
+  );
 }

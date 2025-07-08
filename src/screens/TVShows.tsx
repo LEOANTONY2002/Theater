@@ -133,7 +133,6 @@ export const TVShowsScreen = () => {
     isFetchingNextPage: isFetchingKids,
   } = useDiscoverTVShows({
     with_genres: kidsGenreId.toString(),
-    include_adult: false,
   });
 
   const {
@@ -143,7 +142,6 @@ export const TVShowsScreen = () => {
     isFetchingNextPage: isFetchingFamily,
   } = useDiscoverTVShows({
     with_genres: familyGenreId.toString(),
-    include_adult: false,
   });
 
   const {
@@ -153,7 +151,6 @@ export const TVShowsScreen = () => {
     isFetchingNextPage: isFetchingComedy,
   } = useDiscoverTVShows({
     with_genres: comedyGenreId.toString(),
-    include_adult: false,
   });
 
   const {
@@ -163,7 +160,6 @@ export const TVShowsScreen = () => {
     isFetchingNextPage: isFetchingRomance,
   } = useDiscoverTVShows({
     with_genres: romanceGenreId.toString(),
-    include_adult: false,
   });
 
   const {
@@ -173,7 +169,6 @@ export const TVShowsScreen = () => {
     isFetchingNextPage: isFetchingAction,
   } = useDiscoverTVShows({
     with_genres: actionGenreId.toString(),
-    include_adult: false,
   });
 
   const handleShowPress = useCallback(
@@ -314,7 +309,7 @@ export const TVShowsScreen = () => {
         id: 'kidsShows',
         type: 'horizontalList',
         title: 'Kids',
-        data: getShowsFromData(kidsShows),
+        data: getShowsFromData(kidsShows).filter((show: any) => !show.adult),
         onItemPress: handleShowPress,
         onEndReached: hasNextKids ? fetchNextKids : undefined,
         isLoading: isFetchingKids,
@@ -327,7 +322,7 @@ export const TVShowsScreen = () => {
         id: 'familyShows',
         type: 'horizontalList',
         title: 'Family',
-        data: getShowsFromData(familyShows),
+        data: getShowsFromData(familyShows).filter((show: any) => !show.adult),
         onItemPress: handleShowPress,
         onEndReached: hasNextFamily ? fetchNextFamily : undefined,
         isLoading: isFetchingFamily,
@@ -340,7 +335,7 @@ export const TVShowsScreen = () => {
         id: 'comedyShows',
         type: 'horizontalList',
         title: 'Comedy',
-        data: getShowsFromData(comedyShows),
+        data: getShowsFromData(comedyShows).filter((show: any) => !show.adult),
         onItemPress: handleShowPress,
         onEndReached: hasNextComedy ? fetchNextComedy : undefined,
         isLoading: isFetchingComedy,
@@ -353,7 +348,7 @@ export const TVShowsScreen = () => {
         id: 'romanceShows',
         type: 'horizontalList',
         title: 'Romance',
-        data: getShowsFromData(romanceShows),
+        data: getShowsFromData(romanceShows).filter((show: any) => !show.adult),
         onItemPress: handleShowPress,
         onEndReached: hasNextRomance ? fetchNextRomance : undefined,
         isLoading: isFetchingRomance,
@@ -366,7 +361,7 @@ export const TVShowsScreen = () => {
         id: 'actionShows',
         type: 'horizontalList',
         title: 'Action',
-        data: getShowsFromData(actionShows),
+        data: getShowsFromData(actionShows).filter((show: any) => !show.adult),
         onItemPress: handleShowPress,
         onEndReached: hasNextAction ? fetchNextAction : undefined,
         isLoading: isFetchingAction,
@@ -483,10 +478,6 @@ export const TVShowsScreen = () => {
         estimatedItemSize={300}
         // FlashList optimizations
         removeClippedSubviews={true}
-        maxToRenderPerBatch={2}
-        windowSize={3}
-        initialNumToRender={2}
-        updateCellsBatchingPeriod={50}
         // Scroll optimizations
         scrollEventThrottle={16}
         decelerationRate="normal"
@@ -496,7 +487,6 @@ export const TVShowsScreen = () => {
         onScrollEndDrag={() => {}}
         onMomentumScrollEnd={() => {}}
         // Memory management
-        legacyImplementation={false}
         disableIntervalMomentum={false}
       />
     </View>

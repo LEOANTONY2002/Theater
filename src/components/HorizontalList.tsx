@@ -26,6 +26,7 @@ interface HorizontalListProps {
   isSeeAll?: boolean;
   isTop10?: boolean;
   isFilter?: boolean;
+  isGradient?: boolean;
 }
 
 export const HorizontalList: React.FC<HorizontalListProps> = memo(
@@ -39,6 +40,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     isSeeAll = true,
     isTop10 = false,
     isFilter = false,
+    isGradient = false,
   }) => {
     const styles = StyleSheet.create({
       container: {
@@ -128,6 +130,21 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
               ? {...styles.itemContainer, marginLeft: spacing.xxl}
               : {...styles.itemContainer}
           }>
+          {isGradient && (
+            <LinearGradient
+              colors={['transparent', colors.background.primary]}
+              style={{
+                width: '100%',
+                height: 200,
+                position: 'absolute',
+                bottom: 0,
+                zIndex: 1,
+                opacity: 0.9,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
+              }}
+            />
+          )}
           <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
           {isTop10 && (
             <View style={styles.top10}>

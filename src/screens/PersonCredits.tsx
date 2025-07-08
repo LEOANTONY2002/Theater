@@ -145,8 +145,7 @@ export const PersonCreditsScreen = () => {
   if (renderPhase < 1) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading content...</Text>
+        <ActivityIndicator size="large" color={colors.text.muted} />
       </View>
     );
   }
@@ -208,8 +207,7 @@ export const PersonCreditsScreen = () => {
             {(movieCredits.isFetchingNextPage ||
               tvCredits.isFetchingNextPage) && (
               <View style={styles.loadingIndicatorContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Loading more...</Text>
+                <ActivityIndicator size="large" color={colors.text.muted} />
               </View>
             )}
             <View style={styles.footerSpace} />
@@ -226,9 +224,7 @@ export const PersonCreditsScreen = () => {
 
       {(movieCredits.isLoading || tvCredits.isLoading) && (
         <View style={styles.fullScreenLoader}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingTitle}>Loading</Text>
-          <Text style={styles.loadingSubtitle}>Movies & TV Shows</Text>
+          <ActivityIndicator size="large" color={colors.text.muted} />
         </View>
       )}
     </View>
@@ -266,11 +262,9 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   cardContainer: {
-    flex: 1 / 3,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.xs,
+    flex: 1 / 3,
   },
   footerLoader: {
     paddingVertical: spacing.xl,

@@ -86,55 +86,33 @@ export const CategoryScreen = () => {
   }, [scrollY, headerAnim]);
 
   // Interpolated styles for the animated title container (use headerAnim)
-  const animatedTitleStyle = {
-    marginTop: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 46],
-      extrapolate: 'clamp',
-    }),
-    paddingTop: headerAnim.interpolate({
-      inputRange: [0, 80],
-      outputRange: [50, 20],
-      extrapolate: 'clamp',
-    }),
+  const animatedHeaderStyle = {
     marginHorizontal: headerAnim.interpolate({
       inputRange: [0, 40],
-      outputRange: [0, 16],
+      outputRange: [0, spacing.lg],
+      extrapolate: 'clamp',
+    }),
+    marginTop: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [40, 60],
       extrapolate: 'clamp',
     }),
     marginBottom: headerAnim.interpolate({
       inputRange: [0, 40],
-      outputRange: [0, 16],
+      outputRange: [spacing.md, spacing.lg],
       extrapolate: 'clamp',
     }),
-    // backgroundColor: headerAnim.interpolate({
-    //   inputRange: [0, 40],
-    //   outputRange: ['rgba(0,0,0,0)', colors.background.primary + 'EE'],
-    //   extrapolate: 'clamp',
-    // }),
     borderRadius: headerAnim.interpolate({
       inputRange: [0, 40],
-      outputRange: [0, 24],
+      outputRange: [16, 24],
       extrapolate: 'clamp',
     }),
-    elevation: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 6],
-      extrapolate: 'clamp',
-    }),
-    shadowOpacity: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 0.15],
-      extrapolate: 'clamp',
-    }),
-    shadowRadius: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 8],
-      extrapolate: 'clamp',
-    }),
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
   };
+  const blurOpacity = headerAnim.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -218,36 +196,44 @@ export const CategoryScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, animatedTitleStyle]}>
-        <BlurView
-          style={styles.blurView}
-          blurType="dark"
-          blurAmount={10}
-          overlayColor={colors.modal.blur}
-          reducedTransparencyFallbackColor={colors.modal.blur}
-          pointerEvents="none"
-        />
-        <View style={styles.titleContainer}>
-          <View
+      <Animated.View style={[styles.header, animatedHeaderStyle]}>
+        <Animated.View
+          style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={16}
+            overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
+            reducedTransparencyFallbackColor={
+              colors.modal?.blur || 'rgba(255,255,255,0.11)'
+            }
+            pointerEvents="none"
+          />
+        </Animated.View>
+        <View
+          style={{
+            display: 'flex',
+            gap: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            width: '100%',
+          }}>
+          <TouchableOpacity
+            onPress={() => {
+              navigation.goBack();
+            }}
             style={{
+              width: 30,
+              height: 30,
+              zIndex: 3,
               display: 'flex',
-              flex: 1,
               alignItems: 'center',
-              gap: 20,
-              flexDirection: 'row',
             }}>
-            <TouchableOpacity
-              onPress={() => {
-                navigation.goBack();
-              }}
-              style={{width: 30, height: 30, zIndex: 3}}>
-              <Icon name="chevron-back" size={30} color={colors.text.primary} />
-            </TouchableOpacity>
-            <Text style={styles.title}>{title}</Text>
-          </View>
+            <Icon name="chevron-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.title}>{title}</Text>
         </View>
       </Animated.View>
-
       <View style={styles.contentContainer}>
         <Animated.FlatList<ContentItem>
           data={flattenedData}
@@ -255,25 +241,21 @@ export const CategoryScreen = () => {
           keyExtractor={item => `${item.type}-${item.id}`}
           numColumns={3}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, {paddingTop: 100}]}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
-          // Netflix-style virtualization for grid performance
           removeClippedSubviews={true}
-          maxToRenderPerBatch={3} // Render 3 items at a time for grid
-          windowSize={3} // Keep 3 screens worth of items
-          initialNumToRender={6} // Start with 6 items (2 rows)
-          updateCellsBatchingPeriod={50} // Fast batching
-          disableVirtualization={false} // Enable virtualization
-          // Scroll optimizations
-          scrollEventThrottle={16} // Use 16ms for smooth animation
+          maxToRenderPerBatch={3}
+          windowSize={3}
+          initialNumToRender={6}
+          updateCellsBatchingPeriod={50}
+          disableVirtualization={false}
+          scrollEventThrottle={16}
           decelerationRate="fast"
-          // Memory optimizations
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
             autoscrollToTopThreshold: 10,
           }}
-          // Disable extra features for performance
           extraData={null}
           onScroll={Animated.event(
             [{nativeEvent: {contentOffset: {y: scrollY}}}],
@@ -282,7 +264,6 @@ export const CategoryScreen = () => {
           onScrollBeginDrag={() => {}}
           onScrollEndDrag={() => {}}
           onMomentumScrollEnd={() => {}}
-          // Grid-specific optimizations
           columnWrapperStyle={styles.row}
           ListFooterComponent={
             isFetchingNextPage ? (
@@ -303,7 +284,6 @@ export const CategoryScreen = () => {
           }
         />
       </View>
-
       {isInitialLoading && (
         <View style={styles.loadingOverlay}>
           <GridListSkeleton />
@@ -327,8 +307,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    // paddingTop: spacing.xxl,
-    paddingBottom: spacing.lg,
+    marginTop: spacing.xxl,
+    height: 60,
     backgroundColor: colors.modal.background,
     overflow: 'hidden',
     position: 'absolute',

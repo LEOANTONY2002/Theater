@@ -360,7 +360,9 @@ export const MoviesScreen = () => {
         id: 'kidsMovies',
         type: 'horizontalList',
         title: 'Kids',
-        data: getMoviesFromData(kidsMovies),
+        data: getMoviesFromData(kidsMovies).filter(
+          (movie: any) => !movie.adult,
+        ),
         onItemPress: handleMoviePress,
         onEndReached: hasNextKids ? fetchNextKids : undefined,
         isLoading: isFetchingKids,
@@ -378,7 +380,9 @@ export const MoviesScreen = () => {
         id: 'familyMovies',
         type: 'horizontalList',
         title: 'Family',
-        data: getMoviesFromData(familyMovies),
+        data: getMoviesFromData(familyMovies).filter(
+          (movie: any) => !movie.adult,
+        ),
         onItemPress: handleMoviePress,
         onEndReached: hasNextFamily ? fetchNextFamily : undefined,
         isLoading: isFetchingFamily,
@@ -396,7 +400,9 @@ export const MoviesScreen = () => {
         id: 'comedyMovies',
         type: 'horizontalList',
         title: 'Comedy',
-        data: getMoviesFromData(comedyMovies),
+        data: getMoviesFromData(comedyMovies).filter(
+          (movie: any) => !movie.adult,
+        ),
         onItemPress: handleMoviePress,
         onEndReached: hasNextComedy ? fetchNextComedy : undefined,
         isLoading: isFetchingComedy,
@@ -409,30 +415,34 @@ export const MoviesScreen = () => {
       });
     }
     // Romance Movies
-    if (romanceMovies?.pages?.[0]?.results?.length) {
-      sectionsList.push({
-        id: 'romanceMovies',
-        type: 'horizontalList',
-        title: 'Romance',
-        data: getMoviesFromData(romanceMovies),
-        onItemPress: handleMoviePress,
-        onEndReached: hasNextRomance ? fetchNextRomance : undefined,
-        isLoading: isFetchingRomance,
-        onSeeAllPress: () =>
-          navigateWithLimit('Category', {
-            title: 'Romance',
-            contentType: 'movie',
-            filter: {with_genres: romanceGenreId.toString()},
-          }),
-      });
-    }
+    // if (romanceMovies?.pages?.[0]?.results?.length) {
+    //   sectionsList.push({
+    //     id: 'romanceMovies',
+    //     type: 'horizontalList',
+    //     title: 'Romance',
+    //     data: getMoviesFromData(romanceMovies).filter(
+    //       (movie: any) => !movie.adult,
+    //     ),
+    //     onItemPress: handleMoviePress,
+    //     onEndReached: hasNextRomance ? fetchNextRomance : undefined,
+    //     isLoading: isFetchingRomance,
+    //     onSeeAllPress: () =>
+    //       navigateWithLimit('Category', {
+    //         title: 'Romance',
+    //         contentType: 'movie',
+    //         filter: {with_genres: romanceGenreId.toString()},
+    //       }),
+    //   });
+    // }
     // Action Movies
     if (actionMovies?.pages?.[0]?.results?.length) {
       sectionsList.push({
         id: 'actionMovies',
         type: 'horizontalList',
         title: 'Action',
-        data: getMoviesFromData(actionMovies),
+        data: getMoviesFromData(actionMovies).filter(
+          (movie: any) => !movie.adult,
+        ),
         onItemPress: handleMoviePress,
         onEndReached: hasNextAction ? fetchNextAction : undefined,
         isLoading: isFetchingAction,
@@ -573,10 +583,6 @@ export const MoviesScreen = () => {
         estimatedItemSize={300}
         // FlashList optimizations
         removeClippedSubviews={true}
-        maxToRenderPerBatch={2}
-        windowSize={3}
-        initialNumToRender={2}
-        updateCellsBatchingPeriod={50}
         // Scroll optimizations
         scrollEventThrottle={16}
         decelerationRate="normal"
@@ -586,7 +592,6 @@ export const MoviesScreen = () => {
         onScrollEndDrag={() => {}}
         onMomentumScrollEnd={() => {}}
         // Memory management
-        legacyImplementation={false}
         disableIntervalMomentum={false}
       />
     </View>

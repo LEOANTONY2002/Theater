@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
+import {Animated, Easing} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
@@ -130,6 +131,46 @@ export const WatchlistsScreen: React.FC = () => {
   const navigation = useNavigation<WatchlistsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
 
+  // Animated values for scroll
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const headerAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const id = scrollY.addListener(({value}) => {
+      Animated.timing(headerAnim, {
+        toValue: value,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false, // must be false for margin/background
+      }).start();
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY, headerAnim]);
+
+  // Interpolated styles for the animated header
+  const animatedHeaderStyle = {
+    marginHorizontal: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [spacing.lg, spacing.xl],
+      extrapolate: 'clamp',
+    }),
+    marginBottom: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [spacing.md, spacing.lg],
+      extrapolate: 'clamp',
+    }),
+    borderRadius: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [16, 24],
+      extrapolate: 'clamp',
+    }),
+  };
+  const blurOpacity = headerAnim.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
   const handleCreateWatchlist = async () => {
     if (!newWatchlistName.trim()) {
       Alert.alert('Error', 'Please enter a watchlist name');
@@ -146,9 +187,6 @@ export const WatchlistsScreen: React.FC = () => {
   };
 
   const handleWatchlistPress = (watchlistId: string, watchlistName: string) => {
-    // navigation.navigate('WatchlistDetails', {
-    //   watchlistId,
-    // });
     deleteWatchlistMutation.mutate(watchlistId);
   };
 
@@ -170,9 +208,29 @@ export const WatchlistsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, animatedHeaderStyle]}>
+        <Animated.View
+          style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={16}
+            overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
+            reducedTransparencyFallbackColor={
+              colors.modal?.blur || 'rgba(255,255,255,0.11)'
+            }
+            pointerEvents="none"
+          />
+        </Animated.View>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons
+            name="chevron-back-outline"
+            size={24}
+            color={colors.text.primary}
+          />
+        </TouchableOpacity>
         <Text style={styles.title}>Watchlists</Text>
-        {!showCreateModal && (
+        {watchlists.length > 0 && (
           <TouchableOpacity
             style={styles.createButton}
             onPress={() => {
@@ -181,9 +239,15 @@ export const WatchlistsScreen: React.FC = () => {
             <Ionicons name="add" size={24} color={colors.text.primary} />
           </TouchableOpacity>
         )}
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      </Animated.View>
+      <Animated.ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{nativeEvent: {contentOffset: {y: scrollY}}}],
+          {useNativeDriver: false},
+        )}>
         {watchlists.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
@@ -200,101 +264,127 @@ export const WatchlistsScreen: React.FC = () => {
             />
           </View>
         ) : (
-          watchlists.map(watchlist => (
-            <WatchlistSection
-              key={watchlist.id}
-              watchlistId={watchlist.id}
-              watchlistName={watchlist.name}
-              itemCount={watchlist.itemCount}
-              onWatchlistPress={handleWatchlistPress}
-              onItemPress={handleItemPress}
-            />
-          ))
-        )}
-      </ScrollView>
+          <>
+            <View style={{height: 120}} />
 
-      <Modal
-        visible={showCreateModal}
-        animationType="slide"
-        statusBarTranslucent={true}
-        transparent={true}
-        onRequestClose={handleCloseModal}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blur}
-              reducedTransparencyFallbackColor={colors.modal.blur}
-            />
-
-            <View style={modalStyle.modalHeader}>
-              <Text style={modalStyle.modalTitle}>Create New Watchlist</Text>
-              <TouchableOpacity onPress={handleCloseModal}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={modalStyle.scrollContent}>
-              <Text style={modalStyle.sectionTitle}>Watchlist Name</Text>
-              <TextInput
-                style={[
-                  modalStyle.input,
-                  {marginBottom: spacing.lg, height: 50, marginTop: spacing.sm},
-                ]}
-                value={newWatchlistName}
-                onChangeText={setNewWatchlistName}
-                placeholder="Enter watchlist name"
-                placeholderTextColor={colors.text.muted}
-                autoFocus
+            {watchlists.map(watchlist => (
+              <WatchlistSection
+                key={watchlist.id}
+                watchlistId={watchlist.id}
+                watchlistName={watchlist.name}
+                itemCount={watchlist.itemCount}
+                onWatchlistPress={handleWatchlistPress}
+                onItemPress={handleItemPress}
               />
-              <View style={modalStyle.footer}>
-                <TouchableOpacity
-                  style={[modalStyle.footerButton, modalStyle.resetButton]}
-                  onPress={handleCloseModal}>
-                  <Text style={modalStyle.resetButtonText}>Cancel</Text>
+            ))}
+            <View style={{height: 100}} />
+          </>
+        )}
+        <Modal
+          visible={showCreateModal}
+          animationType="slide"
+          statusBarTranslucent={true}
+          transparent={true}
+          onRequestClose={handleCloseModal}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="dark"
+                blurAmount={10}
+                overlayColor={colors.modal.blur}
+                reducedTransparencyFallbackColor={colors.modal.blur}
+              />
+
+              <View style={modalStyle.modalHeader}>
+                <Text style={modalStyle.modalTitle}>Create New Watchlist</Text>
+                <TouchableOpacity onPress={handleCloseModal}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={colors.text.primary}
+                  />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[modalStyle.footerButton, modalStyle.applyButton]}
-                  onPress={handleCreateWatchlist}
-                  disabled={createWatchlistMutation.isPending}>
-                  <Text style={modalStyle.applyButtonText}>
-                    {createWatchlistMutation.isPending
-                      ? 'Creating...'
-                      : 'Create'}
-                  </Text>
-                </TouchableOpacity>
+              </View>
+
+              <View style={modalStyle.scrollContent}>
+                <Text style={modalStyle.sectionTitle}>Watchlist Name</Text>
+                <TextInput
+                  style={[
+                    modalStyle.input,
+                    {
+                      marginBottom: spacing.lg,
+                      height: 50,
+                      marginTop: spacing.sm,
+                    },
+                  ]}
+                  value={newWatchlistName}
+                  onChangeText={setNewWatchlistName}
+                  placeholder="Enter watchlist name"
+                  placeholderTextColor={colors.text.muted}
+                  autoFocus
+                />
+                <View style={modalStyle.footer}>
+                  <TouchableOpacity
+                    style={[modalStyle.footerButton, modalStyle.resetButton]}
+                    onPress={handleCloseModal}>
+                    <Text style={modalStyle.resetButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[modalStyle.footerButton, modalStyle.applyButton]}
+                    onPress={handleCreateWatchlist}
+                    disabled={createWatchlistMutation.isPending}>
+                    <Text style={modalStyle.applyButtonText}>
+                      {createWatchlistMutation.isPending
+                        ? 'Creating...'
+                        : 'Create'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </Animated.ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    height: '100%',
     backgroundColor: colors.background.primary,
+    position: 'relative',
   },
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    marginTop: spacing.xxl,
-    height: 100,
-  },
-  backButton: {
-    padding: spacing.sm,
-    marginRight: spacing.sm,
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    overflow: 'hidden',
+    marginTop: 50,
   },
   title: {
-    ...typography.h2,
+    flex: 1, // <-- Add this
+    textAlign: 'center',
     color: colors.text.primary,
+    ...typography.h2,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    height: 40,
+    width: 40,
+    zIndex: 1,
   },
   createButton: {
     flexDirection: 'row',
@@ -310,9 +400,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontWeight: '600',
   },
-  content: {
-    paddingTop: spacing.md,
-  },
+  content: {},
   watchlistSection: {},
   watchlistHeader: {
     flexDirection: 'row',

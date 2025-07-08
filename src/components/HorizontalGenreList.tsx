@@ -92,12 +92,11 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   title: {
     ...typography.h3,
     color: colors.text.primary,
-    marginBottom: spacing.sm,
     flex: 1,
     marginLeft: spacing.md,
   },

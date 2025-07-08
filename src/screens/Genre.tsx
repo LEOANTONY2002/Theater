@@ -72,50 +72,28 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   }, [scrollY, headerAnim]);
 
   // Interpolated styles for the animated title container (use headerAnim)
-  const animatedTitleStyle = {
-    marginTop: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 46],
-      extrapolate: 'clamp',
-    }),
-    paddingTop: headerAnim.interpolate({
-      inputRange: [0, 80],
-      outputRange: [50, 20],
-      extrapolate: 'clamp',
-    }),
+  const animatedHeaderStyle = {
     marginHorizontal: headerAnim.interpolate({
       inputRange: [0, 40],
-      outputRange: [0, 16],
+      outputRange: [0, spacing.lg],
       extrapolate: 'clamp',
     }),
-    marginBottom: headerAnim.interpolate({
+    marginTop: headerAnim.interpolate({
       inputRange: [0, 40],
-      outputRange: [0, 16],
+      outputRange: [40, 60],
       extrapolate: 'clamp',
     }),
     borderRadius: headerAnim.interpolate({
       inputRange: [0, 40],
-      outputRange: [0, 24],
+      outputRange: [16, 24],
       extrapolate: 'clamp',
     }),
-    elevation: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 6],
-      extrapolate: 'clamp',
-    }),
-    shadowOpacity: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 0.15],
-      extrapolate: 'clamp',
-    }),
-    shadowRadius: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 8],
-      extrapolate: 'clamp',
-    }),
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
   };
+  const blurOpacity = headerAnim.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -239,36 +217,42 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, animatedTitleStyle]}>
-        <BlurView
-          style={styles.blurView}
-          blurType="dark"
-          blurAmount={10}
-          overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
-          reducedTransparencyFallbackColor={
-            colors.modal?.blur || 'rgba(255,255,255,0.11)'
-          }
-          pointerEvents="none"
-        />
-        <View style={styles.titleContainer}>
-          <View
+      <Animated.View style={[styles.header, animatedHeaderStyle]}>
+        <Animated.View
+          style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={16}
+            overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
+            reducedTransparencyFallbackColor={
+              colors.modal?.blur || 'rgba(255,255,255,0.11)'
+            }
+            pointerEvents="none"
+          />
+        </Animated.View>
+        <View
+          style={{
+            gap: 20,
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            width: '100%',
+          }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             style={{
+              width: 30,
+              height: 30,
+              zIndex: 3,
               display: 'flex',
-              flex: 1,
               alignItems: 'center',
-              gap: 20,
-              flexDirection: 'row',
             }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{width: 30, height: 30, zIndex: 3}}>
-              <Icon name="chevron-left" size={30} color={colors.text.primary} />
-            </TouchableOpacity>
-            <Text style={styles.title}>{genreName}</Text>
-          </View>
+            <Icon name="chevron-left" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.title}>{genreName}</Text>
         </View>
       </Animated.View>
-
       <View style={styles.contentContainer}>
         {isLoading ? (
           <GridListSkeleton />
@@ -282,6 +266,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
             contentContainerStyle={[
               styles.listContent,
               allItems.length === 0 && styles.emptyListContent,
+              {paddingTop: 100},
             ]}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
@@ -322,7 +307,6 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
           />
         )}
       </View>
-
       {(isInitialLoading || isNavigating) && (
         <View style={styles.loadingContainer}>
           <GridListSkeleton />
@@ -342,7 +326,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
+    marginTop: spacing.xxl,
+    height: 60,
     backgroundColor: colors.modal.background,
     overflow: 'hidden',
     position: 'absolute',

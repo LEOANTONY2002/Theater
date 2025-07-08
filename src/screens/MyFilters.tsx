@@ -24,6 +24,8 @@ import {useSavedFilterContent} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {BlurView} from '@react-native-community/blur';
+import {Animated, Easing} from 'react-native';
 
 // Child component to render a filter and its results
 const MyFilterItemWithResults = ({
@@ -87,14 +89,14 @@ const MyFilterItemWithResults = ({
         <LinearGradient
           colors={['transparent', colors.background.primary]}
           style={{
-            width: '180%',
-            height: '100%',
+            width: '280%',
+            height: '200%',
             position: 'absolute',
-            bottom: -5,
-            left: -20,
+            bottom: 0,
+            left: -120,
             paddingHorizontal: 10,
             zIndex: 0,
-            transform: [{rotate: '-10deg'}],
+            transform: [{rotate: '-11deg'}],
           }}
           start={{x: 0, y: 0}}
           end={{x: 0, y: 1}}
@@ -253,17 +255,6 @@ const MyFilterItemWithResults = ({
         </View>
         {/* HorizontalList of filter search results */}
         <View style={styles.listContainer}>
-          <LinearGradient
-            colors={['transparent', colors.background.primary]}
-            style={{
-              width: '100%',
-              height: 100,
-              position: 'absolute',
-              bottom: 0,
-              paddingHorizontal: 10,
-              zIndex: 1,
-            }}
-          />
           <HorizontalList
             title={''}
             data={flattenedData}
@@ -272,6 +263,7 @@ const MyFilterItemWithResults = ({
             onEndReached={hasNextFilterPage ? fetchNextFilterPage : undefined}
             isSeeAll={false}
             isFilter={true}
+            isGradient={true}
           />
         </View>
       </View>
@@ -283,6 +275,52 @@ export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
+  const navigation = useNavigation();
+
+  // Animated values for scroll
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const headerAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const id = scrollY.addListener(({value}) => {
+      Animated.timing(headerAnim, {
+        toValue: value,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false, // must be false for margin/background
+      }).start();
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY, headerAnim]);
+
+  // Interpolated styles for the animated header
+  const animatedHeaderStyle = {
+    // marginTop: headerAnim.interpolate({
+    //   inputRange: [0, 40],
+    //   outputRange: [spacing.md, spacing.xl],
+    //   extrapolate: 'clamp',
+    // }),
+    marginHorizontal: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [spacing.md, spacing.lg],
+      extrapolate: 'clamp',
+    }),
+    marginBottom: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [spacing.md, spacing.lg],
+      extrapolate: 'clamp',
+    }),
+    borderRadius: headerAnim.interpolate({
+      inputRange: [0, 40],
+      outputRange: [16, 24],
+      extrapolate: 'clamp',
+    }),
+  };
+  const blurOpacity = headerAnim.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const {data: savedFilters = [], isLoading} = useQuery({
     queryKey: ['savedFilters'],
@@ -332,58 +370,93 @@ export const MyFiltersScreen = () => {
   }, []);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Filters</Text>
-        {savedFilters.length > 0 && (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowAddModal(true)}>
-            <Ionicons name="add" size={20} color={colors.text.primary} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {isLoading ? (
-        <View>
-          <HorizontalListSkeleton />
-        </View>
-      ) : savedFilters.length > 0 ? (
-        <View style={styles.content}>
-          {savedFilters.map(filter => (
-            <MyFilterItemWithResults
-              key={filter.id}
-              filter={filter}
-              allGenres={allGenres}
-              onEdit={setEditingFilter}
-            />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
-          <Text style={styles.emptyStateText}>
-            Create your first filter to apply on the search
-          </Text>
-          <CreateButton
-            onPress={() => setShowAddModal(true)}
-            title="Create Your First Filter"
-            icon="add"
+    <View style={{flex: 1}}>
+      <Animated.View style={[styles.header, animatedHeaderStyle]}>
+        <Animated.View
+          style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={16}
+            overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
+            reducedTransparencyFallbackColor={
+              colors.modal?.blur || 'rgba(255,255,255,0.11)'
+            }
+            pointerEvents="none"
           />
+        </Animated.View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            zIndex: 1,
+          }}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.text.primary}
+            />
+          </TouchableOpacity>
+          <Text style={styles.title}>My Filters</Text>
+          {savedFilters.length > 0 && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setShowAddModal(true)}>
+              <Ionicons name="add" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          )}
         </View>
-      )}
-
-      <MyFiltersModal
-        visible={showAddModal || !!editingFilter}
-        onClose={() => {
-          setShowAddModal(false);
-          setEditingFilter(null);
-        }}
-        onSave={handleSaveFilter}
-        editingFilter={editingFilter}
-        onDelete={handleDelete}
-      />
-    </ScrollView>
+      </Animated.View>
+      <Animated.ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{nativeEvent: {contentOffset: {y: scrollY}}}],
+          {useNativeDriver: false},
+        )}>
+        {isLoading ? (
+          <View>
+            <HorizontalListSkeleton />
+          </View>
+        ) : savedFilters.length > 0 ? (
+          <View style={styles.content}>
+            {savedFilters.map(filter => (
+              <MyFilterItemWithResults
+                key={filter.id}
+                filter={filter}
+                allGenres={allGenres}
+                onEdit={setEditingFilter}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Create your first filter to apply on the search
+            </Text>
+            <CreateButton
+              onPress={() => setShowAddModal(true)}
+              title="Create Your First Filter"
+              icon="add"
+            />
+          </View>
+        )}
+        <MyFiltersModal
+          visible={showAddModal || !!editingFilter}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingFilter(null);
+          }}
+          onSave={handleSaveFilter}
+          editingFilter={editingFilter}
+          onDelete={handleDelete}
+        />
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -393,28 +466,41 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     paddingTop: spacing.xxl,
     paddingBottom: 200,
+    position: 'relative',
   },
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
+    overflow: 'hidden',
+    marginTop: 50,
   },
   title: {
+    flex: 1, // <-- Add this
+    textAlign: 'center',
     color: colors.text.primary,
     ...typography.h2,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: spacing.sm,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
     height: 40,
+    width: 40,
+    zIndex: 1,
   },
   content: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingTop: 100, // Make sure this is at least the header height
     paddingBottom: 150,
   },
   emptyContainer: {
@@ -436,12 +522,13 @@ const styles = StyleSheet.create({
   filterItem: {
     backgroundColor: colors.background.tertiary,
     borderWidth: 1,
+    borderBottomWidth: 0,
     borderColor: colors.modal.blur,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     position: 'relative',
-    height: 300,
-    marginBottom: 50,
+    height: 350,
+    marginBottom: 10,
     zIndex: 0,
   },
   filterHeader: {
@@ -501,5 +588,6 @@ const styles = StyleSheet.create({
     overflow: 'scroll',
     bottom: 10,
     left: -30,
+    zIndex: 1,
   },
 });
