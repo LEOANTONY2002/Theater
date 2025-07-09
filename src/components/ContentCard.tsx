@@ -14,7 +14,7 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
-    const [imageLoaded, setImageLoaded] = useState(false);
+    // REMOVE: const [imageLoaded, setImageLoaded] = useState(false);
 
     const CARD_WIDTH = v2 ? 180 : 120;
     const CARD_HEIGHT = v2 ? 100 : 180;
@@ -32,13 +32,16 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
     }, [onPress, item]);
 
     const handleImageFinish = useCallback(() => {
-      setImageLoaded(true);
+      // setImageLoaded(true); // REMOVE: This line was removed
     }, []);
+
+    // Move dynamic style to StyleSheet
+    const cardDynamicStyle = v2 ? styles.cardV2 : styles.cardDefault;
 
     return (
       <>
         <TouchableOpacity
-          style={[styles.container, {width: CARD_WIDTH, height: CARD_HEIGHT}]}
+          style={[styles.container, cardDynamicStyle]}
           onPress={handlePress}
           activeOpacity={0.9}
           delayPressIn={0}
@@ -48,18 +51,8 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
             source={{uri: imageUrl || 'https://via.placeholder.com/300x450'}}
             style={styles.image}
             resizeMode={FastImage.resizeMode.cover}
-            onLoad={handleImageFinish}
-            onError={handleImageFinish}
-            priority={FastImage.priority.normal}
-            cache={FastImage.cacheControl.immutable}
+            // REMOVE: onLoad, onError
           />
-          {!imageLoaded && (
-            <View style={StyleSheet.absoluteFill}>
-              <View style={styles.skeleton}>
-                <ContentCardSkeleton />
-              </View>
-            </View>
-          )}
         </TouchableOpacity>
 
         {v2 && (
@@ -79,6 +72,14 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     // margin: 5,
+  },
+  cardDefault: {
+    width: 120,
+    height: 180,
+  },
+  cardV2: {
+    width: 180,
+    height: 100,
   },
   image: {
     width: '100%',
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.sm,
   },
   title: {
     fontSize: 12,

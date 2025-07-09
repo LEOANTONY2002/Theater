@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useEffect, useState} from 'react';
+import React, {useCallback, useMemo, useEffect, useState, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 import {
@@ -29,13 +29,14 @@ import {useNavigationState} from '../hooks/useNavigationState';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export const MoviesScreen = () => {
+export const MoviesScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation<MoviesScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [renderPhase, setRenderPhase] = useState(0);
+  const [visibleSectionCount, setVisibleSectionCount] = useState(3);
 
   // Staggered loading to reduce initial render load
   useEffect(() => {
@@ -212,7 +213,103 @@ export const MoviesScreen = () => {
     });
   };
 
-  // Create sections for FlashList
+  // 1. Memoize getMoviesFromData results per paginated data
+  const recentMoviesFlat = useMemo(
+    () => getMoviesFromData(recentMovies),
+    [recentMovies],
+  );
+  const popularMoviesFlat = useMemo(
+    () => getMoviesFromData(popularMovies),
+    [popularMovies],
+  );
+  const topRatedMoviesFlat = useMemo(
+    () => getMoviesFromData(topRatedMovies),
+    [topRatedMovies],
+  );
+  const nowPlayingMoviesFlat = useMemo(
+    () => getMoviesFromData(nowPlayingMovies),
+    [nowPlayingMovies],
+  );
+  const upcomingMoviesFlat = useMemo(
+    () => getMoviesFromData(upcomingMovies),
+    [upcomingMovies],
+  );
+  const kidsMoviesFlat = useMemo(
+    () => getMoviesFromData(kidsMovies).filter((movie: any) => !movie.adult),
+    [kidsMovies],
+  );
+  const familyMoviesFlat = useMemo(
+    () => getMoviesFromData(familyMovies).filter((movie: any) => !movie.adult),
+    [familyMovies],
+  );
+  const comedyMoviesFlat = useMemo(
+    () => getMoviesFromData(comedyMovies).filter((movie: any) => !movie.adult),
+    [comedyMovies],
+  );
+  const actionMoviesFlat = useMemo(
+    () => getMoviesFromData(actionMovies).filter((movie: any) => !movie.adult),
+    [actionMovies],
+  );
+
+  // 2. Move onSeeAllPress handlers outside useMemo for stable references
+  const onSeeAllRecent = useCallback(
+    () => handleSeeAllPress('Recent Movies', 'latest'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllPopular = useCallback(
+    () => handleSeeAllPress('Popular Movies', 'popular'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllTopRated = useCallback(
+    () => handleSeeAllPress('Top Rated Movies', 'top_rated'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllNowPlaying = useCallback(
+    () => handleSeeAllPress('Now Playing', 'now_playing'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllUpcoming = useCallback(
+    () => handleSeeAllPress('Upcoming Movies', 'upcoming'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllKids = useCallback(
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Kids',
+        contentType: 'movie',
+        filter: {with_genres: kidsGenreId.toString()},
+      }),
+    [navigateWithLimit],
+  );
+  const onSeeAllFamily = useCallback(
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Family',
+        contentType: 'movie',
+        filter: {with_genres: familyGenreId.toString()},
+      }),
+    [navigateWithLimit],
+  );
+  const onSeeAllComedy = useCallback(
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Comedy',
+        contentType: 'movie',
+        filter: {with_genres: comedyGenreId.toString()},
+      }),
+    [navigateWithLimit],
+  );
+  const onSeeAllAction = useCallback(
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Action',
+        contentType: 'movie',
+        filter: {with_genres: actionGenreId.toString()},
+      }),
+    [navigateWithLimit],
+  );
+
+  // 3. Optimize useMemo for sections
   const sections = useMemo(() => {
     const sectionsList = [];
 
@@ -241,16 +338,16 @@ export const MoviesScreen = () => {
     });
 
     // Recent Movies section
-    if (renderPhase >= 1 && recentMovies?.pages?.[0]?.results?.length) {
+    if (renderPhase >= 1 && recentMoviesFlat.length) {
       sectionsList.push({
         id: 'recentMovies',
         type: 'horizontalList',
         title: 'Recent Movies',
-        data: getMoviesFromData(recentMovies),
+        data: recentMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextRecent ? fetchNextRecent : undefined,
         isLoading: isFetchingRecent,
-        onSeeAllPress: () => handleSeeAllPress('Recent Movies', 'latest'),
+        onSeeAllPress: onSeeAllRecent,
       });
     } else if (isFetchingRecent) {
       sectionsList.push({
@@ -260,16 +357,16 @@ export const MoviesScreen = () => {
     }
 
     // Popular Movies section
-    if (renderPhase >= 2 && popularMovies?.pages?.[0]?.results?.length) {
+    if (renderPhase >= 2 && popularMoviesFlat.length) {
       sectionsList.push({
         id: 'popularMovies',
         type: 'horizontalList',
         title: 'Popular Movies',
-        data: getMoviesFromData(popularMovies),
+        data: popularMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextPopular ? fetchNextPopular : undefined,
         isLoading: isFetchingPopular,
-        onSeeAllPress: () => handleSeeAllPress('Popular Movies', 'popular'),
+        onSeeAllPress: onSeeAllPopular,
       });
     } else if (isFetchingPopular) {
       sectionsList.push({
@@ -279,16 +376,16 @@ export const MoviesScreen = () => {
     }
 
     // Top Rated Movies section
-    if (renderPhase >= 1 && topRatedMovies?.pages?.[0]?.results?.length) {
+    if (renderPhase >= 1 && topRatedMoviesFlat.length) {
       sectionsList.push({
         id: 'topRatedMovies',
         type: 'horizontalList',
         title: 'Top Rated Movies',
-        data: getMoviesFromData(topRatedMovies),
+        data: topRatedMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextTopRated ? fetchNextTopRated : undefined,
         isLoading: isFetchingTopRated,
-        onSeeAllPress: () => handleSeeAllPress('Top Rated Movies', 'top_rated'),
+        onSeeAllPress: onSeeAllTopRated,
       });
     } else if (isFetchingTopRated) {
       sectionsList.push({
@@ -298,16 +395,16 @@ export const MoviesScreen = () => {
     }
 
     // Now Playing section
-    if (renderPhase >= 2 && nowPlayingMovies?.pages?.[0]?.results?.length) {
+    if (renderPhase >= 2 && nowPlayingMoviesFlat.length) {
       sectionsList.push({
         id: 'nowPlaying',
         type: 'horizontalList',
         title: 'Now Playing',
-        data: getMoviesFromData(nowPlayingMovies),
+        data: nowPlayingMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextNowPlaying ? fetchNextNowPlaying : undefined,
         isLoading: isFetchingNowPlaying,
-        onSeeAllPress: () => handleSeeAllPress('Now Playing', 'now_playing'),
+        onSeeAllPress: onSeeAllNowPlaying,
       });
     } else if (isFetchingNowPlaying) {
       sectionsList.push({
@@ -317,16 +414,16 @@ export const MoviesScreen = () => {
     }
 
     // Upcoming Movies section
-    if (renderPhase >= 2 && upcomingMovies?.pages?.[0]?.results?.length) {
+    if (renderPhase >= 2 && upcomingMoviesFlat.length) {
       sectionsList.push({
         id: 'upcomingMovies',
         type: 'horizontalList',
         title: 'Upcoming Movies',
-        data: getMoviesFromData(upcomingMovies),
+        data: upcomingMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextUpcoming ? fetchNextUpcoming : undefined,
         isLoading: isFetchingUpcoming,
-        onSeeAllPress: () => handleSeeAllPress('Upcoming Movies', 'upcoming'),
+        onSeeAllPress: onSeeAllUpcoming,
       });
     } else if (isFetchingUpcoming) {
       sectionsList.push({
@@ -355,63 +452,42 @@ export const MoviesScreen = () => {
     }
 
     // Kids Movies
-    if (kidsMovies?.pages?.[0]?.results?.length) {
+    if (kidsMoviesFlat.length) {
       sectionsList.push({
         id: 'kidsMovies',
         type: 'horizontalList',
         title: 'Kids',
-        data: getMoviesFromData(kidsMovies).filter(
-          (movie: any) => !movie.adult,
-        ),
+        data: kidsMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextKids ? fetchNextKids : undefined,
         isLoading: isFetchingKids,
-        onSeeAllPress: () =>
-          navigateWithLimit('Category', {
-            title: 'Kids',
-            contentType: 'movie',
-            filter: {with_genres: kidsGenreId.toString()},
-          }),
+        onSeeAllPress: onSeeAllKids,
       });
     }
     // Family Movies
-    if (familyMovies?.pages?.[0]?.results?.length) {
+    if (familyMoviesFlat.length) {
       sectionsList.push({
         id: 'familyMovies',
         type: 'horizontalList',
         title: 'Family',
-        data: getMoviesFromData(familyMovies).filter(
-          (movie: any) => !movie.adult,
-        ),
+        data: familyMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextFamily ? fetchNextFamily : undefined,
         isLoading: isFetchingFamily,
-        onSeeAllPress: () =>
-          navigateWithLimit('Category', {
-            title: 'Family',
-            contentType: 'movie',
-            filter: {with_genres: familyGenreId.toString()},
-          }),
+        onSeeAllPress: onSeeAllFamily,
       });
     }
     // Comedy Movies
-    if (comedyMovies?.pages?.[0]?.results?.length) {
+    if (comedyMoviesFlat.length) {
       sectionsList.push({
         id: 'comedyMovies',
         type: 'horizontalList',
         title: 'Comedy',
-        data: getMoviesFromData(comedyMovies).filter(
-          (movie: any) => !movie.adult,
-        ),
+        data: comedyMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextComedy ? fetchNextComedy : undefined,
         isLoading: isFetchingComedy,
-        onSeeAllPress: () =>
-          navigateWithLimit('Category', {
-            title: 'Comedy',
-            contentType: 'movie',
-            filter: {with_genres: comedyGenreId.toString()},
-          }),
+        onSeeAllPress: onSeeAllComedy,
       });
     }
     // Romance Movies
@@ -435,23 +511,16 @@ export const MoviesScreen = () => {
     //   });
     // }
     // Action Movies
-    if (actionMovies?.pages?.[0]?.results?.length) {
+    if (actionMoviesFlat.length) {
       sectionsList.push({
         id: 'actionMovies',
         type: 'horizontalList',
         title: 'Action',
-        data: getMoviesFromData(actionMovies).filter(
-          (movie: any) => !movie.adult,
-        ),
+        data: actionMoviesFlat,
         onItemPress: handleMoviePress,
         onEndReached: hasNextAction ? fetchNextAction : undefined,
         isLoading: isFetchingAction,
-        onSeeAllPress: () =>
-          navigateWithLimit('Category', {
-            title: 'Action',
-            contentType: 'movie',
-            filter: {with_genres: actionGenreId.toString()},
-          }),
+        onSeeAllPress: onSeeAllAction,
       });
     }
 
@@ -461,16 +530,15 @@ export const MoviesScreen = () => {
     genres,
     isLoadingGenres,
     renderPhase,
-    recentMovies,
-    popularMovies,
-    topRatedMovies,
-    nowPlayingMovies,
-    upcomingMovies,
+    recentMoviesFlat,
+    popularMoviesFlat,
+    topRatedMoviesFlat,
+    nowPlayingMoviesFlat,
+    upcomingMoviesFlat,
     top10MoviesTodayByRegionData,
     region,
     handleGenrePress,
     handleMoviePress,
-    handleSeeAllPress,
     isFetchingRecent,
     isFetchingPopular,
     isFetchingTopRated,
@@ -487,27 +555,48 @@ export const MoviesScreen = () => {
     fetchNextTopRated,
     fetchNextNowPlaying,
     fetchNextUpcoming,
-    kidsMovies,
+    kidsMoviesFlat,
     isFetchingKids,
     hasNextKids,
     fetchNextKids,
-    familyMovies,
+    familyMoviesFlat,
     isFetchingFamily,
     hasNextFamily,
     fetchNextFamily,
-    comedyMovies,
+    comedyMoviesFlat,
     isFetchingComedy,
     hasNextComedy,
     fetchNextComedy,
-    romanceMovies,
-    isFetchingRomance,
-    hasNextRomance,
-    fetchNextRomance,
-    actionMovies,
+    actionMoviesFlat,
     isFetchingAction,
     hasNextAction,
     fetchNextAction,
+    onSeeAllRecent,
+    onSeeAllPopular,
+    onSeeAllTopRated,
+    onSeeAllNowPlaying,
+    onSeeAllUpcoming,
+    onSeeAllKids,
+    onSeeAllFamily,
+    onSeeAllComedy,
+    onSeeAllAction,
   ]);
+
+  // Only render up to visibleSectionCount sections
+  const visibleSections = useMemo(
+    () => sections.slice(0, visibleSectionCount),
+    [sections, visibleSectionCount],
+  );
+
+  const onVerticalScroll = useCallback(
+    (event: any) => {
+      // Increase visible sections as user scrolls down
+      // This is a simple heuristic: increase by 2 each time user scrolls
+      if (!Array.isArray(sections)) return;
+      setVisibleSectionCount(count => Math.min(count + 2, sections.length));
+    },
+    [sections.length],
+  );
 
   const renderSection = useCallback(({item}: {item: any}) => {
     switch (item.type) {
@@ -575,28 +664,25 @@ export const MoviesScreen = () => {
   return (
     <View style={styles.container}>
       <FlashList
-        data={sections}
+        data={visibleSections}
         renderItem={renderSection}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
         estimatedItemSize={300}
-        // FlashList optimizations
         removeClippedSubviews={true}
-        // Scroll optimizations
         scrollEventThrottle={16}
         decelerationRate="normal"
-        // Performance optimizations
         extraData={null}
+        onScroll={onVerticalScroll}
         onScrollBeginDrag={() => {}}
         onScrollEndDrag={() => {}}
         onMomentumScrollEnd={() => {}}
-        // Memory management
         disableIntervalMomentum={false}
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

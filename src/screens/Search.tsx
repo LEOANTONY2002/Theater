@@ -43,9 +43,6 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {BlurView} from '@react-native-community/blur';
-import {searchFilterContent} from '../services/tmdb';
-import {FiltersManager} from '../store/filters';
-import {SavedFilter} from '../types/filters';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -59,71 +56,20 @@ const getItemTitle = (item: ContentItem) => {
   return item.name;
 };
 
-const NoResults = () => (
+const NoResults = ({query}: {query: string}) => (
   <View style={styles.noResultsContainer}>
     <Icon name="search-outline" size={64} color={colors.text.secondary} />
     <Text style={styles.noResultsTitle}>No Results Found</Text>
+    <Text style={styles.noResultsText}>
+      We couldn't find any matches for "{query}"
+    </Text>
     <Text style={styles.noResultsSubtext}>
       Try checking your spelling or using different keywords
     </Text>
   </View>
 );
 
-// Custom hook to fetch filtered content like MyFiltersScreen
-function useSearchFilterContent(
-  filters: FilterParams,
-  contentType: 'all' | 'movie' | 'tv',
-) {
-  const [data, setData] = React.useState<any[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<any>(null);
-
-  React.useEffect(() => {
-    let isMounted = true;
-    async function fetchData() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        let results: any[] = [];
-        const dummyFilter = {
-          id: 'search',
-          name: 'search',
-          createdAt: Date.now(),
-        };
-        if (contentType === 'all' || contentType === 'movie') {
-          const res = await searchFilterContent(
-            {type: 'movie', params: filters, ...dummyFilter},
-            1,
-          );
-          if (res && res.results) results = results.concat(res.results);
-        }
-        if (contentType === 'all' || contentType === 'tv') {
-          const res = await searchFilterContent(
-            {type: 'tv', params: filters, ...dummyFilter},
-            1,
-          );
-          if (res && res.results) results = results.concat(res.results);
-        }
-        if (isMounted) setData(results);
-      } catch (e) {
-        if (isMounted) setError(e);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-    if (Object.keys(filters).length > 0) {
-      fetchData();
-    } else {
-      setData([]);
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [filters, contentType]);
-  return {data, isLoading, error};
-}
-
-export const SearchScreen = () => {
+export const SearchScreen = React.memo(() => {
   const navigation = useNavigation<SearchScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const [query, setQuery] = useState('');
@@ -133,12 +79,6 @@ export const SearchScreen = () => {
   const [activeFilters, setActiveFilters] = useState<FilterParams>({});
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
   const queryClient = useQueryClient();
-  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
-
-  const reloadSavedFilters = async () => {
-    const filters = await FiltersManager.getSavedFilters();
-    setSavedFilters(filters);
-  };
 
   // Get trending content
   const {data: trendingMovies, isLoading: isLoadingTrendingMovies} =
@@ -148,8 +88,17 @@ export const SearchScreen = () => {
     useTrendingTVShows('day');
 
   // Search or discover based on query
-  const hasActiveFilters = Object.keys(activeFilters).length > 0;
-  const filterContent = useSearchFilterContent(activeFilters, contentType);
+  const {
+    data: movieData,
+    fetchNextPage: fetchNextMoviePage,
+    hasNextPage: hasNextMoviePage,
+    isFetchingNextPage: isFetchingMoviePage,
+    refetch: refetchMovies,
+    isLoading: isLoadingMovies,
+    isError: isMovieError,
+  } = debouncedQuery
+    ? useMovieSearch(debouncedQuery, activeFilters)
+    : useDiscoverMovies(activeFilters);
 
   const {
     data: tvData,
@@ -159,12 +108,12 @@ export const SearchScreen = () => {
     refetch: refetchTV,
     isLoading: isLoadingTV,
     isError: isTVError,
-  } = !hasActiveFilters && debouncedQuery
+  } = debouncedQuery
     ? useTVShowSearch(debouncedQuery, activeFilters)
     : useDiscoverTVShows(activeFilters);
 
-  const movieData =
-    tvData?.pages.flatMap(page =>
+  const movies =
+    movieData?.pages.flatMap(page =>
       page.results.map((movie: Movie) => ({...movie, type: 'movie' as const})),
     ) || [];
   const tvShows =
@@ -194,11 +143,6 @@ export const SearchScreen = () => {
       }
     };
     loadRecentItems();
-  }, []);
-
-  useEffect(() => {
-    // Load saved filters once on mount
-    reloadSavedFilters();
   }, []);
 
   // Save recent item
@@ -244,25 +188,18 @@ export const SearchScreen = () => {
     setActiveFilters({});
     setContentType('all');
     // Refetch data with cleared filters
+    refetchMovies();
     refetchTV();
-  }, [refetchTV]);
+  }, [refetchMovies, refetchTV]);
 
   const handleApplyFilters = useCallback(
     (filters: FilterParams, selectedContentType: 'all' | 'movie' | 'tv') => {
       setActiveFilters(filters);
       setContentType(selectedContentType);
       setShowFilters(false);
-
-      // Always refetch when applying filters, regardless of search state
-      refetchTV();
-
-      // If filters are active, clear the query so discover endpoints are used
-      if (Object.keys(filters).length > 0) {
-        setQuery('');
-        setDebouncedQuery('');
-      }
+      // Do NOT clear the query or manually refetch here.
     },
-    [refetchTV],
+    [],
   );
 
   // Debounce search query
@@ -271,12 +208,13 @@ export const SearchScreen = () => {
       setDebouncedQuery(query);
       // When search query changes, refetch with current filters
       if (query !== debouncedQuery) {
+        refetchMovies();
         refetchTV();
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query, debouncedQuery, refetchTV]);
+  }, [query, debouncedQuery, refetchMovies, refetchTV]);
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -292,10 +230,10 @@ export const SearchScreen = () => {
     [navigateWithLimit, saveRecentItem],
   );
 
-  const isLoading = hasActiveFilters ? filterContent.isLoading : isLoadingTV;
-  const hasError = hasActiveFilters ? !!filterContent.error : isTVError;
+  const isLoading = isLoadingMovies || isLoadingTV;
+  const hasError = isMovieError || isTVError;
   const hasNoResults =
-    !isLoading && !hasError && filterContent.data.length === 0;
+    !isLoading && !hasError && movies.length === 0 && tvShows.length === 0;
 
   const applyContentTypeFilter = useCallback(
     (content: ContentItem[]) => {
@@ -399,13 +337,9 @@ export const SearchScreen = () => {
     [activeFilters.sort_by],
   );
 
-  // Use filterContent.data if filters are active, else use the normal logic
   const combinedContent = useMemo(() => {
-    if (hasActiveFilters) {
-      return filterContent.data;
-    }
-    return [...movieData, ...tvShows];
-  }, [movieData, tvShows, hasActiveFilters, filterContent.data]);
+    return [...movies, ...tvShows];
+  }, [movies, tvShows]);
 
   const displayedContent = useMemo(() => {
     let filteredContent = applyContentTypeFilter(combinedContent);
@@ -418,6 +352,7 @@ export const SearchScreen = () => {
     applySorting,
   ]);
 
+  const hasActiveFilters = Object.keys(activeFilters).length > 0;
   const showSearchResults = debouncedQuery.length > 0 || hasActiveFilters;
 
   useEffect(() => {
@@ -434,7 +369,7 @@ export const SearchScreen = () => {
   }, [queryClient]);
 
   return (
-    <View style={[styles.container, {flex: 1}]}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <BlurView
           style={styles.blurView}
@@ -486,7 +421,7 @@ export const SearchScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <View style={{flex: 1}}>
+      <View>
         {!showSearchResults ? (
           <FlatList
             style={{paddingTop: 120}}
@@ -530,7 +465,7 @@ export const SearchScreen = () => {
             showsVerticalScrollIndicator={false}
           />
         ) : (
-          <View style={{flex: 1}}>
+          <>
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.text.muted} />
@@ -552,22 +487,38 @@ export const SearchScreen = () => {
                 <TouchableOpacity
                   style={styles.retryButton}
                   onPress={() => {
+                    refetchMovies();
                     refetchTV();
                   }}>
                   <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
               </View>
             ) : hasNoResults ? (
-              <NoResults />
+              <NoResults query={debouncedQuery} />
             ) : (
               <MovieList
                 data={displayedContent}
-                isLoading={isFetchingTVPage}
+                isLoading={isFetchingMoviePage || isFetchingTVPage}
                 onMoviePress={handleItemPress}
-                onLoadMore={hasNextTVPage ? fetchNextTVPage : undefined}
+                onLoadMore={
+                  contentType === 'all'
+                    ? hasNextMoviePage || hasNextTVPage
+                      ? () => {
+                          if (hasNextMoviePage) fetchNextMoviePage();
+                          if (hasNextTVPage) fetchNextTVPage();
+                        }
+                      : undefined
+                    : contentType === 'movie'
+                    ? hasNextMoviePage
+                      ? fetchNextMoviePage
+                      : undefined
+                    : hasNextTVPage
+                    ? fetchNextTVPage
+                    : undefined
+                }
               />
             )}
-          </View>
+          </>
         )}
       </View>
 
@@ -578,11 +529,11 @@ export const SearchScreen = () => {
         initialFilters={activeFilters}
         initialContentType={contentType}
         onReset={handleResetFilters}
-        savedFilters={savedFilters}
+        savedFilters={[]}
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -619,11 +570,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.modal.content,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.round,
     borderWidth: 1,
-    borderColor: colors.modal.border,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   searchIcon: {
     marginRight: spacing.sm,
@@ -651,7 +602,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text.primary,
     ...typography.h3,
-    marginBottom: spacing.sm,
   },
   clearAllText: {
     color: colors.text.muted,
@@ -698,24 +648,23 @@ const styles = StyleSheet.create({
   },
   noResultsContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
   },
   noResultsTitle: {
-    color: colors.text.muted,
+    color: colors.text.primary,
     ...typography.h2,
     marginTop: spacing.md,
   },
   noResultsText: {
-    color: colors.text.muted,
+    color: colors.text.secondary,
     ...typography.body1,
     textAlign: 'center',
     marginTop: spacing.sm,
   },
   noResultsSubtext: {
-    color: colors.text.muted,
+    color: colors.text.secondary,
     ...typography.body2,
     textAlign: 'center',
     marginTop: spacing.sm,
@@ -724,15 +673,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: borderRadius.round,
-    backgroundColor: colors.modal.content,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.modal.border,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   filterButtonActive: {
     borderWidth: 1,
-    borderColor: colors.modal.activeBorder,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
 });

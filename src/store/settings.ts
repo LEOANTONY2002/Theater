@@ -20,6 +20,15 @@ const KEYS = {
   SELECTED_REGION: '@settings/selected_region',
 };
 
+// Add debounce utility
+function debounce(fn: (...args: any[]) => void, delay: number) {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: any[]) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
+
 export const SettingsManager = {
   async getRegions(): Promise<any> {
     const regions = await AsyncStorage.getItem(KEYS.REGIONS);
@@ -39,41 +48,38 @@ export const SettingsManager = {
   async setRegion(region: any): Promise<void> {
     try {
       await AsyncStorage.setItem(KEYS.SELECTED_REGION, JSON.stringify(region));
-
-      // First invalidate all queries that depend on region
-      await Promise.all([
-        queryClient.invalidateQueries({queryKey: ['region']}),
-        queryClient.invalidateQueries({
-          queryKey: ['top_10_movies_today_by_region'],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['top_10_shows_today_by_region'],
-        }),
-        queryClient.invalidateQueries({queryKey: ['watchProviders']}),
-        queryClient.invalidateQueries({queryKey: ['movies']}),
-        queryClient.invalidateQueries({queryKey: ['tvshows']}),
-        queryClient.invalidateQueries({queryKey: ['discover_movies']}),
-        queryClient.invalidateQueries({queryKey: ['discover_tv']}),
-      ]);
-
-      // Then force refetch all invalidated queries
-      await Promise.all([
-        queryClient.refetchQueries({queryKey: ['region']}),
-        queryClient.refetchQueries({
-          queryKey: ['top_10_movies_today_by_region'],
-        }),
-        queryClient.refetchQueries({
-          queryKey: ['top_10_shows_today_by_region'],
-        }),
-        queryClient.refetchQueries({queryKey: ['watchProviders']}),
-        queryClient.refetchQueries({queryKey: ['movies']}),
-        queryClient.refetchQueries({queryKey: ['tvshows']}),
-        queryClient.refetchQueries({queryKey: ['discover_movies']}),
-        queryClient.refetchQueries({queryKey: ['discover_tv']}),
-      ]);
-
-      // Notify all listeners of the region change
-      listeners.forEach(listener => listener());
+      // Debounced invalidate and refetch
+      debounce(async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({queryKey: ['region']}),
+          queryClient.invalidateQueries({
+            queryKey: ['top_10_movies_today_by_region'],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['top_10_shows_today_by_region'],
+          }),
+          queryClient.invalidateQueries({queryKey: ['watchProviders']}),
+          queryClient.invalidateQueries({queryKey: ['movies']}),
+          queryClient.invalidateQueries({queryKey: ['tvshows']}),
+          queryClient.invalidateQueries({queryKey: ['discover_movies']}),
+          queryClient.invalidateQueries({queryKey: ['discover_tv']}),
+        ]);
+        await Promise.all([
+          queryClient.refetchQueries({queryKey: ['region']}),
+          queryClient.refetchQueries({
+            queryKey: ['top_10_movies_today_by_region'],
+          }),
+          queryClient.refetchQueries({
+            queryKey: ['top_10_shows_today_by_region'],
+          }),
+          queryClient.refetchQueries({queryKey: ['watchProviders']}),
+          queryClient.refetchQueries({queryKey: ['movies']}),
+          queryClient.refetchQueries({queryKey: ['tvshows']}),
+          queryClient.refetchQueries({queryKey: ['discover_movies']}),
+          queryClient.refetchQueries({queryKey: ['discover_tv']}),
+        ]);
+        listeners.forEach(listener => listener());
+      }, 500)();
     } catch (error) {
       console.error('Error setting region:', error);
       throw error;
@@ -97,13 +103,11 @@ export const SettingsManager = {
     try {
       const languagesString = JSON.stringify(languages);
       await AsyncStorage.setItem(STORAGE_KEY, languagesString);
-
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({queryKey: ['watchlist']});
-      queryClient.invalidateQueries({queryKey: ['selectedLanguages']});
-
-      // Notify all listeners
-      listeners.forEach(listener => listener());
+      debounce(() => {
+        queryClient.invalidateQueries({queryKey: ['watchlist']});
+        queryClient.invalidateQueries({queryKey: ['selectedLanguages']});
+        listeners.forEach(listener => listener());
+      }, 500)();
     } catch (error) {
       console.error('Error saving content languages:', error);
     }

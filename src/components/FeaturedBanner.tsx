@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useState, memo} from 'react';
 import {
   View,
   Text,
@@ -80,7 +80,7 @@ type FeaturedBannerProps = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export const FeaturedBanner = ({item, type}: FeaturedBannerProps) => {
+export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
   const [loading, setLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const title =
@@ -151,7 +151,7 @@ export const FeaturedBanner = ({item, type}: FeaturedBannerProps) => {
       <ImageBackground
         onLoadEnd={() => setLoading(false)}
         source={{
-          uri: `https://image.tmdb.org/t/p/w780${item?.poster_path}`,
+          uri: `https://image.tmdb.org/t/p/w500${item?.poster_path}`,
         }}
         style={styles.background}
         resizeMode="cover">
@@ -213,7 +213,7 @@ export const FeaturedBanner = ({item, type}: FeaturedBannerProps) => {
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   skeletonContainer: {

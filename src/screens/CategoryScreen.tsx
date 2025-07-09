@@ -160,8 +160,29 @@ export const CategoryScreen = () => {
       []) as ContentItem[];
   }, [data]);
 
-  const renderItem = ({item}: {item: ContentItem}) => (
-    <MovieCard item={item} onPress={handleItemPress} />
+  const ITEM_HEIGHT = 220; // Adjust to your MovieCard height
+
+  const MemoizedMovieCard = React.memo(MovieCard);
+
+  const keyExtractor = useCallback(
+    (item: ContentItem) => item.id?.toString() ?? '',
+    [],
+  );
+
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({item}: {item: ContentItem}) => (
+      <MemoizedMovieCard item={item} onPress={handleItemPress} />
+    ),
+    [handleItemPress],
   );
 
   const handleEndReached = () => {
@@ -235,44 +256,20 @@ export const CategoryScreen = () => {
         </View>
       </Animated.View>
       <View style={styles.contentContainer}>
-        <Animated.FlatList<ContentItem>
+        <Animated.FlatList
           data={flattenedData}
           renderItem={renderItem}
-          keyExtractor={item => `${item.type}-${item.id}`}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
           numColumns={3}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.listContent, {paddingTop: 100}]}
+          columnWrapperStyle={styles.row}
+          initialNumToRender={10}
+          windowSize={7}
+          removeClippedSubviews={true}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={3}
-          windowSize={3}
-          initialNumToRender={6}
-          updateCellsBatchingPeriod={50}
-          disableVirtualization={false}
-          scrollEventThrottle={16}
-          decelerationRate="fast"
-          maintainVisibleContentPosition={{
-            minIndexForVisible: 0,
-            autoscrollToTopThreshold: 10,
-          }}
-          extraData={null}
-          onScroll={Animated.event(
-            [{nativeEvent: {contentOffset: {y: scrollY}}}],
-            {useNativeDriver: false},
-          )}
-          onScrollBeginDrag={() => {}}
-          onScrollEndDrag={() => {}}
-          onMomentumScrollEnd={() => {}}
-          columnWrapperStyle={styles.row}
           ListFooterComponent={
-            isFetchingNextPage ? (
-              <ActivityIndicator
-                size="large"
-                style={{marginVertical: spacing.xl}}
-                color={colors.primary}
-              />
-            ) : null
+            isFetchingNextPage ? <ActivityIndicator /> : null
           }
           ListEmptyComponent={
             !isLoading ? (
@@ -282,6 +279,12 @@ export const CategoryScreen = () => {
               </View>
             ) : null
           }
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.listContent, {paddingTop: 100}]}
+          onScroll={Animated.event(
+            [{nativeEvent: {contentOffset: {y: scrollY}}}],
+            {useNativeDriver: false},
+          )}
         />
       </View>
       {isInitialLoading && (

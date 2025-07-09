@@ -7,5 +7,6 @@ export const tmdbApi = axios.create({
   baseURL: BASE_URL,
   params: {
     api_key: TMDB_API_KEY,
+    include_adult: false,
   },
 });

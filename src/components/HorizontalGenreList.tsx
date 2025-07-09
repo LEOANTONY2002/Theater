@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {memo, useCallback} from 'react';
 import {View, Text, FlatList, StyleSheet, TouchableOpacity} from 'react-native';
 import {ContentItem} from './MovieList';
 import {ContentCard} from './ContentCard';
@@ -26,69 +26,62 @@ interface HorizontalGenreListProps {
   isLoading?: boolean;
 }
 
-export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = ({
-  title,
-  data,
-  onItemPress,
-  isLoading,
-}) => {
-  const renderItem = ({item, index}: {item: Genre; index: number}) => (
-    <TouchableOpacity
-      style={styles.tag}
-      activeOpacity={0.9}
-      onPress={() => onItemPress(item)}>
-      <LinearGradient
-        colors={[
-          tagGradientColors[index],
-          'transparent',
-          tagGradientColors[index],
-        ]}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={styles.tagGradient}
-      />
-      <BlurView
-        style={styles.blurView}
-        blurType="light"
-        blurAmount={15}
-        blurRadius={20}
-        overlayColor={colors.modal.blur}
-      />
-      <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
-      <Text style={styles.tagText} numberOfLines={2}>
-        {item?.name}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  if (isLoading) {
+export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = memo(
+  ({title, data, onItemPress, isLoading}) => {
+    // Limit genres to 8
+    const limitedData = data.slice(0, 8);
+    const renderItem = useCallback(
+      ({item, index}: {item: Genre; index: number}) => (
+        <TouchableOpacity
+          style={styles.tag}
+          activeOpacity={0.9}
+          onPress={() => onItemPress(item)}>
+          <LinearGradient
+            colors={[
+              tagGradientColors[index],
+              'transparent',
+              tagGradientColors[index],
+            ]}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            style={styles.tagGradient}
+          />
+          <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
+          <Text style={styles.tagText} numberOfLines={2}>
+            {item?.name}
+          </Text>
+        </TouchableOpacity>
+      ),
+      [onItemPress],
+    );
+    if (isLoading) {
+      return (
+        <View style={{marginBottom: spacing.md, marginTop: spacing.md}}>
+          <HeadingSkeleton />
+          <LanguageSkeleton />
+        </View>
+      );
+    }
     return (
-      <View style={{marginBottom: spacing.md, marginTop: spacing.md}}>
-        <HeadingSkeleton />
-        <LanguageSkeleton />
+      <View style={styles.container}>
+        <Text style={styles.title}>{title}</Text>
+        <FlatList
+          horizontal
+          data={limitedData}
+          renderItem={renderItem}
+          keyExtractor={item => item.id.toString()}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tagContent}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={8}
+          windowSize={3}
+          initialNumToRender={8}
+          getItemLayout={undefined}
+        />
       </View>
     );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <FlatList
-        horizontal
-        data={data}
-        renderItem={renderItem}
-        keyExtractor={item => item.id.toString()}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tagContent}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={8}
-        windowSize={3}
-        initialNumToRender={8}
-        getItemLayout={undefined}
-      />
-    </View>
-  );
-};
+  },
+);
 
 const styles = StyleSheet.create({
   container: {

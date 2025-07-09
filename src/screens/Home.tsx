@@ -45,7 +45,7 @@ import {SettingsManager} from '../store/settings';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
-export const HomeScreen = () => {
+export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
@@ -61,6 +61,7 @@ export const HomeScreen = () => {
   const [renderPhase, setRenderPhase] = useState(0);
   const [showMoreContent, setShowMoreContent] = useState(false);
   const queryClient = useQueryClient();
+  const [visibleSectionCount, setVisibleSectionCount] = useState(3);
 
   // Ultra-aggressive staggered loading to prevent FPS drops
   useEffect(() => {
@@ -492,6 +493,19 @@ export const HomeScreen = () => {
     handleSeeAllPress,
   ]);
 
+  // Only render up to visibleSectionCount sections
+  const visibleSections = useMemo(
+    () => sections.slice(0, visibleSectionCount),
+    [sections, visibleSectionCount],
+  );
+  const onVerticalScroll = useCallback(
+    (event: any) => {
+      if (!Array.isArray(sections)) return;
+      setVisibleSectionCount(count => Math.min(count + 2, sections.length));
+    },
+    [sections.length],
+  );
+
   const renderSection = useCallback(
     ({item}: {item: any}) => {
       switch (item.type) {
@@ -636,27 +650,24 @@ export const HomeScreen = () => {
     <View style={styles.container}>
       <PerformanceMonitor screenName="Home" />
       <FlatList
-        data={sections}
+        data={visibleSections}
         renderItem={renderSection}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
-        // Optimized settings to prevent jumping
         removeClippedSubviews={false}
         maxToRenderPerBatch={3}
         windowSize={5}
         initialNumToRender={3}
         updateCellsBatchingPeriod={100}
         disableVirtualization={false}
-        // Scroll optimizations
         scrollEventThrottle={0}
         decelerationRate="normal"
-        // Performance optimizations
         extraData={null}
-        // Memory management
         legacyImplementation={false}
         disableIntervalMomentum={false}
+        onScroll={onVerticalScroll}
       />
     </View>
   );
-};
+});

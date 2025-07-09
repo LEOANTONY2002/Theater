@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, memo} from 'react';
+import React, {useCallback, memo} from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,9 @@ interface HorizontalListProps {
   isGradient?: boolean;
 }
 
+// Ensure ContentCard is memoized
+const MemoContentCard = memo(ContentCard);
+
 export const HorizontalList: React.FC<HorizontalListProps> = memo(
   ({
     title,
@@ -42,6 +45,8 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     isFilter = false,
     isGradient = false,
   }) => {
+    // Remove data limit for infinite scroll
+    // const limitedData = data.slice(0, 12);
     const styles = StyleSheet.create({
       container: {
         marginBottom: spacing.md,
@@ -99,7 +104,6 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
         flex: 1,
       },
     });
-    const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
     const {
       handleScroll,
       handleScrollBeginDrag,
@@ -107,21 +111,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       handleMomentumScrollEnd,
     } = useScrollOptimization();
 
-    // Simple debouncing
-    useEffect(() => {
-      if (data && data.length > 0) {
-        const timer = setTimeout(
-          () => {
-            setDebouncedData(data);
-          },
-          title === 'V2' ? 0 : 50,
-        );
-        return () => clearTimeout(timer);
-      } else {
-        setDebouncedData([]);
-      }
-    }, [data, title]);
-
+    // Memoize renderItem
     const renderItem = useCallback(
       ({item, index}: {item: ContentItem; index: number}) => (
         <View
@@ -145,7 +135,11 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
               }}
             />
           )}
-          <ContentCard v2={title === 'V2'} item={item} onPress={onItemPress} />
+          <MemoContentCard
+            v2={title === 'V2'}
+            item={item}
+            onPress={onItemPress}
+          />
           {isTop10 && (
             <View style={styles.top10}>
               <Text style={styles.top10Number}>{index + 1}</Text>
@@ -153,7 +147,15 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
           )}
         </View>
       ),
-      [isTop10, title, onItemPress],
+      [
+        isTop10,
+        title,
+        onItemPress,
+        isGradient,
+        styles.itemContainer,
+        styles.top10,
+        styles.top10Number,
+      ],
     );
 
     const keyExtractor = useCallback(
@@ -161,7 +163,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       [],
     );
 
-    if (!debouncedData?.length && isLoading) {
+    if (!data?.length && isLoading) {
       return (
         <View>
           <HeadingSkeleton />
@@ -170,7 +172,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       );
     }
 
-    if (!debouncedData?.length) {
+    if (!data?.length) {
       return null;
     }
 
@@ -178,7 +180,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       <View style={styles.container}>
         {title !== 'V2' ? (
           <View style={styles.headerContainer}>
-            {debouncedData?.length > 0 && isSeeAll ? (
+            {data?.length > 0 && isSeeAll ? (
               <TouchableOpacity
                 style={{
                   width: '100%',
@@ -209,7 +211,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
         <View style={styles.listWrapper}>
           <FlashList
             horizontal
-            data={debouncedData}
+            data={data}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
             showsHorizontalScrollIndicator={false}
@@ -218,14 +220,9 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
             ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
-            estimatedItemSize={isTop10 ? 200 : 140}
-            onScroll={handleScroll}
-            onScrollBeginDrag={handleScrollBeginDrag}
-            onScrollEndDrag={handleScrollEndDrag}
-            onMomentumScrollEnd={handleMomentumScrollEnd}
-            // Minimal FlashList settings for horizontal scrolling
+            estimatedItemSize={180}
             removeClippedSubviews={true}
-            scrollEventThrottle={0}
+            scrollEventThrottle={16}
             decelerationRate="normal"
             extraData={null}
           />

@@ -50,7 +50,7 @@ interface Region {
   native_name?: string;
 }
 
-export const MySpaceScreen = () => {
+export const MySpaceScreen = React.memo(() => {
   const navigation = useNavigation<MySpaceScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
@@ -337,7 +337,7 @@ export const MySpaceScreen = () => {
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -108,7 +108,6 @@ export const searchMovies = async (
   const params = {
     page,
     ...filters,
-    with_adult: false,
     include_adult: false,
     // with_original_language:
     //   filters.with_original_language || with_original_language,
@@ -169,7 +168,6 @@ export const searchTVShows = async (
   const params = {
     page,
     ...filters,
-    with_adult: false,
     include_adult: false,
     // with_original_language:
     //   filters.with_original_language || with_original_language,

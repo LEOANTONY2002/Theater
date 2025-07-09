@@ -56,7 +56,7 @@ export const MovieList: React.FC<MovieListProps> = ({
     if (!isLoading) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color="rgba(0, 0, 0, 0.5)" />
       </View>
     );
   };
@@ -110,7 +110,7 @@ export const MovieList: React.FC<MovieListProps> = ({
 const styles = StyleSheet.create({
   container: {
     // padding: spacing.md,
-    paddingTop: 130,
+    paddingTop: 120,
   },
   itemContainer: {
     flex: 1,

@@ -35,7 +35,7 @@ import {Movie} from '../types/movie';
 type TVShowsScreenNavigationProp =
   NativeStackNavigationProp<TVShowsStackParamList>;
 
-export const TVShowsScreen = () => {
+export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation<TVShowsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
@@ -198,7 +198,75 @@ export const TVShowsScreen = () => {
     [navigateWithLimit],
   );
 
-  // Create sections for FlashList
+  // 1. Memoize getShowsFromData results per paginated data
+  const latestShowsFlat = useMemo(
+    () => getShowsFromData(latestShows),
+    [latestShows],
+  );
+  const popularShowsFlat = useMemo(
+    () => getShowsFromData(popularShows),
+    [popularShows],
+  );
+  const topRatedShowsFlat = useMemo(
+    () => getShowsFromData(topRatedShows),
+    [topRatedShows],
+  );
+  const kidsShowsFlat = useMemo(
+    () => getShowsFromData(kidsShows).filter((show: any) => !show.adult),
+    [kidsShows],
+  );
+  const familyShowsFlat = useMemo(
+    () => getShowsFromData(familyShows).filter((show: any) => !show.adult),
+    [familyShows],
+  );
+  const comedyShowsFlat = useMemo(
+    () => getShowsFromData(comedyShows).filter((show: any) => !show.adult),
+    [comedyShows],
+  );
+  const romanceShowsFlat = useMemo(
+    () => getShowsFromData(romanceShows).filter((show: any) => !show.adult),
+    [romanceShows],
+  );
+  const actionShowsFlat = useMemo(
+    () => getShowsFromData(actionShows).filter((show: any) => !show.adult),
+    [actionShows],
+  );
+
+  // 2. Move onSeeAllPress handlers outside useMemo for stable references
+  const onSeeAllLatest = useCallback(
+    () => handleSeeAllPress('Latest Shows', 'latest'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllPopular = useCallback(
+    () => handleSeeAllPress('Popular Shows', 'popular'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllTopRated = useCallback(
+    () => handleSeeAllPress('Top Rated Shows', 'top_rated'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllKids = useCallback(
+    () => handleSeeAllPress('Kids', 'popular'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllFamily = useCallback(
+    () => handleSeeAllPress('Family', 'popular'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllComedy = useCallback(
+    () => handleSeeAllPress('Comedy', 'popular'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllRomance = useCallback(
+    () => handleSeeAllPress('Romance', 'popular'),
+    [handleSeeAllPress],
+  );
+  const onSeeAllAction = useCallback(
+    () => handleSeeAllPress('Action', 'popular'),
+    [handleSeeAllPress],
+  );
+
+  // 3. Optimize useMemo for sections
   const sections = useMemo(() => {
     const sectionsList = [];
 
@@ -227,16 +295,16 @@ export const TVShowsScreen = () => {
     });
 
     // Latest Shows section
-    if (latestShows?.pages?.[0]?.results?.length) {
+    if (latestShowsFlat.length) {
       sectionsList.push({
         id: 'latestShows',
         type: 'horizontalList',
         title: 'Latest Shows',
-        data: getShowsFromData(latestShows),
+        data: latestShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextLatest ? fetchNextLatest : undefined,
         isLoading: isFetchingLatest,
-        onSeeAllPress: () => handleSeeAllPress('Latest Shows', 'latest'),
+        onSeeAllPress: onSeeAllLatest,
       });
     } else if (isFetchingLatest) {
       sectionsList.push({
@@ -246,16 +314,16 @@ export const TVShowsScreen = () => {
     }
 
     // Popular Shows section
-    if (popularShows?.pages?.[0]?.results?.length) {
+    if (popularShowsFlat.length) {
       sectionsList.push({
         id: 'popularShows',
         type: 'horizontalList',
         title: 'Popular Shows',
-        data: getShowsFromData(popularShows),
+        data: popularShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextPopular ? fetchNextPopular : undefined,
         isLoading: isFetchingPopular,
-        onSeeAllPress: () => handleSeeAllPress('Popular Shows', 'popular'),
+        onSeeAllPress: onSeeAllPopular,
       });
     } else if (isFetchingPopular) {
       sectionsList.push({
@@ -265,16 +333,16 @@ export const TVShowsScreen = () => {
     }
 
     // Top Rated Shows section
-    if (topRatedShows?.pages?.[0]?.results?.length) {
+    if (topRatedShowsFlat.length) {
       sectionsList.push({
         id: 'topRatedShows',
         type: 'horizontalList',
         title: 'Top Rated Shows',
-        data: getShowsFromData(topRatedShows),
+        data: topRatedShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextTopRated ? fetchNextTopRated : undefined,
         isLoading: isFetchingTopRated,
-        onSeeAllPress: () => handleSeeAllPress('Top Rated Shows', 'top_rated'),
+        onSeeAllPress: onSeeAllTopRated,
       });
     } else if (isFetchingTopRated) {
       sectionsList.push({
@@ -304,68 +372,68 @@ export const TVShowsScreen = () => {
 
     // Add after main lists
     // Kids Shows
-    if (kidsShows?.pages?.[0]?.results?.length) {
+    if (kidsShowsFlat.length) {
       sectionsList.push({
         id: 'kidsShows',
         type: 'horizontalList',
         title: 'Kids',
-        data: getShowsFromData(kidsShows).filter((show: any) => !show.adult),
+        data: kidsShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextKids ? fetchNextKids : undefined,
         isLoading: isFetchingKids,
-        onSeeAllPress: () => handleSeeAllPress('Kids', 'popular'),
+        onSeeAllPress: onSeeAllKids,
       });
     }
     // Family Shows
-    if (familyShows?.pages?.[0]?.results?.length) {
+    if (familyShowsFlat.length) {
       sectionsList.push({
         id: 'familyShows',
         type: 'horizontalList',
         title: 'Family',
-        data: getShowsFromData(familyShows).filter((show: any) => !show.adult),
+        data: familyShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextFamily ? fetchNextFamily : undefined,
         isLoading: isFetchingFamily,
-        onSeeAllPress: () => handleSeeAllPress('Family', 'popular'),
+        onSeeAllPress: onSeeAllFamily,
       });
     }
     // Comedy Shows
-    if (comedyShows?.pages?.[0]?.results?.length) {
+    if (comedyShowsFlat.length) {
       sectionsList.push({
         id: 'comedyShows',
         type: 'horizontalList',
         title: 'Comedy',
-        data: getShowsFromData(comedyShows).filter((show: any) => !show.adult),
+        data: comedyShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextComedy ? fetchNextComedy : undefined,
         isLoading: isFetchingComedy,
-        onSeeAllPress: () => handleSeeAllPress('Comedy', 'popular'),
+        onSeeAllPress: onSeeAllComedy,
       });
     }
     // Romance Shows
-    if (romanceShows?.pages?.[0]?.results?.length) {
+    if (romanceShowsFlat.length) {
       sectionsList.push({
         id: 'romanceShows',
         type: 'horizontalList',
         title: 'Romance',
-        data: getShowsFromData(romanceShows).filter((show: any) => !show.adult),
+        data: romanceShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextRomance ? fetchNextRomance : undefined,
         isLoading: isFetchingRomance,
-        onSeeAllPress: () => handleSeeAllPress('Romance', 'popular'),
+        onSeeAllPress: onSeeAllRomance,
       });
     }
     // Action Shows
-    if (actionShows?.pages?.[0]?.results?.length) {
+    if (actionShowsFlat.length) {
       sectionsList.push({
         id: 'actionShows',
         type: 'horizontalList',
         title: 'Action',
-        data: getShowsFromData(actionShows).filter((show: any) => !show.adult),
+        data: actionShowsFlat,
         onItemPress: handleShowPress,
         onEndReached: hasNextAction ? fetchNextAction : undefined,
         isLoading: isFetchingAction,
-        onSeeAllPress: () => handleSeeAllPress('Action', 'popular'),
+        onSeeAllPress: onSeeAllAction,
       });
     }
 
@@ -374,14 +442,13 @@ export const TVShowsScreen = () => {
     featuredShow,
     genres,
     isLoadingGenres,
-    latestShows,
-    popularShows,
-    topRatedShows,
+    latestShowsFlat,
+    popularShowsFlat,
+    topRatedShowsFlat,
     top10ShowsTodayByRegion,
     region,
     handleGenrePress,
     handleShowPress,
-    handleSeeAllPress,
     isFetchingLatest,
     isFetchingPopular,
     isFetchingTopRated,
@@ -392,26 +459,34 @@ export const TVShowsScreen = () => {
     fetchNextLatest,
     fetchNextPopular,
     fetchNextTopRated,
-    kidsShows,
+    kidsShowsFlat,
     hasNextKids,
     fetchNextKids,
     isFetchingKids,
-    familyShows,
+    familyShowsFlat,
     hasNextFamily,
     fetchNextFamily,
     isFetchingFamily,
-    comedyShows,
+    comedyShowsFlat,
     hasNextComedy,
     fetchNextComedy,
     isFetchingComedy,
-    romanceShows,
+    romanceShowsFlat,
     hasNextRomance,
     fetchNextRomance,
     isFetchingRomance,
-    actionShows,
+    actionShowsFlat,
     hasNextAction,
     fetchNextAction,
     isFetchingAction,
+    onSeeAllLatest,
+    onSeeAllPopular,
+    onSeeAllTopRated,
+    onSeeAllKids,
+    onSeeAllFamily,
+    onSeeAllComedy,
+    onSeeAllRomance,
+    onSeeAllAction,
   ]);
 
   const renderSection = useCallback(({item}: {item: any}) => {
@@ -488,10 +563,11 @@ export const TVShowsScreen = () => {
         onMomentumScrollEnd={() => {}}
         // Memory management
         disableIntervalMomentum={false}
+        // initialNumToRender and windowSize removed, not supported by FlashList
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

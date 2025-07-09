@@ -77,7 +77,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   useEffect(() => {
     const fetchFilters = async () => {
       const filters = await FiltersManager.getSavedFilters();
-      console.log('Fetched saved filters:', filters);
       setSavedFilters(filters);
     };
     fetchFilters();

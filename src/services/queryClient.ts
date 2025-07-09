@@ -26,42 +26,25 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Netflix-style aggressive cache management
+// Netflix-style aggressive cache management - OPTIMIZED
 setInterval(() => {
   queryClient.removeQueries({
     predicate: query => {
-      // Remove queries older than 2 hours (increased from 15 minutes)
-      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+      // Remove queries older than 4 hours (increased from 2 hours)
+      const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
       return (
-        !query.state.dataUpdatedAt || query.state.dataUpdatedAt < twoHoursAgo
+        !query.state.dataUpdatedAt || query.state.dataUpdatedAt < fourHoursAgo
       );
     },
   });
-}, 10 * 60 * 1000); // Run every 10 minutes (increased from 5 minutes)
+}, 30 * 60 * 1000); // Run every 30 minutes (increased from 10 minutes)
 
-// Netflix-style emergency cleanup
+// Netflix-style emergency cleanup - OPTIMIZED
 setInterval(() => {
   const allQueries = queryClient.getQueryCache().getAll();
-  if (allQueries.length > 100) {
-    // Increased threshold from 50
+  if (allQueries.length > 200) {
+    // Increased threshold from 100
     console.warn('Too many queries - clearing cache');
     queryClient.clear();
   }
-}, 60 * 1000); // Check every minute (increased from 30 seconds)
-
-// Netflix-style prefetching for better UX
-export const prefetchNextPage = (
-  queryKey: any[],
-  hasNextPage: boolean,
-  fetchNextPage: () => void,
-) => {
-  if (hasNextPage) {
-    // Prefetch next page in background
-    setTimeout(() => {
-      queryClient.prefetchInfiniteQuery({
-        queryKey,
-        queryFn: fetchNextPage,
-      });
-    }, 1000);
-  }
-};
+}, 5 * 60 * 1000); // Check every 5 minutes (increased from 1 minute)
