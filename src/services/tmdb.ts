@@ -104,13 +104,9 @@ export const searchMovies = async (
   page = 1,
   filters: FilterParams = {},
 ) => {
-  const with_original_language = await getLanguageParam();
   const params = {
     page,
     ...filters,
-    include_adult: false,
-    // with_original_language:
-    //   filters.with_original_language || with_original_language,
   };
 
   if (!query) {
@@ -120,41 +116,13 @@ export const searchMovies = async (
 
   // For search queries, we need to use the search endpoint
   // but still respect the sort_by parameter if provided
-  const searchResponse = await tmdbApi.get('/search/movie', {
+  let searchResponse = await tmdbApi.get('/search/movie', {
     params: {
       query,
       page,
       ...filters,
     },
   });
-
-  // If there's a sort_by parameter, sort the results manually
-  if (filters.sort_by) {
-    const [field, order] = filters.sort_by.split('.');
-    const multiplier = order === 'desc' ? -1 : 1;
-
-    searchResponse.data.results.sort((a: any, b: any) => {
-      let aValue = a[field];
-      let bValue = b[field];
-
-      // Handle special cases
-      if (field === 'title') {
-        aValue = a.title;
-        bValue = b.title;
-      } else if (field === 'release_date') {
-        aValue = a.release_date ? new Date(a.release_date).getTime() : 0;
-        bValue = b.release_date ? new Date(b.release_date).getTime() : 0;
-      }
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return multiplier * aValue.localeCompare(bValue);
-      }
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return multiplier * (aValue - bValue);
-      }
-      return 0;
-    });
-  }
 
   return searchResponse.data;
 };
@@ -164,13 +132,10 @@ export const searchTVShows = async (
   page = 1,
   filters: FilterParams = {},
 ) => {
-  const with_original_language = await getLanguageParam();
   const params = {
     page,
     ...filters,
     include_adult: false,
-    // with_original_language:
-    //   filters.with_original_language || with_original_language,
   };
 
   if (!query) {
@@ -180,41 +145,13 @@ export const searchTVShows = async (
 
   // For search queries, we need to use the search endpoint
   // but still respect the sort_by parameter if provided
-  const searchResponse = await tmdbApi.get('/search/tv', {
+  let searchResponse = await tmdbApi.get('/search/tv', {
     params: {
       query,
       page,
       ...filters,
     },
   });
-
-  // If there's a sort_by parameter, sort the results manually
-  if (filters.sort_by) {
-    const [field, order] = filters.sort_by.split('.');
-    const multiplier = order === 'desc' ? -1 : 1;
-
-    searchResponse.data.results.sort((a: any, b: any) => {
-      let aValue = a[field];
-      let bValue = b[field];
-
-      // Handle special cases
-      if (field === 'title') {
-        aValue = a.name;
-        bValue = b.name;
-      } else if (field === 'release_date') {
-        aValue = a.first_air_date ? new Date(a.first_air_date).getTime() : 0;
-        bValue = b.first_air_date ? new Date(b.first_air_date).getTime() : 0;
-      }
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return multiplier * aValue.localeCompare(bValue);
-      }
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return multiplier * (aValue - bValue);
-      }
-      return 0;
-    });
-  }
 
   return searchResponse.data;
 };

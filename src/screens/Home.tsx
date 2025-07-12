@@ -648,7 +648,7 @@ export const HomeScreen = React.memo(() => {
 
   return (
     <View style={styles.container}>
-      <PerformanceMonitor screenName="Home" />
+      {/* <PerformanceMonitor screenName="Home" /> */}
       <FlatList
         data={visibleSections}
         renderItem={renderSection}

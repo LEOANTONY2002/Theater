@@ -33,19 +33,19 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = memo(
     const renderItem = useCallback(
       ({item, index}: {item: Genre; index: number}) => (
         <TouchableOpacity
-          style={styles.tag}
+          style={{...styles.tag, backgroundColor: tagGradientColors[index]}}
           activeOpacity={0.9}
           onPress={() => onItemPress(item)}>
-          <LinearGradient
+          {/* <LinearGradient
             colors={[
               tagGradientColors[index],
-              'transparent',
-              tagGradientColors[index],
+              colors.modal.blur,
+              // tagGradientColors[index],
             ]}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}
             style={styles.tagGradient}
-          />
+          /> */}
           <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
           <Text style={styles.tagText} numberOfLines={2}>
             {item?.name}
@@ -65,6 +65,13 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = memo(
     return (
       <View style={styles.container}>
         <Text style={styles.title}>{title}</Text>
+        <LinearGradient
+          colors={['transparent', colors.background.primary]}
+          // start={{x: 0, y: 0}}
+          // end={{x: 1, y: 1}}
+          style={styles.tagGradient}
+          pointerEvents="none"
+        />
         <FlatList
           horizontal
           data={limitedData}
@@ -112,13 +119,12 @@ const styles = StyleSheet.create({
   },
   tagGradient: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    height: 100,
-    zIndex: 0,
-    borderRadius: borderRadius.lg,
+    height: 50,
+    zIndex: 1,
+    opacity: 0.7,
   },
   blurView: {
     position: 'absolute',

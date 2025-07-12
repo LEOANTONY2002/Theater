@@ -12,6 +12,7 @@ import {TVShow} from '../types/tvshow';
 import {MovieCard} from './MovieCard';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, spacing} from '../styles/theme';
+import {Text} from 'react-native-gesture-handler';
 
 export type ContentItem = (Movie & {type: 'movie'}) | (TVShow & {type: 'tv'});
 
@@ -38,25 +39,13 @@ export const MovieList: React.FC<MovieListProps> = ({
   emptyText,
   emptySubtext,
 }) => {
-  const [debouncedData, setDebouncedData] = useState<ContentItem[]>([]);
-
-  // Debounce data changes to prevent rapid re-renders
-  useEffect(() => {
-    if (data && data.length > 0) {
-      const timer = setTimeout(() => {
-        setDebouncedData(data);
-      }, 100); // 100ms debounce
-      return () => clearTimeout(timer);
-    } else {
-      setDebouncedData([]);
-    }
-  }, [data]);
+  console.log('isLoading:', isLoading);
 
   const renderFooter = () => {
     if (!isLoading) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="large" color="rgba(0, 0, 0, 0.5)" />
+        <ActivityIndicator size="large" color="rgba(210, 210, 210, 0.5)" />
       </View>
     );
   };
@@ -80,7 +69,7 @@ export const MovieList: React.FC<MovieListProps> = ({
 
   return (
     <FlatList
-      data={debouncedData}
+      data={data}
       renderItem={renderItem}
       keyExtractor={item => `${item.type}-${item.id}`}
       numColumns={3}
@@ -111,6 +100,8 @@ const styles = StyleSheet.create({
   container: {
     // padding: spacing.md,
     paddingTop: 120,
+    width: '100%',
+    display: 'flex',
   },
   itemContainer: {
     flex: 1,

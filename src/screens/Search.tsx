@@ -80,13 +80,6 @@ export const SearchScreen = React.memo(() => {
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
   const queryClient = useQueryClient();
 
-  // Get trending content
-  const {data: trendingMovies, isLoading: isLoadingTrendingMovies} =
-    useTrendingMovies('day');
-
-  const {data: trendingTVShows, isLoading: isLoadingTrendingTV} =
-    useTrendingTVShows('day');
-
   // Search or discover based on query
   const {
     data: movieData,
@@ -96,9 +89,7 @@ export const SearchScreen = React.memo(() => {
     refetch: refetchMovies,
     isLoading: isLoadingMovies,
     isError: isMovieError,
-  } = debouncedQuery
-    ? useMovieSearch(debouncedQuery, activeFilters)
-    : useDiscoverMovies(activeFilters);
+  } = useMovieSearch(debouncedQuery, activeFilters);
 
   const {
     data: tvData,
@@ -108,9 +99,12 @@ export const SearchScreen = React.memo(() => {
     refetch: refetchTV,
     isLoading: isLoadingTV,
     isError: isTVError,
-  } = debouncedQuery
-    ? useTVShowSearch(debouncedQuery, activeFilters)
-    : useDiscoverTVShows(activeFilters);
+  } = useTVShowSearch(debouncedQuery, activeFilters);
+
+  console.log('movieData', movieData?.pages[0].results);
+  console.log('query', query);
+  console.log('debouncedQuery', debouncedQuery);
+  console.log('activeFilters', activeFilters);
 
   const movies =
     movieData?.pages.flatMap(page =>
@@ -207,14 +201,10 @@ export const SearchScreen = React.memo(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
       // When search query changes, refetch with current filters
-      if (query !== debouncedQuery) {
-        refetchMovies();
-        refetchTV();
-      }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query, debouncedQuery, refetchMovies, refetchTV]);
+  }, [query]);
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -235,6 +225,8 @@ export const SearchScreen = React.memo(() => {
   const hasNoResults =
     !isLoading && !hasError && movies.length === 0 && tvShows.length === 0;
 
+  console.log('hasNoResults', hasNoResults);
+
   const applyContentTypeFilter = useCallback(
     (content: ContentItem[]) => {
       if (contentType === 'all') {
@@ -242,15 +234,11 @@ export const SearchScreen = React.memo(() => {
       }
       return content.filter(item => item.type === contentType);
     },
-    [contentType],
+    [contentType, query],
   );
 
   const applySearchFilters = useCallback(
     (content: ContentItem[]) => {
-      if (!debouncedQuery || !Object.keys(activeFilters).length) {
-        return content;
-      }
-
       return content.filter(item => {
         // Filter by rating
         if (activeFilters['vote_average.gte'] !== undefined) {
@@ -291,10 +279,21 @@ export const SearchScreen = React.memo(() => {
           }
         }
 
+        // Filter by genre
+        if (activeFilters.with_genres && item.genre_ids) {
+          if (
+            !item.genre_ids.some(genreId =>
+              activeFilters.with_genres?.includes(genreId.toString()),
+            )
+          ) {
+            return false;
+          }
+        }
+
         return true;
       });
     },
-    [debouncedQuery, activeFilters],
+    [activeFilters, query],
   );
 
   const applySorting = useCallback(
@@ -334,7 +333,7 @@ export const SearchScreen = React.memo(() => {
         return 0;
       });
     },
-    [activeFilters.sort_by],
+    [activeFilters.sort_by, query],
   );
 
   const combinedContent = useMemo(() => {
@@ -351,6 +350,8 @@ export const SearchScreen = React.memo(() => {
     applySearchFilters,
     applySorting,
   ]);
+
+  console.log('displayedContent', displayedContent);
 
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
   const showSearchResults = debouncedQuery.length > 0 || hasActiveFilters;
@@ -493,7 +494,7 @@ export const SearchScreen = React.memo(() => {
                   <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
               </View>
-            ) : hasNoResults ? (
+            ) : hasNoResults || displayedContent.length === 0 ? (
               <NoResults query={debouncedQuery} />
             ) : (
               <MovieList
@@ -647,7 +648,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   noResultsContainer: {
-    flex: 1,
+    marginTop: 350,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
