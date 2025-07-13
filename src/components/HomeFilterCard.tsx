@@ -13,12 +13,8 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
-import {colors, spacing, borderRadius, typography} from '../styles/theme';
-import {useDiscoverMovies} from '../hooks/useMovies';
-import {useDiscoverTVShows} from '../hooks/useTVShows';
+import {colors} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
-import {useQuery} from '@tanstack/react-query';
-import {FiltersManager} from '../store/filters';
 import {useSavedFilterContent} from '../hooks/useApp';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -34,7 +30,6 @@ const CARD_WIDTH = 170;
 const CARD_HEIGHT = 280;
 const CARD_OVERLAP = CARD_WIDTH * 0.3;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const CAROUSEL_WIDTH = SCREEN_WIDTH;
 const DOT_SIZE = 10;
 const DOT_SPACING = 12;
 const MAX_FILTERS = 10; // Maximum number of filters we'll support

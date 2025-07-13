@@ -1,60 +1,36 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, FlatList, StyleSheet, Dimensions, Text} from 'react-native';
-import {
-  useMoviesList,
-  useTop10MoviesTodayByRegion,
-  useTrendingMovies,
-} from '../hooks/useMovies';
-import {
-  useTop10ShowsTodayByRegion,
-  useTrendingTVShows,
-  useTVShowsList,
-} from '../hooks/useTVShows';
+import {useMoviesList, useTop10MoviesTodayByRegion} from '../hooks/useMovies';
+import {useTop10ShowsTodayByRegion, useTVShowsList} from '../hooks/useTVShows';
 import {ContentItem} from '../components/MovieList';
 import {HorizontalList} from '../components/HorizontalList';
-import {useNavigation} from '@react-navigation/native';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {
-  HomeStackParamList,
   MovieCategoryType,
   TVShowCategoryType,
   ContentType,
 } from '../types/navigation';
-import {colors, spacing, typography} from '../styles/theme';
+import {colors, spacing} from '../styles/theme';
 import {
   BannerHomeSkeleton,
   HeadingSkeleton,
   HorizontalListSkeleton,
-  HomeScreenSkeleton,
 } from '../components/LoadingSkeleton';
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
-import {useRegion, useSavedFilterContent} from '../hooks/useApp';
-import {HomeFilterCard} from '../components/HomeFilterCard';
+import {useRegion} from '../hooks/useApp';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {FiltersManager} from '../store/filters';
 import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
 import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {PerformanceMonitor} from '../components/PerformanceMonitor';
-import {useScrollOptimization} from '../hooks/useScrollOptimization';
 import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
-
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
-  const navigation = useNavigation<HomeScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
-  const {
-    handleScroll,
-    handleScrollBeginDrag,
-    handleScrollEndDrag,
-    handleMomentumScrollEnd,
-  } = useScrollOptimization();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
@@ -65,15 +41,19 @@ export const HomeScreen = React.memo(() => {
 
   // Ultra-aggressive staggered loading to prevent FPS drops
   useEffect(() => {
-    const timer1 = setTimeout(() => setRenderPhase(1), 500);
-    const timer2 = setTimeout(() => setRenderPhase(2), 1000);
-    const timer3 = setTimeout(() => setShowMoreContent(true), 2000);
+    // Temporarily disable staggered loading to debug
+    setRenderPhase(2);
+    setShowMoreContent(true);
 
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
+    // const timer1 = setTimeout(() => setRenderPhase(1), 500);
+    // const timer2 = setTimeout(() => setRenderPhase(2), 1000);
+    // const timer3 = setTimeout(() => setShowMoreContent(true), 2000);
+
+    // return () => {
+    //   clearTimeout(timer1);
+    //   clearTimeout(timer2);
+    //   clearTimeout(timer3);
+    // };
   }, []);
 
   const {
@@ -117,7 +97,7 @@ export const HomeScreen = React.memo(() => {
     fetchNextPage: fetchNextRecentMovies,
     hasNextPage: hasNextRecentMovies,
     isFetchingNextPage: isFetchingRecentMovies,
-  } = useMoviesList('latest');
+  } = useMoviesList('now_playing');
 
   // Recent TV Shows (On Air)
   const {
@@ -148,43 +128,70 @@ export const HomeScreen = React.memo(() => {
   // Get a random popular item for the banner
   const featuredItems = useMemo(() => {
     const items: Array<{item: any; type: 'movie' | 'tv'; title: string}> = [];
-    const randomIndex = Math.floor(Math.random() * Math.min(items.length, 5));
+    const usedMovieIds = new Set<number>();
 
-    if (recentMovies?.pages?.[0]?.results) {
+    const getUniqueMovie = (movieList: any[], title: string) => {
+      if (!movieList || movieList.length === 0) return null;
+
+      // Try to find a movie that hasn't been used yet
+      const availableMovies = movieList.filter(
+        movie => !usedMovieIds.has(movie.id),
+      );
+
+      if (availableMovies.length === 0) {
+        // If all movies are used, reset and pick from first 10
+        usedMovieIds.clear();
+        const firstTen = movieList.slice(0, 10);
+        const randomIndex = Math.floor(Math.random() * firstTen.length);
+        const selectedMovie = firstTen[randomIndex];
+        usedMovieIds.add(selectedMovie.id);
+        return selectedMovie;
+      }
+
+      // Pick a random movie from available ones
+      const randomIndex = Math.floor(Math.random() * availableMovies.length);
+      const selectedMovie = availableMovies[randomIndex];
+      usedMovieIds.add(selectedMovie.id);
+      return selectedMovie;
+    };
+
+    // Get unique movies for each category
+    const latestMovie = getUniqueMovie(
+      recentMovies?.pages?.[0]?.results,
+      'Latest',
+    );
+    if (latestMovie) {
       items.push({
-        item: recentMovies.pages[0].results[randomIndex],
+        item: latestMovie,
         type: 'movie' as const,
         title: 'Latest',
       });
     }
-    // if (recentTVShows?.pages?.[0]?.results) {
-    //   items.push({
-    //     item: recentTVShows.pages[0].results[randomIndex],
-    //     type: 'tv' as const,
-    //     title: 'Recent Shows',
-    //   });
-    // }
-    if (popularMovies?.pages?.[0]?.results) {
+
+    const popularMovie = getUniqueMovie(
+      popularMovies?.pages?.[0]?.results,
+      'Popular',
+    );
+    if (popularMovie) {
       items.push({
-        item: popularMovies.pages[0].results[randomIndex],
+        item: popularMovie,
         type: 'movie' as const,
         title: 'Popular',
       });
     }
-    if (topRatedMovies?.pages?.[0]?.results) {
+
+    const topRatedMovie = getUniqueMovie(
+      topRatedMovies?.pages?.[0]?.results,
+      'Top',
+    );
+    if (topRatedMovie) {
       items.push({
-        item: topRatedMovies.pages[0].results[randomIndex],
+        item: topRatedMovie,
         type: 'movie' as const,
         title: 'Top',
       });
     }
-    // if (topRatedTVShows?.pages?.[0]?.results) {
-    //   items.push({
-    //     item: topRatedTVShows.pages[0].results[randomIndex],
-    //     type: 'tv' as const,
-    //     title: 'Top Rated TV Shows',
-    //   });
-    // }
+
     return items;
   }, [
     recentMovies,
@@ -633,7 +640,7 @@ export const HomeScreen = React.memo(() => {
   if (isFullScreenLoading) {
     return (
       <View style={styles.container}>
-        <View style={{marginTop: 24, marginBottom: 24}}>
+        <View style={{marginTop: 24, marginBottom: 5}}>
           <BannerHomeSkeleton />
         </View>
         {[...Array(3)].map((_, i) => (

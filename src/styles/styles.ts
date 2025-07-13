@@ -117,7 +117,7 @@ export const modalStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.modal.active,
+    backgroundColor: colors.modal.blur,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     marginHorizontal: spacing.xl,

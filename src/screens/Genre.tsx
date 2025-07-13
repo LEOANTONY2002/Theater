@@ -255,7 +255,15 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       </Animated.View>
       <View style={styles.contentContainer}>
         {isLoading ? (
-          <GridListSkeleton />
+          <View
+            style={{
+              marginTop: 100,
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+            }}>
+            <GridListSkeleton />
+          </View>
         ) : (
           <Animated.FlatList
             data={allItems}
@@ -362,12 +370,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginLeft: -50,
   },
-  contentContainer: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  contentContainer: {},
   listContent: {
     paddingVertical: 120,
   },

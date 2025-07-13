@@ -42,6 +42,18 @@ export const useNavigationState = () => {
 
       const routes = state.routes;
 
+      // Special handling for PersonCredits - always navigate normally
+      if (routeName === 'PersonCredits') {
+        navigation.navigate(routeName as any, params);
+        return;
+      }
+
+      // Special handling for details screens - always navigate normally to preserve back navigation
+      if (routeName === 'MovieDetails' || routeName === 'TVShowDetails') {
+        navigation.navigate(routeName as any, params);
+        return;
+      }
+
       // If we already have 2 or more screens, use replace instead of navigate
       if (routes.length >= 2) {
         (navigation as any).replace(routeName, params);

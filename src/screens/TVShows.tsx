@@ -526,13 +526,18 @@ export const TVShowsScreen = React.memo(() => {
   const keyExtractor = useCallback((item: any) => item.id, []);
 
   const isInitialLoading =
-    (!trendingShows?.pages?.length && isFetchingTrending) ||
-    (!popularShows?.pages?.length && isFetchingPopular) ||
-    (!topRatedShows?.pages?.length && isFetchingTopRated);
+    !popularShows?.pages?.[0]?.results?.length ||
+    !topRatedShows?.pages?.[0]?.results?.length ||
+    !latestShows?.pages?.[0]?.results?.length;
 
   if (isInitialLoading) {
     return (
-      <View style={styles.container}>
+      <View
+        style={{
+          backgroundColor: colors.background.primary,
+          marginTop: -20,
+          paddingBottom: 100,
+        }}>
         <BannerSkeleton />
         <HeadingSkeleton />
         <GenreListSkeleton />

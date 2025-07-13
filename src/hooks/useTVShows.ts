@@ -9,6 +9,7 @@ import {
   getTrendingTVShows,
   getSeasonDetails,
   getTop10TVShowsTodayByRegion,
+  getContentByGenre,
 } from '../services/tmdb';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
 import {FilterParams} from '../types/filters';
@@ -20,7 +21,10 @@ const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
   return useInfiniteQuery({
     queryKey: ['tvshows', type],
-    queryFn: ({pageParam = 1}) => getTVShows(type, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getTVShows(type, pageParam as number);
+      return result;
+    },
     getNextPageParam: (lastPage: TVShowsResponse) => {
       if (lastPage.page < lastPage.total_pages) {
         return lastPage.page + 1;
@@ -57,7 +61,7 @@ export const useDiscoverTVShows = (params: FilterParams) => {
   return useInfiniteQuery({
     queryKey: ['discover_tv', params],
     queryFn: ({pageParam = 1}) =>
-      discoverTVShows({...params, page: pageParam as number}),
+      getContentByGenre(params?.with_genres, 'tv', pageParam),
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -93,8 +97,18 @@ export const useTVShowRecommendations = (tvId: number) => {
 };
 
 export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
+  const {data: contentLanguages} = useQuery({
+    queryKey: ['content_languages'],
+    queryFn: SettingsManager.getContentLanguages,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   return useInfiniteQuery({
-    queryKey: ['trending_tv', timeWindow],
+    queryKey: [
+      'trending_tv',
+      timeWindow,
+      contentLanguages?.map(lang => lang.iso_639_1).join('|'),
+    ],
     queryFn: ({pageParam = 1}) =>
       getTrendingTVShows(timeWindow, pageParam as number),
     getNextPageParam: (lastPage: TVShowsResponse) =>

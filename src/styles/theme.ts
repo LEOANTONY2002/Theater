@@ -32,7 +32,7 @@ export const colors = {
     secondary: '#FF5E87',
     tertiary: '#4DCFFF',
     disabled: '#2A2A3A',
-    reset: 'rgb(45, 45, 45)',
+    reset: 'rgb(21, 21, 21)',
     delete: 'rgb(0, 0, 0)',
   },
   status: {

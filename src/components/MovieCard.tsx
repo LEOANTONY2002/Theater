@@ -4,6 +4,7 @@ import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
 import {MoivieCardSkeleton} from './LoadingSkeleton';
+import {colors} from '../styles/theme';
 
 interface MovieCardProps {
   item: ContentItem;
@@ -27,14 +28,13 @@ const styles = StyleSheet.create({
   poster: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.background.card,
   },
   posterLarge: {
     height: 240,
   },
   skeleton: {
     flex: 1,
-    backgroundColor: 'rgb(21, 21, 32)',
     overflow: 'hidden',
   },
 });
@@ -44,12 +44,6 @@ export const MovieCard: React.FC<MovieCardProps> = ({
   onPress,
   size = 'normal',
 }) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-
-  const handleImageFinish = useCallback(() => {
-    setImageLoaded(true);
-  }, []);
-
   return (
     <TouchableOpacity
       style={[styles.container, size === 'large' && styles.containerLarge]}
@@ -64,18 +58,9 @@ export const MovieCard: React.FC<MovieCardProps> = ({
           }}
           style={[styles.poster, size === 'large' && styles.posterLarge]}
           resizeMode={FastImage.resizeMode.cover}
-          onLoad={handleImageFinish}
-          onError={handleImageFinish}
           priority={FastImage.priority.normal}
           cache={FastImage.cacheControl.immutable}
         />
-        {!imageLoaded && (
-          <View style={StyleSheet.absoluteFill}>
-            <View style={styles.skeleton}>
-              <MoivieCardSkeleton />
-            </View>
-          </View>
-        )}
       </View>
     </TouchableOpacity>
   );

@@ -134,11 +134,11 @@ export const FeaturedBannerHomePoster: React.FC<
         }}
         style={styles.cardContainer}
         imageStyle={styles.imageStyle}>
-        {loading && (
+        {/* {loading && (
           <View style={styles.skeletonContainer}>
             <BannerHomeSkeleton />
           </View>
-        )}
+        )} */}
         <LinearGradient
           colors={['transparent', 'rgba(0, 0, 0, 0.64)', 'rgb(0, 0, 0)']}
           style={styles.gradientOverlay}

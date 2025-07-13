@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Slider from '@react-native-community/slider';
+import {GradientProgressBar} from './GradientProgressBar';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
@@ -586,19 +586,15 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             {/* Rating */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Minimum Rating: {filters['vote_average.gte'] || 0}
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={10}
-                step={0.5}
+              <GradientProgressBar
                 value={filters['vote_average.gte'] || 0}
+                minValue={0}
+                maxValue={10}
+                step={0.5}
                 onValueChange={handleRatingChange}
-                thumbTintColor={colors.accent}
-                minimumTrackTintColor={colors.accent}
-                maximumTrackTintColor={colors.background.primary}
+                label="Minimum Rating"
+                showValue={true}
+                height={16}
               />
             </View>
 

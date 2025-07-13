@@ -5,20 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  ScrollView,
   ActivityIndicator,
   FlatList,
+  Image,
 } from 'react-native';
-import {
-  useMovieSearch,
-  useTrendingMovies,
-  useDiscoverMovies,
-} from '../hooks/useMovies';
-import {
-  useTVShowSearch,
-  useTrendingTVShows,
-  useDiscoverTVShows,
-} from '../hooks/useTVShows';
+import {useMovieSearch} from '../hooks/useMovies';
+import {useTVShowSearch} from '../hooks/useTVShows';
 import {MovieList, ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
@@ -27,13 +19,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {HorizontalList} from '../components/HorizontalList';
 import {TrendingGrid} from '../components/TrendingGrid';
-import {
-  colors,
-  spacing,
-  borderRadius,
-  typography,
-  shadows,
-} from '../styles/theme';
+import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types/navigation';
 import {FilterModal} from '../components/FilterModal';
@@ -43,34 +29,49 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {BlurView} from '@react-native-community/blur';
+import LinearGradient from 'react-native-linear-gradient';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const RECENT_ITEMS_KEY = '@recent_search_items';
 const MAX_RECENT_ITEMS = 10;
 
-const getItemTitle = (item: ContentItem) => {
-  if (item.type === 'movie') {
-    return item.title;
-  }
-  return item.name;
-};
-
 const NoResults = ({query}: {query: string}) => (
   <View style={styles.noResultsContainer}>
-    <Icon name="search-outline" size={64} color={colors.text.secondary} />
-    <Text style={styles.noResultsTitle}>No Results Found</Text>
-    <Text style={styles.noResultsText}>
-      We couldn't find any matches for "{query}"
-    </Text>
-    <Text style={styles.noResultsSubtext}>
-      Try checking your spelling or using different keywords
-    </Text>
+    <LinearGradient
+      style={{
+        position: 'absolute',
+        top: 53,
+        width: '60%',
+        height: 300,
+        zIndex: 1,
+        marginLeft: 30,
+        transform: [{rotateX: '50deg'}],
+      }}
+      colors={[colors.background.secondary, 'transparent']}
+    />
+    <Image
+      source={require('../assets/cat.png')}
+      style={{width: 220, opacity: 0.5, marginBottom: -30}}
+      resizeMode="contain"
+    />
+    <View style={{position: 'relative'}}>
+      <LinearGradient
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          height: 40,
+          zIndex: 1,
+        }}
+        colors={['transparent', colors.background.primary]}
+      />
+      <Text style={styles.noResultsTitle}>No results found</Text>
+    </View>
   </View>
 );
 
 export const SearchScreen = React.memo(() => {
-  const navigation = useNavigation<SearchScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -100,11 +101,6 @@ export const SearchScreen = React.memo(() => {
     isLoading: isLoadingTV,
     isError: isTVError,
   } = useTVShowSearch(debouncedQuery, activeFilters);
-
-  console.log('movieData', movieData?.pages[0].results);
-  console.log('query', query);
-  console.log('debouncedQuery', debouncedQuery);
-  console.log('activeFilters', activeFilters);
 
   const movies =
     movieData?.pages.flatMap(page =>
@@ -240,6 +236,34 @@ export const SearchScreen = React.memo(() => {
   const applySearchFilters = useCallback(
     (content: ContentItem[]) => {
       return content.filter(item => {
+        if (query) {
+          // Filter by title
+          let title =
+            (item?.hasOwnProperty('title') && item?.title) ||
+            (item?.hasOwnProperty('name') && item?.name) ||
+            item?.id;
+
+          console.log('TITLEEEEE', title);
+
+          if (title) {
+            if (!title?.toLowerCase().includes(query.toLowerCase())) {
+              return false;
+            }
+          }
+
+          if (!activeFilters['vote_average.gte']) {
+            if (item.vote_average < 5) {
+              return false;
+            }
+          }
+
+          // if (!activeFilters['sort_by']) {
+          //   if (item.popularity < 10) {
+          //     return false;
+          //   }
+          // }
+        }
+
         // Filter by rating
         if (activeFilters['vote_average.gte'] !== undefined) {
           if (item.vote_average < activeFilters['vote_average.gte']) {
@@ -298,6 +322,11 @@ export const SearchScreen = React.memo(() => {
 
   const applySorting = useCallback(
     (content: ContentItem[]) => {
+      // If query has value and activeFilters is empty, sort by popularity desc
+      if (query && Object.keys(activeFilters).length === 0) {
+        return [...content].sort((a, b) => b.popularity - a.popularity);
+      }
+
       if (!activeFilters.sort_by) {
         return content;
       }
@@ -333,7 +362,7 @@ export const SearchScreen = React.memo(() => {
         return 0;
       });
     },
-    [activeFilters.sort_by, query],
+    [activeFilters.sort_by, query, activeFilters],
   );
 
   const combinedContent = useMemo(() => {
@@ -415,14 +444,12 @@ export const SearchScreen = React.memo(() => {
           <Icon
             name="options-outline"
             size={24}
-            color={
-              hasActiveFilters ? colors.text.primary : colors.text.tertiary
-            }
+            color={hasActiveFilters ? colors.text.primary : colors.modal.active}
           />
         </TouchableOpacity>
       </View>
 
-      <View>
+      <View style={{flex: 1}}>
         {!showSearchResults ? (
           <FlatList
             style={{paddingTop: 120}}
@@ -571,11 +598,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    // backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.round,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: colors.modal.active,
   },
   searchIcon: {
     marginRight: spacing.sm,
@@ -588,6 +615,21 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: spacing.xs,
+  },
+  filterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.round,
+    // backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.modal.active,
+  },
+  filterButtonActive: {
+    borderWidth: 1,
+    borderColor: colors.modal.activeBorder,
   },
   recentItemsContainer: {
     paddingTop: spacing.sm,
@@ -648,15 +690,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   noResultsContainer: {
-    marginTop: 350,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
   },
   noResultsTitle: {
-    color: colors.text.primary,
-    ...typography.h2,
-    marginTop: spacing.md,
+    color: colors.text.muted,
+    fontSize: 40,
+    opacity: 0.5,
+    fontWeight: '900',
+    textAlign: 'center',
   },
   noResultsText: {
     color: colors.text.secondary,
@@ -669,20 +713,5 @@ const styles = StyleSheet.create({
     ...typography.body2,
     textAlign: 'center',
     marginTop: spacing.sm,
-  },
-  filterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.round,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
-  },
-  filterButtonActive: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
 });

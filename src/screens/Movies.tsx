@@ -491,25 +491,25 @@ export const MoviesScreen = React.memo(() => {
       });
     }
     // Romance Movies
-    // if (romanceMovies?.pages?.[0]?.results?.length) {
-    //   sectionsList.push({
-    //     id: 'romanceMovies',
-    //     type: 'horizontalList',
-    //     title: 'Romance',
-    //     data: getMoviesFromData(romanceMovies).filter(
-    //       (movie: any) => !movie.adult,
-    //     ),
-    //     onItemPress: handleMoviePress,
-    //     onEndReached: hasNextRomance ? fetchNextRomance : undefined,
-    //     isLoading: isFetchingRomance,
-    //     onSeeAllPress: () =>
-    //       navigateWithLimit('Category', {
-    //         title: 'Romance',
-    //         contentType: 'movie',
-    //         filter: {with_genres: romanceGenreId.toString()},
-    //       }),
-    //   });
-    // }
+    if (romanceMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'romanceMovies',
+        type: 'horizontalList',
+        title: 'Romance',
+        data: getMoviesFromData(romanceMovies).filter(
+          (movie: any) => !movie.adult,
+        ),
+        onItemPress: handleMoviePress,
+        onEndReached: hasNextRomance ? fetchNextRomance : undefined,
+        isLoading: isFetchingRomance,
+        onSeeAllPress: () =>
+          navigateWithLimit('Category', {
+            title: 'Romance',
+            contentType: 'movie',
+            filter: {with_genres: romanceGenreId.toString()},
+          }),
+      });
+    }
     // Action Movies
     if (actionMoviesFlat.length) {
       sectionsList.push({
@@ -642,19 +642,21 @@ export const MoviesScreen = React.memo(() => {
   const keyExtractor = useCallback((item: any) => item.id, []);
 
   const isInitialLoading =
-    (!popularMovies?.pages?.length && isFetchingPopular) ||
-    (!topRatedMovies?.pages?.length && isFetchingTopRated) ||
-    (!recentMovies?.pages?.length && isFetchingRecent) ||
-    (!upcomingMovies?.pages?.length && isFetchingUpcoming);
+    !popularMovies?.pages?.[0]?.results?.length ||
+    !topRatedMovies?.pages?.[0]?.results?.length ||
+    !recentMovies?.pages?.[0]?.results?.length;
 
   if (isInitialLoading) {
     return (
-      <View style={styles.container}>
+      <View
+        style={{
+          backgroundColor: colors.background.primary,
+          marginTop: -20,
+          paddingBottom: 100,
+        }}>
         <BannerSkeleton />
         <HeadingSkeleton />
         <GenreListSkeleton />
-        <HeadingSkeleton />
-        <HorizontalListSkeleton />
         <HeadingSkeleton />
         <HorizontalListSkeleton />
       </View>

@@ -85,6 +85,8 @@ export function useDynamicContentSource({
   }
   // If filter is a plain filter params object, use discover logic
   if (filter && !filter.type) {
+    console.log('filter is a plain filter params object', filter);
+
     if (contentType === 'movie') {
       return useDiscoverMovies(filter);
     } else if (contentType === 'tv') {

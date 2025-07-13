@@ -11,38 +11,16 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import {
-  useNavigation,
-  useRoute,
-  RouteProp,
-  useFocusEffect,
-} from '@react-navigation/native';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {
-  MoviesStackParamList,
-  TVShowsStackParamList,
-  MovieCategoryType,
-  TVShowCategoryType,
-} from '../types/navigation';
+import {MoviesStackParamList, TVShowsStackParamList} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
-import {ContentCard} from '../components/ContentCard';
-import {GradientBackground} from '../components/GradientBackground';
-import {
-  colors,
-  spacing,
-  typography,
-  shadows,
-  borderRadius,
-} from '../styles/theme';
-import {useMoviesList, useDiscoverMovies} from '../hooks/useMovies';
-import {useTVShowsList, useDiscoverTVShows} from '../hooks/useTVShows';
-import {useSavedFilterContent, useDynamicContentSource} from '../hooks/useApp';
+import {colors, spacing, typography, borderRadius} from '../styles/theme';
+import {useDynamicContentSource} from '../hooks/useApp';
 import Icon from 'react-native-vector-icons/Ionicons';
-import LinearGradient from 'react-native-linear-gradient';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {MovieCard} from '../components/MovieCard';
-import {SavedFilter} from '../types/filters';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {BlurView} from '@react-native-community/blur';
 import {GridListSkeleton} from '../components/LoadingSkeleton';
@@ -65,7 +43,6 @@ export const CategoryScreen = () => {
   const {title, categoryType, contentType, filter} = route.params;
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const {isNavigating} = useNavigationState();
 
   // Animated value for scroll position
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -267,9 +244,15 @@ export const CategoryScreen = () => {
           windowSize={7}
           removeClippedSubviews={true}
           onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.3}
           ListFooterComponent={
-            isFetchingNextPage ? <ActivityIndicator /> : null
+            isFetchingNextPage ? (
+              <ActivityIndicator
+                style={{marginVertical: spacing.lg}}
+                size="large"
+                color={colors.text.muted}
+              />
+            ) : null
           }
           ListEmptyComponent={
             !isLoading ? (
@@ -280,7 +263,7 @@ export const CategoryScreen = () => {
             ) : null
           }
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.listContent, {paddingTop: 100}]}
+          contentContainerStyle={[styles.listContent, {paddingVertical: 100}]}
           onScroll={Animated.event(
             [{nativeEvent: {contentOffset: {y: scrollY}}}],
             {useNativeDriver: false},
@@ -424,7 +407,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 120,
+    flex: 1,
+    paddingTop: 100,
   },
   row: {
     flexDirection: 'row',

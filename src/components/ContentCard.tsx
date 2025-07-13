@@ -14,11 +14,6 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
-    // REMOVE: const [imageLoaded, setImageLoaded] = useState(false);
-
-    const CARD_WIDTH = v2 ? 180 : 120;
-    const CARD_HEIGHT = v2 ? 100 : 180;
-
     const imageUrl = getImageUrl(
       v2 ? item.backdrop_path : item.poster_path,
       'w185',
@@ -30,10 +25,6 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
     const handlePress = useCallback(() => {
       onPress(item);
     }, [onPress, item]);
-
-    const handleImageFinish = useCallback(() => {
-      // setImageLoaded(true); // REMOVE: This line was removed
-    }, []);
 
     // Move dynamic style to StyleSheet
     const cardDynamicStyle = v2 ? styles.cardV2 : styles.cardDefault;
@@ -84,7 +75,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.background.card,
     borderRadius: borderRadius.md,
   },
   skeleton: {

@@ -42,7 +42,13 @@ export const SettingsManager = {
 
   async getRegion(): Promise<any> {
     const region = await AsyncStorage.getItem(KEYS.SELECTED_REGION);
-    return region ? JSON.parse(region) : null;
+    return region
+      ? JSON.parse(region)
+      : {
+          iso_3166_1: 'US',
+          english_name: 'United States of America',
+          native_name: 'United States',
+        };
   },
 
   async setRegion(region: any): Promise<void> {

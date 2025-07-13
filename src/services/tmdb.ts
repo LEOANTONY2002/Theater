@@ -11,48 +11,137 @@ const getLanguageParam = async () => {
   return contentLanguages.map(lang => lang.iso_639_1).join('|');
 };
 
+function formatDate(date: any) {
+  return date.toISOString().split('T')[0];
+}
+
 export const getMovies = async (
   type: 'latest' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing',
   page = 1,
 ) => {
-  const today = new Date().toISOString().split('T')[0];
-  const start = new Date('2000-01-01').toISOString().split('T')[0];
+  // Current date
+  const now = new Date();
+  const today = formatDate(now);
+
+  // Date 60 days after
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + 60);
+  const future = formatDate(futureDate);
   const with_original_language = await getLanguageParam();
+
   const params: any = {
     page,
     sort_by: 'release_date.desc',
-    with_original_language,
-    'release_date.lte': today,
-    'release_date.gte': start,
     'vote_average.gte': 4,
-    'vote_count.gte': 100,
     with_adult: false,
     include_adult: false,
+    'vote_count.gte': 10,
   };
-  if (type === 'latest') {
-    const response = await tmdbApi.get('/discover/movie', {params});
-    return response.data;
-  }
-  if (type === 'popular') {
-    params.sort_by = 'popularity.desc';
-    params['vote_average.gte'] = 6;
-    const response = await tmdbApi.get('/discover/movie', {params});
-    return response.data;
-  }
-  if (type === 'top_rated') {
-    params.sort_by = 'vote_average.desc';
-    // params['vote_count.gte'] = 100;
-    params['vote_average.gte'] = 7;
-    params['vote_average.lte'] = 9;
-    const response = await tmdbApi.get('/discover/movie', {params});
-    return response.data;
+
+  // Only apply language filter if we have languages set and it's not too restrictive
+  if (with_original_language) {
+    params.with_original_language = with_original_language;
   }
 
-  // For other types, use built-in endpoints
-  const response = await tmdbApi.get(`/movie/${type}`, {
-    params: {page, with_original_language},
-  });
-  return response.data;
+  const makeRequest = async (
+    useLanguageFilter: boolean = true,
+    useRatingFilter: boolean = true,
+  ) => {
+    const requestParams = {...params};
+
+    if (!useLanguageFilter) {
+      delete requestParams.with_original_language;
+    }
+
+    if (!useRatingFilter) {
+      delete requestParams['vote_average.gte'];
+      delete requestParams['vote_count.gte'];
+      if (type === 'top_rated') {
+        delete requestParams['vote_average.lte'];
+      }
+    }
+
+    if (type === 'latest') {
+      const response = await tmdbApi.get('/discover/movie', {
+        params: requestParams,
+      });
+
+      return response.data;
+    }
+
+    if (type === 'upcoming') {
+      const region = await SettingsManager.getRegion();
+      console.log('upcoming', today, future, region);
+
+      const response = await tmdbApi.get('/discover/movie', {
+        params: {
+          // 'primary_release_date.lte': future,
+          'primary_release_date.gte': today,
+          sort_by: 'popularity.desc',
+          region: region.iso_3166_1,
+        },
+      });
+      return response.data;
+    }
+
+    // if (type === 'popular') {
+    //   requestParams.sort_by = 'popularity.desc';
+    //   if (useRatingFilter) {
+    //     requestParams['vote_average.gte'] = 6;
+    //   }
+    //   const response = await tmdbApi.get('/discover/movie', {
+    //     params: requestParams,
+    //   });
+
+    //   return response.data;
+    // }
+
+    // if (type === 'top_rated') {
+    //   requestParams.sort_by = 'vote_average.desc';
+    //   if (useRatingFilter) {
+    //     requestParams['vote_average.gte'] = 7;
+    //     requestParams['vote_average.lte'] = 10;
+    //     requestParams['vote_count.gte'] = 100;
+    //   }
+    //   const response = await tmdbApi.get('/discover/movie', {
+    //     params: requestParams,
+    //   });
+
+    //   return response.data;
+    // }
+
+    // For other types, use built-in endpoints
+    const response = await tmdbApi.get(`/movie/${type}`, {
+      params: {
+        page,
+        ...(useLanguageFilter &&
+          with_original_language && {with_original_language}),
+      },
+    });
+
+    return response.data;
+  };
+
+  // Step 1: Try with language filter + rating filter
+  let result = await makeRequest(true, true);
+
+  // Step 2: If no results, try without rating filter but keep language filter
+  if (
+    (!result.results || result.results.length === 0) &&
+    with_original_language
+  ) {
+    result = await makeRequest(true, false);
+  }
+
+  // Step 3: If still no results, try without language filter
+  if (
+    (!result.results || result.results.length === 0) &&
+    with_original_language
+  ) {
+    result = await makeRequest(false, false);
+  }
+
+  return result;
 };
 
 export const getTVShows = async (
@@ -62,11 +151,11 @@ export const getTVShows = async (
   const today = new Date().toISOString().split('T')[0];
   const start = new Date('2000-01-01').toISOString().split('T')[0];
   const with_original_language = await getLanguageParam();
+
   const params: any = {
     page,
     sort_by: 'first_air_date.desc',
     without_genres: '10764,10767,10766,10763', // Reality, Talk Show, Soap, News
-    with_original_language,
     'first_air_date.lte': today,
     'first_air_date.gte': start,
     'vote_average.gte': 4,
@@ -74,29 +163,88 @@ export const getTVShows = async (
     with_adult: false,
     include_adult: false,
   };
-  if (type === 'latest') {
-    const response = await tmdbApi.get('/discover/tv', {params});
-    return response.data;
+
+  // Only apply language filter if we have languages set and it's not too restrictive
+  if (with_original_language) {
+    params.with_original_language = with_original_language;
   }
-  if (type === 'popular') {
-    params.sort_by = 'popularity.desc';
-    const response = await tmdbApi.get('/discover/tv', {params});
+
+  const makeRequest = async (
+    useLanguageFilter: boolean = true,
+    useRatingFilter: boolean = true,
+  ) => {
+    const requestParams = {...params};
+
+    if (!useLanguageFilter) {
+      delete requestParams.with_original_language;
+    }
+
+    if (!useRatingFilter) {
+      delete requestParams['vote_average.gte'];
+      delete requestParams['vote_count.gte'];
+      if (type === 'top_rated') {
+        delete requestParams['vote_average.lte'];
+      }
+    }
+
+    if (type === 'latest') {
+      const response = await tmdbApi.get('/discover/tv', {
+        params: requestParams,
+      });
+
+      return response.data;
+    }
+    if (type === 'popular') {
+      requestParams.sort_by = 'popularity.desc';
+      const response = await tmdbApi.get('/discover/tv', {
+        params: requestParams,
+      });
+
+      return response.data;
+    }
+    if (type === 'top_rated') {
+      requestParams.sort_by = 'vote_average.desc';
+      if (useRatingFilter) {
+        requestParams['vote_average.gte'] = 7;
+        requestParams['vote_average.lte'] = 9.5;
+      }
+      const response = await tmdbApi.get('/discover/tv', {
+        params: requestParams,
+      });
+
+      return response.data;
+    }
+    const response = await tmdbApi.get(`/tv/${type}`, {
+      params: {
+        page,
+        ...(useLanguageFilter &&
+          with_original_language && {with_original_language}),
+      },
+    });
+
     return response.data;
+  };
+
+  // Step 1: Try with language filter + rating filter
+  let result = await makeRequest(true, true);
+
+  // Step 2: If no results, try without rating filter but keep language filter
+  if (
+    (!result.results || result.results.length === 0) &&
+    with_original_language
+  ) {
+    result = await makeRequest(true, false);
   }
-  if (type === 'top_rated') {
-    params.sort_by = 'vote_average.desc';
-    params['vote_average.gte'] = 7;
-    params['vote_average.lte'] = 9.5;
-    const response = await tmdbApi.get('/discover/tv', {params});
-    return response.data;
+
+  // Step 3: If still no results, try without language filter
+  if (
+    (!result.results || result.results.length === 0) &&
+    with_original_language
+  ) {
+    result = await makeRequest(false, false);
   }
-  const response = await tmdbApi.get(`/tv/${type}`, {
-    params: {
-      page,
-      with_original_language,
-    },
-  });
-  return response.data;
+
+  return result;
 };
 
 export const searchMovies = async (
@@ -114,14 +262,24 @@ export const searchMovies = async (
     return response.data;
   }
 
+  console.log('SEARCH MOVIE', filters);
+
+  const params2 = {
+    query,
+    page,
+    ...filters,
+    sort_by: filters.sort_by || 'popularity.desc',
+    include_adult: false,
+    'vote_count.gte': filters?.['vote_average.lte'] || filters?.sort_by || 200,
+    'vote_average.gte': filters['vote_average.gte'] || 4,
+  };
+
+  console.log('SEARCH MOVIE PARAMS', params2);
+
   // For search queries, we need to use the search endpoint
   // but still respect the sort_by parameter if provided
   let searchResponse = await tmdbApi.get('/search/movie', {
-    params: {
-      query,
-      page,
-      ...filters,
-    },
+    params: params2,
   });
 
   return searchResponse.data;
@@ -150,6 +308,10 @@ export const searchTVShows = async (
       query,
       page,
       ...filters,
+      sort_by: filters.sort_by || 'popularity.desc',
+      include_adult: false,
+      'vote_count.gte': 100,
+      'vote_average.gte': filters['vote_average.gte'] || 4,
     },
   });
 
@@ -331,27 +493,32 @@ export const getTrendingTVShows = async (
   return response.data;
 };
 
-export const discoverMovies = async (params: any = {}, page = 1) => {
+export const discoverMovies = async (filters: any = {}, page = 1) => {
+  const params: any = {
+    page,
+    ...filters,
+    sort_by: filters.sort_by || 'popularity.desc',
+    with_adult: false,
+    include_adult: false,
+  };
+  console.log(params);
+
   const response = await tmdbApi.get('/discover/movie', {
-    params: {
-      page,
-      ...params,
-      with_adult: false,
-      include_adult: false,
-    },
+    params,
   });
   return response.data;
 };
 
-export const discoverTVShows = async (params: any = {}, page = 1) => {
+export const discoverTVShows = async (filters: any = {}, page = 1) => {
+  const params: any = {
+    page,
+    ...filters,
+    sort_by: filters.sort_by || 'popularity.desc',
+    with_adult: false,
+    include_adult: false,
+  };
   const response = await tmdbApi.get('/discover/tv', {
-    params: {
-      page,
-      ...params,
-      with_adult: false,
-      include_adult: false,
-      with_type: params.with_type || '0', // Default to scripted series
-    },
+    params,
   });
   return response.data;
 };
@@ -447,7 +614,7 @@ export const getLanguage = (language: string) => {
 };
 
 export const getContentByGenre = async (
-  genreId: number,
+  genreId: any,
   contentType: 'movie' | 'tv',
   page = 1,
   sortBy:
@@ -482,36 +649,22 @@ export const getContentByGenre = async (
   }
 
   // Add TV-specific filters
-  if (contentType === 'tv') {
+  if (
+    contentType === 'tv' &&
+    params.with_genres !== '10764' &&
+    params.with_genres !== '10767'
+  ) {
     params.without_genres = '10764,10767'; // Exclude reality and talk shows
   }
 
-  try {
-    const response = await tmdbApi.get(endpoint, {params});
-    // Client-side filter for adult content
-    if (Array.isArray(response.data.results)) {
-      response.data.results = response.data.results.filter(
-        (item: any) => !item.adult,
-      );
-    }
-    const responseData = {
-      status: response.status,
-      page: response.data.page,
-      total_pages: response.data.total_pages,
-      total_results: response.data.total_results,
-      results_count: response.data.results?.length,
-      first_result: response.data.results?.[0]?.id,
-    };
-    return response.data;
-  } catch (error: any) {
-    const errorDetails = {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-    };
-    console.error('API call failed:', errorDetails);
-    throw error;
+  const response = await tmdbApi.get(endpoint, {params});
+  // Client-side filter for adult content
+  if (Array.isArray(response.data.results)) {
+    response.data.results = response.data.results.filter(
+      (item: any) => !item.adult,
+    );
   }
+  return response.data;
 };
 
 export const getRegions = async () => {
@@ -582,10 +735,3 @@ export const checkTMDB = async (): Promise<boolean> => {
     return false;
   }
 };
-
-// Client-side filter for adult content in all movie results
-function filterAdult(results: any[]) {
-  return Array.isArray(results)
-    ? results.filter((item: any) => !item.adult)
-    : results;
-}

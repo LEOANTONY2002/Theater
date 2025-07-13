@@ -26,7 +26,7 @@ interface HorizontalListProps {
   isSeeAll?: boolean;
   isTop10?: boolean;
   isFilter?: boolean;
-  isGradient?: boolean;
+  isHeadingSkeleton?: boolean;
 }
 
 // Ensure ContentCard is memoized
@@ -43,7 +43,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     isSeeAll = true,
     isTop10 = false,
     isFilter = false,
-    isGradient = false,
+    isHeadingSkeleton = true,
   }) => {
     // Remove data limit for infinite scroll
     // const limitedData = data.slice(0, 12);
@@ -120,21 +120,6 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
               ? {...styles.itemContainer, marginLeft: spacing.xxl}
               : {...styles.itemContainer}
           }>
-          {isGradient && (
-            <LinearGradient
-              colors={['transparent', colors.background.primary]}
-              style={{
-                width: '100%',
-                height: 200,
-                position: 'absolute',
-                bottom: 0,
-                zIndex: 1,
-                opacity: 0.9,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 10,
-              }}
-            />
-          )}
           <MemoContentCard
             v2={title === 'V2'}
             item={item}
@@ -151,7 +136,6 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
         isTop10,
         title,
         onItemPress,
-        isGradient,
         styles.itemContainer,
         styles.top10,
         styles.top10Number,
@@ -166,7 +150,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     if (!data?.length && isLoading) {
       return (
         <View>
-          <HeadingSkeleton />
+          {isHeadingSkeleton && <HeadingSkeleton />}
           <HorizontalListSkeleton />
         </View>
       );

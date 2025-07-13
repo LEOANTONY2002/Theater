@@ -29,22 +29,24 @@ import {TVShow} from '../types/tvshow';
 import CreateButton from '../components/createButton';
 import {modalStyles} from '../styles/styles';
 import {useNavigationState} from '../hooks/useNavigationState';
+import LinearGradient from 'react-native-linear-gradient';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
 
-const WatchlistSection: React.FC<{
-  watchlistId: string;
-  watchlistName: string;
-  itemCount: number;
-  onWatchlistPress: (watchlistId: string, watchlistName: string) => void;
-  onItemPress: (item: ContentItem) => void;
-}> = ({
+// Child component to render a watchlist and its results
+const WatchlistItemWithResults = ({
   watchlistId,
   watchlistName,
   itemCount,
   onWatchlistPress,
   onItemPress,
+}: {
+  watchlistId: string;
+  watchlistName: string;
+  itemCount: number;
+  onWatchlistPress: (watchlistId: string, watchlistName: string) => void;
+  onItemPress: (item: ContentItem) => void;
 }) => {
   const {data: items = [], isLoading} = useWatchlistItems(watchlistId);
 
@@ -83,40 +85,112 @@ const WatchlistSection: React.FC<{
     }
   });
 
-  return (
-    <View style={styles.watchlistSection}>
-      <View style={styles.watchlistHeader}>
-        <View style={styles.watchlistInfo}>
-          <Text style={styles.watchlistName}>{watchlistName}</Text>
-          {/* <Text style={styles.watchlistCount}>
-            {itemCount} {itemCount === 1 ? 'item' : 'items'}
-          </Text> */}
-        </View>
-        <TouchableOpacity
-          onPress={() => {
-            onWatchlistPress(watchlistId, watchlistName);
-          }}>
-          <Ionicons name="close" size={20} color={colors.text.muted} />
-        </TouchableOpacity>
-      </View>
+  // Calculate content type distribution
+  const movieCount = contentItems.filter(item => item.type === 'movie').length;
+  const tvCount = contentItems.filter(item => item.type === 'tv').length;
 
-      {contentItems.length > 0 ? (
-        <View style={styles.watchlistContent}>
+  return (
+    <View style={{marginBottom: spacing.xl, position: 'relative'}}>
+      <View style={styles.watchlistItem}>
+        <LinearGradient
+          colors={[
+            'transparent',
+            colors.background.primary,
+            colors.background.primary,
+          ]}
+          pointerEvents="none"
+          style={{
+            width: '180%',
+            height: '130%',
+            position: 'absolute',
+            bottom: -25,
+            left: -50,
+            // paddingHorizontal: 10,
+            zIndex: 0,
+            transform: [{rotate: '-15deg'}],
+          }}
+          start={{x: 0, y: 0}}
+          end={{x: 0, y: 1}}
+        />
+        <View style={styles.watchlistHeader}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+            <Text style={styles.watchlistName}>{watchlistName}</Text>
+            <TouchableOpacity
+              style={{
+                alignItems: 'center',
+                padding: 5,
+              }}
+              activeOpacity={0.9}
+              onPress={() => onWatchlistPress(watchlistId, watchlistName)}>
+              <Ionicons
+                name="trash-outline"
+                size={15}
+                color={colors.text.primary}
+              />
+            </TouchableOpacity>
+          </View>
+          {movieCount > 0 || tvCount > 0 ? (
+            <View style={{flexDirection: 'row', gap: 10, alignItems: 'center'}}>
+              {movieCount > 0 && (
+                <Text style={styles.watchlistCount}>
+                  {movieCount} {movieCount === 1 ? 'movie' : 'movies'}
+                </Text>
+              )}
+              {movieCount > 0 && tvCount > 0 && (
+                <Text
+                  style={{
+                    width: 3,
+                    height: 3,
+                    borderRadius: 5,
+                    marginTop: 2,
+                    backgroundColor: colors.text.muted,
+                  }}>
+                  {' '}
+                </Text>
+              )}
+              {tvCount > 0 && (
+                <Text style={styles.watchlistCount}>
+                  {tvCount} {tvCount === 1 ? 'tv show' : 'tv shows'}
+                </Text>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.watchlistCount}>No content</Text>
+          )}
+        </View>
+
+        {/* HorizontalList of watchlist items */}
+        <View style={styles.listContainer}>
           <HorizontalList
-            title=""
+            title={''}
             data={contentItems}
-            onItemPress={onItemPress}
             isLoading={isLoading}
+            onItemPress={onItemPress}
             isSeeAll={false}
+            isFilter={true}
+            isHeadingSkeleton={false}
+          />
+          <LinearGradient
+            colors={['transparent', colors.background.primary]}
+            pointerEvents="none"
+            style={{
+              width: '100%',
+              height: 200,
+              position: 'absolute',
+              bottom: 20,
+              zIndex: 1,
+              opacity: 0.9,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 10,
+            }}
           />
         </View>
-      ) : (
-        <View style={styles.emptyWatchlist}>
-          <Text style={styles.emptyWatchlistTitle}>
-            No items in this watchlist
-          </Text>
-        </View>
-      )}
+      </View>
     </View>
   );
 };
@@ -151,7 +225,7 @@ export const WatchlistsScreen: React.FC = () => {
   const animatedHeaderStyle = {
     marginHorizontal: headerAnim.interpolate({
       inputRange: [0, 40],
-      outputRange: [spacing.lg, spacing.xl],
+      outputRange: [spacing.md, spacing.lg],
       extrapolate: 'clamp',
     }),
     marginBottom: headerAnim.interpolate({
@@ -207,7 +281,7 @@ export const WatchlistsScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{flex: 1}}>
       <Animated.View style={[styles.header, animatedHeaderStyle]}>
         <Animated.View
           style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
@@ -222,53 +296,48 @@ export const WatchlistsScreen: React.FC = () => {
             pointerEvents="none"
           />
         </Animated.View>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons
-            name="chevron-back-outline"
-            size={24}
-            color={colors.text.primary}
-          />
-        </TouchableOpacity>
-        <Text style={styles.title}>Watchlists</Text>
-        {watchlists.length > 0 && (
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => {
-              setShowCreateModal(true);
-            }}>
-            <Ionicons name="add" size={24} color={colors.text.primary} />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            zIndex: 1,
+          }}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.text.primary}
+            />
           </TouchableOpacity>
-        )}
+          <Text style={styles.title}>Watchlists</Text>
+          {watchlists.length > 0 && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setShowCreateModal(true)}>
+              <Ionicons name="add" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </Animated.View>
       <Animated.ScrollView
-        style={styles.content}
+        style={styles.container}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
           {useNativeDriver: false},
         )}>
-        {watchlists.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
-            <Text style={styles.emptyStateText}>
-              Create your first watchlist to start organizing your favorite
-              movies and shows
-            </Text>
-            <CreateButton
-              onPress={() => {
-                setShowCreateModal(true);
-              }}
-              title="Create Your First Watchlist"
-              icon="add"
-            />
+        {isLoading ? (
+          <View>
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading watchlists...</Text>
+            </View>
           </View>
-        ) : (
-          <>
-            <View style={{height: 120}} />
-
+        ) : watchlists.length > 0 ? (
+          <View style={styles.content}>
             {watchlists.map(watchlist => (
-              <WatchlistSection
+              <WatchlistItemWithResults
                 key={watchlist.id}
                 watchlistId={watchlist.id}
                 watchlistName={watchlist.name}
@@ -277,8 +346,20 @@ export const WatchlistsScreen: React.FC = () => {
                 onItemPress={handleItemPress}
               />
             ))}
-            <View style={{height: 100}} />
-          </>
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Create your first watchlist to start organizing your favorite
+              movies and shows
+            </Text>
+            <CreateButton
+              onPress={() => setShowCreateModal(true)}
+              title="Create Your First Watchlist"
+              icon="add"
+            />
+          </View>
         )}
         <Modal
           visible={showCreateModal}
@@ -296,8 +377,8 @@ export const WatchlistsScreen: React.FC = () => {
                 reducedTransparencyFallbackColor={colors.modal.blur}
               />
 
-              <View style={modalStyle.modalHeader}>
-                <Text style={modalStyle.modalTitle}>Create New Watchlist</Text>
+              <View style={modalStyles.modalHeader}>
+                <Text style={modalStyles.modalTitle}>Create New Watchlist</Text>
                 <TouchableOpacity onPress={handleCloseModal}>
                   <Ionicons
                     name="close"
@@ -307,11 +388,11 @@ export const WatchlistsScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              <View style={modalStyle.scrollContent}>
-                <Text style={modalStyle.sectionTitle}>Watchlist Name</Text>
+              <View style={modalStyles.scrollContent}>
+                <Text style={modalStyles.sectionTitle}>Watchlist Name</Text>
                 <TextInput
                   style={[
-                    modalStyle.input,
+                    modalStyles.input,
                     {
                       marginBottom: spacing.lg,
                       height: 50,
@@ -324,17 +405,17 @@ export const WatchlistsScreen: React.FC = () => {
                   placeholderTextColor={colors.text.muted}
                   autoFocus
                 />
-                <View style={modalStyle.footer}>
+                <View style={modalStyles.footer}>
                   <TouchableOpacity
-                    style={[modalStyle.footerButton, modalStyle.resetButton]}
+                    style={[modalStyles.footerButton, modalStyles.resetButton]}
                     onPress={handleCloseModal}>
-                    <Text style={modalStyle.resetButtonText}>Cancel</Text>
+                    <Text style={modalStyles.resetButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[modalStyle.footerButton, modalStyle.applyButton]}
+                    style={[modalStyles.footerButton, modalStyles.applyButton]}
                     onPress={handleCreateWatchlist}
                     disabled={createWatchlistMutation.isPending}>
-                    <Text style={modalStyle.applyButtonText}>
+                    <Text style={modalStyles.applyButtonText}>
                       {createWatchlistMutation.isPending
                         ? 'Creating...'
                         : 'Create'}
@@ -354,6 +435,8 @@ const styles = StyleSheet.create({
   container: {
     height: '100%',
     backgroundColor: colors.background.primary,
+    paddingTop: spacing.xxl,
+    paddingBottom: 200,
     position: 'relative',
   },
   header: {
@@ -370,7 +453,7 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
   title: {
-    flex: 1, // <-- Add this
+    flex: 1,
     textAlign: 'center',
     color: colors.text.primary,
     ...typography.h2,
@@ -386,53 +469,17 @@ const styles = StyleSheet.create({
     width: 40,
     zIndex: 1,
   },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    height: 40,
-    // backgroundColor: colors.modal.blur,
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingTop: 100,
+    paddingBottom: 150,
   },
-  createButtonText: {
-    ...typography.body2,
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  content: {},
-  watchlistSection: {},
-  watchlistHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    zIndex: 10,
-    position: 'relative',
-  },
-  watchlistInfo: {
+  emptyContainer: {
     flex: 1,
-  },
-  watchlistName: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-  },
-  watchlistCount: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  watchlistContent: {
-    marginTop: -40,
-    zIndex: 1,
-  },
-  emptyState: {
-    flex: 1,
-    height: 600,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.lg,
+    marginTop: '60%',
+    paddingBottom: 200,
   },
   emptyStateTitle: {
     ...typography.h3,
@@ -440,48 +487,86 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   emptyStateText: {
-    ...typography.body2,
+    ...typography.body1,
     color: colors.text.secondary,
     textAlign: 'center',
+    width: '80%',
   },
-  emptyStateButton: {
-    backgroundColor: colors.accent,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.lg,
-  },
-  emptyStateButtonText: {
-    ...typography.body2,
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  emptyWatchlist: {
-    flex: 1,
-    justifyContent: 'center',
+  loadingContainer: {
+    padding: spacing.xl,
     alignItems: 'center',
-    padding: spacing.lg,
   },
-  emptyWatchlistTitle: {
-    ...typography.body2,
-    color: colors.text.muted,
+  loadingText: {
+    ...typography.body1,
+    color: colors.text.secondary,
+  },
+  watchlistItem: {
+    backgroundColor: colors.background.tertiary,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    position: 'relative',
+    height: 300,
+    marginBottom: 10,
+    zIndex: 0,
+  },
+  watchlistHeader: {
+    flexDirection: 'column',
     marginBottom: spacing.sm,
-    textAlign: 'center',
+  },
+  watchlistName: {
+    color: colors.text.primary,
+    ...typography.h3,
+  },
+  watchlistCount: {
+    color: colors.text.muted,
+    ...typography.body2,
+  },
+  watchlistContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  card: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.background.card,
+    borderWidth: 1,
+    borderColor: colors.modal.content,
+    borderRadius: borderRadius.md,
+    width: 80,
+    height: 80,
+    padding: spacing.xs,
+    zIndex: 1,
+  },
+  cardText: {
+    color: colors.text.secondary,
+    ...typography.body1,
+  },
+  listContainer: {
+    position: 'relative',
+    width: '120%',
+    overflow: 'scroll',
+    bottom: 10,
+    left: -30,
+    zIndex: 1,
   },
   modalContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.xl,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    marginTop: 60,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    overflow: 'hidden',
     width: '90%',
-    height: 300,
-    borderRadius: borderRadius.xl,
+    height: 310,
+    backgroundColor: colors.modal.active,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    position: 'relative',
   },
 });
-
-const modalStyle: any = modalStyles;

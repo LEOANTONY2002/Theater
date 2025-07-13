@@ -21,7 +21,6 @@ import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
 import CreateButton from '../components/createButton';
 import {HorizontalList} from '../components/HorizontalList';
 import {useSavedFilterContent} from '../hooks/useApp';
-import {useNavigationState} from '../hooks/useNavigationState';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {BlurView} from '@react-native-community/blur';
@@ -74,6 +73,8 @@ const MyFilterItemWithResults = ({
 
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const handleItemPress = (item: any) => {
+    console.log('Item pressed:', item);
+
     if (item.type === 'movie') {
       navigation.push('MovieDetails', {movie: item});
     } else if (item.type === 'tv') {
@@ -88,6 +89,7 @@ const MyFilterItemWithResults = ({
       <View style={styles.filterItem}>
         <LinearGradient
           colors={['transparent', colors.background.primary]}
+          pointerEvents="none"
           style={{
             width: '280%',
             height: '200%',
@@ -110,6 +112,10 @@ const MyFilterItemWithResults = ({
             }}>
             <Text style={styles.filterName}>{filter.name}</Text>
             <TouchableOpacity
+              style={{
+                alignItems: 'center',
+                padding: 5,
+              }}
               activeOpacity={0.9}
               onPress={() => onEdit(filter)}>
               <Ionicons
@@ -263,7 +269,21 @@ const MyFilterItemWithResults = ({
             onEndReached={hasNextFilterPage ? fetchNextFilterPage : undefined}
             isSeeAll={false}
             isFilter={true}
-            isGradient={true}
+            isHeadingSkeleton={false}
+          />
+          <LinearGradient
+            colors={['transparent', colors.background.primary]}
+            pointerEvents="none"
+            style={{
+              width: '100%',
+              height: 200,
+              position: 'absolute',
+              bottom: 20,
+              zIndex: 1,
+              opacity: 0.9,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 10,
+            }}
           />
         </View>
       </View>
@@ -342,10 +362,6 @@ export const MyFiltersScreen = () => {
     },
     [queryClient],
   );
-
-  const getLanguage = (language: string) => {
-    return languageData.find((l: any) => l.iso_639_1 === language);
-  };
 
   const [allGenres, setAllGenres] = useState<Genre[]>([]);
 
@@ -523,7 +539,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.tertiary,
     borderWidth: 1,
     borderBottomWidth: 0,
-    borderColor: colors.modal.blur,
+    borderColor: colors.modal.border,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     position: 'relative',
@@ -583,7 +599,7 @@ const styles = StyleSheet.create({
     ...typography.body2,
   },
   listContainer: {
-    // position: 'absolute',
+    position: 'relative',
     width: '120%',
     overflow: 'scroll',
     bottom: 10,

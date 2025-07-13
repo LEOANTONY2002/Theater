@@ -71,6 +71,8 @@ export const MySpaceScreen = React.memo(() => {
     refetchOnReconnect: true,
   });
 
+  console.log('savedFilters', savedFilters);
+
   const {data: currentRegion} = useQuery<Region>({
     queryKey: ['region'],
     queryFn: SettingsManager.getRegion,

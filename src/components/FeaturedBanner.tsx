@@ -116,14 +116,6 @@ export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
     }
   }, [navigateWithLimit, item, type]);
 
-  if (item?.poster_path === null) {
-    return (
-      <View style={styles.skeletonContainer}>
-        <BannerSkeleton />
-      </View>
-    );
-  }
-
   const handleWatchlistPress = useCallback(async () => {
     if (isInAnyWatchlist && watchlistContainingItem) {
       // If item is already in a watchlist, remove it
@@ -155,15 +147,15 @@ export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
         }}
         style={styles.background}
         resizeMode="cover">
-        {loading && (
+        {/* {loading && (
           <View style={styles.skeletonContainer}>
             <BannerSkeleton />
           </View>
-        )}
+        )} */}
         <LinearGradient
           colors={[
             'transparent',
-            'rgba(1, 1, 21, 0.62)',
+            'rgba(10, 10, 10, 0.62)',
             colors.background.primary,
           ]}
           style={styles.gradient}
@@ -218,9 +210,8 @@ export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
 const styles = StyleSheet.create({
   skeletonContainer: {
     width: width,
-    height: BANNER_HEIGHT,
     position: 'absolute',
-    top: 0,
+    top: -40,
     left: 0,
     zIndex: 0,
   },

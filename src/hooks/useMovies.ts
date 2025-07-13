@@ -9,6 +9,7 @@ import {
   getTrendingMovies,
   discoverMovies,
   getTop10MoviesTodayByRegion,
+  getContentByGenre,
 } from '../services/tmdb';
 import {Movie, MovieDetails, MoviesResponse} from '../types/movie';
 import {FilterParams} from '../types/filters';
@@ -22,7 +23,10 @@ export const useMoviesList = (
 ) => {
   return useInfiniteQuery({
     queryKey: ['movies', type],
-    queryFn: ({pageParam = 1}) => getMovies(type, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getMovies(type, pageParam as number);
+      return result;
+    },
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -80,8 +84,18 @@ export const useMovieRecommendations = (movieId: number) => {
 };
 
 export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
+  const {data: contentLanguages} = useQuery({
+    queryKey: ['content_languages'],
+    queryFn: SettingsManager.getContentLanguages,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   return useInfiniteQuery({
-    queryKey: ['trending_movies', timeWindow],
+    queryKey: [
+      'trending_movies',
+      timeWindow,
+      contentLanguages?.map(lang => lang.iso_639_1).join('|'),
+    ],
     queryFn: ({pageParam = 1}) =>
       getTrendingMovies(timeWindow, pageParam as number),
     getNextPageParam: (lastPage: MoviesResponse) =>
@@ -99,7 +113,7 @@ export const useDiscoverMovies = (params: FilterParams) => {
   return useInfiniteQuery({
     queryKey: ['discover_movies', params],
     queryFn: ({pageParam = 1}) =>
-      discoverMovies({...params, page: pageParam as number}),
+      getContentByGenre(params.with_genres, 'movie', pageParam as number),
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,

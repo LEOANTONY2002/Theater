@@ -27,6 +27,7 @@ import {getImageUrl} from '../services/tmdb';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useScrollOptimization} from '../hooks/useScrollOptimization';
+import {GridListSkeleton, HeadingSkeleton} from '../components/LoadingSkeleton';
 
 type PersonCreditsScreenNavigationProp =
   NativeStackNavigationProp<HomeStackParamList>;
@@ -141,11 +142,27 @@ export const PersonCreditsScreen = () => {
     tvCredits.refetch();
   };
 
+  console.log('person', personDetails);
+
   // Only render content after renderPhase allows it
   if (renderPhase < 1) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.text.muted} />
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>{personName}</Text>
+            {personDetails?.place_of_birth ? (
+              <Text style={styles.subtitle}>
+                {personDetails.place_of_birth}
+              </Text>
+            ) : (
+              <View style={{marginLeft: -spacing.md, marginTop: spacing.xs}}>
+                <HeadingSkeleton />
+              </View>
+            )}
+          </View>
+        </View>
+        <GridListSkeleton />
       </View>
     );
   }
@@ -198,7 +215,9 @@ export const PersonCreditsScreen = () => {
           <View style={styles.header}>
             <View style={styles.titleContainer}>
               <Text style={styles.title}>{personName}</Text>
-              <Text style={styles.subtitle}>Movies & TV Shows</Text>
+              <Text style={styles.subtitle}>
+                {personDetails?.place_of_birth}
+              </Text>
             </View>
           </View>
         }
@@ -296,6 +315,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   fullScreenLoader: {
+    flex: 1,
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
@@ -341,7 +361,6 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.background.primary,
   },
 });

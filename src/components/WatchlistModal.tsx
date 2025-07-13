@@ -130,6 +130,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
           <BlurView
             style={StyleSheet.absoluteFill}
             blurType="dark"
+            blurRadius={10}
             blurAmount={20}
             overlayColor={colors.modal.blur}
           />

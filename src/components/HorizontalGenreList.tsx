@@ -28,24 +28,12 @@ interface HorizontalGenreListProps {
 
 export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = memo(
   ({title, data, onItemPress, isLoading}) => {
-    // Limit genres to 8
-    const limitedData = data.slice(0, 8);
     const renderItem = useCallback(
       ({item, index}: {item: Genre; index: number}) => (
         <TouchableOpacity
           style={{...styles.tag, backgroundColor: tagGradientColors[index]}}
           activeOpacity={0.9}
           onPress={() => onItemPress(item)}>
-          {/* <LinearGradient
-            colors={[
-              tagGradientColors[index],
-              colors.modal.blur,
-              // tagGradientColors[index],
-            ]}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.tagGradient}
-          /> */}
           <Text style={styles.tagBgText}>{item?.name.slice(0, 2)}</Text>
           <Text style={styles.tagText} numberOfLines={2}>
             {item?.name}
@@ -74,7 +62,7 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = memo(
         />
         <FlatList
           horizontal
-          data={limitedData}
+          data={data}
           renderItem={renderItem}
           keyExtractor={item => item.id.toString()}
           showsHorizontalScrollIndicator={false}
