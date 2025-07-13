@@ -85,7 +85,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} pointerEvents="none">
       <Text style={styles.title}>Performance Monitor</Text>
       <Text style={styles.text}>Screen: {screenName}</Text>
       <Text style={styles.text}>Render: {renderTime.toFixed(2)}ms</Text>

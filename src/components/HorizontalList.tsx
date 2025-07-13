@@ -149,7 +149,13 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
 
     if (!data?.length && isLoading) {
       return (
-        <View>
+        <View
+          style={
+            !isHeadingSkeleton && {
+              marginTop: spacing.md,
+              marginLeft: spacing.md,
+            }
+          }>
           {isHeadingSkeleton && <HeadingSkeleton />}
           <HorizontalListSkeleton />
         </View>

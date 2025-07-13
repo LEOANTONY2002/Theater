@@ -4,7 +4,7 @@ export const colors = {
   tertiary: '#4DCFFF',
   accent: '#FFFFFF',
   background: {
-    primary: 'rgb(0, 0, 7)',
+    primary: '#000007',
     secondary: 'rgba(255, 255, 255, 0.08)',
     tertiary: 'rgba(255, 255, 255, 0.03)',
     card: 'rgba(255, 255, 255, 0.05)',
