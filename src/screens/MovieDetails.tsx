@@ -54,6 +54,8 @@ import {useDeepNavigationProtection} from '../hooks/useDeepNavigationProtection'
 import {useQueryClient} from '@tanstack/react-query';
 import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
+import {getSimilarByStory} from '../services/groq';
+import {fetchMoviesByIds} from '../services/tmdb';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -90,10 +92,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const {navigateWithLimit} = useNavigationState();
   const {isDeepNavigation} = useDeepNavigationProtection();
   const queryClient = useQueryClient();
-  const cinema = true;
+  const cinema = false;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  const [aiSimilarMovies, setAiSimilarMovies] = useState<any[]>([]);
+  const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
 
   // Progressive loading like home screen
   useEffect(() => {
@@ -168,6 +172,31 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
 
   const {data: watchProviders} = useWatchProviders(movie.id, 'movie');
+
+  useEffect(() => {
+    async function fetchAiSimilar() {
+      if (movieDetails?.overview && movieDetails?.title) {
+        setIsLoadingAiSimilar(true);
+        try {
+          const ids = await getSimilarByStory({
+            title: movieDetails.title,
+            overview: movieDetails.overview,
+          });
+          if (Array.isArray(ids) && ids.length > 0) {
+            const movies = await fetchMoviesByIds(ids);
+            setAiSimilarMovies(movies);
+          } else {
+            setAiSimilarMovies([]);
+          }
+        } catch {
+          setAiSimilarMovies([]);
+        } finally {
+          setIsLoadingAiSimilar(false);
+        }
+      }
+    }
+    fetchAiSimilar();
+  }, [movieDetails?.overview, movieDetails?.title]);
 
   const handleWatchlistPress = useCallback(async () => {
     if (isInWatchlist && watchlistContainingItem) {
@@ -465,16 +494,29 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 <WatchProviders providers={watchProviders} />
               ) : null;
             case 'similar':
-              return similarMoviesData.length > 0 ? (
-                <View>
-                  <HorizontalList
-                    title="Similar Movies"
-                    data={similarMoviesData}
-                    onItemPress={handleItemPress}
-                    isSeeAll={false}
-                  />
-                </View>
-              ) : null;
+              return (
+                <>
+                  {Array.isArray(aiSimilarMovies) &&
+                    aiSimilarMovies.length > 0 && (
+                      <HorizontalList
+                        title="AI Similar Movies"
+                        data={aiSimilarMovies}
+                        onItemPress={handleItemPress}
+                        isSeeAll={false}
+                      />
+                    )}
+                  {similarMoviesData.length > 0 ? (
+                    <View>
+                      <HorizontalList
+                        title="Similar Movies"
+                        data={similarMoviesData}
+                        onItemPress={handleItemPress}
+                        isSeeAll={false}
+                      />
+                    </View>
+                  ) : null}
+                </>
+              );
             case 'recommendations':
               return recommendationsData.length > 0 ? (
                 <View style={{marginBottom: 100}}>

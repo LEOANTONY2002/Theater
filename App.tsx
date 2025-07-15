@@ -6,16 +6,9 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {
-  LogBox,
-  StatusBar,
-  AppState,
-  InteractionManager,
-  DevSettings,
-} from 'react-native';
+import {LogBox, StatusBar, AppState, DevSettings} from 'react-native';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
-import {LoadingScreen} from './src/components/LoadingScreen';
 import {PerformanceMonitor} from './src/components/PerformanceMonitor';
 import {detectRegion} from './src/services/regionDetection';
 import {getRegions, checkTMDB} from './src/services/tmdb';
@@ -90,9 +83,9 @@ const App = () => {
   return (
     <>
       <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="light-content" backgroundColor="#0A0A1A" />
+        <StatusBar barStyle="light-content" backgroundColor="#000007" />
         <AppNavigator />
-        <PerformanceMonitor screenName="AppRoot" />
+        {/* <PerformanceMonitor screenName="AppRoot" /> */}
         {(() => {
           // Make queryClient globally accessible for monitoring
           (global as any).queryClient = queryClient;

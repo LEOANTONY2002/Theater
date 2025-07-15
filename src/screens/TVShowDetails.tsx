@@ -53,6 +53,8 @@ import {
 import {FlashList} from '@shopify/flash-list';
 import Cinema from '../components/Cinema';
 import ServerModal from '../components/ServerModal';
+import {getSimilarByStory} from '../services/groq';
+import {fetchTVShowsByIds} from '../services/tmdb';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -80,12 +82,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
-  const cinema = true;
+  const cinema = false;
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  const [aiSimilarShows, setAiSimilarShows] = useState<any[]>([]);
+  const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
 
   const {
     data: similarShows,
@@ -150,6 +154,31 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       }
     }
   }, [showDetails, selectedSeason]);
+
+  useEffect(() => {
+    async function fetchAiSimilar() {
+      if (showDetails?.overview && showDetails?.name) {
+        setIsLoadingAiSimilar(true);
+        try {
+          const ids = await getSimilarByStory({
+            title: showDetails.name,
+            overview: showDetails.overview,
+          });
+          if (Array.isArray(ids) && ids.length > 0) {
+            const shows = await fetchTVShowsByIds(ids);
+            setAiSimilarShows(shows);
+          } else {
+            setAiSimilarShows([]);
+          }
+        } catch {
+          setAiSimilarShows([]);
+        } finally {
+          setIsLoadingAiSimilar(false);
+        }
+      }
+    }
+    fetchAiSimilar();
+  }, [showDetails?.overview, showDetails?.name]);
 
   const trailer = showDetails?.videos.results.find(
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
@@ -605,6 +634,18 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             isLoading={isFetchingRecommended}
             isSeeAll={false}
           />
+        )}
+        {showDetails && (
+          <>
+            {Array.isArray(aiSimilarShows) && aiSimilarShows.length > 0 && (
+              <HorizontalList
+                title="AI Similar TV Shows"
+                data={aiSimilarShows}
+                onItemPress={handleItemPress}
+                isSeeAll={false}
+              />
+            )}
+          </>
         )}
         <View style={{height: 100}} />
       </ScrollView>

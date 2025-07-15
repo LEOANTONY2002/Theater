@@ -735,3 +735,25 @@ export const checkTMDB = async (): Promise<boolean> => {
     return false;
   }
 };
+
+export async function fetchMoviesByIds(ids: number[]) {
+  return Promise.all(
+    ids.map(id =>
+      tmdbApi
+        .get(`/movie/${id}`)
+        .then(res => res.data)
+        .catch(() => null),
+    ),
+  ).then(results => results.filter(Boolean));
+}
+
+export async function fetchTVShowsByIds(ids: number[]) {
+  return Promise.all(
+    ids.map(id =>
+      tmdbApi
+        .get(`/tv/${id}`)
+        .then(res => res.data)
+        .catch(() => null),
+    ),
+  ).then(results => results.filter(Boolean));
+}

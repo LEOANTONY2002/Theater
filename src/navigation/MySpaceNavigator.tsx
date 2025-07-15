@@ -8,12 +8,14 @@ import {SearchScreen} from '../screens/Search';
 import {WatchlistsScreen} from '../screens/Watchlists';
 import {MySpaceStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
+import {OnlineAIScreen} from '../screens/OnlineAIScreen';
 
 const Stack = createNativeStackNavigator<MySpaceStackParamList>();
 
 export const MySpaceNavigator = () => {
   return (
     <Stack.Navigator
+      initialRouteName="MySpaceScreen"
       screenOptions={{
         headerShown: false,
         contentStyle: {
@@ -62,6 +64,14 @@ export const MySpaceNavigator = () => {
         component={SearchScreen}
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="OnlineAIScreen"
+        component={OnlineAIScreen}
+        options={{
+          headerShown: false,
+          title: 'Ask AI',
         }}
       />
     </Stack.Navigator>

@@ -107,6 +107,7 @@ export type MySpaceStackParamList = {
   WatchlistDetails: {
     watchlistId: string;
   };
+  OnlineAIScreen: undefined;
 };
 
 export type TabParamList = {

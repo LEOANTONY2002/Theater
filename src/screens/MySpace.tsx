@@ -12,9 +12,7 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {CompositeNavigationProp} from '@react-navigation/native';
-import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
-import {TabParamList, MySpaceStackParamList} from '../types/navigation';
+import {MySpaceStackParamList} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
@@ -39,10 +37,8 @@ import {useWatchlists} from '../hooks/useWatchlists';
 import {Watchlist} from '../store/watchlists';
 import {useNavigationState} from '../hooks/useNavigationState';
 
-type MySpaceScreenNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<TabParamList, 'MySpace'>,
-  NativeStackNavigationProp<MySpaceStackParamList>
->;
+type MySpaceScreenNavigationProp =
+  NativeStackNavigationProp<MySpaceStackParamList>;
 
 interface Region {
   iso_3166_1: string;
@@ -207,6 +203,47 @@ export const MySpaceScreen = React.memo(() => {
 
       <TouchableOpacity
         style={styles.headerContainer}
+        onPress={() => navigateWithLimit('MyFiltersScreen')}
+        testID="myFiltersButton">
+        <Text style={styles.sectionTitle}>My Filters</Text>
+        <Ionicons
+          name="chevron-forward"
+          size={14}
+          color={colors.text.primary}
+        />
+      </TouchableOpacity>
+
+      {isLoadingFilters ? (
+        <View style={{paddingBottom: spacing.md}}>
+          <LanguageSkeleton />
+        </View>
+      ) : savedFilters.length > 0 ? (
+        <View
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 10,
+            flexWrap: 'nowrap',
+            overflow: 'scroll',
+            paddingHorizontal: spacing.md,
+            paddingBottom: spacing.md,
+          }}>
+          {savedFilters.map(filter => (
+            <View key={filter.id} style={styles.tag}>
+              <LinearGradient
+                colors={colors.gradient.primary}
+                style={styles.tagGradient}
+              />
+              <Text style={styles.tagText} numberOfLines={1}>
+                {filter.name}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        style={styles.headerContainer}
         onPress={() => setShowRegionModal(true)}>
         <Text style={styles.sectionTitle}>Region</Text>
         <View style={styles.regionInfo}>
@@ -261,47 +298,44 @@ export const MySpaceScreen = React.memo(() => {
         ) : null}
       </View>
 
-      <TouchableOpacity
-        style={styles.headerContainer}
-        onPress={() => navigateWithLimit('MyFiltersScreen')}
-        testID="myFiltersButton">
-        <Text style={styles.sectionTitle}>My Filters</Text>
-        <Ionicons
-          name="chevron-forward"
-          size={14}
-          color={colors.text.primary}
+      {/* Ask AI Section */}
+      <View style={{position: 'relative', overflow: 'hidden'}}>
+        <LinearGradient
+          colors={['rgb(83, 16, 63)', 'rgb(64, 16, 83)']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: spacing.md,
+            right: spacing.md,
+            bottom: 15,
+            borderRadius: 12,
+            zIndex: -1,
+          }}
         />
-      </TouchableOpacity>
-
-      {isLoadingFilters ? (
-        <LanguageSkeleton />
-      ) : savedFilters.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tagContainer}
-          contentContainerStyle={styles.tagContent}>
-          {savedFilters.map(filter => (
-            <TouchableOpacity
-              key={filter.id}
-              style={styles.tag}
-              onPress={() => handleFilterPress(filter)}>
-              <LinearGradient
-                colors={colors.gradient.primary}
-                style={styles.tagGradient}
-              />
-              <Text style={styles.tagText} numberOfLines={1}>
-                {filter.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={styles.addTag}
-            onPress={() => navigateWithLimit('MyFiltersScreen')}>
-            <Ionicons name="add" size={30} color={'rgba(255, 255, 255, 0.3)'} />
-          </TouchableOpacity>
-        </ScrollView>
-      ) : null}
+        <TouchableOpacity
+          style={[
+            styles.headerContainer,
+            {
+              backgroundColor: 'rgba(19, 19, 25, 0.92)',
+              borderRadius: borderRadius.md,
+              padding: spacing.md,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              borderWidth: 3,
+              borderColor: colors.modal.blur,
+            },
+          ]}
+          onPress={() => navigateWithLimit('OnlineAIScreen')}
+          testID="askAIHeader">
+          <Text style={[styles.sectionTitle, {color: colors.accent}]}>
+            Theater AI
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.accent} />
+        </TouchableOpacity>
+      </View>
 
       <Modal
         visible={showLanguageModal}
