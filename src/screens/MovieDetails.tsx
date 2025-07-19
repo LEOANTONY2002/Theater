@@ -92,7 +92,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const {navigateWithLimit} = useNavigationState();
   const {isDeepNavigation} = useDeepNavigationProtection();
   const queryClient = useQueryClient();
-  const cinema = false;
+  const cinema = true;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -181,10 +181,18 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           const ids = await getSimilarByStory({
             title: movieDetails.title,
             overview: movieDetails.overview,
+            type: 'movie',
           });
           if (Array.isArray(ids) && ids.length > 0) {
-            const movies = await fetchMoviesByIds(ids);
-            setAiSimilarMovies(movies);
+            const tmdbMovies = await fetchMoviesByIds(ids);
+            const mapped = tmdbMovies
+              .filter((m: any) => m && m.poster_path)
+              .map((m: any) => ({
+                id: m.id,
+                poster_path: m.poster_path,
+                type: 'movie',
+              }));
+            setAiSimilarMovies(mapped);
           } else {
             setAiSimilarMovies([]);
           }

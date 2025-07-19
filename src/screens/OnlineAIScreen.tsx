@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {cinemaChat} from '../services/groq';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Markdown from 'react-native-markdown-display';
+import {BlurView} from '@react-native-community/blur';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -25,6 +27,18 @@ export const OnlineAIScreen: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const [animatedContent, setAnimatedContent] = useState('');
+  const flatListRef = useRef<FlatList>(null);
+
+  // Scroll to bottom when messages change or animation updates
+  useEffect(() => {
+    if (flatListRef.current && (messages.length > 0 || animating)) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({animated: true});
+      }, 100);
+    }
+  }, [messages, animating, animatedContent]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -33,16 +47,33 @@ export const OnlineAIScreen: React.FC = () => {
     setMessages(newMessages);
     setInput('');
     setLoading(true);
+    setAnimating(false);
+    setAnimatedContent('');
     try {
       const response = await cinemaChat(newMessages);
-      const assistantMessage: Message = {role: 'assistant', content: response};
-      setMessages([...newMessages, assistantMessage]);
+      setAnimating(true);
+      let i = 0;
+      const step = 100; // Number of characters to reveal per frame
+      function animate() {
+        setAnimatedContent(response.slice(0, i));
+        if (i <= response.length) {
+          i += step;
+          // setTimeout(animate, 1);
+        } else {
+          setAnimating(false);
+          setMessages([...newMessages, {role: 'assistant', content: response}]);
+          setAnimatedContent('');
+        }
+      }
+      animate();
     } catch (e) {
       const errorMessage: Message = {
         role: 'assistant',
         content: 'Sorry, there was an error.',
       };
       setMessages([...newMessages, errorMessage]);
+      setAnimating(false);
+      setAnimatedContent('');
     } finally {
       setLoading(false);
     }
@@ -54,11 +85,18 @@ export const OnlineAIScreen: React.FC = () => {
         styles.message,
         item.role === 'user' ? styles.user : styles.assistant,
       ]}>
-      <Text style={item.role === 'user' ? styles.userText : styles.messageText}>
-        {item.content}
-      </Text>
+      {item.role === 'user' ? (
+        <Text style={styles.userText}>{item.content}</Text>
+      ) : (
+        <Markdown style={{body: styles.messageText}}>{item.content}</Markdown>
+      )}
     </View>
   );
+
+  // Use displayMessages for FlatList data
+  const displayMessages: Message[] = animating
+    ? [...messages, {role: 'assistant', content: animatedContent} as Message]
+    : messages;
 
   return (
     <KeyboardAvoidingView
@@ -90,10 +128,11 @@ export const OnlineAIScreen: React.FC = () => {
       />
 
       <FlatList
-        data={messages}
+        ref={flatListRef}
+        data={displayMessages}
         renderItem={renderItem}
         keyExtractor={(_, idx) => idx.toString()}
-        contentContainerStyle={styles.chat}
+        contentContainerStyle={[styles.chat]}
         ListEmptyComponent={
           <View
             style={{
@@ -111,14 +150,28 @@ export const OnlineAIScreen: React.FC = () => {
               Start chatting with our AI assistant!
             </Text>
             <Text style={{color: colors.modal.active, fontSize: 14}}>
-              Ask us anything about movies, TV shows, and more!
+              Ask me anything about movies, TV shows, and more!
             </Text>
           </View>
         }
       />
       {loading && (
-        <ActivityIndicator style={{margin: 8}} color={colors.accent} />
+        <ActivityIndicator
+          style={{margin: 8}}
+          color={'rgba(181, 12, 233, 0.61)'}
+        />
       )}
+      <LinearGradient
+        colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.34)']}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 120,
+        }}
+      />
+
       <View
         style={{
           position: 'absolute',
@@ -129,8 +182,22 @@ export const OnlineAIScreen: React.FC = () => {
           borderRadius: 50,
           overflow: 'hidden',
         }}>
+        <BlurView
+          blurAmount={10}
+          blurRadius={5}
+          blurType="light"
+          overlayColor={colors.modal.blur}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: 50,
+          }}
+        />
         <LinearGradient
-          colors={['rgb(83, 16, 63)', 'rgb(64, 16, 83)']}
+          colors={['rgba(83, 16, 63, 0.5)', 'rgba(64, 16, 83, 0.39)']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={{
@@ -157,7 +224,16 @@ export const OnlineAIScreen: React.FC = () => {
             style={styles.sendButton}
             onPress={sendMessage}
             disabled={loading || !input.trim()}>
-            <Icon name="send" size={24} color={colors.text.primary} />
+            <Icon
+              name="send"
+              disabled={loading || !input.trim()}
+              size={24}
+              color={
+                loading || !input.trim()
+                  ? colors.modal.active
+                  : colors.text.primary
+              }
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -173,29 +249,30 @@ const styles = StyleSheet.create({
   },
   chat: {
     padding: spacing.md,
+    paddingTop: 70,
     paddingBottom: 120,
-    paddingTop: 40,
     gap: spacing.md,
   },
   message: {
     marginBottom: spacing.sm,
     padding: spacing.md,
-    borderRadius: borderRadius.md,
     maxWidth: '80%',
   },
   user: {
     alignSelf: 'flex-end',
-    backgroundColor: colors.accent,
+    backgroundColor: 'rgba(229, 202, 242, 0.66)',
     color: colors.background.primary,
+    borderRadius: borderRadius.xl,
   },
   assistant: {
     alignSelf: 'flex-start',
     backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.xl,
   },
   userText: {
     color: colors.background.primary,
     ...typography.body2,
+    fontWeight: 500,
   },
   messageText: {
     color: colors.text.primary,
@@ -207,8 +284,8 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     backgroundColor: colors.modal.background,
     borderRadius: 50,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   input: {
     flex: 1,

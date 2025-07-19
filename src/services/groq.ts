@@ -2,7 +2,7 @@ import {Platform} from 'react-native';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_API_KEY = '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';
-const MODEL = 'llama3-8b-8192';
+const MODEL = 'meta-llama/llama-4-maverick-17b-128e-instruct';
 
 async function callGroq(messages: any[]) {
   const response = await fetch(GROQ_API_URL, {
@@ -27,18 +27,22 @@ async function callGroq(messages: any[]) {
 export async function getSimilarByStory({
   title,
   overview,
+  type,
 }: {
   title: string;
   overview: string;
+  type: 'movie' | 'tv';
 }) {
   const system = {
     role: 'system',
-    content:
-      'You are a movie/TV recommender. Given a title and overview, look into the overview closely, the story line of the resulted movie/show should be similar, return a JSON array of up to 10 similar movies or TV shows from TMDB, using only their TMDB IDs or the TMDB response structure. Do not include any explanation or extra text.',
+    content: `You are a movie/TV recommender. 
+      Given a title and story, look into the story closely, the story line of the resulted movie/show should be similar, 
+      return a JSON array of id up to 5 similar movies or TV shows from TMDB. 
+      Do not include any explanation or extra text. Just return the JSON array.`,
   };
   const user = {
     role: 'user',
-    content: `Title: ${title}\nOverview: ${overview}`,
+    content: `Title: ${title}\nStory: ${overview}\nType: ${type}`,
   };
   const result = await callGroq([system, user]);
   console.log('Groq AI similar response:', result);

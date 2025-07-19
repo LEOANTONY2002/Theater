@@ -301,7 +301,7 @@ export const MySpaceScreen = React.memo(() => {
       {/* Ask AI Section */}
       <View style={{position: 'relative', overflow: 'hidden'}}>
         <LinearGradient
-          colors={['rgb(83, 16, 63)', 'rgb(64, 16, 83)']}
+          colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={{

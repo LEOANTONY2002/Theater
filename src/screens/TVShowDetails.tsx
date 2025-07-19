@@ -82,7 +82,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
-  const cinema = false;
+  const cinema = true;
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -163,6 +163,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           const ids = await getSimilarByStory({
             title: showDetails.name,
             overview: showDetails.overview,
+            type: 'tv',
           });
           if (Array.isArray(ids) && ids.length > 0) {
             const shows = await fetchTVShowsByIds(ids);
