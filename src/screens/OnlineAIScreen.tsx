@@ -17,13 +17,23 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Markdown from 'react-native-markdown-display';
 import {BlurView} from '@react-native-community/blur';
+import {fetchMoviesByIds, fetchTVShowsByIds} from '../services/tmdb';
+import {useNavigation} from '@react-navigation/native';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  tmdbResults?: Array<{
+    id: number;
+    type: string;
+    poster_path?: string;
+    title: string;
+    year: number;
+  }>;
 }
 
 export const OnlineAIScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,23 +60,131 @@ export const OnlineAIScreen: React.FC = () => {
     setAnimating(false);
     setAnimatedContent('');
     try {
-      const response = await cinemaChat(newMessages);
+      const groqMessages = newMessages.map(({role, content}) => ({
+        role,
+        content,
+      }));
+      const response = await cinemaChat(groqMessages);
+      console.log('AI response:', response);
+      let tmdbResults:
+        | Array<{id: number; type: string; poster_path?: string}>
+        | undefined = undefined;
+      let text = response;
+      // Extract all TMDB_CONTENT_RESULTS arrays in the response
+      const allMatches = [
+        ...response.matchAll(/TMDB_CONTENT_RESULTS=\[(.*?)\]/gs),
+      ];
+      let arr = [];
+      if (allMatches.length > 0) {
+        try {
+          let arrStr = `[${allMatches[allMatches.length - 1][1]}]`;
+          // Fix single-quoted titles (e.g., {title: ''96', ...})
+          arrStr = arrStr.replace(
+            /title: ?'([^']*)'/g,
+            (m, p1) => `title: "${p1.replace(/"/g, '"')}"`,
+          );
+          arrStr = arrStr.replace(/'/g, '"');
+          arrStr = arrStr.replace(/([{,])\s*(\w+)\s*:/g, '$1"$2":');
+          const arr = JSON.parse(arrStr);
+          // For each item, search TMDB by title, year, and type
+          const tmdbResults: Array<{
+            id: number;
+            type: string;
+            poster_path?: string;
+            title: string;
+            year: number;
+          }> = [];
+          for (const item of arr) {
+            let found = null;
+            if (item.type === 'movie') {
+              const res = await fetch(
+                `https://api.themoviedb.org/3/search/movie?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                  item.title,
+                )}&year=${item.year}`,
+              );
+              const data = await res.json();
+              found =
+                data.results && data.results.length > 0
+                  ? data.results[0]
+                  : null;
+            } else if (item.type === 'tv') {
+              const res = await fetch(
+                `https://api.themoviedb.org/3/search/tv?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                  item.title,
+                )}&first_air_date_year=${item.year}`,
+              );
+              const data = await res.json();
+              found =
+                data.results && data.results.length > 0
+                  ? data.results[0]
+                  : null;
+            }
+            if (found) {
+              tmdbResults.push({
+                id: found.id,
+                type: item.type,
+                poster_path: found.poster_path,
+                title: found.title || found.name || item.title,
+                year: item.year,
+              });
+            } else {
+              tmdbResults.push({
+                id: 0,
+                type: item.type,
+                poster_path: undefined,
+                title: item.title,
+                year: item.year,
+              });
+            }
+          }
+          text = response
+            .replace(allMatches[allMatches.length - 1][0], '')
+            .trim();
+          console.log('Extracted TMDB results:', tmdbResults);
+          setAnimating(true);
+          let i = 0;
+          const step = 100; // Number of characters to reveal per frame
+          function animate() {
+            setAnimatedContent(text.slice(0, i));
+            if (i <= text.length) {
+              i += step;
+              setTimeout(animate, 1);
+            } else {
+              setAnimating(false);
+              setMessages([
+                ...newMessages,
+                {role: 'assistant', content: text, tmdbResults} as Message,
+              ]);
+              setAnimatedContent('');
+            }
+          }
+          animate();
+          return;
+        } catch (e) {
+          console.log('Failed to parse TMDB results:', e);
+        }
+      }
       setAnimating(true);
       let i = 0;
       const step = 100; // Number of characters to reveal per frame
       function animate() {
-        setAnimatedContent(response.slice(0, i));
-        if (i <= response.length) {
+        setAnimatedContent(text.slice(0, i));
+        if (i <= text.length) {
           i += step;
-          // setTimeout(animate, 1);
+          setTimeout(animate, 1);
         } else {
           setAnimating(false);
-          setMessages([...newMessages, {role: 'assistant', content: response}]);
+          setMessages([
+            ...newMessages,
+            {role: 'assistant', content: text, tmdbResults} as Message,
+          ]);
           setAnimatedContent('');
         }
       }
       animate();
     } catch (e) {
+      console.log(e);
+
       const errorMessage: Message = {
         role: 'assistant',
         content: 'Sorry, there was an error.',
@@ -79,19 +197,79 @@ export const OnlineAIScreen: React.FC = () => {
     }
   };
 
-  const renderItem = ({item}: {item: Message}) => (
-    <View
-      style={[
-        styles.message,
-        item.role === 'user' ? styles.user : styles.assistant,
-      ]}>
-      {item.role === 'user' ? (
-        <Text style={styles.userText}>{item.content}</Text>
-      ) : (
-        <Markdown style={{body: styles.messageText}}>{item.content}</Markdown>
-      )}
-    </View>
-  );
+  const renderItem = ({item, index}: {item: Message; index: number}) => {
+    // Check if this is the last message and from AI
+    const isLast =
+      index === displayMessages.length - 1 && item.role === 'assistant';
+    return (
+      <View style={isLast && {marginBottom: 120}}>
+        <View
+          style={[
+            styles.message,
+            item.role === 'user' ? styles.user : styles.assistant,
+          ]}>
+          {item.role === 'user' ? (
+            <Text style={styles.userText}>{item.content}</Text>
+          ) : (
+            <Markdown style={{body: styles.messageText}}>
+              {item.content}
+            </Markdown>
+          )}
+        </View>
+        {item.tmdbResults && item.tmdbResults.length > 0 && (
+          <FlatList
+            data={item.tmdbResults}
+            horizontal
+            keyExtractor={m => m.title + m.year + m.type}
+            renderItem={({item: media}) =>
+              media.poster_path ? (
+                <TouchableOpacity
+                  style={{margin: 8}}
+                  activeOpacity={1}
+                  onPress={() => {
+                    const nav: any = navigation;
+                    if (media.type === 'movie') {
+                      nav.navigate('MovieDetails', {
+                        movie: {
+                          id: media.id,
+                          title: media.title,
+                          poster_path: media.poster_path,
+                        },
+                      });
+                    } else if (media.type === 'tv') {
+                      nav.navigate('TVShowDetails', {
+                        show: {
+                          id: media.id,
+                          name: media.title,
+                          poster_path: media.poster_path,
+                        },
+                      });
+                    }
+                  }}>
+                  <Image
+                    source={{
+                      uri: `https://image.tmdb.org/t/p/w154${media.poster_path}`,
+                    }}
+                    style={{
+                      width: 100,
+                      height: 150,
+                      borderRadius: 8,
+                      backgroundColor: colors.modal.blur,
+                    }}
+                  />
+                  {/* <Text style={{color: '#fff', width: 100}} numberOfLines={2}>
+                    {media.title} ({media.year})
+                  </Text> */}
+                </TouchableOpacity>
+              ) : null
+            }
+            style={{marginTop: 12}}
+            showsHorizontalScrollIndicator={false}
+          />
+        )}
+      </View>
+    );
+  };
 
   // Use displayMessages for FlatList data
   const displayMessages: Message[] = animating
@@ -156,10 +334,12 @@ export const OnlineAIScreen: React.FC = () => {
         }
       />
       {loading && (
-        <ActivityIndicator
-          style={{margin: 8}}
-          color={'rgba(181, 12, 233, 0.61)'}
-        />
+        <View style={{marginBottom: 120}}>
+          <ActivityIndicator
+            style={{margin: 8}}
+            color={'rgba(181, 12, 233, 0.61)'}
+          />
+        </View>
       )}
       <LinearGradient
         colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.34)']}
@@ -250,7 +430,6 @@ const styles = StyleSheet.create({
   chat: {
     padding: spacing.md,
     paddingTop: 70,
-    paddingBottom: 120,
     gap: spacing.md,
   },
   message: {

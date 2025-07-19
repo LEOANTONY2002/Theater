@@ -315,10 +315,11 @@ export const MySpaceScreen = React.memo(() => {
           }}
         />
         <TouchableOpacity
+          activeOpacity={0.8}
           style={[
             styles.headerContainer,
             {
-              backgroundColor: 'rgba(19, 19, 25, 0.92)',
+              backgroundColor: 'rgba(19, 19, 25, 0.98)',
               borderRadius: borderRadius.md,
               padding: spacing.md,
               alignItems: 'center',

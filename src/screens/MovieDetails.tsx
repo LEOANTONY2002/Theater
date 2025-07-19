@@ -181,6 +181,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           const ids = await getSimilarByStory({
             title: movieDetails.title,
             overview: movieDetails.overview,
+            genres:
+              movieDetails?.genres?.map((g: Genre) => g?.name).join(', ') || '',
             type: 'movie',
           });
           if (Array.isArray(ids) && ids.length > 0) {
@@ -410,8 +412,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           onPress={() => {
                             setIsServerModalOpen(true);
                           }}
-                          style={styles.watchButton}
+                          style={{...styles.watchButton}}
                           textStyle={styles.watchButtonText}
+                          v2
                         />
                       ) : (
                         <GradientButton
@@ -484,7 +487,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             handlePersonPress(person.id, person.name)
                           }
                         />
-                        <Text style={styles.castName} numberOfLines={2}>
+                        <Text style={styles.castName} numberOfLines={1}>
                           {person.name}
                         </Text>
                         <Text style={styles.character} numberOfLines={1}>

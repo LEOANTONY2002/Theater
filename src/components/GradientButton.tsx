@@ -18,6 +18,7 @@ interface GradientButtonProps {
   disabled?: boolean;
   fullWidth?: boolean;
   isIcon?: boolean;
+  v2?: boolean;
 }
 
 export const GradientButton: React.FC<GradientButtonProps> = ({
@@ -28,6 +29,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   disabled = false,
   fullWidth = true,
   isIcon = true,
+  v2 = false,
 }) => {
   const styles = StyleSheet.create({
     container: {
@@ -51,7 +53,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
       borderRadius: 8,
     },
     text: {
-      color: colors.text.primary,
+      color: !v2 ? colors.text.primary : colors.background.primary,
       fontSize: 16,
       fontWeight: '600',
       textAlign: 'center',
@@ -63,6 +65,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
 
   return (
     <TouchableOpacity
+      activeOpacity={0.8}
       onPress={onPress}
       disabled={disabled}
       style={[
@@ -71,12 +74,20 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
         {width: fullWidth ? '100%' : 200},
       ]}>
       <LinearGradient
-        colors={[colors.primary, colors.secondary]}
+        colors={
+          !v2
+            ? [colors.primary, colors.secondary]
+            : ['rgb(255, 255, 255)', 'rgb(255, 255, 255)']
+        }
         start={{x: 0, y: 0}}
         end={{x: 1, y: 0}}
         style={[styles.button, style]}>
         {isIcon && (
-          <Ionicon name="play" size={24} color={colors.text.primary} />
+          <Ionicon
+            name="play"
+            size={24}
+            color={!v2 ? colors.text.primary : colors.background.primary}
+          />
         )}
         <Text style={[styles.text, textStyle]}>{title}</Text>
       </LinearGradient>

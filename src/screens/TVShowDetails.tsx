@@ -163,6 +163,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           const ids = await getSimilarByStory({
             title: showDetails.name,
             overview: showDetails.overview,
+            genres:
+              showDetails?.genres?.map((g: Genre) => g?.name).join(', ') || '',
             type: 'tv',
           });
           if (Array.isArray(ids) && ids.length > 0) {
@@ -411,6 +413,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   }}
                   style={styles.watchButton}
                   textStyle={styles.watchButtonText}
+                  v2
                 />
               ) : (
                 <GradientButton
