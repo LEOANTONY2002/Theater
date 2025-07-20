@@ -9,6 +9,7 @@ import {
   Modal,
   ScrollView,
   Pressable,
+  Image,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -36,6 +37,7 @@ import {useSelectedLanguages} from '../hooks/useApp';
 import {useWatchlists} from '../hooks/useWatchlists';
 import {Watchlist} from '../store/watchlists';
 import {useNavigationState} from '../hooks/useNavigationState';
+import packageJson from '../../package.json';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -52,6 +54,7 @@ export const MySpaceScreen = React.memo(() => {
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -145,7 +148,7 @@ export const MySpaceScreen = React.memo(() => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={{padding: spacing.md}}>
         <Text
           style={{
@@ -180,7 +183,7 @@ export const MySpaceScreen = React.memo(() => {
             style={styles.tagContainer}
             contentContainerStyle={styles.tagContent}>
             {watchlists.map(watchlist => (
-              <TouchableOpacity
+              <View
                 key={watchlist.id}
                 style={styles.tag}
                 onPress={() => handleWatchlistPress(watchlist)}>
@@ -195,7 +198,7 @@ export const MySpaceScreen = React.memo(() => {
                   {watchlist.itemCount}{' '}
                   {watchlist.itemCount === 1 ? 'item' : 'items'}
                 </Text>
-              </TouchableOpacity>
+              </View>
             ))}
           </ScrollView>
         </View>
@@ -372,7 +375,106 @@ export const MySpaceScreen = React.memo(() => {
         selectedRegion={currentRegion?.iso_3166_1}
         onSelectRegion={handleRegionSelect}
       />
-    </View>
+
+      {/* Footer: TMDB Attribution & Privacy Policy */}
+      <View style={styles.footerContainer}>
+        <TouchableOpacity
+          onPress={() => {
+            // Open TMDB website
+            const url = 'https://www.themoviedb.org/';
+            const Linking = require('react-native').Linking;
+            Linking.openURL(url);
+          }}
+          accessibilityLabel="Visit TMDB website"
+          style={styles.tmdbLogoWrapper}>
+          <Image
+            source={require('../assets/tmdb.png')}
+            style={styles.tmdbLogo}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <Text style={styles.footerText}>
+          This app uses the TMDB API but is not endorsed or certified by TMDB.
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            setShowPrivacyModal(true);
+          }}
+          style={styles.privacyLink}>
+          <Text style={styles.privacyText}>Privacy Policy</Text>
+        </TouchableOpacity>
+        <Text style={styles.versionText}>
+          App Version {packageJson.version}
+        </Text>
+      </View>
+
+      {/* Privacy Policy Modal */}
+      <Modal
+        visible={showPrivacyModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={() => setShowPrivacyModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blur}
+            />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Privacy Policy</Text>
+              <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <Text style={styles.privacyContent}>
+                <Text style={styles.privacySectionTitle}>
+                  Privacy Policy for Theater App{'\n\n'}
+                </Text>
+
+                <Text style={styles.privacySectionTitle}>
+                  Information We Collect{'\n'}
+                </Text>
+                <Text style={styles.privacyText}>
+                  Theater does not collect, store, or transmit any personal
+                  information from users. We do not track your browsing history,
+                  personal preferences, or any other identifiable data.{'\n\n'}
+                </Text>
+
+                <Text style={styles.privacySectionTitle}>Data Usage{'\n'}</Text>
+                <Text style={styles.privacyText}>
+                  The app displays movie and TV show information sourced from
+                  The Movie Database (TMDB) API. All content is provided by TMDB
+                  and we do not store or cache any user-specific data.{'\n\n'}
+                </Text>
+
+                <Text style={styles.privacySectionTitle}>
+                  Third-Party Services{'\n'}
+                </Text>
+                <Text style={styles.privacyText}>
+                  This app uses the TMDB API to provide movie and TV show
+                  information. Please refer to TMDB's privacy policy for
+                  information about how they handle data.{'\n\n'}
+                </Text>
+
+                <Text style={styles.privacySectionTitle}>Contact{'\n'}</Text>
+                <Text style={styles.privacyText}>
+                  If you have any questions about this privacy policy, please
+                  contact us through the app store.{'\n\n'}
+                </Text>
+
+                <Text style={styles.privacyText}>
+                  Last updated: {new Date().toLocaleDateString()}
+                </Text>
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
   );
 });
 
@@ -521,5 +623,54 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     ...typography.body2,
     marginBottom: 2,
+  },
+  footerContainer: {
+    marginTop: 100,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    borderTopWidth: 1,
+    alignItems: 'center',
+    marginBottom: 150,
+    gap: spacing.xs,
+  },
+  footerText: {
+    color: colors.text.tertiary || '#aaa',
+    fontSize: 12,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 8,
+  },
+  tmdbLogoWrapper: {
+    padding: 2,
+    borderRadius: 4,
+  },
+  tmdbLogo: {
+    width: 30,
+    height: 30,
+  },
+  privacyLink: {
+    marginTop: 2,
+  },
+  privacyText: {
+    color: colors.text.muted,
+    fontSize: 13,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  privacyContent: {
+    padding: spacing.md,
+    color: colors.text.primary,
+    ...typography.body1,
+  },
+  privacySectionTitle: {
+    color: colors.text.secondary,
+    ...typography.h3,
+    marginBottom: spacing.sm,
+  },
+  versionText: {
+    color: colors.text.tertiary,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
 });

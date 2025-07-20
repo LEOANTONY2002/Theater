@@ -30,6 +30,8 @@ import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {BlurView} from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
+import FastImage from 'react-native-fast-image';
+import {GradientButton} from '../components/GradientButton';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -110,6 +112,8 @@ export const SearchScreen = React.memo(() => {
     tvData?.pages.flatMap(page =>
       page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
     ) || [];
+
+  const navigation = useNavigation();
 
   // trending
   const {
@@ -472,7 +476,96 @@ export const SearchScreen = React.memo(() => {
                     />
                   </View>
                 )}
-
+                <View
+                  style={{
+                    // alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: spacing.md,
+                    padding: spacing.md,
+                    borderWidth: 1,
+                    borderBottomWidth: 0,
+                    borderColor: colors.modal.border,
+                    borderRadius: borderRadius.lg,
+                  }}>
+                  <LinearGradient
+                    colors={[
+                      'transparent',
+                      colors.background.primary,
+                      colors.background.primary,
+                    ]}
+                    pointerEvents="none"
+                    style={{
+                      width: '180%',
+                      height: '130%',
+                      position: 'absolute',
+                      bottom: -25,
+                      left: -50,
+                      // paddingHorizontal: 10,
+                      zIndex: 0,
+                      transform: [{rotate: '-15deg'}],
+                    }}
+                    start={{x: 0, y: 0}}
+                    end={{x: 0, y: 1}}
+                  />
+                  <View
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}>
+                    <FastImage
+                      source={require('../assets/theater.png')}
+                      style={{width: 60, height: 60}}
+                    />
+                    <View>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 400,
+                          color: 'rgb(255, 240, 253)',
+                        }}>
+                        Explore with Theater AI
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 400,
+                          color: 'rgba(198, 150, 215, 0.87)',
+                        }}>
+                        Find your next worthy movie or TV show to watch
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      navigation.navigate('Main', {
+                        screen: 'MySpace',
+                        params: {screen: 'OnlineAIScreen'},
+                      })
+                    }>
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 0}}
+                      style={{
+                        padding: 10,
+                        paddingHorizontal: 25,
+                        borderRadius: 50,
+                        marginTop: 15,
+                        alignItems: 'center',
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: colors.text.primary,
+                        }}>
+                        Ask AI
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
                 <TrendingGrid
                   data={
                     trendingData?.pages?.flatMap((page: any) =>

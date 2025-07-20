@@ -55,6 +55,7 @@ import Cinema from '../components/Cinema';
 import ServerModal from '../components/ServerModal';
 import {getSimilarByStory} from '../services/groq';
 import {fetchTVShowsByIds} from '../services/tmdb';
+import {GradientSpinner} from '../components/GradientSpinner';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -289,10 +290,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
     ) || [];
 
-  const recommendedShowsData =
-    recommendedShows?.pages.flatMap(page =>
-      page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
-    ) || [];
+  // const recommendedShowsData =
+  //   recommendedShows?.pages.flatMap(page =>
+  //     page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
+  //   ) || [];
 
   const getSeasonTitle = (season: TVShowDetailsType['seasons'][0]) => {
     if (season.season_number === 0) {
@@ -629,7 +630,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           />
         )}
 
-        {recommendedShowsData.length > 0 && (
+        {/* {recommendedShowsData.length > 0 && (
           <HorizontalList
             title="Recommended TV Shows"
             data={recommendedShowsData}
@@ -638,16 +639,36 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             isLoading={isFetchingRecommended}
             isSeeAll={false}
           />
-        )}
+        )} */}
         {showDetails && (
           <>
-            {Array.isArray(aiSimilarShows) && aiSimilarShows.length > 0 && (
-              <HorizontalList
-                title="AI Similar TV Shows"
-                data={aiSimilarShows}
-                onItemPress={handleItemPress}
-                isSeeAll={false}
+            {isLoadingAiSimilar ? (
+              <GradientSpinner
+                size={30}
+                thickness={3}
+                style={{
+                  marginVertical: 50,
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                }}
+                colors={[
+                  colors.primary,
+                  colors.secondary,
+                  'transparent',
+                  'transparent',
+                ]}
               />
+            ) : (
+              <>
+                {Array.isArray(aiSimilarShows) && aiSimilarShows.length > 0 && (
+                  <HorizontalList
+                    title="AI Similar TV Shows"
+                    data={aiSimilarShows}
+                    onItemPress={handleItemPress}
+                    isSeeAll={false}
+                  />
+                )}
+              </>
             )}
           </>
         )}

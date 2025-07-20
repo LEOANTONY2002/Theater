@@ -56,6 +56,7 @@ import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
 import {getSimilarByStory} from '../services/groq';
 import {fetchMoviesByIds} from '../services/tmdb';
+import {GradientSpinner} from '../components/GradientSpinner';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -260,16 +261,16 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     );
   }, [similarMovies]);
 
-  const recommendationsData = useMemo(() => {
-    return (
-      recommendations?.pages?.flatMap(page =>
-        page.results.map((movie: Movie) => ({
-          ...movie,
-          type: 'movie' as const,
-        })),
-      ) || []
-    );
-  }, [recommendations]);
+  // const recommendationsData = useMemo(() => {
+  //   return (
+  //     recommendations?.pages?.flatMap(page =>
+  //       page.results.map((movie: Movie) => ({
+  //         ...movie,
+  //         type: 'movie' as const,
+  //       })),
+  //     ) || []
+  //   );
+  // }, [recommendations]);
 
   const handlePersonPress = useCallback(
     (personId: number, personName: string) => {
@@ -507,15 +508,35 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             case 'similar':
               return (
                 <>
-                  {Array.isArray(aiSimilarMovies) &&
-                    aiSimilarMovies.length > 0 && (
-                      <HorizontalList
-                        title="AI Similar Movies"
-                        data={aiSimilarMovies}
-                        onItemPress={handleItemPress}
-                        isSeeAll={false}
-                      />
-                    )}
+                  {isLoadingAiSimilar ? (
+                    <GradientSpinner
+                      size={30}
+                      thickness={3}
+                      style={{
+                        marginVertical: 50,
+                        alignItems: 'center',
+                        alignSelf: 'center',
+                      }}
+                      colors={[
+                        colors.primary,
+                        colors.secondary,
+                        'transparent',
+                        'transparent',
+                      ]}
+                    />
+                  ) : (
+                    <>
+                      {Array.isArray(aiSimilarMovies) &&
+                        aiSimilarMovies.length > 0 && (
+                          <HorizontalList
+                            title="AI Similar TV Shows"
+                            data={aiSimilarMovies}
+                            onItemPress={handleItemPress}
+                            isSeeAll={false}
+                          />
+                        )}
+                    </>
+                  )}
                   {similarMoviesData.length > 0 ? (
                     <View>
                       <HorizontalList
@@ -528,17 +549,17 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   ) : null}
                 </>
               );
-            case 'recommendations':
-              return recommendationsData.length > 0 ? (
-                <View style={{marginBottom: 100}}>
-                  <HorizontalList
-                    title="Recommended Movies"
-                    data={recommendationsData}
-                    onItemPress={handleItemPress}
-                    isSeeAll={false}
-                  />
-                </View>
-              ) : null;
+            // case 'recommendations':
+            //   return recommendationsData.length > 0 ? (
+            //     <View style={{marginBottom: 100}}>
+            //       <HorizontalList
+            //         title="Recommended Movies"
+            //         data={recommendationsData}
+            //         onItemPress={handleItemPress}
+            //         isSeeAll={false}
+            //       />
+            //     </View>
+            //   ) : null;
             default:
               return null;
           }
@@ -546,13 +567,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         keyExtractor={(item: any) => item.id}
         showsVerticalScrollIndicator={false}
         estimatedItemSize={400}
+        contentContainerStyle={{paddingBottom: 120}}
         // ListHeaderComponent={
         //   <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-        //     <Icon name="arrow-back" size={24} color="#fff" />
+        //     <Icon name="chevron-back" size={24} color="#fff" />
         //   </TouchableOpacity>
         // }
       />
-
       <WatchlistModal
         visible={showWatchlistModal}
         onClose={() => setShowWatchlistModal(false)}
@@ -780,9 +801,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 20,
-    left: 20,
+    top: 30,
+    left: 30,
     zIndex: 10,
+    backgroundColor: colors.modal.blur,
+    padding: 8,
+    borderRadius: borderRadius.round,
   },
   posterContent: {
     position: 'absolute',
