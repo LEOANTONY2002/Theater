@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
     fontSize: 80,
     fontWeight: '900',
     textAlign: 'center',
+    fontFamily: 'Inter',
   },
   cardStack: {
     width: 'auto',

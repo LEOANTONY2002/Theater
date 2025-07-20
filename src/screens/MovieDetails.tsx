@@ -653,6 +653,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     width: '100%',
+    fontFamily: 'Inter',
   },
   infoContainer: {
     flexDirection: 'row',
@@ -692,6 +693,7 @@ const styles = StyleSheet.create({
   watchButtonText: {
     fontWeight: '700',
     fontSize: 16,
+    fontFamily: 'Inter',
   },
   addButton: {
     width: 48,
@@ -758,11 +760,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
+    fontFamily: 'Inter',
   },
   character: {
     color: '#888',
     fontSize: 12,
     textAlign: 'center',
+    fontFamily: 'Inter',
   },
   scrollView: {
     flex: 1,
@@ -823,10 +827,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '400',
     color: '#fff',
+    fontFamily: 'Inter',
   },
   posterSubtitle: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.68)',
+    fontFamily: 'Inter',
   },
   posterActions: {
     flexDirection: 'row',

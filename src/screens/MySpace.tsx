@@ -500,6 +500,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     flex: 1,
     fontWeight: 400,
+    fontFamily: 'Inter',
   },
   watchlistContainer: {
     paddingBottom: spacing.md,
@@ -639,6 +640,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     marginRight: 8,
+    fontFamily: 'Inter',
   },
   tmdbLogoWrapper: {
     padding: 2,
@@ -656,6 +658,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     textDecorationLine: 'underline',
+    fontFamily: 'Inter',
   },
   privacyContent: {
     padding: spacing.md,
@@ -672,5 +675,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: spacing.xs,
+    fontFamily: 'Inter',
   },
 });

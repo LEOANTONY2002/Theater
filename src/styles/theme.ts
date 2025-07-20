@@ -86,16 +86,19 @@ export const typography = {
     fontSize: 32,
     fontWeight: '700' as const,
     letterSpacing: 0.3,
+    fontFamily: 'Inter',
   },
   h2: {
     fontSize: 20,
     fontWeight: '600' as const,
     letterSpacing: 0.2,
+    fontFamily: 'Inter',
   },
   h3: {
     fontSize: 16,
     fontWeight: '500' as const,
     letterSpacing: 0.5,
+    fontFamily: 'Inter',
   },
   body1: {
     fontSize: 16,
@@ -106,21 +109,25 @@ export const typography = {
     fontSize: 14,
     fontWeight: '400' as const,
     letterSpacing: 0.1,
+    fontFamily: 'Inter',
   },
   caption: {
     fontSize: 12,
     fontWeight: '400' as const,
     letterSpacing: 0.2,
+    fontFamily: 'Inter',
   },
   button: {
     fontSize: 14,
     fontWeight: '600' as const,
     letterSpacing: 0.5,
+    fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 18,
     fontWeight: '500' as const,
     letterSpacing: 0.15,
+    fontFamily: 'Inter',
   },
 };
 
