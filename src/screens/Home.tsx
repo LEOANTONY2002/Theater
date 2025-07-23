@@ -610,6 +610,7 @@ export const HomeScreen = React.memo(() => {
       textAlign: 'center',
       opacity: 0.3,
       zIndex: -1,
+      fontFamily: 'Inter 28pt Black',
     },
   });
 

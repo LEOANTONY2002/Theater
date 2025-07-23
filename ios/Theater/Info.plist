@@ -68,6 +68,10 @@
 		<string>Octicons.ttf</string>
 		<string>Zocial.ttf</string>
 		<string>Fontisto.ttf</string>
+		<string>Inter_18pt-Regular.ttf</string>
+		<string>Inter_28pt-Bold.ttf</string>
+		<string>Inter_28pt-Black.ttf</string>
+		<string>Inter_28pt-ExtraBold.ttf</string>
 	</array>
 </dict>
 </plist>
