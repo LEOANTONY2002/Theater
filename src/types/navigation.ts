@@ -108,6 +108,7 @@ export type MySpaceStackParamList = {
     watchlistId: string;
   };
   OnlineAIScreen: undefined;
+  AISettingsScreen: undefined;
 };
 
 export type TabParamList = {

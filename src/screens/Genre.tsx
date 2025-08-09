@@ -32,6 +32,7 @@ import {getImageUrl} from '../services/tmdb';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {BlurView} from '@react-native-community/blur';
 import {SettingsManager} from '../store/settings';
+import { GradientSpinner } from '../components/GradientSpinner';
 
 type GenreScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 type GenreScreenRouteProp = RouteProp<HomeStackParamList, 'Genre'>;
@@ -200,7 +201,21 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <GradientSpinner
+          size={30}
+          thickness={3}
+          style={{
+            marginVertical: 50,
+            alignItems: 'center',
+            alignSelf: 'center',
+          }}
+          colors={[
+            colors.modal.activeBorder,
+            colors.modal.activeBorder,
+            'transparent',
+            'transparent',
+          ]}
+        />
         <Text style={styles.loadingText}>Loading more...</Text>
       </View>
     );

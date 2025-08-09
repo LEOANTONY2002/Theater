@@ -1,6 +1,7 @@
 import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {View, StyleSheet, Animated, Easing, Dimensions} from 'react-native';
 import FastImage from 'react-native-fast-image';
+import { colors } from '../styles/theme';
 
 interface PersonCardProps {
   item: string;
@@ -43,22 +44,9 @@ export const PersonCard: React.FC<PersonCardProps> = ({item}) => {
         onLoad={handleImageFinish}
         onError={handleImageFinish}
         priority={FastImage.priority.normal}
-        cache={FastImage.cacheControl.immutable}
+        cache={FastImage.cacheControl.cacheOnly}
       />
-      {!imageLoaded && (
-        <View style={StyleSheet.absoluteFill}>
-          <View style={styles.skeleton}>
-            <Animated.View
-              style={[
-                styles.shimmer,
-                {
-                  transform: [{translateX: shimmerTranslate}],
-                },
-              ]}
-            />
-          </View>
-        </View>
-      )}
+      
     </View>
   );
 };
@@ -74,7 +62,7 @@ const styles = StyleSheet.create({
   poster: {
     width: 100,
     height: 150,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.background.card,
   },
   skeleton: {
     flex: 1,

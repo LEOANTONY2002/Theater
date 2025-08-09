@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useMemo} from 'react';
+import React, {useState, useEffect, useCallback, useMemo, useRef} from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Modal,
   Alert,
   InteractionManager,
+  Animated,
+  Easing,
 } from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -19,7 +21,7 @@ import {
   useSimilarMovies,
   useMovieRecommendations,
 } from '../hooks/useMovies';
-import {getImageUrl} from '../services/tmdb';
+import {fetchContentFromAI, getImageUrl} from '../services/tmdb';
 import {Movie, MovieDetails as MovieDetailsType} from '../types/movie';
 import {Video, Genre, Cast} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -54,8 +56,7 @@ import {useDeepNavigationProtection} from '../hooks/useDeepNavigationProtection'
 import {useQueryClient} from '@tanstack/react-query';
 import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
-import {getSimilarByStory} from '../services/groq';
-import {fetchMoviesByIds} from '../services/tmdb';
+import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 
 type MovieDetailsScreenNavigationProp =
@@ -87,9 +88,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [renderPhase, setRenderPhase] = useState(0);
   const {navigateWithLimit} = useNavigationState();
   const {isDeepNavigation} = useDeepNavigationProtection();
   const queryClient = useQueryClient();
@@ -100,18 +99,75 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [aiSimilarMovies, setAiSimilarMovies] = useState<any[]>([]);
   const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
 
-  // Progressive loading like home screen
-  useEffect(() => {
-    const timer1 = setTimeout(() => setRenderPhase(1), 100);
-    const timer2 = setTimeout(() => setRenderPhase(2), 300);
-    const timer3 = setTimeout(() => setRenderPhase(3), 500);
+  // Animation values for loading states and components
+  const loadingPulseAnim = useRef(new Animated.Value(1)).current;
+  const posterFadeAnim = useRef(new Animated.Value(0)).current;
+  const contentFadeAnim = useRef(new Animated.Value(0)).current;
+  const castFadeAnim = useRef(new Animated.Value(0)).current;
+  const similarFadeAnim = useRef(new Animated.Value(0)).current;
 
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
-  }, []);
+  // Animate loading spinner with pulse effect
+  useEffect(() => {
+    if (isInitialLoading) {
+      const pulseAnimation = Animated.sequence([
+        Animated.timing(loadingPulseAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(loadingPulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]);
+      pulseAnimation.start();
+      return () => pulseAnimation.stop();
+    }
+  }, [isInitialLoading]);
+
+  // Animate poster fade-in when image loads
+  useEffect(() => {
+    if (isImageLoaded) {
+      Animated.timing(posterFadeAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isImageLoaded]);
+
+  // Animate content sections when data is available
+  useEffect(() => {
+    if (!isInitialLoading) {
+      Animated.timing(contentFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 100,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+
+      Animated.timing(castFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+
+      Animated.timing(similarFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isInitialLoading]);
 
   // Cleanup on unmount to prevent memory leaks
   useEffect(() => {
@@ -142,25 +198,19 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     }, [movie.id, queryClient]),
   );
 
-  // Defer heavy rendering to prevent FPS drops
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCanRenderContent(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    // Set loading to false after a short delay to allow smooth transition
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
   const {data: movieDetails, isLoading: isLoadingDetails} = useMovieDetails(
     movie.id,
   );
+
+  // Set loading to false when data is available
+  useEffect(() => {
+    if (movieDetails && !isLoadingDetails) {
+      const timer = setTimeout(() => {
+        setIsInitialLoading(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [movieDetails, isLoadingDetails]);
   const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
     movie.id,
   );
@@ -179,15 +229,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       if (movieDetails?.overview && movieDetails?.title) {
         setIsLoadingAiSimilar(true);
         try {
-          const ids = await getSimilarByStory({
+          const aiResponse = await getSimilarByStory({
             title: movieDetails.title,
             overview: movieDetails.overview,
             genres:
               movieDetails?.genres?.map((g: Genre) => g?.name).join(', ') || '',
             type: 'movie',
           });
-          if (Array.isArray(ids) && ids.length > 0) {
-            const tmdbMovies = await fetchMoviesByIds(ids);
+          if (Array.isArray(aiResponse) && aiResponse.length > 0) {
+            const tmdbMovies = await fetchContentFromAI(aiResponse, 'movie');
             const mapped = tmdbMovies
               .filter((m: any) => m && m.poster_path)
               .map((m: any) => ({
@@ -284,7 +334,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   );
 
   // Show loading state immediately to prevent FPS drop
-  if (!canRenderContent) {
+  if (isInitialLoading) {
     return (
       <View style={styles.loadingContainer}>
         <DetailScreenSkeleton />
@@ -298,14 +348,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
-          ...(renderPhase >= 1 ? [{type: 'cast', id: 'cast'}] : []),
-          ...(renderPhase >= 2 ? [{type: 'providers', id: 'providers'}] : []),
-          ...(renderPhase >= 3
-            ? [
-                {type: 'similar', id: 'similar'},
-                {type: 'recommendations', id: 'recommendations'},
-              ]
-            : []),
+          {type: 'cast', id: 'cast'},
+          {type: 'providers', id: 'providers'},
+          {type: 'similar', id: 'similar'},
+          {type: 'recommendations', id: 'recommendations'},
         ]}
         renderItem={({item}: {item: any}) => {
           switch (item.type) {
@@ -321,17 +367,22 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   <View style={styles.main}>
                     {isPosterLoading && !isPlaying && <BannerSkeleton />}
                     {!isPlaying ? (
-                      <Image
-                        source={{
-                          uri: getImageUrl(
-                            movie.backdrop_path || '',
-                            'original',
-                          ),
-                        }}
-                        style={styles.backdrop}
-                        onLoadEnd={() => setIsPosterLoading(false)}
-                        resizeMode="cover"
-                      />
+                      <Animated.View style={{opacity: posterFadeAnim}}>
+                        <Image
+                          source={{
+                            uri: getImageUrl(
+                              movie.backdrop_path || '',
+                              'original',
+                            ),
+                          }}
+                          style={styles.backdrop}
+                          onLoadEnd={() => {
+                            setIsPosterLoading(false);
+                            setIsImageLoaded(true);
+                          }}
+                          resizeMode="cover"
+                        />
+                      </Animated.View>
                     ) : (
                       <View style={styles.trailerContainer}>
                         {cinema && isFocused ? (
@@ -364,7 +415,21 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               );
             case 'content':
               return (
-                <View style={styles.content}>
+                <Animated.View
+                  style={[
+                    styles.content,
+                    {
+                      opacity: contentFadeAnim,
+                      transform: [
+                        {
+                          translateY: contentFadeAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [15, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}>
                   <Text style={styles.title}>{movie.title}</Text>
                   <View style={styles.infoContainer}>
                     <Text style={styles.info}>
@@ -465,11 +530,24 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       ))}
                   </View>
                   <Text style={styles.overview}>{movie.overview}</Text>
-                </View>
+                </Animated.View>
               );
             case 'cast':
               return movieDetails?.credits?.cast?.length > 0 ? (
-                <View style={{marginVertical: spacing.lg, marginTop: 0}}>
+                <Animated.View
+                  style={{
+                    marginVertical: spacing.lg,
+                    marginTop: 0,
+                    opacity: castFadeAnim,
+                    transform: [
+                      {
+                        translateY: castFadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [20, 0],
+                        }),
+                      },
+                    ],
+                  }}>
                   <Text style={styles.sectionTitle}>Cast</Text>
                   <FlashList
                     data={movieDetails.credits.cast.slice(0, 10)}
@@ -499,7 +577,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     keyExtractor={(person: Cast) => person.id.toString()}
                     estimatedItemSize={100}
                   />
-                </View>
+                </Animated.View>
               ) : null;
             case 'providers':
               return watchProviders ? (
@@ -507,23 +585,48 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               ) : null;
             case 'similar':
               return (
-                <>
+                <Animated.View
+                  style={{
+                    opacity: similarFadeAnim,
+                    transform: [
+                      {
+                        translateY: similarFadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [30, 0],
+                        }),
+                      },
+                    ],
+                  }}>
                   {isLoadingAiSimilar ? (
-                    <GradientSpinner
-                      size={30}
-                      thickness={3}
+                    <View
                       style={{
                         marginVertical: 50,
                         alignItems: 'center',
                         alignSelf: 'center',
-                      }}
-                      colors={[
-                        colors.primary,
-                        colors.secondary,
-                        'transparent',
-                        'transparent',
-                      ]}
-                    />
+                      }}>
+                      <GradientSpinner
+                        size={30}
+                        thickness={3}
+                        style={{
+                          alignItems: 'center',
+                          alignSelf: 'center',
+                        }}
+                        colors={[
+                          colors.primary,
+                          colors.secondary,
+                          'transparent',
+                          'transparent',
+                        ]}
+                      />
+                      <Text
+                        style={{
+                          fontStyle: 'italic',
+                          color: colors.text.primary,
+                          marginTop: spacing.md,
+                        }}>
+                        Theater AI is fetching similar shows...
+                      </Text>
+                    </View>
                   ) : (
                     <>
                       {Array.isArray(aiSimilarMovies) &&
@@ -547,7 +650,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       />
                     </View>
                   ) : null}
-                </>
+                </Animated.View>
               );
             // case 'recommendations':
             //   return recommendationsData.length > 0 ? (
@@ -587,12 +690,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         currentServer={currentServer}
         setCurrentServer={setCurrentServer}
       />
-
-      {isInitialLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
     </View>
   );
 };

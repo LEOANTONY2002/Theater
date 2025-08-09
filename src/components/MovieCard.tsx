@@ -59,7 +59,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({
           style={[styles.poster, size === 'large' && styles.posterLarge]}
           resizeMode={FastImage.resizeMode.cover}
           priority={FastImage.priority.normal}
-          cache={FastImage.cacheControl.immutable}
+          cache={FastImage.cacheControl.cacheOnly}
         />
       </View>
     </TouchableOpacity>

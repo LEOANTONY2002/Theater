@@ -560,7 +560,7 @@ export const TVShowsScreen = React.memo(() => {
         removeClippedSubviews={true}
         // Scroll optimizations
         scrollEventThrottle={16}
-        decelerationRate="normal"
+        decelerationRate={0.9}
         // Performance optimizations
         extraData={null}
         onScrollBeginDrag={() => {}}

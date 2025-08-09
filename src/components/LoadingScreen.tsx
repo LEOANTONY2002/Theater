@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, StyleSheet, Text, ActivityIndicator} from 'react-native';
 import {colors, typography, spacing} from '../styles/theme';
+import { GradientSpinner } from './GradientSpinner';
 
 interface LoadingScreenProps {
   message: string;
@@ -9,7 +10,21 @@ interface LoadingScreenProps {
 export const LoadingScreen = ({message}: LoadingScreenProps) => {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
+      <GradientSpinner
+        size={30}
+        thickness={3}
+        style={{
+          marginVertical: 50,
+          alignItems: 'center',
+          alignSelf: 'center',
+        }}
+        colors={[
+          colors.modal.activeBorder,
+          colors.modal.activeBorder,
+          'transparent',
+          'transparent',
+        ]}
+      />
       <Text style={styles.message}>{message}</Text>
     </View>
   );

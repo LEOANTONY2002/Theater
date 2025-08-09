@@ -25,6 +25,7 @@ import {Chip} from './Chip';
 import {FiltersManager} from '../store/filters';
 import type {SavedFilter} from '../types/filters';
 import {modalStyles} from '../styles/styles';
+import { GradientSpinner } from './GradientSpinner';
 
 interface Language {
   iso_639_1: string;
@@ -527,7 +528,21 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               <View style={styles.pickerContainer}>
                 {isLoadingLanguages ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator color={colors.accent} />
+                    <GradientSpinner
+                      size={30}
+                      thickness={3}
+                      style={{
+                        marginVertical: 50,
+                        alignItems: 'center',
+                        alignSelf: 'center',
+                      }}
+                      colors={[
+                        colors.modal.activeBorder,
+                        colors.modal.activeBorder,
+                        'transparent',
+                        'transparent',
+                      ]}
+                    />
                   </View>
                 ) : (
                   <Picker
@@ -642,7 +657,21 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       alignItems: 'center',
                     },
                   ]}>
-                  <ActivityIndicator size={28} color={colors.accent} />
+                  <GradientSpinner
+                    size={28}
+                    thickness={3}
+                    style={{
+                      marginVertical: 50,
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                    }}
+                    colors={[
+                      colors.modal.activeBorder,
+                      colors.modal.activeBorder,
+                      'transparent',
+                      'transparent',
+                    ]}
+                  />
                 </View>
               ) : (
                 <TouchableOpacity

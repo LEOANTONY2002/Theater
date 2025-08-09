@@ -11,6 +11,7 @@ import {
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
+import { GradientSpinner } from './GradientSpinner';
 
 interface RegionModalProps {
   visible: boolean;
@@ -57,7 +58,21 @@ export const RegionModal: React.FC<RegionModalProps> = ({
 
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+              <GradientSpinner
+                size={30}
+                thickness={3}
+                style={{
+                  marginVertical: 50,
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                }}
+                colors={[
+                  colors.modal.activeBorder,
+                  colors.modal.activeBorder,
+                  'transparent',
+                  'transparent',
+                ]}
+              />
             </View>
           ) : (
             <FlatList

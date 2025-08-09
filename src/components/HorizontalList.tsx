@@ -210,11 +210,11 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
             ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
-            estimatedItemSize={180}
             removeClippedSubviews={true}
             scrollEventThrottle={16}
-            decelerationRate="normal"
-            extraData={null}
+            decelerationRate={0.9}
+            estimatedItemSize={180}
+            getItemType={() => 'content'}
           />
         </View>
       </View>

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import {colors} from '../styles/theme';
+import { GradientSpinner } from './GradientSpinner';
 
 const Cinema = ({
   id,
@@ -204,7 +205,21 @@ const Cinema = ({
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#ffffff" />
+            <GradientSpinner
+              size={30}
+              thickness={3}
+              style={{
+                marginVertical: 50,
+                alignItems: 'center',
+                alignSelf: 'center',
+              }}
+              colors={[
+                colors.modal.activeBorder,
+                colors.modal.activeBorder,
+                'transparent',
+                'transparent',
+              ]}
+            />
             <Text style={styles.loadingText}>{loadingText}</Text>
           </View>
         </View>

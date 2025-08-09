@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {View, StyleSheet, Platform, Animated} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {useNavigation, useNavigationState} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import {TabParamList} from '../types/navigation';
 import {
@@ -38,18 +39,43 @@ const TabIcon = ({focused, name, color}: TabIconProps) => {
   );
 };
 
-const TabBarBackground = () => (
-  <View style={styles.blurWrapper}>
-    <BlurView
-      style={styles.blurContainer}
-      blurType="dark"
-      blurAmount={15}
-      overlayColor={colors.modal.background}
-    />
-  </View>
-);
+// Smart TabBarBackground that manages BlurView during navigation transitions
+const TabBarBackground = () => {
+  return (
+    <View style={styles.blurWrapper}>
+      <BlurView
+        style={styles.blurContainer}
+        blurType="dark"
+        blurAmount={10}
+        blurRadius={7}
+        overlayColor={colors.modal.blur}
+      />
+    </View>
+  );
+};
 
 export const BottomTabNavigator = () => {
+  const navigationState = useNavigationState(state => state);
+
+  // Function to check if we're currently on OnlineAI screen
+  const isOnOnlineAIScreen = () => {
+    if (!navigationState) return false;
+
+    // Get the current route
+    const currentRoute = navigationState.routes[navigationState.index];
+
+    // Check if we're in MySpace tab and on OnlineAI screen
+    if (currentRoute?.state && currentRoute?.state?.index === 4) {
+      const mySpaceState =
+        currentRoute?.state?.routes[currentRoute?.state?.index];
+      const currentMySpaceRoute =
+        mySpaceState?.state?.routes[mySpaceState?.state?.index];
+      return currentMySpaceRoute?.name === 'OnlineAIScreen';
+    }
+
+    return false;
+  };
+
   return (
     <View style={styles.container}>
       <Tab.Navigator
@@ -75,6 +101,7 @@ export const BottomTabNavigator = () => {
               : {
                   elevation: 12,
                 }),
+            display: isOnOnlineAIScreen() ? 'none' : 'flex',
           },
           tabBarBackground: () => <TabBarBackground />,
           tabBarActiveTintColor: 'white',

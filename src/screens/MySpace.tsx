@@ -183,10 +183,7 @@ export const MySpaceScreen = React.memo(() => {
             style={styles.tagContainer}
             contentContainerStyle={styles.tagContent}>
             {watchlists.map(watchlist => (
-              <View
-                key={watchlist.id}
-                style={styles.tag}
-                onPress={() => handleWatchlistPress(watchlist)}>
+              <View key={watchlist.id} style={styles.tag}>
                 <LinearGradient
                   colors={colors.gradient.primary}
                   style={styles.tagGradient}
@@ -340,6 +337,19 @@ export const MySpaceScreen = React.memo(() => {
           <Ionicons name="chevron-forward" size={18} color={colors.accent} />
         </TouchableOpacity>
       </View>
+
+      {/* AI Settings Section */}
+      <TouchableOpacity
+        style={styles.headerContainer}
+        onPress={() => navigateWithLimit('AISettingsScreen')}
+        testID="aiSettingsButton">
+        <Text style={styles.sectionTitle}>AI Settings</Text>
+        <Ionicons
+          name="chevron-forward"
+          size={14}
+          color={colors.text.primary}
+        />
+      </TouchableOpacity>
 
       <Modal
         visible={showLanguageModal}

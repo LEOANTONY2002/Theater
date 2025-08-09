@@ -21,7 +21,7 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 export const GradientSpinner: React.FC<GradientSpinnerProps> = ({
   size = 60,
   thickness = 6,
-  colors = ['#ff6b6b', '#feca57', '#transparent'],
+  colors = ['#fff', '#fff', 'transparent'],
   style,
 }) => {
   const rotation = useSharedValue(0);

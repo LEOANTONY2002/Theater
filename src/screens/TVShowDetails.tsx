@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
@@ -18,7 +20,7 @@ import {
   useTVShowRecommendations,
   useSeasonDetails,
 } from '../hooks/useTVShows';
-import {getImageUrl, getLanguage} from '../services/tmdb';
+import {fetchContentFromAI, getImageUrl, getLanguage} from '../services/tmdb';
 import {
   TVShow,
   TVShowDetails as TVShowDetailsType,
@@ -53,8 +55,7 @@ import {
 import {FlashList} from '@shopify/flash-list';
 import Cinema from '../components/Cinema';
 import ServerModal from '../components/ServerModal';
-import {getSimilarByStory} from '../services/groq';
-import {fetchTVShowsByIds} from '../services/tmdb';
+import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 
 type TVShowDetailsScreenNavigationProp =
@@ -92,6 +93,15 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [aiSimilarShows, setAiSimilarShows] = useState<any[]>([]);
   const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
 
+  console.log('AI Sim', aiSimilarShows);
+
+  // Animation values for loading states and components (same as MovieDetails)
+  const loadingPulseAnim = useRef(new Animated.Value(1)).current;
+  const posterFadeAnim = useRef(new Animated.Value(0)).current;
+  const contentFadeAnim = useRef(new Animated.Value(0)).current;
+  const castFadeAnim = useRef(new Animated.Value(0)).current;
+  const similarFadeAnim = useRef(new Animated.Value(0)).current;
+
   const {
     data: similarShows,
     fetchNextPage: fetchNextSimilar,
@@ -115,6 +125,69 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   );
 
   const {data: watchProviders} = useWatchProviders(show.id, 'tv');
+
+  // Animate loading spinner with pulse effect (same as MovieDetails)
+  useEffect(() => {
+    if (isLoading) {
+      const pulseAnimation = Animated.sequence([
+        Animated.timing(loadingPulseAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(loadingPulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]);
+      pulseAnimation.start();
+      return () => pulseAnimation.stop();
+    }
+  }, [isLoading]);
+
+  // Animate poster fade-in when image loads
+  useEffect(() => {
+    if (!isPosterLoading) {
+      Animated.timing(posterFadeAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isPosterLoading]);
+
+  // Animate content sections when data is available
+  useEffect(() => {
+    if (!isLoading && showDetails) {
+      Animated.timing(contentFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 100,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+
+      Animated.timing(castFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+
+      Animated.timing(similarFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isLoading, showDetails]);
 
   const handleWatchlistPress = useCallback(async () => {
     if (isInAnyWatchlist && watchlistContainingItem) {
@@ -161,15 +234,15 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       if (showDetails?.overview && showDetails?.name) {
         setIsLoadingAiSimilar(true);
         try {
-          const ids = await getSimilarByStory({
+          let aiResponse = await getSimilarByStory({
             title: showDetails.name,
             overview: showDetails.overview,
             genres:
               showDetails?.genres?.map((g: Genre) => g?.name).join(', ') || '',
             type: 'tv',
           });
-          if (Array.isArray(ids) && ids.length > 0) {
-            const shows = await fetchTVShowsByIds(ids);
+          if (Array.isArray(aiResponse) && aiResponse.length > 0) {
+            const shows = await fetchContentFromAI(aiResponse, 'tv');
             setAiSimilarShows(shows);
           } else {
             setAiSimilarShows([]);
@@ -280,7 +353,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <DetailScreenSkeleton />
+        <Animated.View style={{transform: [{scale: loadingPulseAnim}]}}>
+          <DetailScreenSkeleton />
+        </Animated.View>
       </View>
     );
   }
@@ -318,12 +393,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {isPosterLoading && !isPlaying && <BannerSkeleton />}
 
           {!isPlaying ? (
-            <Image
-              source={{uri: getImageUrl(show.backdrop_path || '', 'original')}}
-              style={styles.backdrop}
-              onLoadEnd={() => setIsPosterLoading(false)}
-              resizeMode="cover"
-            />
+            <Animated.View style={{opacity: posterFadeAnim}}>
+              <Image
+                source={{
+                  uri: getImageUrl(showDetails.backdrop_path || '', 'original'),
+                }}
+                style={styles.backdrop}
+                onLoadEnd={() => setIsPosterLoading(false)}
+                resizeMode="cover"
+              />
+            </Animated.View>
           ) : (
             <View style={styles.trailerContainer}>
               {cinema && isFocused ? (
@@ -355,11 +434,25 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           )}
         </View>
 
-        <View style={styles.content}>
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: contentFadeAnim,
+              transform: [
+                {
+                  translateY: contentFadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [15, 0],
+                  }),
+                },
+              ],
+            },
+          ]}>
           <Text style={styles.title}>{show.name}</Text>
           <View style={styles.infoContainer}>
             <Text style={styles.info}>
-              {new Date(show.first_air_date).getFullYear()}
+              {new Date(showDetails?.first_air_date).getFullYear()}
             </Text>
             {showDetails?.number_of_seasons && (
               <>
@@ -462,12 +555,24 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 </View>
               ))}
           </View>
-        </View>
-
-        <Text style={styles.overview}>{show.overview}</Text>
+          <Text style={styles.overview}>{showDetails.overview}</Text>
+        </Animated.View>
 
         {showDetails?.credits?.cast?.length > 0 && (
-          <View style={{marginVertical: spacing.lg, marginTop: 0}}>
+          <Animated.View
+            style={{
+              marginVertical: spacing.lg,
+              marginTop: 0,
+              opacity: castFadeAnim,
+              transform: [
+                {
+                  translateY: castFadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            }}>
             <Text style={styles.sectionTitle}>Cast</Text>
             <ScrollView
               style={{paddingHorizontal: 16}}
@@ -491,7 +596,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </Animated.View>
         )}
 
         {watchProviders && <WatchProviders providers={watchProviders} />}
@@ -533,9 +638,20 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     : 'No episodes available for this season'}
                 </Text> */}
                 <View style={styles.noEpisodesContainer}>
-                  <ActivityIndicator
-                    size="small"
-                    color={colors.text.tertiary}
+                  <GradientSpinner
+                    size={30}
+                    thickness={3}
+                    style={{
+                      marginVertical: 50,
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                    }}
+                    colors={[
+                      colors.modal.activeBorder,
+                      colors.modal.activeBorder,
+                      'transparent',
+                      'transparent',
+                    ]}
                   />
                   <Text style={styles.noEpisodesText}>
                     Fetching episodes...
@@ -619,15 +735,69 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           </View>
         )}
 
+        {showDetails && (
+          <>
+            {isLoadingAiSimilar ? (
+              <View style={[styles.noEpisodesContainer, {marginVertical: 50}]}>
+                <GradientSpinner
+                  size={30}
+                  thickness={3}
+                  style={{
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                  }}
+                  colors={[
+                    colors.primary,
+                    colors.secondary,
+                    'transparent',
+                    'transparent',
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.noEpisodesText,
+                    {fontStyle: 'italic', color: colors.text.primary},
+                  ]}>
+                  Theater AI is fetching similar shows...
+                </Text>
+              </View>
+            ) : (
+              <>
+                {Array.isArray(aiSimilarShows) && aiSimilarShows.length > 0 && (
+                  <HorizontalList
+                    title="Similar shows by Theater AI"
+                    data={aiSimilarShows}
+                    onItemPress={handleItemPress}
+                    isSeeAll={false}
+                  />
+                )}
+              </>
+            )}
+          </>
+        )}
+
         {similarShowsData.length > 0 && (
-          <HorizontalList
-            title="Similar TV Shows"
-            data={similarShowsData}
-            onItemPress={handleItemPress}
-            onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
-            isLoading={isFetchingSimilar}
-            isSeeAll={false}
-          />
+          <Animated.View
+            style={{
+              opacity: similarFadeAnim,
+              transform: [
+                {
+                  translateY: similarFadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0],
+                  }),
+                },
+              ],
+            }}>
+            <HorizontalList
+              title="Similar shows"
+              data={similarShowsData}
+              onItemPress={handleItemPress}
+              onEndReached={hasNextSimilar ? fetchNextSimilar : undefined}
+              isLoading={isFetchingSimilar}
+              isSeeAll={false}
+            />
+          </Animated.View>
         )}
 
         {/* {recommendedShowsData.length > 0 && (
@@ -640,38 +810,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             isSeeAll={false}
           />
         )} */}
-        {showDetails && (
-          <>
-            {isLoadingAiSimilar ? (
-              <GradientSpinner
-                size={30}
-                thickness={3}
-                style={{
-                  marginVertical: 50,
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                }}
-                colors={[
-                  colors.primary,
-                  colors.secondary,
-                  'transparent',
-                  'transparent',
-                ]}
-              />
-            ) : (
-              <>
-                {Array.isArray(aiSimilarShows) && aiSimilarShows.length > 0 && (
-                  <HorizontalList
-                    title="AI Similar TV Shows"
-                    data={aiSimilarShows}
-                    onItemPress={handleItemPress}
-                    isSeeAll={false}
-                  />
-                )}
-              </>
-            )}
-          </>
-        )}
+
         <View style={{height: 100}} />
       </ScrollView>
 
@@ -832,7 +971,6 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontSize: 14,
     lineHeight: 20,
-    marginHorizontal: 16,
     marginBottom: 30,
   },
   sectionTitle: {

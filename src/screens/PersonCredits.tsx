@@ -28,6 +28,7 @@ import {LinearGradient} from 'react-native-linear-gradient';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useScrollOptimization} from '../hooks/useScrollOptimization';
 import {GridListSkeleton, HeadingSkeleton} from '../components/LoadingSkeleton';
+import { GradientSpinner } from '../components/GradientSpinner';
 
 type PersonCreditsScreenNavigationProp =
   NativeStackNavigationProp<HomeStackParamList>;
@@ -145,7 +146,7 @@ export const PersonCreditsScreen = () => {
   console.log('person', personDetails);
 
   // Only render content after renderPhase allows it
-  if (renderPhase < 1) {
+  if (movieCredits.isLoading || tvCredits.isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.header}>
@@ -226,7 +227,21 @@ export const PersonCreditsScreen = () => {
             {(movieCredits.isFetchingNextPage ||
               tvCredits.isFetchingNextPage) && (
               <View style={styles.loadingIndicatorContainer}>
-                <ActivityIndicator size="large" color={colors.text.muted} />
+                <GradientSpinner
+                  size={30}
+                  thickness={3}
+                  style={{
+                    marginVertical: 50,
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                  }}
+                  colors={[
+                    colors.modal.activeBorder,
+                    colors.modal.activeBorder,
+                    'transparent',
+                    'transparent',
+                  ]}
+                />
               </View>
             )}
             <View style={styles.footerSpace} />
@@ -240,12 +255,6 @@ export const PersonCreditsScreen = () => {
           ) : null
         }
       />
-
-      {(movieCredits.isLoading || tvCredits.isLoading) && (
-        <View style={styles.fullScreenLoader}>
-          <ActivityIndicator size="large" color={colors.text.muted} />
-        </View>
-      )}
     </View>
   );
 };

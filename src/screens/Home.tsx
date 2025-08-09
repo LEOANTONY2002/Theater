@@ -670,7 +670,7 @@ export const HomeScreen = React.memo(() => {
         updateCellsBatchingPeriod={100}
         disableVirtualization={false}
         scrollEventThrottle={0}
-        decelerationRate="normal"
+        decelerationRate={0.9}
         extraData={null}
         legacyImplementation={false}
         disableIntervalMomentum={false}

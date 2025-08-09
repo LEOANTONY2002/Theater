@@ -12,6 +12,7 @@ import {getLanguages} from '../services/tmdb';
 import {SettingsManager, Language} from '../store/settings';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
+import { GradientSpinner } from './GradientSpinner';
 
 // Define suggested language codes
 const SUGGESTED_LANGUAGE_CODES = [
@@ -93,7 +94,21 @@ export const LanguageSettings = () => {
   if (isLoadingLanguages || isLoadingSaved) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.text.muted} />
+        <GradientSpinner
+          size={30}
+          thickness={3}
+          style={{
+            marginVertical: 50,
+            alignItems: 'center',
+            alignSelf: 'center',
+          }}
+          colors={[
+            colors.modal.activeBorder,
+            colors.modal.activeBorder,
+            'transparent',
+            'transparent',
+          ]}
+        />
       </View>
     );
   }

@@ -32,6 +32,7 @@ import {BlurView} from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
 import FastImage from 'react-native-fast-image';
 import {GradientButton} from '../components/GradientButton';
+import { GradientSpinner } from '../components/GradientSpinner';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -589,7 +590,21 @@ export const SearchScreen = React.memo(() => {
           <>
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.text.muted} />
+                <GradientSpinner
+                  size={30}
+                  thickness={3}
+                  style={{
+                    marginVertical: 50,
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                  }}
+                  colors={[
+                    colors.modal.activeBorder,
+                    colors.modal.activeBorder,
+                    'transparent',
+                    'transparent',
+                  ]}
+                />
                 <Text style={styles.loadingText}>
                   {debouncedQuery ? 'Searching...' : 'Applying filters...'}
                 </Text>

@@ -6,19 +6,18 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Image,
+  Animated,
+  Easing,
 } from 'react-native';
-import {cinemaChat} from '../services/groq';
+import {cinemaChat} from '../services/gemini';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Markdown from 'react-native-markdown-display';
 import {BlurView} from '@react-native-community/blur';
-import {fetchMoviesByIds, fetchTVShowsByIds} from '../services/tmdb';
 import {useNavigation} from '@react-navigation/native';
+import {GradientSpinner} from '../components/GradientSpinner';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -32,6 +31,101 @@ interface Message {
   }>;
 }
 
+interface ParallaxCardProps {
+  media: {
+    id: number;
+    type: string;
+    poster_path?: string;
+    title: string;
+    year: number;
+  };
+  index: number;
+  navigation: any;
+  scrollX: Animated.Value;
+}
+
+const ParallaxCard: React.FC<ParallaxCardProps> = ({
+  media,
+  index,
+  navigation,
+  scrollX,
+}) => {
+  const cardWidth = 100; // Card width + margin
+
+  const inputRange = [
+    (index - 1) * cardWidth,
+    index * cardWidth,
+    (index + 1) * cardWidth,
+  ];
+
+  const scale = scrollX.interpolate({
+    inputRange,
+    outputRange: [0.95, 1, 0.95],
+    extrapolate: 'clamp',
+  });
+
+  const opacity = scrollX.interpolate({
+    inputRange,
+    outputRange: [0.95, 1, 0.95],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.contentCard,
+        {
+          transform: [{scale}],
+          opacity,
+        },
+      ]}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => {
+          const nav: any = navigation;
+          if (media.type === 'movie') {
+            nav.navigate('MovieDetails', {
+              movie: {
+                id: media.id,
+                title: media.title,
+                poster_path: media.poster_path,
+              },
+            });
+          } else if (media.type === 'tv') {
+            nav.navigate('TVShowDetails', {
+              show: {
+                id: media.id,
+                name: media.title,
+                poster_path: media.poster_path,
+              },
+            });
+          }
+        }}>
+        <View style={styles.posterContainer}>
+          <Image
+            source={{
+              uri: `https://image.tmdb.org/t/p/w342${media?.poster_path}`,
+            }}
+            style={styles.posterImage}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.posterGradient}
+          />
+          {/* <View style={styles.posterInfo}>
+            <Text style={styles.posterTitle} numberOfLines={2}>
+              {media.title}
+            </Text>
+            <Text style={styles.posterYear}>
+              {media.year} • {media.type.toUpperCase()}
+            </Text>
+          </View> */}
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 export const OnlineAIScreen: React.FC = () => {
   const navigation = useNavigation();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -41,6 +135,14 @@ export const OnlineAIScreen: React.FC = () => {
   const [animatedContent, setAnimatedContent] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideUpAnim = useRef(new Animated.Value(50)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const scrollX = useRef(new Animated.Value(0)).current;
+
   // Scroll to bottom when messages change or animation updates
   useEffect(() => {
     if (flatListRef.current && (messages.length > 0 || animating)) {
@@ -49,6 +151,73 @@ export const OnlineAIScreen: React.FC = () => {
       }, 100);
     }
   }, [messages, animating, animatedContent]);
+
+  // Initialize entrance animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Pulse animation for loading states
+  useEffect(() => {
+    if (loading) {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 800,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      pulseAnimation.start();
+      return () => pulseAnimation.stop();
+    }
+  }, [loading]);
+
+  // Rotation animation for send button when loading
+  useEffect(() => {
+    if (loading) {
+      const rotateAnimation = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      );
+      rotateAnimation.start();
+      return () => {
+        rotateAnimation.stop();
+        rotateAnim.setValue(0);
+      };
+    }
+  }, [loading]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -69,23 +238,12 @@ export const OnlineAIScreen: React.FC = () => {
       let tmdbResults:
         | Array<{id: number; type: string; poster_path?: string}>
         | undefined = undefined;
-      let text = response;
+      let text = response.aiResponse;
       // Extract all TMDB_CONTENT_RESULTS arrays in the response
-      const allMatches = [
-        ...response.matchAll(/TMDB_CONTENT_RESULTS=\[(.*?)\]/gs),
-      ];
-      let arr = [];
-      if (allMatches.length > 0) {
+      const {arr} = response;
+
+      if (arr.length > 0) {
         try {
-          let arrStr = `[${allMatches[allMatches.length - 1][1]}]`;
-          // Fix single-quoted titles (e.g., {title: ''96', ...})
-          arrStr = arrStr.replace(
-            /title: ?'([^']*)'/g,
-            (m, p1) => `title: "${p1.replace(/"/g, '"')}"`,
-          );
-          arrStr = arrStr.replace(/'/g, '"');
-          arrStr = arrStr.replace(/([{,])\s*(\w+)\s*:/g, '$1"$2":');
-          const arr = JSON.parse(arrStr);
           // For each item, search TMDB by title, year, and type
           const tmdbResults: Array<{
             id: number;
@@ -137,9 +295,7 @@ export const OnlineAIScreen: React.FC = () => {
               });
             }
           }
-          text = response
-            .replace(allMatches[allMatches.length - 1][0], '')
-            .trim();
+          text = response.aiResponse;
           console.log('Extracted TMDB results:', tmdbResults);
           setAnimating(true);
           let i = 0;
@@ -202,70 +358,90 @@ export const OnlineAIScreen: React.FC = () => {
     const isLast =
       index === displayMessages.length - 1 && item.role === 'assistant';
     return (
-      <View style={isLast && {marginBottom: 120}}>
+      <View style={isLast && {paddingBottom: 120}}>
         <View
           style={[
             styles.message,
             item.role === 'user' ? styles.user : styles.assistant,
           ]}>
           {item.role === 'user' ? (
-            <Text style={styles.userText}>{item.content}</Text>
+            <Text style={styles.userText}>{item?.content}</Text>
           ) : (
             <Markdown style={{body: styles.messageText}}>
-              {item.content}
+              {item?.content}
             </Markdown>
           )}
         </View>
         {item.tmdbResults && item.tmdbResults.length > 0 && (
-          <FlatList
-            data={item.tmdbResults}
-            horizontal
-            keyExtractor={m => m.title + m.year + m.type}
-            renderItem={({item: media}) =>
-              media.poster_path ? (
-                <TouchableOpacity
-                  style={{margin: 8}}
-                  activeOpacity={1}
-                  onPress={() => {
-                    const nav: any = navigation;
-                    if (media.type === 'movie') {
-                      nav.navigate('MovieDetails', {
-                        movie: {
-                          id: media.id,
-                          title: media.title,
-                          poster_path: media.poster_path,
-                        },
-                      });
-                    } else if (media.type === 'tv') {
-                      nav.navigate('TVShowDetails', {
-                        show: {
-                          id: media.id,
-                          name: media.title,
-                          poster_path: media.poster_path,
-                        },
-                      });
-                    }
-                  }}>
-                  <Image
-                    source={{
-                      uri: `https://image.tmdb.org/t/p/w154${media.poster_path}`,
-                    }}
-                    style={{
-                      width: 100,
-                      height: 150,
-                      borderRadius: 8,
-                      backgroundColor: colors.modal.blur,
-                    }}
+          <View style={styles.contentCarousel}>
+            <View
+              style={{
+                position: 'absolute',
+                width: '80%',
+                marginLeft: '10%',
+                height: 255,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.lg,
+                borderColor: colors.modal.border,
+                borderWidth: 2,
+                zIndex: -1,
+              }}
+            />
+            <LinearGradient
+              colors={['rgb(18, 0, 22)', 'transparent']}
+              pointerEvents="none"
+              style={{
+                width: '25%',
+                height: '110%',
+                position: 'absolute',
+                bottom: -20,
+                left: 0,
+                // paddingHorizontal: 10,
+                zIndex: 2,
+              }}
+              start={{x: 0, y: 1}}
+              end={{x: 1, y: 1}}
+            />
+            <LinearGradient
+              colors={['transparent', 'rgb(18, 0, 22)']}
+              pointerEvents="none"
+              style={{
+                width: '25%',
+                height: '110%',
+                position: 'absolute',
+                bottom: -20,
+                right: 0,
+                // paddingHorizontal: 10,
+                zIndex: 2,
+              }}
+              start={{x: 0, y: 1}}
+              end={{x: 1, y: 1}}
+            />
+            <FlatList
+              data={item.tmdbResults}
+              horizontal
+              keyExtractor={m => m.title + m.year + m.type}
+              renderItem={({item: media, index}) =>
+                media.poster_path ? (
+                  <ParallaxCard
+                    media={media}
+                    index={index}
+                    navigation={navigation}
+                    scrollX={scrollX}
                   />
-                  {/* <Text style={{color: '#fff', width: 100}} numberOfLines={2}>
-                    {media.title} ({media.year})
-                  </Text> */}
-                </TouchableOpacity>
-              ) : null
-            }
-            style={{marginTop: 12}}
-            showsHorizontalScrollIndicator={false}
-          />
+                ) : null
+              }
+              contentContainerStyle={styles.carouselContent}
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={100}
+              decelerationRate={0.9}
+              onScroll={Animated.event(
+                [{nativeEvent: {contentOffset: {x: scrollX}}}],
+                {useNativeDriver: false},
+              )}
+              scrollEventThrottle={16}
+            />
+          </View>
         )}
       </View>
     );
@@ -277,163 +453,269 @@ export const OnlineAIScreen: React.FC = () => {
     : messages;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={80}>
-      <LinearGradient
-        colors={['rgba(83, 16, 63, 0.46)', 'rgba(64, 16, 83, 0.33)']}
+    <Animated.View
+      style={[
+        {flex: 1, position: 'relative'},
+        {
+          opacity: fadeAnim,
+          transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
+        },
+      ]}>
+      <TouchableOpacity
+        activeOpacity={0.9}
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          borderRadius: 50,
-        }}
-      />
-
-      <LinearGradient
-        colors={['rgba(3, 3, 3, 0.7)', 'rgba(0, 0, 0, 0)']}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 120,
-          zIndex: 10,
-        }}
-      />
-
-      <FlatList
-        ref={flatListRef}
-        data={displayMessages}
-        renderItem={renderItem}
-        keyExtractor={(_, idx) => idx.toString()}
-        contentContainerStyle={[styles.chat]}
-        ListEmptyComponent={
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100%',
-            }}>
-            <View style={{height: 250}} />
-            <Image
-              source={require('../assets/theater.png')}
-              style={{width: 100, height: 100}}
-            />
-            <Text style={{color: colors.modal.activeBorder, fontSize: 18}}>
-              Start chatting with our AI assistant!
-            </Text>
-            <Text style={{color: colors.modal.active, fontSize: 14}}>
-              Ask me anything about movies, TV shows, and more!
-            </Text>
-          </View>
-        }
-      />
-      {loading && (
-        <View style={{marginBottom: 120}}>
-          <ActivityIndicator
-            style={{margin: 8}}
-            color={'rgba(181, 12, 233, 0.61)'}
-          />
-        </View>
-      )}
-      <LinearGradient
-        colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.34)']}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 120,
-        }}
-      />
-
-      <View
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 30,
-          marginHorizontal: spacing.lg,
-          borderRadius: 50,
+          top: 50,
+          left: 20,
+          zIndex: 1,
           overflow: 'hidden',
-        }}>
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: borderRadius.round,
+          height: 50,
+          width: 50,
+          borderColor: colors.modal.border,
+          borderWidth: 1,
+        }}
+        onPress={() => navigation.goBack()}>
         <BlurView
-          blurAmount={10}
-          blurRadius={5}
-          blurType="light"
+          blurType="dark"
+          blurAmount={5}
+          style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
           overlayColor={colors.modal.blur}
+        />
+        <Icon name="chevron-back" size={24} color="white" />
+      </TouchableOpacity>
+      <LinearGradient
+        colors={[
+          'rgb(209, 8, 112)',
+          'rgba(209, 8, 125, 0.72)',
+          'rgba(75, 8, 209, 0.54)',
+          'rgb(133, 7, 183)',
+        ]}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['rgba(57, 0, 40, 0.7)', 'rgba(98, 0, 55, 0)']}
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
-            bottom: 0,
-            borderRadius: 50,
+            height: 120,
+            zIndex: 10,
+            marginHorizontal: 2,
+            borderTopLeftRadius: spacing.xxl,
+            borderTopRightRadius: spacing.xxl,
           }}
+        />
+        <FlatList
+          ref={flatListRef}
+          data={displayMessages}
+          renderItem={renderItem}
+          keyExtractor={(_, idx) => idx.toString()}
+          contentContainerStyle={[styles.chat]}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            loading ? (
+              <Animated.View
+                style={{
+                  // position: 'absolute',
+                  // bottom: 30,
+                  marginHorizontal: spacing.lg,
+                  marginBottom: 150,
+                }}>
+                <GradientSpinner
+                  size={30}
+                  thickness={3}
+                  style={{
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                    backgroundColor: 'transparent',
+                  }}
+                  colors={[
+                    colors.primary,
+                    colors.secondary,
+                    'rgba(239, 0, 184, 0.06)',
+                    'rgba(67, 2, 75, 0.06)',
+                    'rgba(211, 0, 239, 0.06)',
+                    'rgba(39, 1, 44, 0.06)',
+                    'rgba(211, 0, 239, 0.06)',
+                    'rgba(183, 0, 239, 0.34)',
+                    'rgba(213, 146, 249, 0.06)',
+                    'rgba(128, 0, 239, 0.06)',
+                    'rgba(0, 96, 239, 0.06)',
+                    'rgba(72, 0, 239, 0.06)',
+                    'rgba(44, 0, 239, 0.06)',
+                    'rgba(18, 0, 239, 0.06)',
+                    'rgba(0, 0, 239, 0.06)',
+                    'rgba(0, 123, 211, 0.06)',
+                    'rgba(0, 117, 184, 0.06)',
+                    'rgba(0, 0, 156, 0.06)',
+                    'rgba(0, 92, 128, 0.06)',
+                    'rgba(0, 0, 100, 0.06)',
+                    'rgba(0, 0, 72, 0.06)',
+                    'rgba(35, 0, 44, 0.06)',
+                    'rgba(18, 0, 15, 0.06)',
+                    'rgba(0, 0, 0, 0.06)',
+                  ]}
+                />
+                <Animated.Text
+                  style={[
+                    {
+                      color: colors.text.secondary,
+                      textAlign: 'center',
+                      fontSize: 12,
+                      marginTop: 4,
+                      fontStyle: 'italic',
+                    },
+                    {
+                      opacity: pulseAnim,
+                    },
+                  ]}>
+                  Theater AI is thinking...
+                </Animated.Text>
+              </Animated.View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+              }}>
+              <View style={{height: 250}} />
+              <Image
+                source={require('../assets/theater.png')}
+                style={{width: 100, height: 100}}
+              />
+              <Text
+                style={{
+                  color: colors.modal.activeBorder,
+                  ...typography.h3,
+                  fontSize: 18,
+                }}>
+                Start chatting with our AI assistant!
+              </Text>
+              <Text
+                style={{
+                  color: colors.modal.active,
+                  ...typography.body2,
+                  fontSize: 14,
+                }}>
+                Ask me anything about movies, TV shows, and more!
+              </Text>
+            </View>
+          }
         />
         <LinearGradient
-          colors={['rgba(83, 16, 63, 0.5)', 'rgba(64, 16, 83, 0.39)']}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 0}}
+          colors={['transparent', 'rgb(31, 2, 53)']}
           style={{
             position: 'absolute',
-            top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            borderRadius: 50,
+            height: 150,
+            marginHorizontal: 2,
+            borderBottomLeftRadius: spacing.xxl,
+            borderBottomRightRadius: spacing.xxl,
+            zIndex: 0,
           }}
         />
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Ask about movies, TV, actors..."
-            placeholderTextColor={colors.text.tertiary}
-            editable={!loading}
-            onSubmitEditing={sendMessage}
-            returnKeyType="send"
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 30,
+            marginHorizontal: spacing.lg,
+            borderRadius: 50,
+            overflow: 'hidden',
+            zIndex: 1,
+          }}>
+          <BlurView
+            blurAmount={10}
+            blurRadius={5}
+            blurType="light"
+            overlayColor={colors.modal.blur}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderRadius: 50,
+            }}
           />
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={sendMessage}
-            disabled={loading || !input.trim()}>
-            <Icon
-              name="send"
-              disabled={loading || !input.trim()}
-              size={24}
-              color={
-                loading || !input.trim()
-                  ? colors.modal.active
-                  : colors.text.primary
-              }
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              value={input}
+              onChangeText={setInput}
+              placeholder="Ask about movies, TV, actors..."
+              placeholderTextColor={colors.text.tertiary}
+              editable={!loading}
+              onSubmitEditing={sendMessage}
+              returnKeyType="send"
             />
-          </TouchableOpacity>
+            <Animated.View>
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  {
+                    opacity: loading || !input.trim() ? 0.5 : 1,
+                  },
+                ]}
+                onPress={sendMessage}
+                disabled={loading || !input.trim()}>
+                <Icon
+                  name={'send'}
+                  size={24}
+                  color={
+                    loading || !input.trim()
+                      ? colors.modal.active
+                      : colors.text.primary
+                  }
+                />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
-    marginBottom: 120,
+    // margin: 5,
+    backgroundColor: 'rgb(18, 0, 22)',
+    elevation: 12,
+    borderRadius: spacing.xxl,
+    marginHorizontal: 2,
+    overflow: 'hidden',
   },
   chat: {
-    padding: spacing.md,
+    paddingVertical: spacing.md,
     paddingTop: 70,
     gap: spacing.md,
   },
   message: {
     marginBottom: spacing.sm,
+    marginHorizontal: spacing.md,
     padding: spacing.md,
     maxWidth: '80%',
   },
@@ -461,7 +743,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.sm,
-    backgroundColor: colors.modal.background,
     borderRadius: 50,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
@@ -483,5 +764,63 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: borderRadius.round,
     paddingHorizontal: spacing.md,
+  },
+  contentCarousel: {
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    position: 'relative',
+  },
+  carouselContent: {
+    paddingHorizontal: spacing.md,
+    marginTop: 20,
+  },
+  contentCard: {
+    marginHorizontal: spacing.xs,
+    width: 140,
+  },
+  posterContainer: {
+    position: 'relative',
+    width: 140,
+    height: 220,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.modal.blur,
+  },
+  posterImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  posterGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+  },
+  posterInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.sm,
+  },
+  posterTitle: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 2,
+  },
+  posterYear: {
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: '400',
+    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 2,
   },
 });

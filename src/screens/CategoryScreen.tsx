@@ -26,6 +26,7 @@ import {BlurView} from '@react-native-community/blur';
 import {GridListSkeleton} from '../components/LoadingSkeleton';
 import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
+import { GradientSpinner } from '../components/GradientSpinner';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList,
@@ -243,14 +244,25 @@ export const CategoryScreen = () => {
           initialNumToRender={10}
           windowSize={7}
           removeClippedSubviews={true}
+          decelerationRate={0.97}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
             isFetchingNextPage ? (
-              <ActivityIndicator
-                style={{marginVertical: spacing.lg}}
-                size="large"
-                color={colors.text.muted}
+              <GradientSpinner
+                size={30}
+                thickness={3}
+                style={{
+                  marginVertical: 50,
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                }}
+                colors={[
+                  colors.modal.activeBorder,
+                  colors.modal.activeBorder,
+                  'transparent',
+                  'transparent',
+                ]}
               />
             ) : null
           }

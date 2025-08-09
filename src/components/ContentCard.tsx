@@ -42,6 +42,9 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
             source={{uri: imageUrl || 'https://via.placeholder.com/300x450'}}
             style={styles.image}
             resizeMode={FastImage.resizeMode.cover}
+            priority={FastImage.priority.normal}
+            cache={FastImage.cacheControl.cacheOnly}
+
             // REMOVE: onLoad, onError
           />
         </TouchableOpacity>

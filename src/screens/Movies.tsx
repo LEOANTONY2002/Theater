@@ -674,7 +674,7 @@ export const MoviesScreen = React.memo(() => {
         estimatedItemSize={300}
         removeClippedSubviews={true}
         scrollEventThrottle={16}
-        decelerationRate="normal"
+        decelerationRate={0.9}
         extraData={null}
         onScroll={onVerticalScroll}
         onScrollBeginDrag={() => {}}

@@ -9,6 +9,7 @@ import {WatchlistsScreen} from '../screens/Watchlists';
 import {MySpaceStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 import {OnlineAIScreen} from '../screens/OnlineAIScreen';
+import AISettingsScreen from '../screens/AISettings';
 
 const Stack = createNativeStackNavigator<MySpaceStackParamList>();
 
@@ -72,6 +73,14 @@ export const MySpaceNavigator = () => {
         options={{
           headerShown: false,
           title: 'Ask AI',
+        }}
+      />
+      <Stack.Screen
+        name="AISettingsScreen"
+        component={AISettingsScreen}
+        options={{
+          headerShown: false,
+          title: 'AI Settings',
         }}
       />
     </Stack.Navigator>

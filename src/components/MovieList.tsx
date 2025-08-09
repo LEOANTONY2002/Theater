@@ -13,6 +13,7 @@ import {MovieCard} from './MovieCard';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, spacing} from '../styles/theme';
 import {Text} from 'react-native-gesture-handler';
+import { GradientSpinner } from './GradientSpinner';
 
 export type ContentItem = (Movie & {type: 'movie'}) | (TVShow & {type: 'tv'});
 
@@ -45,7 +46,21 @@ export const MovieList: React.FC<MovieListProps> = ({
     if (!isLoading) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="large" color="rgba(210, 210, 210, 0.5)" />
+        <GradientSpinner
+          size={30}
+          thickness={3}
+          style={{
+            marginVertical: 50,
+            alignItems: 'center',
+            alignSelf: 'center',
+          }}
+          colors={[
+            colors.modal.activeBorder,
+            colors.modal.activeBorder,
+            'transparent',
+            'transparent',
+          ]}
+        />
       </View>
     );
   };

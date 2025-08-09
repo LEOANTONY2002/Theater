@@ -23,6 +23,7 @@ import {FiltersManager} from '../store/filters';
 import {Chip} from './Chip';
 import {queryClient} from '../services/queryClient';
 import {modalStyles} from '../styles/styles';
+import { GradientSpinner } from './GradientSpinner';
 
 interface Language {
   iso_639_1: string;
@@ -563,7 +564,21 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               <View style={styles.pickerContainer}>
                 {isLoadingLanguages ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator color={colors.accent} />
+                    <GradientSpinner
+                      size={30}
+                      thickness={3}
+                      style={{
+                        marginVertical: 50,
+                        alignItems: 'center',
+                        alignSelf: 'center',
+                      }}
+                      colors={[
+                        colors.modal.activeBorder,
+                        colors.modal.activeBorder,
+                        'transparent',
+                        'transparent',
+                      ]}
+                    />
                   </View>
                 ) : (
                   <Picker
@@ -738,9 +753,20 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               disabled={isValidatingFilter}>
               {isValidatingFilter ? (
                 <View style={styles.saveButtonLoading}>
-                  <ActivityIndicator
-                    color={colors.background.primary}
-                    size="small"
+                  <GradientSpinner
+                    size={28}
+                    thickness={3}
+                    style={{
+                      marginVertical: 50,
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                    }}
+                    colors={[
+                      colors.modal.activeBorder,
+                      colors.modal.activeBorder,
+                      'transparent',
+                      'transparent',
+                    ]}
                   />
                 </View>
               ) : (
