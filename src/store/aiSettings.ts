@@ -5,11 +5,20 @@ const AI_SETTINGS_KEY = 'ai_settings';
 export interface AISettings {
   model: string;
   apiKey: string;
+  isDefault: boolean; // true if using the hardcoded default key
+}
+
+// Allow callers to omit isDefault; we compute it from apiKey
+export interface AISettingsInput {
+  model: string;
+  apiKey: string;
+  isDefault?: boolean;
 }
 
 const DEFAULT_SETTINGS: AISettings = {
   model: 'gemini-2.5-flash',
-  apiKey: 'AIzaSyBNUXbNTw9EPA5ixGxStNtAAMZLUo4f3xs', // Default API key
+  apiKey: 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8', // Default API key
+  isDefault: true,
 };
 
 export class AISettingsManager {
@@ -18,9 +27,15 @@ export class AISettingsManager {
       const stored = await AsyncStorage.getItem(AI_SETTINGS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
+        const apiKey = parsed.apiKey || DEFAULT_SETTINGS.apiKey;
+        const isDefault =
+          typeof parsed.isDefault === 'boolean'
+            ? parsed.isDefault
+            : apiKey === DEFAULT_SETTINGS.apiKey;
         return {
           model: parsed.model || DEFAULT_SETTINGS.model,
-          apiKey: parsed.apiKey || DEFAULT_SETTINGS.apiKey,
+          apiKey,
+          isDefault,
         };
       }
       return DEFAULT_SETTINGS;
@@ -30,20 +45,18 @@ export class AISettingsManager {
     }
   }
 
-  static async saveSettings(settings: AISettings): Promise<void> {
+  static async saveSettings(settings: AISettingsInput): Promise<void> {
     try {
-      await AsyncStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(settings));
+      const isDefault =
+        typeof settings.isDefault === 'boolean'
+          ? settings.isDefault
+          : settings.apiKey === DEFAULT_SETTINGS.apiKey;
+      await AsyncStorage.setItem(
+        AI_SETTINGS_KEY,
+        JSON.stringify({...settings, isDefault}),
+      );
     } catch (error) {
       console.error('Error saving AI settings:', error);
-      throw error;
-    }
-  }
-
-  static async resetToDefaults(): Promise<void> {
-    try {
-      await AsyncStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
-    } catch (error) {
-      console.error('Error resetting AI settings:', error);
       throw error;
     }
   }
@@ -67,6 +80,7 @@ export class AISettingsManager {
       await this.saveSettings({
         ...currentSettings,
         apiKey,
+        // isDefault will auto-compute based on apiKey
       });
     } catch (error) {
       console.error('Error updating API key:', error);

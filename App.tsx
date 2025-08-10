@@ -16,20 +16,41 @@ import {SettingsManager} from './src/store/settings';
 import {queryClient} from './src/services/queryClient';
 import {enableScreens} from 'react-native-screens';
 import {DNSInstructionsModal} from './src/components/DNSInstructionsModal';
+import {checkInternet} from './src/services/connectivity';
+import {NoInternet} from './src/screens/NoInternet';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(true);
   const [showDNSModal, setShowDNSModal] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   enableScreens();
   LogBox.ignoreAllLogs();
 
-  const handleTryAgain = () => {
-    DevSettings.reload();
+  const handleTryAgain = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      const ok = await checkInternet();
+      setIsOnline(ok);
+      if (ok) {
+        DevSettings.reload();
+      }
+    } finally {
+      setRetrying(false);
+    }
   };
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Check connectivity first
+        const ok = await checkInternet();
+        setIsOnline(ok);
+        if (!ok) {
+          setIsLoading(false);
+          return;
+        }
         // Detect and set region
         var region = await SettingsManager.getRegion();
         if (!region) {
@@ -57,9 +78,10 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: string) => {
+    const handleAppStateChange = async (nextAppState: string) => {
       if (nextAppState === 'active') {
-        // App became active - no cache operations needed
+        const ok = await checkInternet();
+        setIsOnline(ok);
       }
     };
     const subscription = AppState.addEventListener(
@@ -79,6 +101,15 @@ const App = () => {
   //     </>
   //   );
   // }
+
+  if (!isOnline) {
+    return (
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#000007" />
+        <NoInternet onRetry={handleTryAgain} isRetrying={retrying} />
+      </>
+    );
+  }
 
   return (
     <>

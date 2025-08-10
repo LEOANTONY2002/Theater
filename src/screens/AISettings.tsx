@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
   Clipboard,
   Modal,
+  Linking,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {Link, useNavigation} from '@react-navigation/native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -20,8 +21,10 @@ import {BlurView} from '@react-native-community/blur';
 import {AISettingsManager} from '../store/aiSettings';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {FlashList} from '@shopify/flash-list';
+import {useQueryClient} from '@tanstack/react-query';
 
 const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
+const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
 
 interface GeminiModel {
   id: string;
@@ -136,6 +139,7 @@ const AISettingsScreen: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
+  const queryClient = useQueryClient();
 
   const showAlert = (title: string, message: string) => {
     setModalTitle(title);
@@ -207,6 +211,7 @@ const AISettingsScreen: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-goog-api-key': key,
           },
           body: JSON.stringify({
             contents: [
@@ -275,6 +280,8 @@ const AISettingsScreen: React.FC = () => {
         apiKey: trimmedApiKey,
       });
 
+      queryClient.invalidateQueries({queryKey: ['aiSettings']});
+
       // Update initial settings to reflect the saved state
       setInitialSettings({
         apiKey: trimmedApiKey,
@@ -295,7 +302,7 @@ const AISettingsScreen: React.FC = () => {
   const handlePasteFromClipboard = async () => {
     try {
       const content = await Clipboard.getString();
-      if (content) {
+      if (content && content !== DEFAULT_API_KEY) {
         setApiKey(content);
         setIsApiKeyCopied(true);
         setTimeout(() => setIsApiKeyCopied(false), 2000);
@@ -387,11 +394,11 @@ const AISettingsScreen: React.FC = () => {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, {paddingRight: 40}]}
-                  value={apiKey}
+                  value={apiKey === DEFAULT_API_KEY ? '' : apiKey}
                   onChangeText={setApiKey}
                   placeholder="Enter your Gemini API key..."
                   placeholderTextColor={colors.text.tertiary}
-                  secureTextEntry={true}
+                  secureTextEntry={apiKey === DEFAULT_API_KEY}
                   multiline={false}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -410,9 +417,25 @@ const AISettingsScreen: React.FC = () => {
                   />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.inputHint}>
-                Get your API key from Google AI Studio (makersuite.google.com)
-              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL('https://aistudio.google.com/app/apikey')
+                }
+                activeOpacity={0.8}>
+                <Text style={styles.inputHint}>
+                  Get your API key from Google AI Studio
+                </Text>
+                <Text
+                  style={{
+                    color: colors.text.tertiary,
+                    fontStyle: 'italic',
+                    textDecorationLine: 'underline',
+                    textDecorationColor: colors.text.primary,
+                    textDecorationStyle: 'solid',
+                  }}>
+                  https://aistudio.google.com/app/apikey
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
@@ -426,7 +449,7 @@ const AISettingsScreen: React.FC = () => {
                 style={styles.apiKeyButtonIcon}
               />
               <Text style={styles.apiKeyButtonText}>
-                {apiKey ? 'Edit API Key' : 'Add API Key'}
+                {apiKey !== DEFAULT_API_KEY ? 'Edit API Key' : 'Add API Key'}
               </Text>
             </TouchableOpacity>
           )}
@@ -728,8 +751,7 @@ const styles = StyleSheet.create({
   },
   inputHint: {
     ...typography.body2,
-    color: colors.text.tertiary,
-    fontStyle: 'italic',
+    color: colors.text.secondary,
   },
   actionButtons: {
     marginBottom: spacing.xxl,

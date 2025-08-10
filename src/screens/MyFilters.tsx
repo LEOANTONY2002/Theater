@@ -281,8 +281,6 @@ const MyFilterItemWithResults = ({
               bottom: 20,
               zIndex: 1,
               opacity: 0.9,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 10,
             }}
           />
         </View>

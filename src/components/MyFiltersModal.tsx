@@ -23,7 +23,7 @@ import {FiltersManager} from '../store/filters';
 import {Chip} from './Chip';
 import {queryClient} from '../services/queryClient';
 import {modalStyles} from '../styles/styles';
-import { GradientSpinner } from './GradientSpinner';
+import {GradientSpinner} from './GradientSpinner';
 
 interface Language {
   iso_639_1: string;
@@ -590,7 +590,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     {languages.map(lang => (
                       <Picker.Item
                         key={lang.iso_639_1}
-                        label={`${lang.english_name} (${lang.name})`}
+                        label={`${lang.english_name} ${
+                          lang.name && `(${lang.name})`
+                        }`}
                         value={lang.iso_639_1}
                       />
                     ))}

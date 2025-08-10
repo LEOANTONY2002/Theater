@@ -624,7 +624,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           color: colors.text.primary,
                           marginTop: spacing.md,
                         }}>
-                        Theater AI is fetching similar shows...
+                        Theater AI is curating similar movies...
                       </Text>
                     </View>
                   ) : (
@@ -632,7 +632,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       {Array.isArray(aiSimilarMovies) &&
                         aiSimilarMovies.length > 0 && (
                           <HorizontalList
-                            title="AI Similar TV Shows"
+                            title="Similar movies by Theater AI"
                             data={aiSimilarMovies}
                             onItemPress={handleItemPress}
                             isSeeAll={false}
@@ -643,7 +643,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   {similarMoviesData.length > 0 ? (
                     <View>
                       <HorizontalList
-                        title="Similar Movies"
+                        title="Similar movies"
                         data={similarMoviesData}
                         onItemPress={handleItemPress}
                         isSeeAll={false}

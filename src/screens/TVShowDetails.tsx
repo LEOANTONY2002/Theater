@@ -758,7 +758,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     styles.noEpisodesText,
                     {fontStyle: 'italic', color: colors.text.primary},
                   ]}>
-                  Theater AI is fetching similar shows...
+                  Theater AI is curating similar shows...
                 </Text>
               </View>
             ) : (

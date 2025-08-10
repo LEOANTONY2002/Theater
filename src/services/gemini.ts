@@ -1,9 +1,8 @@
-import {Platform} from 'react-native';
 import {AISettingsManager} from '../store/aiSettings';
 
 // Default fallback values
 const DEFAULT_MODEL = 'gemini-2.5-flash';
-const DEFAULT_API_KEY = 'AIzaSyBNUXbNTw9EPA5ixGxStNtAAMZLUo4f3xs';
+const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
 
 // Dynamic function to get current settings
 const getGeminiConfig = async () => {
@@ -76,7 +75,6 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
       temperature: 0.7,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 2048,
     },
     safetySettings: [
       {
@@ -145,7 +143,7 @@ export async function getSimilarByStory({
 }) {
   const system = {
     role: 'system' as const,
-    content: `You are a movie/TV recommender. 
+    content: `You are a movie/TV recommender called Theater AI. 
       Given a title, genres and story, give the most similar movie/show. 
       Return a JSON array of title and year up to 5 similar movies or TV shows. 
       Do not include any explanation or extra text. Just return the JSON array.
@@ -181,7 +179,7 @@ export async function cinemaChat(
 ) {
   const system = {
     role: 'system' as const,
-    content: `You are an expert cinema assistant. 
+    content: `You are an expert cinema assistant called Theater AI. 
       Only answer questions related to movies, TV, actors, directors, film history, and cinema. 
       Politely refuse unrelated questions. 
       Whenever you suggest any movies/TV shows, always include the tmdb title, year, type in a array only at the last line of the message response.
@@ -196,6 +194,8 @@ export async function cinemaChat(
 
   // Try to extract JSON from the response
   const jsonMatch = res.match(/TMDB_CONTENT_RESULTS=(\[.*?\])/s);
+  console.log('jsonMatch', jsonMatch);
+
   if (jsonMatch) {
     arr = JSON.parse(jsonMatch[1] || '[]');
   }

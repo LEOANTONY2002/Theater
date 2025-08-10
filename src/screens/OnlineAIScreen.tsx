@@ -18,6 +18,7 @@ import Markdown from 'react-native-markdown-display';
 import {BlurView} from '@react-native-community/blur';
 import {useNavigation} from '@react-navigation/native';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {AISettingsManager} from '../store/aiSettings';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -134,6 +135,7 @@ export const OnlineAIScreen: React.FC = () => {
   const [animating, setAnimating] = useState(false);
   const [animatedContent, setAnimatedContent] = useState('');
   const flatListRef = useRef<FlatList>(null);
+  const [isDefaultKey, setIsDefaultKey] = useState<boolean>(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -174,6 +176,22 @@ export const OnlineAIScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
+  }, []);
+
+  // Load isDefault flag for API key
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const settings = await AISettingsManager.getSettings();
+        if (mounted) setIsDefaultKey(!!settings.isDefault);
+      } catch (e) {
+        if (mounted) setIsDefaultKey(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Pulse animation for loading states
@@ -617,6 +635,65 @@ export const OnlineAIScreen: React.FC = () => {
                 }}>
                 Ask me anything about movies, TV shows, and more!
               </Text>
+              {isDefaultKey && (
+                <View style={{marginTop: spacing.lg, alignItems: 'center'}}>
+                  <View
+                    style={{
+                      borderTopColor: colors.modal.blur,
+                      borderTopWidth: 1,
+                      paddingTop: spacing.md,
+                      width: 200,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      color: colors.text.secondary,
+                      ...typography.body2,
+                      textAlign: 'center',
+                      marginHorizontal: spacing.lg,
+                    }}>
+                    You are using the default Gemini API key. For better
+                    reliability, add your own API key in AI Settings.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      (navigation as any).navigate('AISettingsScreen')
+                    }
+                    activeOpacity={0.9}
+                    style={{
+                      marginTop: spacing.md,
+                      borderRadius: 24,
+                      overflow: 'hidden',
+                    }}>
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 1}}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        borderRadius: 24,
+                      }}>
+                      <View
+                        style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <Icon
+                          name="settings-outline"
+                          size={18}
+                          color={colors.text.primary}
+                        />
+                        <Text
+                          style={{
+                            color: colors.text.primary,
+                            ...typography.button,
+                            marginLeft: 8,
+                          }}>
+                          Open AI Settings
+                        </Text>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           }
         />
@@ -766,8 +843,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   contentCarousel: {
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    marginVertical: spacing.md,
+    marginBottom: spacing.lg,
     position: 'relative',
   },
   carouselContent: {

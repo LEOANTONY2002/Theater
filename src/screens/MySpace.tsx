@@ -38,6 +38,7 @@ import {useWatchlists} from '../hooks/useWatchlists';
 import {Watchlist} from '../store/watchlists';
 import {useNavigationState} from '../hooks/useNavigationState';
 import packageJson from '../../package.json';
+import {AISettingsManager} from '../store/aiSettings';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -77,6 +78,15 @@ export const MySpaceScreen = React.memo(() => {
     queryFn: SettingsManager.getRegion,
     staleTime: 1000 * 60 * 30, // 30 minutes
     gcTime: 1000 * 60 * 60, // 1 hour
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+  });
+
+  const {data: aiSettings} = useQuery({
+    queryKey: ['aiSettings'],
+    queryFn: AISettingsManager.getSettings,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -242,6 +252,66 @@ export const MySpaceScreen = React.memo(() => {
         </View>
       ) : null}
 
+      {/* AI Settings Section */}
+      <TouchableOpacity
+        style={styles.headerContainer}
+        onPress={() => navigateWithLimit('AISettingsScreen')}
+        testID="aiSettingsButton">
+        <Text style={styles.sectionTitle}>AI Settings</Text>
+        <View style={styles.regionInfo}>
+          {aiSettings && (
+            <Text style={styles.regionText} numberOfLines={1}>
+              {aiSettings.model}
+            </Text>
+          )}
+          <Ionicons
+            name="chevron-forward"
+            size={14}
+            color={colors.text.primary}
+          />
+        </View>
+      </TouchableOpacity>
+
+      {/* Ask AI Section */}
+      <View style={{position: 'relative', overflow: 'hidden'}}>
+        <LinearGradient
+          colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: spacing.md,
+            right: spacing.md,
+            bottom: 15,
+            borderRadius: 12,
+            zIndex: -1,
+          }}
+        />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={[
+            styles.headerContainer,
+            {
+              backgroundColor: 'rgba(19, 19, 25, 0.98)',
+              borderRadius: borderRadius.md,
+              padding: spacing.md,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              borderWidth: 3,
+              borderColor: colors.modal.blur,
+            },
+          ]}
+          onPress={() => navigateWithLimit('OnlineAIScreen')}
+          testID="askAIHeader">
+          <Text style={[styles.sectionTitle, {color: colors.accent}]}>
+            Theater AI
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.accent} />
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         style={styles.headerContainer}
         onPress={() => setShowRegionModal(true)}>
@@ -297,59 +367,6 @@ export const MySpaceScreen = React.memo(() => {
           </ScrollView>
         ) : null}
       </View>
-
-      {/* Ask AI Section */}
-      <View style={{position: 'relative', overflow: 'hidden'}}>
-        <LinearGradient
-          colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 0}}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: spacing.md,
-            right: spacing.md,
-            bottom: 15,
-            borderRadius: 12,
-            zIndex: -1,
-          }}
-        />
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={[
-            styles.headerContainer,
-            {
-              backgroundColor: 'rgba(19, 19, 25, 0.98)',
-              borderRadius: borderRadius.md,
-              padding: spacing.md,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              borderWidth: 3,
-              borderColor: colors.modal.blur,
-            },
-          ]}
-          onPress={() => navigateWithLimit('OnlineAIScreen')}
-          testID="askAIHeader">
-          <Text style={[styles.sectionTitle, {color: colors.accent}]}>
-            Theater AI
-          </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.accent} />
-        </TouchableOpacity>
-      </View>
-
-      {/* AI Settings Section */}
-      <TouchableOpacity
-        style={styles.headerContainer}
-        onPress={() => navigateWithLimit('AISettingsScreen')}
-        testID="aiSettingsButton">
-        <Text style={styles.sectionTitle}>AI Settings</Text>
-        <Ionicons
-          name="chevron-forward"
-          size={14}
-          color={colors.text.primary}
-        />
-      </TouchableOpacity>
 
       <Modal
         visible={showLanguageModal}
