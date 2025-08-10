@@ -10,7 +10,7 @@ import {MovieCard} from './MovieCard';
 import {ContentItem} from './MovieList';
 import {colors, spacing, typography} from '../styles/theme';
 import {GridSkeleton} from './LoadingSkeleton';
-import { GradientSpinner } from './GradientSpinner';
+import {GradientSpinner} from './GradientSpinner';
 
 type TrendingGridProps = {
   data: ContentItem[];
@@ -59,21 +59,26 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
             : undefined
         }
         onEndReachedThreshold={0.5}
-        ListFooterComponent={isFetchingNextPage ? <GradientSpinner
-                      size={30}
-                      thickness={3}
-                      style={{
-                        marginVertical: 50,
-                        alignItems: 'center',
-                        alignSelf: 'center',
-                      }}
-                      colors={[
-                        colors.modal.activeBorder,
-                        colors.modal.activeBorder,
-                        'transparent',
-                        'transparent',
-                      ]}
-                    /> : null}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <GradientSpinner
+              size={30}
+              thickness={3}
+              style={{
+                marginVertical: 50,
+                marginBottom: 200,
+                alignItems: 'center',
+                alignSelf: 'center',
+              }}
+              colors={[
+                colors.modal.activeBorder,
+                colors.modal.activeBorder,
+                'transparent',
+                'transparent',
+              ]}
+            />
+          ) : null
+        }
         removeClippedSubviews={true}
         maxToRenderPerBatch={6}
         windowSize={5}

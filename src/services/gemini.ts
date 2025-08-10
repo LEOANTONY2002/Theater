@@ -184,7 +184,7 @@ export async function cinemaChat(
       Politely refuse unrelated questions. 
       Whenever you suggest any movies/TV shows, always include the tmdb title, year, type in a array only at the last line of the message response.
       whatever the content you are suggesting or talking about should be their correct tmdb details included in the JSON array. And the array should be the last line of the WHOLE RESPONSE, Dont include multiple arrays in every single content.
-      JSON Format: TMDB_CONTENT_RESULTS=[{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2", "year": "2025", "type": "tv"}].
+      JSON Format: [{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2", "year": "2025", "type": "tv"}].
       `,
   };
 
@@ -193,15 +193,15 @@ export async function cinemaChat(
   let arr = [];
 
   // Try to extract JSON from the response
-  const jsonMatch = res.match(/TMDB_CONTENT_RESULTS=(\[.*?\])/s);
+  const jsonMatch = res.match(/\[.*?\]/s);
   console.log('jsonMatch', jsonMatch);
 
   if (jsonMatch) {
-    arr = JSON.parse(jsonMatch[1] || '[]');
+    arr = JSON.parse(jsonMatch[0] || '[]');
   }
 
   // AI Response without JSON
-  const aiResponse = res.replace(/TMDB_CONTENT_RESULTS=(\[.*?\])/s, '');
+  const aiResponse = res.replace(/\[.*?\]/s, '');
 
   return {aiResponse, arr};
 }

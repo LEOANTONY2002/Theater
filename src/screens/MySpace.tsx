@@ -681,10 +681,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   privacyText: {
-    color: colors.text.muted,
+    color: colors.text.secondary,
     fontSize: 13,
     textAlign: 'center',
-    textDecorationLine: 'underline',
     fontFamily: 'Inter',
   },
   privacyContent: {
@@ -693,7 +692,7 @@ const styles = StyleSheet.create({
     ...typography.body1,
   },
   privacySectionTitle: {
-    color: colors.text.secondary,
+    color: colors.text.primary,
     ...typography.h3,
     marginBottom: spacing.sm,
   },

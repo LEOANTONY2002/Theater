@@ -18,10 +18,13 @@ import {enableScreens} from 'react-native-screens';
 import {DNSInstructionsModal} from './src/components/DNSInstructionsModal';
 import {checkInternet} from './src/services/connectivity';
 import {NoInternet} from './src/screens/NoInternet';
+import Onboarding from './src/screens/Onboarding';
+import {OnboardingManager} from './src/store/onboarding';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [showDNSModal, setShowDNSModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
   enableScreens();
@@ -44,13 +47,21 @@ const App = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Check connectivity first
-        const ok = await checkInternet();
-        setIsOnline(ok);
-        if (!ok) {
+        // Load onboarding state first
+        const ob = await OnboardingManager.getState();
+        setIsOnboarded(!!ob.isOnboarded);
+        if (!ob.isOnboarded) {
+          // Show onboarding immediately; defer connectivity/region until after onboarding
           setIsLoading(false);
           return;
         }
+        // If already onboarded, then check connectivity
+        // const ok = await checkInternet();
+        // setIsOnline(ok);
+        // if (!ok) {
+        //   setIsLoading(false);
+        //   return;
+        // }
         // Detect and set region
         var region = await SettingsManager.getRegion();
         if (!region) {
@@ -102,6 +113,34 @@ const App = () => {
   //   );
   // }
 
+  // Avoid flashing Home before onboarding state is known
+  if (isLoading || isOnboarded === null) {
+    return (
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#000007" />
+      </>
+    );
+  }
+
+  // Show onboarding if required
+  if (isOnboarded === false) {
+    return (
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#000007" />
+        <Onboarding
+          onDone={async () => {
+            await OnboardingManager.setIsOnboarded(true);
+            setIsOnboarded(true);
+            // After onboarding completes, re-check connectivity so NoInternet can appear next if offline
+            const ok = await checkInternet();
+            setIsOnline(ok);
+          }}
+        />
+      </>
+    );
+  }
+
+  // After onboarding is completed, if offline, show NoInternet
   if (!isOnline) {
     return (
       <>
