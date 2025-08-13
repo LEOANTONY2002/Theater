@@ -22,6 +22,7 @@ import {AISettingsManager} from '../store/aiSettings';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {FlashList} from '@shopify/flash-list';
 import {useQueryClient} from '@tanstack/react-query';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
 const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
@@ -378,7 +379,17 @@ const AISettingsScreen: React.FC = () => {
       </Modal>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => navigation.goBack()}>
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.text.primary}
+            />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>AI Settings</Text>
+          <View />
         </View>
         {/* API Key Section */}
         <View style={styles.section}>
@@ -604,15 +615,17 @@ const styles = StyleSheet.create({
     opacity: 0.1,
   },
   header: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 50,
-    paddingVertical: spacing.md,
+    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingVertical: spacing.lg,
   },
   headerTitle: {
     ...typography.h2,
     color: colors.text.primary,
-    flex: 1,
+    marginLeft: -spacing.md,
   },
   content: {
     flex: 1,

@@ -604,7 +604,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             {/* Rating */}
             <View style={styles.section}>
               <GradientProgressBar
-                value={filters['vote_average.gte'] || 0}
+                value={filters['vote_average.gte'] || 1}
                 minValue={0}
                 maxValue={10}
                 step={0.5}

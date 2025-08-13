@@ -171,6 +171,7 @@ export const MySpaceScreen = React.memo(() => {
       </View>
       <TouchableOpacity
         style={styles.headerContainer}
+        activeOpacity={0.9}
         onPress={() => navigateWithLimit('WatchlistsScreen')}
         testID="watchlistsHeader">
         <Text style={styles.sectionTitle}>Watchlists</Text>
@@ -213,6 +214,7 @@ export const MySpaceScreen = React.memo(() => {
 
       <TouchableOpacity
         style={styles.headerContainer}
+        activeOpacity={0.9}
         onPress={() => navigateWithLimit('MyFiltersScreen')}
         testID="myFiltersButton">
         <Text style={styles.sectionTitle}>My Filters</Text>
@@ -255,6 +257,7 @@ export const MySpaceScreen = React.memo(() => {
       {/* AI Settings Section */}
       <TouchableOpacity
         style={styles.headerContainer}
+        activeOpacity={0.9}
         onPress={() => navigateWithLimit('AISettingsScreen')}
         testID="aiSettingsButton">
         <Text style={styles.sectionTitle}>AI Settings</Text>
@@ -289,7 +292,7 @@ export const MySpaceScreen = React.memo(() => {
           }}
         />
         <TouchableOpacity
-          activeOpacity={0.8}
+          activeOpacity={0.9}
           style={[
             styles.headerContainer,
             {
@@ -314,6 +317,7 @@ export const MySpaceScreen = React.memo(() => {
 
       <TouchableOpacity
         style={styles.headerContainer}
+        activeOpacity={0.9}
         onPress={() => setShowRegionModal(true)}>
         <Text style={styles.sectionTitle}>Region</Text>
         <View style={styles.regionInfo}>
@@ -331,6 +335,7 @@ export const MySpaceScreen = React.memo(() => {
       <View>
         <TouchableOpacity
           style={styles.headerContainer}
+          activeOpacity={0.9}
           onPress={() => setShowLanguageModal(true)}>
           <Text style={styles.sectionTitle}>Languages</Text>
           <Ionicons
@@ -384,7 +389,9 @@ export const MySpaceScreen = React.memo(() => {
             />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Language Settings</Text>
-              <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowLanguageModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
@@ -406,6 +413,7 @@ export const MySpaceScreen = React.memo(() => {
       {/* Footer: TMDB Attribution & Privacy Policy */}
       <View style={styles.footerContainer}>
         <TouchableOpacity
+          activeOpacity={0.9}
           onPress={() => {
             // Open TMDB website
             const url = 'https://www.themoviedb.org/';
@@ -424,6 +432,7 @@ export const MySpaceScreen = React.memo(() => {
           This app uses the TMDB API but is not endorsed or certified by TMDB.
         </Text>
         <TouchableOpacity
+          activeOpacity={0.9}
           onPress={() => {
             setShowPrivacyModal(true);
           }}
@@ -452,7 +461,9 @@ export const MySpaceScreen = React.memo(() => {
             />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Privacy Policy</Text>
-              <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowPrivacyModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>

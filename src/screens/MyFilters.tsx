@@ -406,7 +406,9 @@ export const MyFiltersScreen = () => {
             justifyContent: 'space-between',
             zIndex: 1,
           }}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => navigation.goBack()}>
             <Ionicons
               name="chevron-back-outline"
               size={24}
@@ -416,6 +418,7 @@ export const MyFiltersScreen = () => {
           <Text style={styles.title}>My Filters</Text>
           {savedFilters.length > 0 && (
             <TouchableOpacity
+              activeOpacity={0.9}
               style={styles.addButton}
               onPress={() => setShowAddModal(true)}>
               <Ionicons name="add" size={24} color={colors.text.primary} />
