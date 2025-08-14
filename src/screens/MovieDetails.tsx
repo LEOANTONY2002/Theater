@@ -614,8 +614,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         colors={[
                           colors.primary,
                           colors.secondary,
-                          'transparent',
-                          'transparent',
+                          colors.transparent,
+                          colors.transparentDim,
                         ]}
                       />
                       <Text

@@ -11,7 +11,7 @@ import {
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
-import { GradientSpinner } from './GradientSpinner';
+import {GradientSpinner} from './GradientSpinner';
 
 interface RegionModalProps {
   visible: boolean;
@@ -69,8 +69,8 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                 colors={[
                   colors.modal.activeBorder,
                   colors.modal.activeBorder,
-                  'transparent',
-                  'transparent',
+                  colors.transparent,
+                  colors.transparentDim,
                 ]}
               />
             </View>

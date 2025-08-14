@@ -24,6 +24,8 @@ import {Chip} from './Chip';
 import {queryClient} from '../services/queryClient';
 import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
+import {LanguageSettings} from './LanguageSettings';
+import {SettingsManager, Language as SettingsLanguage} from '../store/settings';
 
 interface Language {
   iso_639_1: string;
@@ -53,7 +55,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 }) => {
   const [filterName, setFilterName] = useState('');
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
-  const [filters, setFilters] = useState<FilterParams>({});
+  const [filters, setFilters] = useState<FilterParams>({
+    sort_by: 'popularity.desc',
+    with_runtime_gte: 1,
+  });
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -72,6 +77,13 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [pendingDeleteFilter, setPendingDeleteFilter] =
     useState<SavedFilter | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [selectedLanguages, setSelectedLanguages] = useState<
+    SettingsLanguage[]
+  >([]);
+  const [tempLanguageSelection, setTempLanguageSelection] = useState<
+    SettingsLanguage[]
+  >([]);
 
   useEffect(() => {
     if (visible) {
@@ -82,7 +94,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       } else {
         setFilterName('');
         setContentType('all');
-        setFilters({});
+        setFilters({
+          sort_by: 'popularity.desc',
+          with_runtime_gte: 1,
+        });
         setHasAttemptedSave(false);
         setFilterNameError(null);
         setValidationError(null);
@@ -111,6 +126,20 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       fetchLanguages();
     }
   }, [visible, languages.length]);
+
+  // Keep displayed selectedLanguages in sync with current filter only.
+  // Avoid loading from SettingsManager to prevent carry-over between filter creations.
+  useEffect(() => {
+    if (!visible) return;
+    const iso = filters.with_original_language;
+    if (iso) {
+      setSelectedLanguages([
+        {iso_639_1: iso, english_name: '', name: ''} as any,
+      ]);
+    } else {
+      setSelectedLanguages([]);
+    }
+  }, [visible, filters.with_original_language]);
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -337,37 +366,45 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     return dateStr ? new Date(dateStr as string) : new Date();
   };
 
-  const handleGenreToggle = (genreId: number) => {
+  // Toggle multiple genre IDs at once (used for 'All')
+  const handleGenreToggleIds = (ids: number[]) => {
     setFilters(prev => {
-      const currentGenres = prev.with_genres ? prev.with_genres.split(',') : [];
-      const genreIdStr = genreId.toString();
-
-      if (currentGenres.includes(genreIdStr)) {
-        return {
-          ...prev,
-          with_genres: currentGenres.filter(id => id !== genreIdStr).join(','),
-        };
-      } else {
-        return {
-          ...prev,
-          with_genres: [...currentGenres, genreIdStr].join(','),
-        };
-      }
+      const current = prev.with_genres ? prev.with_genres.split(',') : [];
+      const idStrs = ids.map(id => id.toString());
+      const allSelected = idStrs.every(id => current.includes(id));
+      const next = allSelected
+        ? current.filter(id => !idStrs.includes(id))
+        : Array.from(new Set([...current, ...idStrs]));
+      return {...prev, with_genres: next.filter(Boolean).join(',') || undefined};
     });
+  };
+
+  const handleGenreToggle = (genreId: number, genreName?: string) => {
+    if (contentType === 'all' && genreName) {
+      const movieMatch = movieGenres.find(g => g.name === genreName);
+      const tvMatch = tvGenres.find(g => g.name === genreName);
+      const ids: number[] = [];
+      if (movieMatch) ids.push(movieMatch.id);
+      if (tvMatch) ids.push(tvMatch.id);
+      if (ids.length === 0) ids.push(genreId);
+      handleGenreToggleIds(ids);
+      return;
+    }
+    handleGenreToggleIds([genreId]);
   };
 
   const getFilteredGenres = () => {
     if (contentType === 'movie') return movieGenres;
     if (contentType === 'tv') return tvGenres;
 
-    // For "All", combine genres and remove duplicates by ID
-    const uniqueGenres = new Map();
+    // For 'All', combine by name to unify equivalents across movie/TV
+    const uniqueByName = new Map<string, any>();
     [...movieGenres, ...tvGenres].forEach(genre => {
-      if (!uniqueGenres.has(genre.id)) {
-        uniqueGenres.set(genre.id, genre);
+      if (!uniqueByName.has(genre.name)) {
+        uniqueByName.set(genre.name, genre);
       }
     });
-    return Array.from(uniqueGenres.values());
+    return Array.from(uniqueByName.values());
   };
 
   return (
@@ -513,11 +550,20 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   <Chip
                     key={genre.id}
                     label={genre.name}
-                    selected={
-                      filters.with_genres?.includes(genre.id.toString()) ||
-                      false
-                    }
-                    onPress={() => handleGenreToggle(genre.id)}
+                    selected={(() => {
+                      if (!filters.with_genres) return false;
+                      if (contentType !== 'all') {
+                        return filters.with_genres.includes(genre.id.toString());
+                      }
+                      const movieMatch = movieGenres.find(g => g.name === genre.name);
+                      const tvMatch = tvGenres.find(g => g.name === genre.name);
+                      const ids = [movieMatch?.id, tvMatch?.id]
+                        .filter(Boolean)
+                        .map(String) as string[];
+                      if (ids.length === 0) return filters.with_genres.includes(genre.id.toString());
+                      return ids.some(id => filters.with_genres!.includes(id));
+                    })()}
+                    onPress={() => handleGenreToggle(genre.id, genre.name)}
                   />
                 )}
                 keyExtractor={genre => genre.id.toString()}
@@ -528,21 +574,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             {/* Sort By with Order Toggle */}
             <View style={styles.section}>
-              {/* <View style={styles.sectionHeader}> */}
               <Text style={styles.sectionTitle}>Sort By</Text>
-              {/* <TouchableOpacity
-                  style={styles.sortOrderButton}
-                  onPress={handleSortOrderToggle}>
-                  <Ionicons
-                    name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
-                    size={20}
-                    color={colors.text.primary}
-                  />
-                </TouchableOpacity> */}
-              {/* </View> */}
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={filters.sort_by}
+                  selectedValue={filters.sort_by || 'popularity.desc'}
                   onValueChange={handleSortChange}
                   style={styles.picker}
                   dropdownIconColor={colors.text.primary}>
@@ -558,47 +593,42 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               </View>
             </View>
 
-            {/* Language */}
+            {/* Language (uses LanguageSettings modal) */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Original Language</Text>
-              <View style={styles.pickerContainer}>
-                {isLoadingLanguages ? (
-                  <View style={styles.loadingContainer}>
-                    <GradientSpinner
-                      size={30}
-                      thickness={3}
-                      style={{
-                        marginVertical: 50,
-                        alignItems: 'center',
-                        alignSelf: 'center',
-                      }}
-                      colors={[
-                        colors.modal.activeBorder,
-                        colors.modal.activeBorder,
-                        'transparent',
-                        'transparent',
-                      ]}
-                    />
-                  </View>
-                ) : (
-                  <Picker
-                    selectedValue={filters.with_original_language}
-                    onValueChange={handleLanguageChange}
-                    style={styles.picker}
-                    dropdownIconColor={colors.text.primary}>
-                    <Picker.Item label="Any" value="" />
-                    {languages.map(lang => (
-                      <Picker.Item
-                        key={lang.iso_639_1}
-                        label={`${lang.english_name} ${
-                          lang.name && `(${lang.name})`
-                        }`}
-                        value={lang.iso_639_1}
-                      />
-                    ))}
-                  </Picker>
-                )}
-              </View>
+              <TouchableOpacity
+                style={[
+                  styles.sectionHeader,
+                  {
+                    backgroundColor: colors.modal.content,
+                    borderRadius: borderRadius.md,
+                  },
+                ]}
+                onPress={() => {
+                  // Initialize temp selection from current filter value
+                  const iso = filters.with_original_language;
+                  setTempLanguageSelection(
+                    iso
+                      ? [{iso_639_1: iso, english_name: '', name: ''} as any]
+                      : [],
+                  );
+                  setShowLanguageModal(true);
+                }}
+                activeOpacity={0.9}>
+                <Text style={[styles.sectionTitle, {marginBottom: 0}]}>
+                  {(() => {
+                    const iso = filters.with_original_language;
+                    if (!iso) return 'Select Language';
+                    const lang = languages.find(l => l.iso_639_1 === iso);
+                    return lang?.english_name || iso;
+                  })()}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Rating */}
@@ -719,6 +749,68 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
           )}
 
+          {/* Language Modal */}
+          <Modal
+            visible={showLanguageModal}
+            animationType="slide"
+            statusBarTranslucent={true}
+            transparent={true}
+            onRequestClose={async () => {
+              setShowLanguageModal(false);
+              // Use local temp selection; do not persist globally
+              setSelectedLanguages(tempLanguageSelection);
+              setFilters(prev => ({
+                ...prev,
+                with_original_language:
+                  tempLanguageSelection[0]?.iso_639_1 || undefined,
+              }));
+            }}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <BlurView
+                  style={StyleSheet.absoluteFill}
+                  blurType="dark"
+                  blurAmount={10}
+                  overlayColor={colors.modal.blur}
+                />
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Language Settings</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={async () => {
+                      setShowLanguageModal(false);
+                      setSelectedLanguages(tempLanguageSelection);
+                      setFilters(prev => ({
+                        ...prev,
+                        with_original_language:
+                          tempLanguageSelection[0]?.iso_639_1 || undefined,
+                      }));
+                    }}>
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={colors.text.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.scrollContent}>
+                  <LanguageSettings
+                    singleSelect
+                    disablePersistence
+                    initialSelectedIso={
+                      filters.with_original_language
+                        ? [filters.with_original_language]
+                        : []
+                    }
+                    onChangeSelected={langs =>
+                      setTempLanguageSelection(langs as SettingsLanguage[])
+                    }
+                  />
+                </View>
+              </View>
+            </View>
+          </Modal>
+
           {/* Date Pickers */}
           {showFromDate && (
             <DateTimePicker
@@ -756,18 +848,17 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               {isValidatingFilter ? (
                 <View style={styles.saveButtonLoading}>
                   <GradientSpinner
-                    size={28}
+                    size={20}
                     thickness={3}
                     style={{
-                      marginVertical: 50,
                       alignItems: 'center',
                       alignSelf: 'center',
                     }}
                     colors={[
                       colors.modal.activeBorder,
                       colors.modal.activeBorder,
-                      'transparent',
-                      'transparent',
+                      colors.transparent,
+                      colors.transparentDim,
                     ]}
                   />
                 </View>

@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, StyleSheet, Text, ActivityIndicator} from 'react-native';
 import {colors, typography, spacing} from '../styles/theme';
-import { GradientSpinner } from './GradientSpinner';
+import {GradientSpinner} from './GradientSpinner';
 
 interface LoadingScreenProps {
   message: string;
@@ -21,8 +21,8 @@ export const LoadingScreen = ({message}: LoadingScreenProps) => {
         colors={[
           colors.modal.activeBorder,
           colors.modal.activeBorder,
-          'transparent',
-          'transparent',
+          colors.transparent,
+          colors.transparentDim,
         ]}
       />
       <Text style={styles.message}>{message}</Text>

@@ -73,8 +73,8 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
               colors={[
                 colors.modal.activeBorder,
                 colors.modal.activeBorder,
-                'transparent',
-                'transparent',
+                colors.transparent,
+                colors.transparentDim,
               ]}
             />
           ) : null

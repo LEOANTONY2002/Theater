@@ -213,8 +213,8 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
           colors={[
             colors.modal.activeBorder,
             colors.modal.activeBorder,
-            'transparent',
-            'transparent',
+            colors.transparent,
+            colors.transparentDim,
           ]}
         />
       </View>

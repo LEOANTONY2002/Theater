@@ -32,7 +32,7 @@ import {BlurView} from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
 import FastImage from 'react-native-fast-image';
 import {GradientButton} from '../components/GradientButton';
-import { GradientSpinner } from '../components/GradientSpinner';
+import {GradientSpinner} from '../components/GradientSpinner';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -601,8 +601,8 @@ export const SearchScreen = React.memo(() => {
                   colors={[
                     colors.modal.activeBorder,
                     colors.modal.activeBorder,
-                    'transparent',
-                    'transparent',
+                    colors.transparent,
+                    colors.transparentDim,
                   ]}
                 />
                 <Text style={styles.loadingText}>

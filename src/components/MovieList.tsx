@@ -13,7 +13,7 @@ import {MovieCard} from './MovieCard';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, spacing} from '../styles/theme';
 import {Text} from 'react-native-gesture-handler';
-import { GradientSpinner } from './GradientSpinner';
+import {GradientSpinner} from './GradientSpinner';
 
 export type ContentItem = (Movie & {type: 'movie'}) | (TVShow & {type: 'tv'});
 
@@ -57,8 +57,8 @@ export const MovieList: React.FC<MovieListProps> = ({
           colors={[
             colors.modal.activeBorder,
             colors.modal.activeBorder,
-            'transparent',
-            'transparent',
+            colors.transparent,
+            colors.transparentDim,
           ]}
         />
       </View>

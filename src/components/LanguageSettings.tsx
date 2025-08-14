@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  FlatList,
+  ListRenderItem,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getLanguages} from '../services/tmdb';
 import {SettingsManager, Language} from '../store/settings';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import { GradientSpinner } from './GradientSpinner';
+import {GradientSpinner} from './GradientSpinner';
 
 // Define suggested language codes
 const SUGGESTED_LANGUAGE_CODES = [
@@ -41,7 +43,19 @@ const fetchLanguages = async () => {
   return languages;
 };
 
-export const LanguageSettings = () => {
+interface LanguageSettingsProps {
+  singleSelect?: boolean;
+  disablePersistence?: boolean;
+  initialSelectedIso?: string[]; // array of iso codes to preselect
+  onChangeSelected?: (langs: Language[]) => void;
+}
+
+export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
+  singleSelect = false,
+  disablePersistence = false,
+  initialSelectedIso = [],
+  onChangeSelected,
+}) => {
   const queryClient = useQueryClient();
   const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([]);
 
@@ -50,7 +64,10 @@ export const LanguageSettings = () => {
     queryKey: ['languages'],
     queryFn: fetchLanguages,
     staleTime: Infinity,
-    gcTime: Infinity,
+    gcTime: 1000 * 60 * 60 * 24, // 24h
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Query for selected languages with enabled setting
@@ -60,16 +77,37 @@ export const LanguageSettings = () => {
     queryKey: ['selectedLanguages'],
     queryFn: SettingsManager.getContentLanguages,
     initialData: [],
-    enabled: true, // Always enable this query
-    staleTime: 0, // Consider data always stale to ensure fresh data
+    enabled: !disablePersistence, // disable when using local-only mode
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60 * 24, // 24h
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Update selected languages when saved languages change
   useEffect(() => {
-    if (savedLanguages.length > 0) {
-      setSelectedLanguages(savedLanguages);
+    if (!disablePersistence) {
+      if (savedLanguages.length > 0) {
+        setSelectedLanguages(savedLanguages);
+      }
     }
-  }, [savedLanguages, isLoadingSaved, languages]);
+  }, [disablePersistence, savedLanguages, isLoadingSaved]);
+
+  // Initialize local selection from props when persistence is disabled and languages are loaded
+  useEffect(() => {
+    if (disablePersistence && languages.length > 0) {
+      if (initialSelectedIso && initialSelectedIso.length > 0) {
+        const preselected = languages.filter(l =>
+          initialSelectedIso.includes(l.iso_639_1),
+        );
+        setSelectedLanguages(preselected);
+      } else {
+        setSelectedLanguages([]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disablePersistence, languages]);
 
   const toggleLanguage = async (language: Language) => {
     const isSelected = selectedLanguages.some(
@@ -77,109 +115,144 @@ export const LanguageSettings = () => {
     );
 
     let newSelectedLanguages: Language[];
-    if (isSelected) {
-      // Allow removing any language, including the last one
-      newSelectedLanguages = selectedLanguages.filter(
-        (lang: Language) => lang.iso_639_1 !== language.iso_639_1,
-      );
+    if (singleSelect) {
+      // In single select mode, either clear selection or replace with the new one
+      newSelectedLanguages = isSelected ? [] : [language];
     } else {
-      newSelectedLanguages = [...selectedLanguages, language];
+      if (isSelected) {
+        // Allow removing any language, including the last one
+        newSelectedLanguages = selectedLanguages.filter(
+          (lang: Language) => lang.iso_639_1 !== language.iso_639_1,
+        );
+      } else {
+        newSelectedLanguages = [...selectedLanguages, language];
+      }
     }
 
     setSelectedLanguages(newSelectedLanguages);
-    await SettingsManager.setContentLanguages(newSelectedLanguages);
-    queryClient.invalidateQueries({queryKey: ['selectedLanguages']});
+    if (disablePersistence) {
+      onChangeSelected && onChangeSelected(newSelectedLanguages);
+    } else {
+      await SettingsManager.setContentLanguages(newSelectedLanguages);
+      // Update cache immediately so subscribers react without waiting
+      queryClient.setQueryData<Language[]>(
+        ['selectedLanguages'],
+        newSelectedLanguages,
+      );
+      // Also invalidate to ensure any background refetch aligns with storage
+      queryClient.invalidateQueries({queryKey: ['selectedLanguages']});
+    }
   };
 
-  if (isLoadingLanguages || isLoadingSaved) {
-    return (
-      <View style={styles.loadingContainer}>
-        <GradientSpinner
-          size={30}
-          thickness={3}
-          style={{
-            marginVertical: 50,
-            alignItems: 'center',
-            alignSelf: 'center',
-          }}
-          colors={[
-            colors.modal.activeBorder,
-            colors.modal.activeBorder,
-            'transparent',
-            'transparent',
-          ]}
-        />
-      </View>
+  const isLoading =
+    isLoadingLanguages || (!disablePersistence && isLoadingSaved);
+
+  // Sort and partition languages (memoized)
+  const sortedLanguages = useMemo(() => {
+    if (!languages || languages.length === 0) return [] as Language[];
+    const copy = [...languages];
+    copy.sort((a: Language, b: Language) =>
+      a.english_name.localeCompare(b.english_name),
     );
-  }
+    return copy;
+  }, [languages]);
 
-  // Sort languages by English name
-  const sortedLanguages = [...languages].sort((a: Language, b: Language) =>
-    a.english_name.localeCompare(b.english_name),
+  const suggestedLanguages = useMemo(
+    () =>
+      sortedLanguages.filter(lang =>
+        SUGGESTED_LANGUAGE_CODES.includes(lang.iso_639_1),
+      ),
+    [sortedLanguages],
   );
 
-  const suggestedLanguages = sortedLanguages.filter(lang =>
-    SUGGESTED_LANGUAGE_CODES.includes(lang.iso_639_1),
+  const otherLanguages = useMemo(
+    () =>
+      sortedLanguages.filter(
+        lang => !SUGGESTED_LANGUAGE_CODES.includes(lang.iso_639_1),
+      ),
+    [sortedLanguages],
   );
-  const otherLanguages = sortedLanguages.filter(
-    lang => !SUGGESTED_LANGUAGE_CODES.includes(lang.iso_639_1),
-  );
+
+  const renderLanguageItem: ListRenderItem<Language> = ({item}) => {
+    const isSelected = selectedLanguages.some(
+      (lang: Language) => lang.iso_639_1 === item.iso_639_1,
+    );
+    return (
+      <TouchableOpacity
+        style={[styles.languageItem, isSelected && styles.selectedItem]}
+        activeOpacity={0.8}
+        onPress={() => toggleLanguage(item)}>
+        <View style={styles.languageInfo}>
+          <Text style={styles.languageName}>{item.english_name}</Text>
+          {item.name ? (
+            <Text style={styles.nativeName}>({item.name})</Text>
+          ) : null}
+        </View>
+        {isSelected && (
+          <Icon name="checkmark" size={24} color={colors.text.primary} />
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.sectionTitle}>
-        Choose your preferred content languages
-      </Text>
-      <View style={styles.section}>
-        {suggestedLanguages.map(language => {
-          const isSelected = selectedLanguages.some(
-            (lang: Language) => lang.iso_639_1 === language.iso_639_1,
-          );
-
-          return (
-            <TouchableOpacity
-              key={language.iso_639_1}
-              style={[styles.languageItem, isSelected && styles.selectedItem]}
-              activeOpacity={0.8}
-              onPress={() => toggleLanguage(language)}>
-              <View style={styles.languageInfo}>
-                <Text style={styles.languageName}>{language.english_name}</Text>
-                <Text style={styles.nativeName}>({language.name})</Text>
+    <View style={styles.container}>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <GradientSpinner
+            size={30}
+            thickness={3}
+            style={{
+              marginVertical: 50,
+              alignItems: 'center',
+              alignSelf: 'center',
+            }}
+            colors={[
+              colors.modal.activeBorder,
+              colors.modal.activeBorder,
+              colors.transparent,
+              colors.transparentDim,
+            ]}
+          />
+        </View>
+      ) : (
+        <>
+          <Text style={styles.sectionTitle}>
+            Choose your preferred content languages
+          </Text>
+          {/* Suggested languages (small set) */}
+          <View style={styles.section}>
+            {suggestedLanguages.map(language => (
+              <View key={language.iso_639_1}>
+                {renderLanguageItem({
+                  item: language,
+                  index: 0,
+                  separators: {
+                    highlight() {},
+                    unhighlight() {},
+                    updateProps() {},
+                  },
+                } as any)}
               </View>
-              {isSelected && (
-                <Icon name="checkmark" size={24} color={colors.text.primary} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+            ))}
+          </View>
 
-      <View style={styles.section}>
-        <Text style={styles.description}>More Languages</Text>
-        {otherLanguages.map(language => {
-          const isSelected = selectedLanguages.some(
-            (lang: Language) => lang.iso_639_1 === language.iso_639_1,
-          );
-
-          return (
-            <TouchableOpacity
-              key={language.iso_639_1}
-              style={[styles.languageItem, isSelected && styles.selectedItem]}
-              onPress={() => toggleLanguage(language)}>
-              <View style={styles.languageInfo}>
-                <Text style={styles.languageName}>{language.english_name}</Text>
-                {language.name && (
-                  <Text style={styles.nativeName}>({language.name})</Text>
-                )}
-              </View>
-              {isSelected && (
-                <Icon name="checkmark" size={24} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </ScrollView>
+          {/* Virtualized large list */}
+          <View style={styles.section}>
+            <Text style={styles.description}>More Languages</Text>
+            <FlatList
+              data={otherLanguages}
+              keyExtractor={l => l.iso_639_1}
+              renderItem={renderLanguageItem}
+              initialNumToRender={30}
+              maxToRenderPerBatch={30}
+              windowSize={5}
+              removeClippedSubviews
+            />
+          </View>
+        </>
+      )}
+    </View>
   );
 };
 

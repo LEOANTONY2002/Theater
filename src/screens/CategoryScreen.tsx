@@ -26,7 +26,7 @@ import {BlurView} from '@react-native-community/blur';
 import {GridListSkeleton} from '../components/LoadingSkeleton';
 import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
-import { GradientSpinner } from '../components/GradientSpinner';
+import {GradientSpinner} from '../components/GradientSpinner';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList,
@@ -260,8 +260,8 @@ export const CategoryScreen = () => {
                 colors={[
                   colors.modal.activeBorder,
                   colors.modal.activeBorder,
-                  'transparent',
-                  'transparent',
+                  colors.transparent,
+                  colors.transparentDim,
                 ]}
               />
             ) : null

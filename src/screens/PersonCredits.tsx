@@ -28,7 +28,7 @@ import {LinearGradient} from 'react-native-linear-gradient';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useScrollOptimization} from '../hooks/useScrollOptimization';
 import {GridListSkeleton, HeadingSkeleton} from '../components/LoadingSkeleton';
-import { GradientSpinner } from '../components/GradientSpinner';
+import {GradientSpinner} from '../components/GradientSpinner';
 
 type PersonCreditsScreenNavigationProp =
   NativeStackNavigationProp<HomeStackParamList>;
@@ -238,8 +238,8 @@ export const PersonCreditsScreen = () => {
                   colors={[
                     colors.modal.activeBorder,
                     colors.modal.activeBorder,
-                    'transparent',
-                    'transparent',
+                    colors.transparent,
+                    colors.transparentDim,
                   ]}
                 />
               </View>

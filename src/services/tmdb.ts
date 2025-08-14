@@ -36,6 +36,7 @@ export const getMovies = async (
     with_adult: false,
     include_adult: false,
     'vote_count.gte': 10,
+    with_original_language,
   };
 
   // Only apply language filter if we have languages set and it's not too restrictive
@@ -63,7 +64,7 @@ export const getMovies = async (
 
     if (type === 'latest') {
       const response = await tmdbApi.get('/discover/movie', {
-        params: requestParams,
+        params: {...requestParams, with_original_language},
       });
 
       return response.data;
@@ -75,6 +76,7 @@ export const getMovies = async (
 
       const response = await tmdbApi.get('/discover/movie', {
         params: {
+          with_original_language,
           // 'primary_release_date.lte': future,
           'primary_release_date.gte': today,
           sort_by: 'popularity.desc',

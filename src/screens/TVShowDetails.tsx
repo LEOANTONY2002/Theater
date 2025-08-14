@@ -649,8 +649,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     colors={[
                       colors.modal.activeBorder,
                       colors.modal.activeBorder,
-                      'transparent',
-                      'transparent',
+                      colors.transparent,
+                      colors.transparentDim,
                     ]}
                   />
                   <Text style={styles.noEpisodesText}>
@@ -749,8 +749,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   colors={[
                     colors.primary,
                     colors.secondary,
-                    'transparent',
-                    'transparent',
+                    colors.transparent,
+                    colors.transparentDim,
                   ]}
                 />
                 <Text
