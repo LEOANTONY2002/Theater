@@ -29,6 +29,7 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import {useScrollOptimization} from '../hooks/useScrollOptimization';
 import {GridListSkeleton, HeadingSkeleton} from '../components/LoadingSkeleton';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {useResponsive} from '../hooks/useResponsive';
 
 type PersonCreditsScreenNavigationProp =
   NativeStackNavigationProp<HomeStackParamList>;
@@ -42,6 +43,8 @@ export const PersonCreditsScreen = () => {
   const route = useRoute<PersonCreditsScreenRouteProp>();
   const {personId, personName} = route.params;
   const {navigateWithLimit} = useNavigationState();
+  const {isTablet} = useResponsive();
+  const columns = isTablet ? 5 : 3;
   const [renderPhase, setRenderPhase] = useState(0);
   const [showMoreContent, setShowMoreContent] = useState(false);
   const {
@@ -203,7 +206,8 @@ export const PersonCreditsScreen = () => {
         data={transformedData}
         renderItem={renderItem}
         keyExtractor={item => `${item.type}-${item.id}`}
-        numColumns={3}
+        numColumns={columns}
+        columnWrapperStyle={styles.columnWrapper}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         onEndReached={handleEndReached}
@@ -292,7 +296,11 @@ const styles = StyleSheet.create({
   cardContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1 / 3,
+    // Avoid forcing fractional flex that creates space-between gaps
+    flexGrow: 0,
+  },
+  columnWrapper: {
+    justifyContent: 'center',
   },
   footerLoader: {
     paddingVertical: spacing.xl,

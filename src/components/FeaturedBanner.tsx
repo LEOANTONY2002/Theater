@@ -5,9 +5,9 @@ import {
   StyleSheet,
   ImageBackground,
   TouchableOpacity,
-  Dimensions,
   Button,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -27,9 +27,9 @@ import {
   useWatchlistContainingItem,
 } from '../hooks/useWatchlists';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {useResponsive} from '../hooks/useResponsive';
 
-const {width} = Dimensions.get('window');
-const BANNER_HEIGHT = 680;
+const DEFAULT_BANNER_HEIGHT = 680;
 
 // Genre mappings
 const movieGenres: {[key: number]: string} = {
@@ -83,6 +83,12 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
   const [loading, setLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+  const {width, height} = useWindowDimensions();
+  const orientation = width >= height ? 'landscape' : 'portrait';
+  const bannerHeight =
+    orientation === 'portrait'
+      ? Math.min(DEFAULT_BANNER_HEIGHT, height * 0.9)
+      : Math.min(520, height * 0.85);
   const title =
     type === 'movie' ? (item as Movie).title : (item as TVShow).name;
   const releaseDate =
@@ -99,6 +105,7 @@ export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
+  const {isTablet} = useResponsive();
 
   const addWatchlist = () => {
     if (checkInWatchlist(item.id)) {
@@ -139,11 +146,13 @@ export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
   ]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {height: bannerHeight, width: '100%'}]}>
       <ImageBackground
         onLoadEnd={() => setLoading(false)}
         source={{
-          uri: `https://image.tmdb.org/t/p/w500${item?.poster_path}`,
+          uri: `https://image.tmdb.org/t/p/${isTablet ? 'original' : 'w500'}${
+            item?.poster_path
+          }`,
         }}
         style={styles.background}
         resizeMode="cover">
@@ -209,15 +218,15 @@ export const FeaturedBanner = memo(({item, type}: FeaturedBannerProps) => {
 
 const styles = StyleSheet.create({
   skeletonContainer: {
-    width: width,
+    width: '100%',
     position: 'absolute',
     top: -40,
     left: 0,
     zIndex: 0,
   },
   container: {
-    width: width,
-    height: BANNER_HEIGHT,
+    width: '100%',
+    height: DEFAULT_BANNER_HEIGHT,
     position: 'relative',
   },
   background: {

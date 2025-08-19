@@ -36,7 +36,6 @@ export const MoviesScreen = React.memo(() => {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [renderPhase, setRenderPhase] = useState(0);
-  const [visibleSectionCount, setVisibleSectionCount] = useState(3);
 
   // Staggered loading to reduce initial render load
   useEffect(() => {
@@ -582,21 +581,7 @@ export const MoviesScreen = React.memo(() => {
     onSeeAllAction,
   ]);
 
-  // Only render up to visibleSectionCount sections
-  const visibleSections = useMemo(
-    () => sections.slice(0, visibleSectionCount),
-    [sections, visibleSectionCount],
-  );
-
-  const onVerticalScroll = useCallback(
-    (event: any) => {
-      // Increase visible sections as user scrolls down
-      // This is a simple heuristic: increase by 2 each time user scrolls
-      if (!Array.isArray(sections)) return;
-      setVisibleSectionCount(count => Math.min(count + 2, sections.length));
-    },
-    [sections.length],
-  );
+  // Render all sections without batching
 
   const renderSection = useCallback(({item}: {item: any}) => {
     switch (item.type) {
@@ -666,21 +651,13 @@ export const MoviesScreen = React.memo(() => {
   return (
     <View style={styles.container}>
       <FlashList
-        data={visibleSections}
+        data={sections}
         renderItem={renderSection}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
         estimatedItemSize={300}
         removeClippedSubviews={true}
-        scrollEventThrottle={16}
-        decelerationRate={0.9}
-        extraData={null}
-        onScroll={onVerticalScroll}
-        onScrollBeginDrag={() => {}}
-        onScrollEndDrag={() => {}}
-        onMomentumScrollEnd={() => {}}
-        disableIntervalMomentum={false}
       />
     </View>
   );

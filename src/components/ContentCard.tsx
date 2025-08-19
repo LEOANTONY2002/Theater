@@ -4,6 +4,7 @@ import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
 import {colors, spacing, borderRadius} from '../styles/theme';
+import {useResponsive} from '../hooks/useResponsive';
 import {ContentCardSkeleton} from './LoadingSkeleton';
 
 interface ContentCardProps {
@@ -14,10 +15,11 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
-    const imageUrl = getImageUrl(
-      v2 ? item.backdrop_path : item.poster_path,
-      'w185',
-    );
+    const {isTablet} = useResponsive();
+    const imgPath = v2 ? item.backdrop_path : item.poster_path;
+    const imageUrl = imgPath
+      ? getImageUrl(imgPath, isTablet ? 'w342' : 'w185')
+      : '';
 
     const title =
       'title' in item ? item.title : 'name' in item ? item.name : '';
@@ -26,8 +28,14 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
       onPress(item);
     }, [onPress, item]);
 
-    // Move dynamic style to StyleSheet
-    const cardDynamicStyle = v2 ? styles.cardV2 : styles.cardDefault;
+    // Dynamic size based on device type
+    const cardDynamicStyle = v2
+      ? isTablet
+        ? styles.cardV2Tablet
+        : styles.cardV2
+      : isTablet
+      ? styles.cardDefaultTablet
+      : styles.cardDefault;
 
     return (
       <>
@@ -39,13 +47,13 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
           delayPressOut={0}
           delayLongPress={0}>
           <FastImage
-            source={{uri: imageUrl || 'https://via.placeholder.com/300x450'}}
+            source={{
+              uri: imageUrl || 'https://via.placeholder.com/300x450',
+              priority: FastImage.priority.normal,
+              cache: FastImage.cacheControl.web,
+            }}
             style={styles.image}
             resizeMode={FastImage.resizeMode.cover}
-            priority={FastImage.priority.normal}
-            cache={FastImage.cacheControl.cacheOnly}
-
-            // REMOVE: onLoad, onError
           />
         </TouchableOpacity>
 
@@ -68,12 +76,20 @@ const styles = StyleSheet.create({
     // margin: 5,
   },
   cardDefault: {
-    width: 120,
-    height: 180,
+    width: 130,
+    height: 195,
+  },
+  cardDefaultTablet: {
+    width: 170,
+    height: 255,
   },
   cardV2: {
-    width: 180,
-    height: 100,
+    width: 190,
+    height: 110,
+  },
+  cardV2Tablet: {
+    width: 270,
+    height: 155,
   },
   image: {
     width: '100%',

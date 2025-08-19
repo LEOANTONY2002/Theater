@@ -5,6 +5,7 @@ import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
 import {MoivieCardSkeleton} from './LoadingSkeleton';
 import {colors} from '../styles/theme';
+import {useResponsive} from '../hooks/useResponsive';
 
 interface MovieCardProps {
   item: ContentItem;
@@ -14,10 +15,8 @@ interface MovieCardProps {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: {
-    width: SCREEN_WIDTH / 3 - 5,
-    height: SCREEN_WIDTH / 2 - 10,
     borderRadius: 8,
     overflow: 'hidden',
     margin: 3,
@@ -44,22 +43,33 @@ export const MovieCard: React.FC<MovieCardProps> = ({
   onPress,
   size = 'normal',
 }) => {
+  const {isTablet} = useResponsive();
+  const columns = isTablet ? 5 : 3;
+  const cardWidth = SCREEN_WIDTH / columns - 8; // margin compensation
+  const cardHeight = cardWidth * 1.5;
   return (
     <TouchableOpacity
-      style={[styles.container, size === 'large' && styles.containerLarge]}
+      style={[
+        {width: cardWidth, height: cardHeight},
+        baseStyles.container,
+        size === 'large' && baseStyles.containerLarge,
+      ]}
       onPress={() => onPress(item)}
       activeOpacity={0.8}>
       <View>
         <FastImage
           source={{
             uri: item?.poster_path
-              ? getImageUrl(item.poster_path, 'w154')
+              ? getImageUrl(item.poster_path, isTablet ? 'w342' : 'w154')
               : 'https://via.placeholder.com/300x450',
+            priority: FastImage.priority.normal,
+            cache: FastImage.cacheControl.web,
           }}
-          style={[styles.poster, size === 'large' && styles.posterLarge]}
+          style={[
+            baseStyles.poster,
+            size === 'large' && baseStyles.posterLarge,
+          ]}
           resizeMode={FastImage.resizeMode.cover}
-          priority={FastImage.priority.normal}
-          cache={FastImage.cacheControl.cacheOnly}
         />
       </View>
     </TouchableOpacity>

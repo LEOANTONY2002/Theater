@@ -58,6 +58,7 @@ import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
 import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {useResponsive} from '../hooks/useResponsive';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -98,6 +99,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [aiSimilarMovies, setAiSimilarMovies] = useState<any[]>([]);
   const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
+  const {isTablet} = useResponsive();
 
   // Animation values for loading states and components
   const loadingPulseAnim = useRef(new Animated.Value(1)).current;
@@ -332,6 +334,290 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     },
     [navigateWithLimit],
   );
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    loadingContainer: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    gradientShade: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: isTablet ? 900 : 500,
+    },
+    main: {
+      position: 'relative',
+      width: width - 32,
+      height: isTablet ? 500 : 250,
+      borderRadius: 40,
+      alignSelf: 'center',
+      borderCurve: 'continuous',
+      overflow: 'hidden',
+      margin: 16,
+      elevation: 20,
+      shadowColor: '#000',
+      shadowOffset: {width: 5, height: 20},
+      shadowOpacity: 0.25,
+      shadowRadius: 10,
+      backgroundColor: colors.background.tertiary,
+    },
+    backdrop: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: colors.background.secondary,
+      borderRadius: 40,
+    },
+    content: {
+      padding: 16,
+      flexDirection: 'column',
+      gap: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    trailerContainer: {
+      // backgroundColor: '#000',
+      zIndex: 100,
+      flex: 1,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '400',
+      color: '#fff',
+      textAlign: 'center',
+      width: '100%',
+      fontFamily: 'Inter',
+    },
+    infoContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    infoWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    info: {
+      ...typography.body2,
+      color: 'rgba(255, 255, 255, 0.68)',
+    },
+    infoDot: {
+      ...typography.h3,
+      color: 'rgba(163, 163, 163, 0.68)',
+      marginHorizontal: spacing.xs,
+    },
+    buttonRow: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      width: width - 100,
+      marginTop: -spacing.sm,
+    },
+    watchButton: {
+      borderRadius: 24,
+      paddingHorizontal: 36,
+      paddingVertical: 14,
+    },
+    watchButtonText: {
+      fontWeight: '700',
+      fontSize: 16,
+      fontFamily: 'Inter',
+    },
+    addButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.modal.header,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.18,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    genreContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    genreWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    genre: {
+      ...typography.body2,
+      color: colors.text.primary,
+      marginRight: spacing.xs,
+    },
+    genreDivider: {
+      ...typography.body2,
+      color: colors.text.primary,
+      marginHorizontal: spacing.xs,
+    },
+    overview: {
+      color: colors.text.muted,
+      fontSize: 14,
+      lineHeight: 20,
+      marginBottom: 30,
+    },
+    sectionTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginBottom: 16,
+      marginLeft: 16,
+    },
+    castItem: {
+      marginRight: 16,
+      width: 100,
+    },
+    castImage: {
+      width: 100,
+      height: 150,
+      borderRadius: 8,
+      marginBottom: 8,
+      backgroundColor: '#2a2a2a',
+    },
+    castName: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: '500',
+      textAlign: 'center',
+      fontFamily: 'Inter',
+    },
+    character: {
+      color: '#888',
+      fontSize: 12,
+      textAlign: 'center',
+      fontFamily: 'Inter',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    posterContainer: {
+      position: 'relative',
+      width: '100%',
+      height: Dimensions.get('window').height * 0.5625,
+    },
+    posterImage: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: colors.background.secondary,
+      borderRadius: 40,
+    },
+    posterGradient: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 500,
+    },
+    posterGradientHorizontal: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 500,
+    },
+    posterGradientVertical: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 500,
+    },
+    backButton: {
+      position: 'absolute',
+      top: 30,
+      left: 30,
+      zIndex: 10,
+      backgroundColor: colors.modal.blur,
+      padding: 8,
+      borderRadius: borderRadius.round,
+    },
+    posterContent: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 16,
+    },
+    posterInfo: {
+      flexDirection: 'column',
+      gap: 8,
+    },
+    posterTitle: {
+      fontSize: 24,
+      fontWeight: '400',
+      color: '#fff',
+      fontFamily: 'Inter',
+    },
+    posterSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.68)',
+      fontFamily: 'Inter',
+    },
+    posterActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    actionButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    overviewSection: {
+      flexDirection: 'column',
+      gap: 8,
+    },
+    overviewText: {
+      color: colors.text.muted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    trailerSection: {
+      flexDirection: 'column',
+      gap: 16,
+    },
+    watchProvidersSection: {
+      flexDirection: 'column',
+      gap: 16,
+    },
+    similarSection: {
+      flexDirection: 'column',
+      gap: 16,
+    },
+    recommendedSection: {
+      flexDirection: 'column',
+      gap: 16,
+    },
+  });
 
   // Show loading state immediately to prevent FPS drop
   if (isInitialLoading) {
@@ -693,287 +979,3 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  gradientShade: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 500,
-  },
-  main: {
-    position: 'relative',
-    width: width - 32,
-    height: 250,
-    borderRadius: 40,
-    alignSelf: 'center',
-    borderCurve: 'continuous',
-    overflow: 'hidden',
-    margin: 16,
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 5, height: 20},
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    backgroundColor: colors.background.tertiary,
-  },
-  backdrop: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.background.secondary,
-    borderRadius: 40,
-  },
-  content: {
-    padding: 16,
-    flexDirection: 'column',
-    gap: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trailerContainer: {
-    // backgroundColor: '#000',
-    zIndex: 100,
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '400',
-    color: '#fff',
-    textAlign: 'center',
-    width: '100%',
-    fontFamily: 'Inter',
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  infoWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  info: {
-    ...typography.body2,
-    color: 'rgba(255, 255, 255, 0.68)',
-  },
-  infoDot: {
-    ...typography.h3,
-    color: 'rgba(163, 163, 163, 0.68)',
-    marginHorizontal: spacing.xs,
-  },
-  buttonRow: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    width: width - 100,
-    marginTop: -spacing.sm,
-  },
-  watchButton: {
-    borderRadius: 24,
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-  },
-  watchButtonText: {
-    fontWeight: '700',
-    fontSize: 16,
-    fontFamily: 'Inter',
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.modal.header,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  genreContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  genreWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  genre: {
-    ...typography.body2,
-    color: colors.text.primary,
-    marginRight: spacing.xs,
-  },
-  genreDivider: {
-    ...typography.body2,
-    color: colors.text.primary,
-    marginHorizontal: spacing.xs,
-  },
-  overview: {
-    color: colors.text.muted,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: 16,
-    marginLeft: 16,
-  },
-  castItem: {
-    marginRight: 16,
-    width: 100,
-  },
-  castImage: {
-    width: 100,
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#2a2a2a',
-  },
-  castName: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  character: {
-    color: '#888',
-    fontSize: 12,
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  posterContainer: {
-    position: 'relative',
-    width: '100%',
-    height: Dimensions.get('window').height * 0.5625,
-  },
-  posterImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.background.secondary,
-    borderRadius: 40,
-  },
-  posterGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 500,
-  },
-  posterGradientHorizontal: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 500,
-  },
-  posterGradientVertical: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 500,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 30,
-    left: 30,
-    zIndex: 10,
-    backgroundColor: colors.modal.blur,
-    padding: 8,
-    borderRadius: borderRadius.round,
-  },
-  posterContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-  },
-  posterInfo: {
-    flexDirection: 'column',
-    gap: 8,
-  },
-  posterTitle: {
-    fontSize: 24,
-    fontWeight: '400',
-    color: '#fff',
-    fontFamily: 'Inter',
-  },
-  posterSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.68)',
-    fontFamily: 'Inter',
-  },
-  posterActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  overviewSection: {
-    flexDirection: 'column',
-    gap: 8,
-  },
-  overviewText: {
-    color: colors.text.muted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  trailerSection: {
-    flexDirection: 'column',
-    gap: 16,
-  },
-  watchProvidersSection: {
-    flexDirection: 'column',
-    gap: 16,
-  },
-  similarSection: {
-    flexDirection: 'column',
-    gap: 16,
-  },
-  recommendedSection: {
-    flexDirection: 'column',
-    gap: 16,
-  },
-});

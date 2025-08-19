@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  Dimensions,
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -27,6 +28,7 @@ import {GridListSkeleton} from '../components/LoadingSkeleton';
 import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {useResponsive} from '../hooks/useResponsive';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList,
@@ -44,6 +46,8 @@ export const CategoryScreen = () => {
   const {title, categoryType, contentType, filter} = route.params;
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const {isTablet} = useResponsive();
+  const columns = isTablet ? 5 : 3;
 
   // Animated value for scroll position
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -138,7 +142,9 @@ export const CategoryScreen = () => {
       []) as ContentItem[];
   }, [data]);
 
-  const ITEM_HEIGHT = 220; // Adjust to your MovieCard height
+  const screenWidth = Dimensions.get('window').width;
+  const cardWidth = screenWidth / columns - 8; // margin compensation similar to MovieCard
+  const ITEM_HEIGHT = cardWidth * 1.5;
 
   const MemoizedMovieCard = React.memo(MovieCard);
 
@@ -150,10 +156,10 @@ export const CategoryScreen = () => {
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
       length: ITEM_HEIGHT,
-      offset: ITEM_HEIGHT * index,
+      offset: ITEM_HEIGHT * Math.floor(index / columns),
       index,
     }),
-    [],
+    [ITEM_HEIGHT, columns],
   );
 
   const renderItem = useCallback(
@@ -239,7 +245,7 @@ export const CategoryScreen = () => {
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           getItemLayout={getItemLayout}
-          numColumns={3}
+          numColumns={columns}
           columnWrapperStyle={styles.row}
           initialNumToRender={10}
           windowSize={7}

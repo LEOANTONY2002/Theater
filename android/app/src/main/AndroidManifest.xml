@@ -25,6 +25,7 @@
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustResize"
         android:exported="true"
+        android:supportsPictureInPicture="true"
         android:resizeableActivity="true"
         >
         <intent-filter>

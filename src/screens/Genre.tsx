@@ -30,6 +30,7 @@ import {ContentItem} from '../components/MovieList';
 import {GridListSkeleton, GridSkeleton} from '../components/LoadingSkeleton';
 import {getImageUrl} from '../services/tmdb';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {useResponsive} from '../hooks/useResponsive';
 import {BlurView} from '@react-native-community/blur';
 import {SettingsManager} from '../store/settings';
 import {GradientSpinner} from '../components/GradientSpinner';
@@ -43,8 +44,6 @@ interface GenreScreenProps {
 }
 
 const {width} = Dimensions.get('window');
-const numColumns = 3;
-const itemWidth = (width - spacing.md * 4) / numColumns;
 
 export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const navigation = useNavigation<GenreScreenNavigationProp>();
@@ -53,6 +52,9 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {isNavigating, handleNavigation, navigateWithLimit} =
     useNavigationState();
+  const {isTablet} = useResponsive();
+  const numColumns = isTablet ? 5 : 3;
+  const itemWidth = (width - spacing.md * 4) / numColumns;
 
   // Animated value for scroll position
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -286,6 +288,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
             keyExtractor={item => `${item.id}-${item.type}`}
             showsVerticalScrollIndicator={false}
             numColumns={numColumns}
+            columnWrapperStyle={styles.columnWrapper}
             contentContainerStyle={[
               styles.listContent,
               allItems.length === 0 && styles.emptyListContent,
@@ -388,6 +391,10 @@ const styles = StyleSheet.create({
   contentContainer: {},
   listContent: {
     paddingVertical: 120,
+    alignItems: 'center',
+  },
+  columnWrapper: {
+    justifyContent: 'center',
   },
   footerLoader: {
     paddingVertical: spacing.xl,

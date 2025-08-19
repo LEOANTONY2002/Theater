@@ -600,6 +600,20 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </TouchableOpacity>
             </View>
 
+            {/* Rating */}
+            <View style={styles.section}>
+              <GradientProgressBar
+                value={filters['vote_average.gte'] || 1}
+                minValue={0}
+                maxValue={10}
+                step={0.5}
+                onValueChange={handleRatingChange}
+                label="Minimum Rating"
+                showValue={true}
+                height={16}
+              />
+            </View>
+
             {/* Release Date */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>

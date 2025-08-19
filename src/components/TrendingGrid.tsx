@@ -10,6 +10,7 @@ import {MovieCard} from './MovieCard';
 import {ContentItem} from './MovieList';
 import {colors, spacing, typography} from '../styles/theme';
 import {GridSkeleton} from './LoadingSkeleton';
+import {useResponsive} from '../hooks/useResponsive';
 import {GradientSpinner} from './GradientSpinner';
 
 type TrendingGridProps = {
@@ -29,6 +30,8 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
   onItemPress,
   isLoading = false,
 }) => {
+  const {isTablet} = useResponsive();
+  const columns = isTablet ? 5 : 3;
   const renderItem = ({item}: {item: ContentItem}) => (
     <MovieCard item={item} onPress={onItemPress} />
   );
@@ -48,7 +51,7 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
         data={data}
         renderItem={renderItem}
         keyExtractor={item => `${item.type}-${item.id}`}
-        numColumns={3}
+        numColumns={columns}
         contentContainerStyle={styles.gridContainer}
         showsVerticalScrollIndicator={false}
         onEndReached={

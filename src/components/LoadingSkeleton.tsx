@@ -2,6 +2,7 @@ import React, {useEffect, useRef} from 'react';
 import {View, StyleSheet, Animated, Dimensions, ScrollView} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {borderRadius, colors, spacing} from '../styles/theme';
+import {useResponsive} from '../hooks/useResponsive';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -80,45 +81,48 @@ export const BannerSkeleton = () => (
   </View>
 );
 
-export const BannerHomeSkeleton = () => (
-  <View style={styles.bannerContainer}>
-    <AnimatedShimmer
-      width={Dimensions.get('window').width - spacing.lg * 2}
-      height={580}
-      radius={32}
-    />
-    <LinearGradient
-      colors={['transparent', colors.background.primary]}
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        height: 300,
-        opacity: 0.8,
-      }}
-    />
-  </View>
-);
+export const BannerHomeSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const width = Dimensions.get('window').width - spacing.lg * 2;
+  const height = isTablet ? 650 : 580;
+  const gradHeight = isTablet ? 360 : 300;
+  return (
+    <View style={styles.bannerContainer}>
+      <AnimatedShimmer width={width} height={height} radius={32} />
+      <LinearGradient
+        colors={['transparent', colors.background.primary]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          height: gradHeight,
+          opacity: 0.8,
+        }}
+      />
+    </View>
+  );
+};
 
-export const HeadingSkeleton = () => (
-  <View style={styles.headingSkeletonContainer}>
-    <AnimatedShimmer
-      width={Dimensions.get('window').width * 0.5}
-      height={30}
-      radius={8}
-    />
-    <LinearGradient
-      colors={['transparent', colors.background.primary]}
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        opacity: 0.5,
-        height: 30,
-      }}
-    />
-  </View>
-);
+export const HeadingSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const width = Dimensions.get('window').width * (isTablet ? 0.6 : 0.5);
+  const height = isTablet ? 38 : 30;
+  return (
+    <View style={styles.headingSkeletonContainer}>
+      <AnimatedShimmer width={width} height={height} radius={8} />
+      <LinearGradient
+        colors={['transparent', colors.background.primary]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          opacity: 0.5,
+          height,
+        }}
+      />
+    </View>
+  );
+};
 
 export const GenreListSkeleton = () => (
   <ScrollView
@@ -144,29 +148,34 @@ export const GenreListSkeleton = () => (
   </ScrollView>
 );
 
-export const HorizontalListSkeleton = () => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={styles.horizontalListContent}
-    style={{marginBottom: spacing.md, position: 'relative'}}>
-    {[...Array(5)].map((_, i) => (
-      <View key={i} style={styles.horizontalCardContainer}>
-        <AnimatedShimmer width={120} height={180} radius={16} />
-      </View>
-    ))}
-    <LinearGradient
-      colors={['transparent', colors.background.primary]}
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        opacity: 0.7,
-        height: 80,
-      }}
-    />
-  </ScrollView>
-);
+export const HorizontalListSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const itemWidth = isTablet ? 170 : 120;
+  const itemHeight = isTablet ? 255 : 180;
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.horizontalListContent}
+      style={{marginBottom: spacing.md, position: 'relative'}}>
+      {[...Array(5)].map((_, i) => (
+        <View key={i} style={styles.horizontalCardContainer}>
+          <AnimatedShimmer width={itemWidth} height={itemHeight} radius={16} />
+        </View>
+      ))}
+      <LinearGradient
+        colors={['transparent', colors.background.primary]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          opacity: 0.7,
+          height: isTablet ? 120 : 80,
+        }}
+      />
+    </ScrollView>
+  );
+};
 
 export const RecentListSkeleton = () => (
   <View style={styles.row}>
@@ -186,109 +195,138 @@ export const RecentListSkeleton = () => (
   </View>
 );
 
-export const GridSkeleton = () => (
-  <View style={styles.grid}>
-    {[...Array(10)].map((_, i) => (
-      <AnimatedShimmer key={i} width={120} height={180} radius={8} />
-    ))}
-    <LinearGradient
-      colors={['transparent', colors.background.primary]}
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        height: 700,
-      }}
-    />
-  </View>
-);
-
-export const GridListSkeleton = () => (
-  <View style={styles.grid}>
-    {[...Array(12)].map((_, i) => (
-      <AnimatedShimmer
-        key={i}
-        width={SCREEN_WIDTH / 3 - 15}
-        height={SCREEN_WIDTH / 2 - 10}
-        radius={8}
-      />
-    ))}
-    <LinearGradient
-      colors={['transparent', colors.background.primary]}
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        height: 600,
-        zIndex: 1,
-      }}
-    />
-  </View>
-);
-
-export const ContentCardSkeleton = ({v2 = false}: {v2?: boolean}) => (
-  <AnimatedShimmer
-    width={v2 ? 180 : 120}
-    height={v2 ? 100 : 180}
-    radius={borderRadius.sm}
-  />
-);
-
-export const MoivieCardSkeleton = () => (
-  <AnimatedShimmer
-    width={SCREEN_WIDTH / 3 - 15}
-    height={SCREEN_WIDTH / 2 - 10}
-    radius={borderRadius.sm}
-  />
-);
-
-export const DetailScreenSkeleton = () => (
-  <View style={styles.detail}>
-    <View>
-      <AnimatedShimmer
-        width={Dimensions.get('window').width - 32}
-        height={250}
-        radius={30}
-      />
+export const GridSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const columns = isTablet ? 5 : 3;
+  const cardWidth = SCREEN_WIDTH / columns - 8;
+  const cardHeight = cardWidth * 1.5;
+  const count = isTablet ? 20 : 12;
+  return (
+    <View style={styles.grid}>
+      {[...Array(count)].map((_, i) => (
+        <AnimatedShimmer
+          key={i}
+          width={cardWidth}
+          height={cardHeight}
+          radius={8}
+        />
+      ))}
       <LinearGradient
         colors={['transparent', colors.background.primary]}
         style={{
           position: 'absolute',
           bottom: 0,
           width: '100%',
-          height: 100,
-          opacity: 0.4,
+          height: isTablet ? 900 : 700,
+        }}
+      />
+    </View>
+  );
+};
+
+export const GridListSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const columns = isTablet ? 5 : 3;
+  const cardWidth = SCREEN_WIDTH / columns - 8;
+  const cardHeight = cardWidth * 1.5;
+  const count = isTablet ? 20 : 12;
+  return (
+    <View style={styles.grid}>
+      {[...Array(count)].map((_, i) => (
+        <AnimatedShimmer
+          key={i}
+          width={cardWidth}
+          height={cardHeight}
+          radius={8}
+        />
+      ))}
+      <LinearGradient
+        colors={['transparent', colors.background.primary]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          height: isTablet ? 800 : 600,
           zIndex: 1,
         }}
       />
     </View>
-    <View style={{height: 16}} />
-    <AnimatedShimmer width={300} height={60} radius={10} />
-    <View style={{height: 16}} />
-    <AnimatedShimmer width={300} height={30} radius={5} />
-    <View style={{height: 16}} />
-    <View width={'100%'} style={styles.centered}>
-      <AnimatedShimmer width={'90%'} height={70} radius={10} />
-      <View style={{height: 0}} />
+  );
+};
+
+export const ContentCardSkeleton = ({v2 = false}: {v2?: boolean}) => {
+  const {isTablet} = useResponsive();
+  const width = v2 ? (isTablet ? 270 : 190) : isTablet ? 170 : 130;
+  const height = v2 ? (isTablet ? 155 : 110) : isTablet ? 255 : 195;
+  return (
+    <AnimatedShimmer width={width} height={height} radius={borderRadius.sm} />
+  );
+};
+
+export const MoivieCardSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const columns = isTablet ? 5 : 3;
+  const cardWidth = SCREEN_WIDTH / columns - 8;
+  const cardHeight = cardWidth * 1.5;
+  return (
+    <AnimatedShimmer
+      width={cardWidth}
+      height={cardHeight}
+      radius={borderRadius.sm}
+    />
+  );
+};
+
+export const DetailScreenSkeleton = () => {
+  const {isTablet} = useResponsive();
+  return (
+    <View style={styles.detail}>
+      <View>
+        <AnimatedShimmer
+          width={Dimensions.get('window').width - 32}
+          height={isTablet ? 500 : 250}
+          radius={30}
+        />
+        <LinearGradient
+          colors={['transparent', colors.background.primary]}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            width: '100%',
+            height: 100,
+            opacity: 0.4,
+            zIndex: 1,
+          }}
+        />
+      </View>
+      <View style={{height: 16}} />
+      <AnimatedShimmer width={300} height={60} radius={10} />
+      <View style={{height: 16}} />
       <AnimatedShimmer width={300} height={30} radius={5} />
-      <LinearGradient
-        colors={['transparent', colors.background.primary]}
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: '100%',
-          height: 40,
-          opacity: 0.4,
-          zIndex: 1,
-        }}
-      />
-    </View>
+      <View style={{height: 16}} />
+      <View style={styles.centered}>
+        <AnimatedShimmer width={SCREEN_WIDTH * 0.9} height={70} radius={10} />
+        <View style={{height: 0}} />
+        <AnimatedShimmer width={300} height={30} radius={5} />
+        <LinearGradient
+          colors={['transparent', colors.background.primary]}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            width: '100%',
+            height: 40,
+            opacity: 0.4,
+            zIndex: 1,
+          }}
+        />
+      </View>
 
-    <View style={{height: 26}} />
-    <HeadingSkeleton />
-    <HorizontalListSkeleton />
-  </View>
-);
+      <View style={{height: 26}} />
+      <HeadingSkeleton />
+      <HorizontalListSkeleton />
+    </View>
+  );
+};
 
 export const LanguageSkeleton = () => (
   <View style={styles.row}>

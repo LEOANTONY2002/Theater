@@ -57,6 +57,7 @@ import Cinema from '../components/Cinema';
 import ServerModal from '../components/ServerModal';
 import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {useResponsive} from '../hooks/useResponsive';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -92,6 +93,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [aiSimilarShows, setAiSimilarShows] = useState<any[]>([]);
   const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
+  const {isTablet} = useResponsive();
 
   console.log('AI Sim', aiSimilarShows);
 
@@ -349,6 +351,314 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     ),
     [],
   );
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    loadingContainer: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    trailerContainer: {
+      // backgroundColor: '#000',
+      zIndex: 100,
+      flex: 1,
+    },
+    gradientShade: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 500,
+    },
+    main: {
+      position: 'relative',
+      width: width - 32,
+      height: isTablet ? 500 : 250,
+      alignSelf: 'center',
+      borderRadius: 40,
+      borderCurve: 'circular',
+      overflow: 'hidden',
+      margin: 16,
+      elevation: 20,
+      shadowColor: '#000',
+      shadowOffset: {width: 5, height: 20},
+      shadowOpacity: 0.25,
+      shadowRadius: 10,
+      backgroundColor: colors.background.tertiary,
+    },
+    backdrop: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: colors.background.secondary,
+      borderRadius: 40,
+    },
+    content: {
+      padding: 16,
+      flexDirection: 'column',
+      gap: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '400',
+      color: '#fff',
+      textAlign: 'center',
+      width: '100%',
+      fontFamily: 'Inter',
+    },
+    infoContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    infoWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    info: {
+      ...typography.body2,
+      color: 'rgba(255, 255, 255, 0.68)',
+    },
+    infoDot: {
+      ...typography.h3,
+      color: 'rgba(163, 163, 163, 0.68)',
+      marginHorizontal: spacing.xs,
+    },
+    buttonRow: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      width: width - 100,
+      marginTop: -spacing.sm,
+    },
+    watchButton: {
+      flex: 1,
+      borderRadius: 24,
+      paddingHorizontal: 36,
+      paddingVertical: 14,
+    },
+    watchButtonText: {
+      fontWeight: '700',
+      fontSize: 16,
+      fontFamily: 'Inter',
+    },
+    addButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.modal.header,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    genreContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    genreWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    genre: {
+      ...typography.body2,
+      color: colors.text.primary,
+      marginRight: spacing.xs,
+    },
+    genreDivider: {
+      ...typography.body2,
+      color: colors.text.primary,
+      marginHorizontal: spacing.xs,
+    },
+    overview: {
+      color: colors.text.muted,
+      fontSize: 14,
+      lineHeight: 20,
+      marginBottom: 30,
+    },
+    sectionTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginBottom: 16,
+      marginLeft: 16,
+    },
+    castItem: {
+      marginRight: 16,
+      width: 100,
+    },
+    castImage: {
+      width: 100,
+      height: 150,
+      borderRadius: 8,
+      marginBottom: 8,
+      backgroundColor: '#2a2a2a',
+    },
+    castName: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: '500',
+      textAlign: 'center',
+      fontFamily: 'Inter',
+    },
+    character: {
+      color: '#888',
+      fontSize: 12,
+      textAlign: 'center',
+      fontFamily: 'Inter',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    seasonsSection: {
+      marginVertical: spacing.md,
+      marginBottom: spacing.xl,
+    },
+    seasonDropdown: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card.background,
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.card.border,
+      marginTop: 8,
+      marginHorizontal: 16,
+    },
+    seasonDropdownText: {
+      color: colors.text.primary,
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    episodesContainer: {
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+    },
+    episodesScroll: {
+      paddingHorizontal: 16,
+    },
+    episodeCard: {
+      width: 280,
+      marginRight: 12,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    episodeImage: {
+      width: '100%',
+      height: 157,
+      backgroundColor: colors.background.secondary,
+      borderRadius: 20,
+    },
+    episodeContent: {
+      padding: 12,
+      alignItems: 'center',
+    },
+    episodeInfo: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+      alignItems: 'center',
+    },
+    episodeTitle: {
+      color: colors.text.primary,
+      fontSize: 14,
+      fontWeight: '500',
+      marginTop: 8,
+      marginBottom: 4,
+      fontFamily: 'Inter',
+    },
+    blurView: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'transparent',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxHeight: '80%',
+      overflow: 'hidden',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.background.secondary,
+    },
+    modalTitle: {
+      color: colors.text.primary,
+      fontSize: 18,
+      fontWeight: '600',
+      fontFamily: 'Inter',
+    },
+    seasonsList: {
+      padding: 16,
+    },
+    seasonItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      backgroundColor: colors.modal.blur,
+      borderRadius: 8,
+      marginBottom: 8,
+      paddingHorizontal: 12,
+    },
+    seasonItemPoster: {
+      width: 60,
+      height: 90,
+      borderRadius: 4,
+      marginRight: 12,
+    },
+    seasonItemInfo: {
+      flex: 1,
+    },
+    seasonItemName: {
+      color: colors.text.primary,
+      fontSize: 16,
+      fontWeight: '500',
+      marginBottom: 4,
+    },
+    seasonItemEpisodes: {
+      color: colors.text.secondary,
+      fontSize: 14,
+    },
+    noEpisodesContainer: {
+      padding: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noEpisodesText: {
+      color: colors.text.tertiary,
+      ...typography.body1,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+  });
 
   if (isLoading) {
     return (
@@ -830,311 +1140,3 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  trailerContainer: {
-    // backgroundColor: '#000',
-    zIndex: 100,
-    flex: 1,
-  },
-  gradientShade: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 500,
-  },
-  main: {
-    position: 'relative',
-    width: width - 32,
-    height: 250,
-    alignSelf: 'center',
-    borderRadius: 40,
-    borderCurve: 'circular',
-    overflow: 'hidden',
-    margin: 16,
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 5, height: 20},
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    backgroundColor: colors.background.tertiary,
-  },
-  backdrop: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.background.secondary,
-    borderRadius: 40,
-  },
-  content: {
-    padding: 16,
-    flexDirection: 'column',
-    gap: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '400',
-    color: '#fff',
-    textAlign: 'center',
-    width: '100%',
-    fontFamily: 'Inter',
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  infoWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  info: {
-    ...typography.body2,
-    color: 'rgba(255, 255, 255, 0.68)',
-  },
-  infoDot: {
-    ...typography.h3,
-    color: 'rgba(163, 163, 163, 0.68)',
-    marginHorizontal: spacing.xs,
-  },
-  buttonRow: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    width: width - 100,
-    marginTop: -spacing.sm,
-  },
-  watchButton: {
-    flex: 1,
-    borderRadius: 24,
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-  },
-  watchButtonText: {
-    fontWeight: '700',
-    fontSize: 16,
-    fontFamily: 'Inter',
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.modal.header,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  genreContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  genreWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  genre: {
-    ...typography.body2,
-    color: colors.text.primary,
-    marginRight: spacing.xs,
-  },
-  genreDivider: {
-    ...typography.body2,
-    color: colors.text.primary,
-    marginHorizontal: spacing.xs,
-  },
-  overview: {
-    color: colors.text.muted,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: 16,
-    marginLeft: 16,
-  },
-  castItem: {
-    marginRight: 16,
-    width: 100,
-  },
-  castImage: {
-    width: 100,
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#2a2a2a',
-  },
-  castName: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  character: {
-    color: '#888',
-    fontSize: 12,
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  seasonsSection: {
-    marginVertical: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  seasonDropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card.background,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.card.border,
-    marginTop: 8,
-    marginHorizontal: 16,
-  },
-  seasonDropdownText: {
-    color: colors.text.primary,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  episodesContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  episodesScroll: {
-    paddingHorizontal: 16,
-  },
-  episodeCard: {
-    width: 280,
-    marginRight: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  episodeImage: {
-    width: '100%',
-    height: 157,
-    backgroundColor: colors.background.secondary,
-    borderRadius: 20,
-  },
-  episodeContent: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  episodeInfo: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    alignItems: 'center',
-  },
-  episodeTitle: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 8,
-    marginBottom: 4,
-    fontFamily: 'Inter',
-  },
-  blurView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  modalTitle: {
-    color: colors.text.primary,
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'Inter',
-  },
-  seasonsList: {
-    padding: 16,
-  },
-  seasonItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    backgroundColor: colors.modal.blur,
-    borderRadius: 8,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-  },
-  seasonItemPoster: {
-    width: 60,
-    height: 90,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  seasonItemInfo: {
-    flex: 1,
-  },
-  seasonItemName: {
-    color: colors.text.primary,
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  seasonItemEpisodes: {
-    color: colors.text.secondary,
-    fontSize: 14,
-  },
-  noEpisodesContainer: {
-    padding: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noEpisodesText: {
-    color: colors.text.tertiary,
-    ...typography.body1,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-});

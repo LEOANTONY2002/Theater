@@ -27,6 +27,7 @@ import {
   useWatchlistContainingItem,
 } from '../hooks/useWatchlists';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {useResponsive} from '../hooks/useResponsive';
 const {width} = Dimensions.get('window');
 const BANNER_HEIGHT = 680;
 
@@ -124,13 +125,118 @@ export const FeaturedBannerHomePoster: React.FC<
     removeFromWatchlistMutation,
     item.id,
   ]);
+  const isTablet = useResponsive().isTablet;
+
+  const styles = StyleSheet.create({
+    skeletonContainer: {
+      width: '100%',
+      height: 500,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      zIndex: 0,
+    },
+    cardContainer: {
+      width: isTablet ? 400 : 300,
+      height: isTablet ? 650 : 500,
+      alignSelf: 'center',
+      borderRadius: 50,
+      overflow: 'hidden',
+      shadowColor: '#000000',
+      shadowOffset: {width: 6, height: 10},
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 30,
+      borderWidth: 1,
+      borderColor: 'rgba(91, 91, 91, 0.2)',
+    },
+    imageStyle: {
+      borderRadius: 32,
+    },
+    gradientOverlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: '65%',
+      borderBottomLeftRadius: 32,
+      borderBottomRightRadius: 32,
+    },
+    absoluteContent: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 32,
+      alignItems: 'center',
+      width: '100%',
+    },
+    genreContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+      paddingHorizontal: 16,
+    },
+    genreWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    genre: {
+      ...typography.caption,
+      color: 'rgba(255, 255, 255, 0.68)',
+      marginRight: spacing.xs,
+    },
+    genreDot: {
+      ...typography.h3,
+      color: 'rgba(163, 163, 163, 0.68)',
+      marginHorizontal: spacing.xs,
+    },
+    buttonRow: {
+      display: 'flex',
+      flex: 1,
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 4,
+      paddingHorizontal: 56,
+    },
+    watchButton: {
+      flex: 1,
+      borderRadius: borderRadius.round,
+      paddingHorizontal: 36,
+      paddingVertical: 14,
+      marginRight: 12,
+    },
+    watchButtonText: {
+      fontWeight: '700',
+      fontSize: 16,
+    },
+    addButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.modal.header,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.18,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+  });
 
   return (
     <View>
       <ImageBackground
         onLoadEnd={() => setLoading(false)}
         source={{
-          uri: `https://image.tmdb.org/t/p/w500${item?.poster_path}`,
+          uri: `https://image.tmdb.org/t/p/${isTablet ? 'original' : 'w500'}${
+            item?.poster_path
+          }`,
         }}
         style={styles.cardContainer}
         imageStyle={styles.imageStyle}>
@@ -191,105 +297,3 @@ export const FeaturedBannerHomePoster: React.FC<
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  skeletonContainer: {
-    width: '100%',
-    height: 500,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    zIndex: 0,
-  },
-  cardContainer: {
-    width: 300,
-    height: 500,
-    alignSelf: 'center',
-    borderRadius: 50,
-    overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: {width: 6, height: 10},
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(91, 91, 91, 0.2)',
-  },
-  imageStyle: {
-    borderRadius: 32,
-  },
-  gradientOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '65%',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-  },
-  absoluteContent: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 32,
-    alignItems: 'center',
-    width: '100%',
-  },
-  genreContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-    paddingHorizontal: 16,
-  },
-  genreWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  genre: {
-    ...typography.caption,
-    color: 'rgba(255, 255, 255, 0.68)',
-    marginRight: spacing.xs,
-  },
-  genreDot: {
-    ...typography.h3,
-    color: 'rgba(163, 163, 163, 0.68)',
-    marginHorizontal: spacing.xs,
-  },
-  buttonRow: {
-    display: 'flex',
-    flex: 1,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    paddingHorizontal: 56,
-  },
-  watchButton: {
-    flex: 1,
-    borderRadius: borderRadius.round,
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-    marginRight: 12,
-  },
-  watchButtonText: {
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.modal.header,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-});

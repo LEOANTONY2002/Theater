@@ -13,6 +13,7 @@ import {
 } from './TabStacks';
 import {colors, spacing, borderRadius, shadows} from '../styles/theme';
 import {BlurView} from '@react-native-community/blur';
+import {useResponsive} from '../hooks/useResponsive';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
@@ -21,6 +22,37 @@ interface TabIconProps {
   name: string;
   color: string;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  blurWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    // Height/marginBottom set in TabBarBackground for live updates
+    borderRadius: borderRadius.round,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.11)',
+    backgroundColor: 'rgba(255, 255, 255, 0)',
+  },
+  blurContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: spacing.xs,
+  },
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 // Custom tab icon with animation
 const TabIcon = ({focused, name, color}: TabIconProps) => {
@@ -41,8 +73,17 @@ const TabIcon = ({focused, name, color}: TabIconProps) => {
 
 // Smart TabBarBackground that manages BlurView during navigation transitions
 const TabBarBackground = () => {
+  const {isTablet} = useResponsive();
+
   return (
-    <View style={styles.blurWrapper}>
+    <View
+      style={[
+        styles.blurWrapper,
+        {
+          height: isTablet ? 90 : 70,
+          marginBottom: isTablet ? 15 : 10,
+        },
+      ]}>
       <BlurView
         style={styles.blurContainer}
         blurType="dark"
@@ -56,6 +97,8 @@ const TabBarBackground = () => {
 
 export const BottomTabNavigator = () => {
   const navigationState = useNavigationState(state => state);
+  // Use inside so rotation triggers rerenders
+  const {isTablet, orientation} = useResponsive();
 
   // Function to check if we're currently on OnlineAI screen
   const isOnOnlineAIScreen = () => {
@@ -83,34 +126,30 @@ export const BottomTabNavigator = () => {
           tabBarStyle: {
             backgroundColor: 'transparent',
             borderTopWidth: 0,
-            height: 70,
+            height: isTablet ? 90 : 70,
             position: 'absolute',
-            bottom: 16,
-            marginHorizontal: 24,
+            bottom: isTablet ? 30 : 16,
+            marginHorizontal:
+              isTablet && orientation === 'portrait'
+                ? '20%'
+                : isTablet && orientation === 'landscape'
+                ? '30%'
+                : 24,
             borderRadius: borderRadius.round,
             alignItems: 'center',
             justifyContent: 'center',
-            ...shadows.large,
-            ...(Platform.OS === 'ios'
-              ? {
-                  shadowColor: colors.primary,
-                  shadowOffset: {width: 0, height: 0},
-                  shadowOpacity: 0.15,
-                  shadowRadius: 12,
-                }
-              : {
-                  elevation: 12,
-                }),
             display: isOnOnlineAIScreen() ? 'none' : 'flex',
           },
+          // Keep label under icon even on tablets (avoids beside-icon layout)
+          tabBarLabelPosition: 'below-icon',
           tabBarBackground: () => <TabBarBackground />,
           tabBarActiveTintColor: 'white',
           tabBarInactiveTintColor: colors.text.muted,
           headerShown: false,
           tabBarLabelStyle: {
-            fontSize: 10,
+            fontSize: isTablet ? 12 : 10,
             fontWeight: '400',
-            opacity: 0.5,
+            opacity: isTablet ? 0.8 : 0.5,
           },
           tabBarHideOnKeyboard: true,
           tabBarShowLabel: true,
@@ -186,36 +225,3 @@ export const BottomTabNavigator = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  blurWrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 70,
-    // marginHorizontal: 24,
-    marginBottom: 10,
-    borderRadius: borderRadius.round,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.11)',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  blurContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: spacing.xs,
-  },
-  iconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

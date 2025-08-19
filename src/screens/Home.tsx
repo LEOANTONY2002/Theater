@@ -37,7 +37,6 @@ export const HomeScreen = React.memo(() => {
   const [renderPhase, setRenderPhase] = useState(0);
   const [showMoreContent, setShowMoreContent] = useState(false);
   const queryClient = useQueryClient();
-  const [visibleSectionCount, setVisibleSectionCount] = useState(3);
 
   // Ultra-aggressive staggered loading to prevent FPS drops
   useEffect(() => {
@@ -500,18 +499,7 @@ export const HomeScreen = React.memo(() => {
     handleSeeAllPress,
   ]);
 
-  // Only render up to visibleSectionCount sections
-  const visibleSections = useMemo(
-    () => sections.slice(0, visibleSectionCount),
-    [sections, visibleSectionCount],
-  );
-  const onVerticalScroll = useCallback(
-    (event: any) => {
-      if (!Array.isArray(sections)) return;
-      setVisibleSectionCount(count => Math.min(count + 2, sections.length));
-    },
-    [sections.length],
-  );
+  // Render all sections without batching
 
   const renderSection = useCallback(
     ({item}: {item: any}) => {
@@ -658,23 +646,12 @@ export const HomeScreen = React.memo(() => {
     <View style={styles.container}>
       {/* <PerformanceMonitor screenName="Home" /> */}
       <FlatList
-        data={visibleSections}
+        data={sections}
         renderItem={renderSection}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
         removeClippedSubviews={false}
-        maxToRenderPerBatch={3}
-        windowSize={5}
-        initialNumToRender={3}
-        updateCellsBatchingPeriod={100}
-        disableVirtualization={false}
-        scrollEventThrottle={0}
-        decelerationRate={0.9}
-        extraData={null}
-        legacyImplementation={false}
-        disableIntervalMomentum={false}
-        onScroll={onVerticalScroll}
       />
     </View>
   );

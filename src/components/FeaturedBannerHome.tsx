@@ -1,7 +1,8 @@
 import React, {useCallback, useState} from 'react';
-import {View, StyleSheet, Dimensions, TouchableOpacity} from 'react-native';
+import {View, StyleSheet, TouchableOpacity, useWindowDimensions} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing, borderRadius} from '../styles/theme';
+import {useResponsive} from '../hooks/useResponsive';
 import {BannerHomeSkeleton} from './LoadingSkeleton';
 import {FeaturedBannerHomePoster} from './FeaturedBannerHomePoster';
 import Carousel from 'react-native-reanimated-carousel';
@@ -15,17 +16,23 @@ type FeaturedBannerHomeProps = {
   items: {item: any; type: 'movie' | 'tv'; title: string}[];
 };
 
-const CARD_WIDTH = 300;
-const CARD_HEIGHT = 500;
-const CARD_OVERLAP = CARD_WIDTH * 0.3;
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const CARD_WIDTH = 300; // phone baseline
+const CARD_HEIGHT = 500; // phone baseline
+const CARD_OVERLAP = CARD_WIDTH * 0.3; // phone baseline
 const MAX_FILTERS = 3;
 
 export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
   items = [],
 }) => {
+  const {isTablet} = useResponsive();
+  const {width: windowWidth} = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const progressValue = useSharedValue(0);
+
+  // Dynamic dimensions for tablet vs phone
+  const cardWidth = isTablet ? 380 : CARD_WIDTH;
+  const cardHeight = isTablet ? 650 : CARD_HEIGHT;
+  const cardOverlap = isTablet ? cardWidth * 0.42 : CARD_OVERLAP;
 
   const animatedTitleStyles = Array.from({length: MAX_FILTERS}, (_, idx) =>
     useAnimatedStyle(() => {
@@ -44,13 +51,67 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
     }),
   );
 
+  const styles = StyleSheet.create({
+    wrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: windowWidth,
+      paddingTop: isTablet ? 140 : 100,
+      paddingBottom: isTablet ? 100 : 50,
+    },
+    gradient: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: CARD_HEIGHT + 100,
+      zIndex: 0,
+    },
+    titleContainer: {
+      position: 'absolute',
+      top: 30,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 0,
+      pointerEvents: 'none',
+      opacity: 0.1,
+      alignItems: 'center',
+    },
+    filterName: {
+      position: 'absolute',
+      color: colors.text.primary,
+      paddingHorizontal: spacing.lg,
+      fontSize: isTablet ? 120 : 80,
+      fontWeight: '900',
+      textAlign: 'center',
+      fontFamily: 'Inter',
+    },
+    cardStack: {
+      width: 'auto',
+      height: CARD_HEIGHT,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    card: {
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+      borderRadius: borderRadius.lg || 18,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      elevation: 40,
+    },
+  });
+
   return items !== undefined && items.length > 0 ? (
     <View style={styles.wrapper}>
       <LinearGradient
         colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
         start={{x: 0, y: 0}}
         end={{x: 0, y: 0.7}}
-        style={styles.gradient}
+        style={[styles.gradient, {height: cardHeight + 100}]}
       />
       <View style={styles.titleContainer} pointerEvents="none">
         {items?.slice(0, MAX_FILTERS).map((item, idx) => (
@@ -63,15 +124,15 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
         ))}
       </View>
       <Carousel
-        width={SCREEN_WIDTH}
-        height={CARD_HEIGHT}
+        width={windowWidth}
+        height={cardHeight}
         data={items.slice(0, MAX_FILTERS)}
         mode="horizontal-stack"
         modeConfig={{
           snapDirection: 'left',
-          stackInterval: CARD_OVERLAP,
+          stackInterval: cardOverlap,
         }}
-        style={{width: SCREEN_WIDTH, alignSelf: 'center'}}
+        style={{width: windowWidth, alignSelf: 'center'}}
         loop={false}
         pagingEnabled
         onSnapToItem={setCurrentIndex}
@@ -103,14 +164,19 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
 
           return (
             <TouchableOpacity activeOpacity={1}>
-              <Animated.View style={[styles.cardStack, animatedStyle]}>
+              <Animated.View
+                style={[styles.cardStack, {height: cardHeight}, animatedStyle]}>
                 {item.item.poster_path ? (
                   <FeaturedBannerHomePoster item={item.item} type={item.type} />
                 ) : (
                   <View
                     style={[
                       styles.card,
-                      {backgroundColor: colors.background.secondary},
+                      {
+                        backgroundColor: colors.background.secondary,
+                        width: cardWidth,
+                        height: cardHeight,
+                      },
                     ]}
                   />
                 )}
@@ -122,57 +188,3 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
     </View>
   ) : null;
 };
-
-const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: SCREEN_WIDTH,
-    paddingTop: 100,
-    paddingBottom: 50,
-  },
-  gradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: CARD_HEIGHT + 100,
-    zIndex: 0,
-  },
-  titleContainer: {
-    position: 'absolute',
-    top: 30,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
-    pointerEvents: 'none',
-    opacity: 0.1,
-    alignItems: 'center',
-  },
-  filterName: {
-    position: 'absolute',
-    color: colors.text.primary,
-    paddingHorizontal: spacing.lg,
-    fontSize: 80,
-    fontWeight: '900',
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  cardStack: {
-    width: 'auto',
-    height: CARD_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: borderRadius.lg || 18,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 40,
-  },
-});
