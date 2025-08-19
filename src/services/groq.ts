@@ -1,7 +1,7 @@
 import {Platform} from 'react-native';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = '';
 const MODEL = 'meta-llama/llama-4-maverick-17b-128e-instruct';
 
 async function callGroq(messages: any[]) {
