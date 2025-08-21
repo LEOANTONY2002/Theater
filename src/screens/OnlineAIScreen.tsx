@@ -533,8 +533,6 @@ export const OnlineAIScreen: React.FC = () => {
             height: 120,
             zIndex: 10,
             marginHorizontal: 2,
-            borderTopLeftRadius: spacing.xxl,
-            borderTopRightRadius: spacing.xxl,
           }}
         />
         <FlatList
@@ -706,8 +704,6 @@ export const OnlineAIScreen: React.FC = () => {
             bottom: 0,
             height: 150,
             marginHorizontal: 2,
-            borderBottomLeftRadius: spacing.xxl,
-            borderBottomRightRadius: spacing.xxl,
             zIndex: 0,
           }}
         />
@@ -781,7 +777,6 @@ const styles = StyleSheet.create({
     // margin: 5,
     backgroundColor: 'rgb(18, 0, 22)',
     elevation: 12,
-    borderRadius: spacing.xxl,
     marginHorizontal: 2,
     overflow: 'hidden',
   },

@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo, useEffect, useState} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, StyleSheet} from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 import {
   useTop10ShowsTodayByRegion,
@@ -489,39 +489,55 @@ export const TVShowsScreen = React.memo(() => {
     onSeeAllAction,
   ]);
 
-  const renderSection = useCallback(({item}: {item: any}) => {
-    switch (item.type) {
-      case 'featured':
-        return <FeaturedBanner item={item.data} type="tv" />;
-
-      case 'genres':
-        return (
-          <HorizontalGenreList
-            title="Genres"
-            data={item.data}
-            onItemPress={item.onItemPress}
-            isLoading={item.isLoading}
-          />
-        );
-
-      case 'horizontalList':
-        return (
-          <HorizontalList
-            title={item.title}
-            data={item.data}
-            onItemPress={item.onItemPress}
-            onEndReached={item.onEndReached}
-            isLoading={item.isLoading}
-            onSeeAllPress={item.onSeeAllPress}
-            isSeeAll={item.isSeeAll}
-            isTop10={item.isTop10}
-          />
-        );
-
-      default:
-        return null;
-    }
-  }, []);
+  const renderSection = useCallback(
+    ({item}: {item: any}) => {
+      switch (item.type) {
+        case 'featured':
+          return (
+            <FeaturedBanner
+              item={item.data}
+              type="tv"
+              slides={(popularShowsFlat || []).filter(Boolean).slice(0, 7)}
+              autoPlayIntervalMs={5000}
+            />
+          );
+        case 'featuredSkeleton':
+          return <BannerSkeleton />;
+        case 'genres':
+          return (
+            <HorizontalGenreList
+              title="Genres"
+              data={item.data}
+              onItemPress={item.onItemPress}
+              isLoading={item.isLoading}
+            />
+          );
+        case 'horizontalList':
+          return (
+            <HorizontalList
+              title={item.title}
+              data={item.data}
+              onItemPress={item.onItemPress}
+              onEndReached={item.onEndReached}
+              isLoading={item.isLoading}
+              onSeeAllPress={item.onSeeAllPress}
+              isSeeAll={item.isSeeAll}
+              isTop10={item.isTop10}
+            />
+          );
+        case 'horizontalListSkeleton':
+          return (
+            <View>
+              <HeadingSkeleton />
+              <HorizontalListSkeleton />
+            </View>
+          );
+        default:
+          return null;
+      }
+    },
+    [popularShowsFlat],
+  );
 
   const keyExtractor = useCallback((item: any) => item.id, []);
 
@@ -555,12 +571,34 @@ export const TVShowsScreen = React.memo(() => {
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
-        estimatedItemSize={300}
+        estimatedItemSize={320}
+        getItemType={(item: any) => item.type}
+        overrideItemLayout={(layout, item) => {
+          // Provide stable heights to avoid on-the-fly measurements
+          switch (item.type) {
+            case 'featured':
+              layout.size = 420; // banner height + paddings
+              break;
+            case 'featuredSkeleton':
+              layout.size = 420;
+              break;
+            case 'genres':
+              layout.size = 140; // heading + chips
+              break;
+            case 'horizontalList':
+              layout.size = 300; // heading + row list
+              break;
+            case 'horizontalListSkeleton':
+              layout.size = 300;
+              break;
+            default:
+              layout.size = 300;
+          }
+        }}
         // FlashList optimizations
         removeClippedSubviews={true}
         // Scroll optimizations
         scrollEventThrottle={16}
-        decelerationRate={0.9}
         // Performance optimizations
         extraData={null}
         onScrollBeginDrag={() => {}}

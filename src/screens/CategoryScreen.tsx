@@ -9,8 +9,8 @@ import {
   Image,
   TouchableOpacity,
   Animated,
-  Easing,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -46,51 +46,38 @@ export const CategoryScreen = () => {
   const {title, categoryType, contentType, filter} = route.params;
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const {isTablet} = useResponsive();
-  const columns = isTablet ? 5 : 3;
+  const {isTablet, orientation} = useResponsive();
+  const {width} = useWindowDimensions();
 
   // Animated value for scroll position
   const scrollY = useRef(new Animated.Value(0)).current;
-  // Animated value for header animation (for smooth transition)
-  const headerAnim = useRef(new Animated.Value(0)).current;
+  // Drive header animations directly from scrollY to avoid starting a timing
+  // animation on every frame, which can cause jank.
 
-  // Smoothly animate headerAnim towards scrollY
-  useEffect(() => {
-    const id = scrollY.addListener(({value}) => {
-      Animated.timing(headerAnim, {
-        toValue: value,
-        duration: 300,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false, // must be false for margin/background
-      }).start();
-    });
-    return () => scrollY.removeListener(id);
-  }, [scrollY, headerAnim]);
-
-  // Interpolated styles for the animated title container (use headerAnim)
+  // Interpolated styles for the animated title container (use scrollY)
   const animatedHeaderStyle = {
-    marginHorizontal: headerAnim.interpolate({
+    marginHorizontal: scrollY.interpolate({
       inputRange: [0, 40],
       outputRange: [0, spacing.lg],
       extrapolate: 'clamp',
     }),
-    marginTop: headerAnim.interpolate({
+    marginTop: scrollY.interpolate({
       inputRange: [0, 40],
       outputRange: [40, 60],
       extrapolate: 'clamp',
     }),
-    marginBottom: headerAnim.interpolate({
+    marginBottom: scrollY.interpolate({
       inputRange: [0, 40],
       outputRange: [spacing.md, spacing.lg],
       extrapolate: 'clamp',
     }),
-    borderRadius: headerAnim.interpolate({
+    borderRadius: scrollY.interpolate({
       inputRange: [0, 40],
       outputRange: [16, 24],
       extrapolate: 'clamp',
     }),
   };
-  const blurOpacity = headerAnim.interpolate({
+  const blurOpacity = scrollY.interpolate({
     inputRange: [0, 40],
     outputRange: [0, 1],
     extrapolate: 'clamp',
@@ -142,9 +129,37 @@ export const CategoryScreen = () => {
       []) as ContentItem[];
   }, [data]);
 
-  const screenWidth = Dimensions.get('window').width;
-  const cardWidth = screenWidth / columns - 8; // margin compensation similar to MovieCard
-  const ITEM_HEIGHT = cardWidth * 1.5;
+  // Spacing and sizing
+  const horizontalPadding = (spacing?.sm ?? 8) * 2; // list content padding matches styles
+  const cardMargin = 3; // MovieCard margin
+  const perCardGap = cardMargin * 2;
+  const minCardWidth = isTablet ? 150 : 110;
+
+  const columns = useMemo(() => {
+    const available = Math.max(0, width - horizontalPadding);
+    const perCardTotal = minCardWidth + perCardGap;
+    const rawCols = Math.max(1, Math.floor(available / perCardTotal));
+    return !isTablet && orientation === 'portrait'
+      ? Math.max(3, rawCols)
+      : rawCols;
+  }, [
+    width,
+    horizontalPadding,
+    minCardWidth,
+    perCardGap,
+    isTablet,
+    orientation,
+  ]);
+
+  const cardWidth = useMemo(() => {
+    const available = Math.max(
+      0,
+      width - horizontalPadding - columns * perCardGap,
+    );
+    return columns > 0 ? available / columns : available;
+  }, [width, horizontalPadding, perCardGap, columns]);
+
+  const ROW_HEIGHT = cardWidth * 1.5;
 
   const MemoizedMovieCard = React.memo(MovieCard);
 
@@ -155,18 +170,22 @@ export const CategoryScreen = () => {
 
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
-      length: ITEM_HEIGHT,
-      offset: ITEM_HEIGHT * Math.floor(index / columns),
+      length: ROW_HEIGHT,
+      offset: ROW_HEIGHT * Math.floor(index / columns),
       index,
     }),
-    [ITEM_HEIGHT, columns],
+    [ROW_HEIGHT, columns],
   );
 
   const renderItem = useCallback(
     ({item}: {item: ContentItem}) => (
-      <MemoizedMovieCard item={item} onPress={handleItemPress} />
+      <MemoizedMovieCard
+        item={item}
+        onPress={handleItemPress}
+        cardWidth={cardWidth}
+      />
     ),
-    [handleItemPress],
+    [handleItemPress, cardWidth],
   );
 
   const handleEndReached = () => {
@@ -203,18 +222,15 @@ export const CategoryScreen = () => {
     <View style={styles.container}>
       <Animated.View style={[styles.header, animatedHeaderStyle]}>
         <Animated.View
-          style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
-          <BlurView
-            style={StyleSheet.absoluteFill}
-            blurType="dark"
-            blurAmount={16}
-            overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
-            reducedTransparencyFallbackColor={
-              colors.modal?.blur || 'rgba(255,255,255,0.11)'
-            }
-            pointerEvents="none"
-          />
-        </Animated.View>
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              opacity: blurOpacity,
+              zIndex: 0,
+              backgroundColor: colors.modal?.active,
+            },
+          ]}
+        />
         <View
           style={{
             display: 'flex',
@@ -241,16 +257,14 @@ export const CategoryScreen = () => {
       </Animated.View>
       <View style={styles.contentContainer}>
         <Animated.FlatList
+          key={`cols-${columns}`}
           data={flattenedData}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           getItemLayout={getItemLayout}
           numColumns={columns}
           columnWrapperStyle={styles.row}
-          initialNumToRender={10}
-          windowSize={7}
           removeClippedSubviews={true}
-          decelerationRate={0.97}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
@@ -286,6 +300,8 @@ export const CategoryScreen = () => {
             [{nativeEvent: {contentOffset: {y: scrollY}}}],
             {useNativeDriver: false},
           )}
+          bounces={true}
+          overScrollMode="always"
         />
       </View>
       {isInitialLoading && (

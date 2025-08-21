@@ -30,170 +30,10 @@ import CreateButton from '../components/createButton';
 import {modalStyles} from '../styles/styles';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
+import {useResponsive} from '../hooks/useResponsive';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
-
-// Child component to render a watchlist and its results
-const WatchlistItemWithResults = ({
-  watchlistId,
-  watchlistName,
-  itemCount,
-  onWatchlistPress,
-  onItemPress,
-}: {
-  watchlistId: string;
-  watchlistName: string;
-  itemCount: number;
-  onWatchlistPress: (watchlistId: string, watchlistName: string) => void;
-  onItemPress: (item: ContentItem) => void;
-}) => {
-  const {data: items = [], isLoading} = useWatchlistItems(watchlistId);
-
-  // Convert watchlist items to ContentItem format
-  const contentItems: ContentItem[] = items.map(item => {
-    if (item.type === 'movie') {
-      return {
-        id: item.id,
-        title: item.title || '',
-        originalTitle: item.originalTitle || '',
-        overview: item.overview,
-        poster_path: item.poster_path,
-        backdrop_path: item.backdrop_path,
-        vote_average: item.vote_average,
-        release_date: item.release_date || '',
-        genre_ids: item.genre_ids,
-        popularity: item.popularity,
-        original_language: item.original_language,
-        type: 'movie' as const,
-      };
-    } else {
-      return {
-        id: item.id,
-        name: item.name || '',
-        overview: item.overview,
-        poster_path: item.poster_path,
-        backdrop_path: item.backdrop_path,
-        vote_average: item.vote_average,
-        first_air_date: item.first_air_date || '',
-        genre_ids: item.genre_ids,
-        origin_country: item.origin_country || [],
-        popularity: item.popularity,
-        original_language: item.original_language,
-        type: 'tv' as const,
-      };
-    }
-  });
-
-  // Calculate content type distribution
-  const movieCount = contentItems.filter(item => item.type === 'movie').length;
-  const tvCount = contentItems.filter(item => item.type === 'tv').length;
-
-  return (
-    <View style={{marginBottom: spacing.xl, position: 'relative'}}>
-      <View style={styles.watchlistItem}>
-        <LinearGradient
-          colors={[
-            'transparent',
-            colors.background.primary,
-            colors.background.primary,
-          ]}
-          pointerEvents="none"
-          style={{
-            width: '180%',
-            height: '130%',
-            position: 'absolute',
-            bottom: -25,
-            left: -50,
-            // paddingHorizontal: 10,
-            zIndex: 0,
-            transform: [{rotate: '-15deg'}],
-          }}
-          start={{x: 0, y: 0}}
-          end={{x: 0, y: 1}}
-        />
-        <View style={styles.watchlistHeader}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-            <Text style={styles.watchlistName}>{watchlistName}</Text>
-            <TouchableOpacity
-              style={{
-                alignItems: 'center',
-                padding: 5,
-              }}
-              activeOpacity={0.9}
-              onPress={() => onWatchlistPress(watchlistId, watchlistName)}>
-              <Ionicons
-                name="trash-outline"
-                size={15}
-                color={colors.text.primary}
-              />
-            </TouchableOpacity>
-          </View>
-          {movieCount > 0 || tvCount > 0 ? (
-            <View style={{flexDirection: 'row', gap: 10, alignItems: 'center'}}>
-              {movieCount > 0 && (
-                <Text style={styles.watchlistCount}>
-                  {movieCount} {movieCount === 1 ? 'movie' : 'movies'}
-                </Text>
-              )}
-              {movieCount > 0 && tvCount > 0 && (
-                <Text
-                  style={{
-                    width: 3,
-                    height: 3,
-                    borderRadius: 5,
-                    marginTop: 2,
-                    backgroundColor: colors.text.muted,
-                  }}>
-                  {' '}
-                </Text>
-              )}
-              {tvCount > 0 && (
-                <Text style={styles.watchlistCount}>
-                  {tvCount} {tvCount === 1 ? 'tv show' : 'tv shows'}
-                </Text>
-              )}
-            </View>
-          ) : (
-            <Text style={styles.watchlistCount}>No content</Text>
-          )}
-        </View>
-
-        {/* HorizontalList of watchlist items */}
-        <View style={styles.listContainer}>
-          <HorizontalList
-            title={''}
-            data={contentItems}
-            isLoading={isLoading}
-            onItemPress={onItemPress}
-            isSeeAll={false}
-            isFilter={true}
-            isHeadingSkeleton={false}
-          />
-          <LinearGradient
-            colors={['transparent', colors.background.primary]}
-            pointerEvents="none"
-            style={{
-              width: '100%',
-              height: 200,
-              position: 'absolute',
-              bottom: 20,
-              zIndex: 1,
-              opacity: 0.9,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 10,
-            }}
-          />
-        </View>
-      </View>
-    </View>
-  );
-};
 
 export const WatchlistsScreen: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -204,6 +44,7 @@ export const WatchlistsScreen: React.FC = () => {
   const deleteWatchlistMutation = useDeleteWatchlist();
   const navigation = useNavigation<WatchlistsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
+  const {isTablet} = useResponsive();
 
   // Animated values for scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -278,6 +119,310 @@ export const WatchlistsScreen: React.FC = () => {
   const handleCloseModal = () => {
     setShowCreateModal(false);
     setNewWatchlistName('');
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      height: '100%',
+      backgroundColor: colors.background.primary,
+      paddingTop: spacing.xxl,
+      paddingBottom: 200,
+      position: 'relative',
+    },
+    header: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: spacing.md,
+      overflow: 'hidden',
+      marginTop: 50,
+    },
+    title: {
+      flex: 1,
+      textAlign: 'center',
+      color: colors.text.primary,
+      ...typography.h2,
+    },
+    addButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      height: 40,
+      width: 40,
+      zIndex: 1,
+    },
+    content: {
+      paddingHorizontal: spacing.md,
+      paddingTop: 100,
+      paddingBottom: 150,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: '60%',
+      paddingBottom: 200,
+    },
+    emptyStateTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginBottom: spacing.sm,
+    },
+    emptyStateText: {
+      ...typography.body1,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      width: '80%',
+    },
+    loadingContainer: {
+      padding: spacing.xl,
+      alignItems: 'center',
+    },
+    loadingText: {
+      ...typography.body1,
+      color: colors.text.secondary,
+    },
+    watchlistItem: {
+      backgroundColor: colors.background.tertiary,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.border,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      position: 'relative',
+      height: isTablet ? 400 : 300,
+      marginBottom: 10,
+      zIndex: 0,
+    },
+    watchlistHeader: {
+      flexDirection: 'column',
+      marginBottom: spacing.sm,
+    },
+    watchlistName: {
+      color: colors.text.primary,
+      ...typography.h3,
+    },
+    watchlistCount: {
+      color: colors.text.muted,
+      ...typography.body2,
+    },
+    watchlistContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    card: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      backgroundColor: colors.background.card,
+      borderWidth: 1,
+      borderColor: colors.modal.content,
+      borderRadius: borderRadius.md,
+      width: 80,
+      height: 80,
+      padding: spacing.xs,
+      zIndex: 1,
+    },
+    cardText: {
+      color: colors.text.secondary,
+      ...typography.body1,
+    },
+    listContainer: {
+      position: 'relative',
+      width: '120%',
+      overflow: 'scroll',
+      bottom: 10,
+      left: -30,
+      zIndex: 1,
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+      width: '90%',
+      height: 310,
+      backgroundColor: colors.modal.active,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+  });
+
+  // Child component to render a watchlist and its results
+  const WatchlistItemWithResults = ({
+    watchlistId,
+    watchlistName,
+    itemCount,
+    onWatchlistPress,
+    onItemPress,
+  }: {
+    watchlistId: string;
+    watchlistName: string;
+    itemCount: number;
+    onWatchlistPress: (watchlistId: string, watchlistName: string) => void;
+    onItemPress: (item: ContentItem) => void;
+  }) => {
+    const {data: items = [], isLoading} = useWatchlistItems(watchlistId);
+
+    // Convert watchlist items to ContentItem format
+    const contentItems: ContentItem[] = items.map(item => {
+      if (item.type === 'movie') {
+        return {
+          id: item.id,
+          title: item.title || '',
+          originalTitle: item.originalTitle || '',
+          overview: item.overview,
+          poster_path: item.poster_path,
+          backdrop_path: item.backdrop_path,
+          vote_average: item.vote_average,
+          release_date: item.release_date || '',
+          genre_ids: item.genre_ids,
+          popularity: item.popularity,
+          original_language: item.original_language,
+          type: 'movie' as const,
+        };
+      } else {
+        return {
+          id: item.id,
+          name: item.name || '',
+          overview: item.overview,
+          poster_path: item.poster_path,
+          backdrop_path: item.backdrop_path,
+          vote_average: item.vote_average,
+          first_air_date: item.first_air_date || '',
+          genre_ids: item.genre_ids,
+          origin_country: item.origin_country || [],
+          popularity: item.popularity,
+          original_language: item.original_language,
+          type: 'tv' as const,
+        };
+      }
+    });
+
+    // Calculate content type distribution
+    const movieCount = contentItems.filter(
+      item => item.type === 'movie',
+    ).length;
+    const tvCount = contentItems.filter(item => item.type === 'tv').length;
+
+    return (
+      <View style={{marginBottom: spacing.xl, position: 'relative'}}>
+        <View style={styles.watchlistItem}>
+          <LinearGradient
+            colors={[
+              'transparent',
+              colors.background.primary,
+              colors.background.primary,
+            ]}
+            pointerEvents="none"
+            style={{
+              width: '180%',
+              height: '130%',
+              position: 'absolute',
+              bottom: -25,
+              left: -50,
+              // paddingHorizontal: 10,
+              zIndex: 0,
+              transform: [{rotate: '-15deg'}],
+            }}
+            start={{x: 0, y: 0}}
+            end={{x: 0, y: 1}}
+          />
+          <View style={styles.watchlistHeader}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <Text style={styles.watchlistName}>{watchlistName}</Text>
+              <TouchableOpacity
+                style={{
+                  alignItems: 'center',
+                  padding: 5,
+                }}
+                activeOpacity={0.9}
+                onPress={() => onWatchlistPress(watchlistId, watchlistName)}>
+                <Ionicons
+                  name="trash-outline"
+                  size={15}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
+            </View>
+            {movieCount > 0 || tvCount > 0 ? (
+              <View
+                style={{flexDirection: 'row', gap: 10, alignItems: 'center'}}>
+                {movieCount > 0 && (
+                  <Text style={styles.watchlistCount}>
+                    {movieCount} {movieCount === 1 ? 'movie' : 'movies'}
+                  </Text>
+                )}
+                {movieCount > 0 && tvCount > 0 && (
+                  <Text
+                    style={{
+                      width: 3,
+                      height: 3,
+                      borderRadius: 5,
+                      marginTop: 2,
+                      backgroundColor: colors.text.muted,
+                    }}>
+                    {' '}
+                  </Text>
+                )}
+                {tvCount > 0 && (
+                  <Text style={styles.watchlistCount}>
+                    {tvCount} {tvCount === 1 ? 'tv show' : 'tv shows'}
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.watchlistCount}>No content</Text>
+            )}
+          </View>
+
+          {/* HorizontalList of watchlist items */}
+          <View style={styles.listContainer}>
+            <HorizontalList
+              title={''}
+              data={contentItems}
+              isLoading={isLoading}
+              onItemPress={onItemPress}
+              isSeeAll={false}
+              isFilter={true}
+              isHeadingSkeleton={false}
+            />
+            <LinearGradient
+              colors={['transparent', colors.background.primary]}
+              pointerEvents="none"
+              style={{
+                width: '100%',
+                height: 200,
+                position: 'absolute',
+                bottom: 20,
+                zIndex: 1,
+                opacity: 0.9,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
+              }}
+            />
+          </View>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -430,143 +575,3 @@ export const WatchlistsScreen: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    height: '100%',
-    backgroundColor: colors.background.primary,
-    paddingTop: spacing.xxl,
-    paddingBottom: 200,
-    position: 'relative',
-  },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    overflow: 'hidden',
-    marginTop: 50,
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    color: colors.text.primary,
-    ...typography.h2,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    height: 40,
-    width: 40,
-    zIndex: 1,
-  },
-  content: {
-    paddingHorizontal: spacing.md,
-    paddingTop: 100,
-    paddingBottom: 150,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: '60%',
-    paddingBottom: 200,
-  },
-  emptyStateTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  emptyStateText: {
-    ...typography.body1,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    width: '80%',
-  },
-  loadingContainer: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  loadingText: {
-    ...typography.body1,
-    color: colors.text.secondary,
-  },
-  watchlistItem: {
-    backgroundColor: colors.background.tertiary,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.modal.border,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    position: 'relative',
-    height: 300,
-    marginBottom: 10,
-    zIndex: 0,
-  },
-  watchlistHeader: {
-    flexDirection: 'column',
-    marginBottom: spacing.sm,
-  },
-  watchlistName: {
-    color: colors.text.primary,
-    ...typography.h3,
-  },
-  watchlistCount: {
-    color: colors.text.muted,
-    ...typography.body2,
-  },
-  watchlistContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  card: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.background.card,
-    borderWidth: 1,
-    borderColor: colors.modal.content,
-    borderRadius: borderRadius.md,
-    width: 80,
-    height: 80,
-    padding: spacing.xs,
-    zIndex: 1,
-  },
-  cardText: {
-    color: colors.text.secondary,
-    ...typography.body1,
-  },
-  listContainer: {
-    position: 'relative',
-    width: '120%',
-    overflow: 'scroll',
-    bottom: 10,
-    left: -30,
-    zIndex: 1,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '90%',
-    height: 310,
-    backgroundColor: colors.modal.active,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-});

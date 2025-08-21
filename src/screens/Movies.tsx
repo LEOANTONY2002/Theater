@@ -250,6 +250,34 @@ export const MoviesScreen = React.memo(() => {
     [actionMovies],
   );
 
+  // Featured slides: merge multiple sources, keep items with backdrops, dedupe by id
+  const featuredSlides = useMemo(() => {
+    const merged: Movie[] = (
+      [
+        ...recentMoviesFlat,
+        ...popularMoviesFlat,
+        ...topRatedMoviesFlat,
+        ...nowPlayingMoviesFlat,
+        ...upcomingMoviesFlat,
+      ].filter(Boolean) as Movie[]
+    ).filter(m => !!m?.backdrop_path);
+    const seen = new Set<number>();
+    const deduped: Movie[] = [];
+    for (const m of merged) {
+      if (!seen.has(m.id)) {
+        seen.add(m.id);
+        deduped.push(m);
+      }
+    }
+    return deduped.slice(0, 8);
+  }, [
+    recentMoviesFlat,
+    popularMoviesFlat,
+    topRatedMoviesFlat,
+    nowPlayingMoviesFlat,
+    upcomingMoviesFlat,
+  ]);
+
   // 2. Move onSeeAllPress handlers outside useMemo for stable references
   const onSeeAllRecent = useCallback(
     () => handleSeeAllPress('Recent Movies', 'latest'),
@@ -312,12 +340,12 @@ export const MoviesScreen = React.memo(() => {
   const sections = useMemo(() => {
     const sectionsList = [];
 
-    // Featured banner section
-    if (featuredMovie) {
+    // Featured banner section (prefer slides, fallback to featuredMovie, else skeleton while fetching)
+    if (featuredSlides.length > 0 || featuredMovie) {
       sectionsList.push({
         id: 'featured',
         type: 'featured',
-        data: featuredMovie,
+        data: featuredMovie || featuredSlides[0],
       });
     } else if (isFetchingRecent) {
       sectionsList.push({
@@ -586,7 +614,14 @@ export const MoviesScreen = React.memo(() => {
   const renderSection = useCallback(({item}: {item: any}) => {
     switch (item.type) {
       case 'featured':
-        return <FeaturedBanner item={item.data} type="movie" />;
+        return (
+          <FeaturedBanner
+            item={item.data}
+            type="movie"
+            slides={featuredSlides}
+            autoPlayIntervalMs={5000}
+          />
+        );
 
       case 'featuredSkeleton':
         return (

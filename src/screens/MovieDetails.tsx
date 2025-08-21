@@ -420,7 +420,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 12,
-      width: width - 100,
+      width: isTablet ? 300 : width - 100,
       marginTop: -spacing.sm,
     },
     watchButton: {
@@ -886,7 +886,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   {isLoadingAiSimilar ? (
                     <View
                       style={{
-                        marginVertical: 50,
+                        marginVertical: isTablet ? 150 : 50,
                         alignItems: 'center',
                         alignSelf: 'center',
                       }}>
@@ -955,7 +955,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         }}
         keyExtractor={(item: any) => item.id}
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={400}
+        estimatedItemSize={500}
         contentContainerStyle={{paddingBottom: 120}}
         // ListHeaderComponent={
         //   <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>

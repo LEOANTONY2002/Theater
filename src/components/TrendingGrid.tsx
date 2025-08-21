@@ -1,10 +1,11 @@
-import React from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import {MovieCard} from './MovieCard';
 import {ContentItem} from './MovieList';
@@ -30,10 +31,40 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
   onItemPress,
   isLoading = false,
 }) => {
-  const {isTablet} = useResponsive();
-  const columns = isTablet ? 5 : 3;
-  const renderItem = ({item}: {item: ContentItem}) => (
-    <MovieCard item={item} onPress={onItemPress} />
+  const {isTablet, orientation} = useResponsive();
+  const {width} = useWindowDimensions();
+
+  // Spacing definitions
+  const horizontalPadding = (spacing?.sm ?? 8) * 2; // matches styles.gridContainer padding
+  const cardMargin = 3; // MovieCard baseStyles.container margin
+  const perCardGap = cardMargin * 2; // total horizontal margin per card
+
+  // Choose a minimum desired card width; columns are derived from this
+  const minCardWidth = isTablet ? 150 : 110;
+
+  // Compute columns to best fill the width
+  const columns = useMemo(() => {
+    const available = Math.max(0, width - horizontalPadding);
+    const perCardTotal = minCardWidth + perCardGap;
+    const rawCols = Math.max(1, Math.floor(available / perCardTotal));
+    // Prefer at least 3 on phones in portrait for aesthetics
+    if (!isTablet && orientation === 'portrait') {
+      return Math.max(3, rawCols);
+    }
+    return rawCols;
+  }, [width, horizontalPadding, minCardWidth, perCardGap, isTablet, orientation]);
+
+  // Now compute exact card width so that row width fits perfectly
+  const cardWidth = useMemo(() => {
+    const available = Math.max(0, width - horizontalPadding - columns * perCardGap);
+    return columns > 0 ? available / columns : available;
+  }, [width, horizontalPadding, columns, perCardGap]);
+
+  const renderItem = useCallback(
+    ({item}: {item: ContentItem}) => (
+      <MovieCard item={item} onPress={onItemPress} cardWidth={cardWidth} />
+    ),
+    [onItemPress, cardWidth],
   );
 
   if (isLoading) {
@@ -48,6 +79,7 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
     <View style={styles.container}>
       <Text style={styles.title}>Trending</Text>
       <FlatList
+        key={`cols-${columns}`}
         data={data}
         renderItem={renderItem}
         keyExtractor={item => `${item.type}-${item.id}`}

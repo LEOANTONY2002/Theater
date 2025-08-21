@@ -257,6 +257,7 @@ export const searchMovies = async (
   const params = {
     page,
     ...filters,
+    'vote_count.gte': 100,
   };
 
   if (!query) {
@@ -639,6 +640,8 @@ export const getContentByGenre = async (
     with_genres: genreId.toString(),
     with_original_language,
     sort_by: sortBy,
+    'vote_average.gte': 7,
+    'vote_count.gte': 100,
     include_null_first_air_dates: false,
     with_adult: false,
     include_adult: false,

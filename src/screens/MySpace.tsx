@@ -39,6 +39,7 @@ import {Watchlist} from '../store/watchlists';
 import {useNavigationState} from '../hooks/useNavigationState';
 import packageJson from '../../package.json';
 import {AISettingsManager} from '../store/aiSettings';
+import {useResponsive} from '../hooks/useResponsive';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -56,6 +57,7 @@ export const MySpaceScreen = React.memo(() => {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const {isTablet} = useResponsive();
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -156,6 +158,206 @@ export const MySpaceScreen = React.memo(() => {
       console.error('Error setting region:', error);
     }
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      backgroundColor: colors.background.primary,
+      paddingVertical: spacing.xxl,
+      height: '100%',
+    },
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: isTablet ? spacing.lg : spacing.md,
+      marginHorizontal: spacing.md,
+      backgroundColor: colors.background.secondary,
+      borderRadius: 12,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.background.secondary,
+    },
+    sectionTitle: {
+      color: colors.text.secondary,
+      flex: 1,
+      fontWeight: 400,
+      fontFamily: 'Inter',
+    },
+    watchlistContainer: {
+      paddingBottom: spacing.md,
+    },
+    listContent: {
+      paddingHorizontal: spacing.md,
+      gap: spacing.sm,
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 1, 3, 0.28)',
+    },
+    modalContent: {
+      borderTopLeftRadius: borderRadius.xl,
+      borderTopRightRadius: borderRadius.xl,
+      height: '90%',
+      overflow: 'hidden',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.background.secondary,
+    },
+    modalTitle: {
+      color: colors.text.primary,
+      ...typography.h3,
+      paddingVertical: spacing.sm,
+    },
+    modalBody: {
+      flex: 1,
+    },
+    tagContainer: {
+      marginTop: -spacing.md,
+      marginBottom: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    tagContent: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingTop: spacing.md,
+    },
+    tag: {
+      backgroundColor: colors.background.tag,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xl,
+      borderRadius: borderRadius.lg,
+      width: 100,
+      height: 100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tagGradient: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 75,
+      marginTop: 25,
+      zIndex: 1,
+      borderBottomLeftRadius: borderRadius.lg,
+      borderBottomRightRadius: borderRadius.lg,
+    },
+    tagText: {
+      color: colors.text.primary,
+      ...typography.h2,
+      fontWeight: '900',
+      opacity: 0.3,
+      textAlign: 'center',
+    },
+    tagSubText: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      opacity: 0.3,
+      textAlign: 'center',
+    },
+    addTag: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xl,
+      borderRadius: borderRadius.lg,
+      width: 100,
+      height: 100,
+      alignItems: 'center',
+    },
+    addFirstTagButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginHorizontal: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.background.secondary,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderStyle: 'dashed',
+    },
+    addFirstTagText: {
+      color: colors.text.primary,
+      ...typography.body2,
+    },
+    section: {
+      padding: spacing.md,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.sm,
+    },
+    regionInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    regionText: {
+      color: colors.text.muted,
+      ...typography.body2,
+      marginBottom: 2,
+    },
+    footerContainer: {
+      marginTop: 100,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.md,
+      borderTopWidth: 1,
+      alignItems: 'center',
+      marginBottom: 150,
+      gap: spacing.xs,
+    },
+    footerText: {
+      color: colors.text.tertiary || '#aaa',
+      fontSize: 12,
+      flex: 1,
+      textAlign: 'center',
+      marginRight: 8,
+      fontFamily: 'Inter',
+    },
+    tmdbLogoWrapper: {
+      padding: 2,
+      borderRadius: 4,
+    },
+    tmdbLogo: {
+      width: 30,
+      height: 30,
+    },
+    privacyLink: {
+      marginTop: 2,
+    },
+    privacyText: {
+      color: colors.text.secondary,
+      fontSize: 13,
+      textAlign: 'center',
+      fontFamily: 'Inter',
+    },
+    privacyContent: {
+      padding: spacing.md,
+      color: colors.text.primary,
+      ...typography.body1,
+    },
+    privacySectionTitle: {
+      color: colors.text.primary,
+      ...typography.h3,
+      marginBottom: spacing.sm,
+    },
+    versionText: {
+      color: colors.text.tertiary,
+      fontSize: 12,
+      textAlign: 'center',
+      marginTop: spacing.xs,
+      fontFamily: 'Inter',
+    },
+  });
 
   return (
     <ScrollView style={styles.container}>
@@ -514,204 +716,4 @@ export const MySpaceScreen = React.memo(() => {
       </Modal>
     </ScrollView>
   );
-});
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.background.primary,
-    paddingVertical: spacing.xxl,
-    height: '100%',
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    marginHorizontal: spacing.md,
-    backgroundColor: colors.background.secondary,
-    borderRadius: 12,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.background.secondary,
-  },
-  sectionTitle: {
-    color: colors.text.secondary,
-    flex: 1,
-    fontWeight: 400,
-    fontFamily: 'Inter',
-  },
-  watchlistContainer: {
-    paddingBottom: spacing.md,
-  },
-  listContent: {
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 1, 3, 0.28)',
-  },
-  modalContent: {
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    height: '90%',
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  modalTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-    paddingVertical: spacing.sm,
-  },
-  modalBody: {
-    flex: 1,
-  },
-  tagContainer: {
-    marginTop: -spacing.md,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  tagContent: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-  },
-  tag: {
-    backgroundColor: colors.background.tag,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xl,
-    borderRadius: borderRadius.lg,
-    width: 100,
-    height: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tagGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 75,
-    marginTop: 25,
-    zIndex: 1,
-    borderBottomLeftRadius: borderRadius.lg,
-    borderBottomRightRadius: borderRadius.lg,
-  },
-  tagText: {
-    color: colors.text.primary,
-    ...typography.h2,
-    fontWeight: '900',
-    opacity: 0.3,
-    textAlign: 'center',
-  },
-  tagSubText: {
-    color: colors.text.secondary,
-    ...typography.body2,
-    opacity: 0.3,
-    textAlign: 'center',
-  },
-  addTag: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xl,
-    borderRadius: borderRadius.lg,
-    width: 100,
-    height: 100,
-    alignItems: 'center',
-  },
-  addFirstTagButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderStyle: 'dashed',
-  },
-  addFirstTagText: {
-    color: colors.text.primary,
-    ...typography.body2,
-  },
-  section: {
-    padding: spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  regionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  regionText: {
-    color: colors.text.muted,
-    ...typography.body2,
-    marginBottom: 2,
-  },
-  footerContainer: {
-    marginTop: 100,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-    borderTopWidth: 1,
-    alignItems: 'center',
-    marginBottom: 150,
-    gap: spacing.xs,
-  },
-  footerText: {
-    color: colors.text.tertiary || '#aaa',
-    fontSize: 12,
-    flex: 1,
-    textAlign: 'center',
-    marginRight: 8,
-    fontFamily: 'Inter',
-  },
-  tmdbLogoWrapper: {
-    padding: 2,
-    borderRadius: 4,
-  },
-  tmdbLogo: {
-    width: 30,
-    height: 30,
-  },
-  privacyLink: {
-    marginTop: 2,
-  },
-  privacyText: {
-    color: colors.text.secondary,
-    fontSize: 13,
-    textAlign: 'center',
-    fontFamily: 'Inter',
-  },
-  privacyContent: {
-    padding: spacing.md,
-    color: colors.text.primary,
-    ...typography.body1,
-  },
-  privacySectionTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-    marginBottom: spacing.sm,
-  },
-  versionText: {
-    color: colors.text.tertiary,
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-    fontFamily: 'Inter',
-  },
 });

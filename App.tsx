@@ -117,7 +117,7 @@ const App = () => {
   if (isLoading || isOnboarded === null) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#000007" />
+        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
       </>
     );
   }
@@ -126,7 +126,7 @@ const App = () => {
   if (isOnboarded === false) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#000007" />
+        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
         <Onboarding
           onDone={async () => {
             await OnboardingManager.setIsOnboarded(true);
@@ -144,7 +144,7 @@ const App = () => {
   if (!isOnline) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#000007" />
+        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
         <NoInternet onRetry={handleTryAgain} isRetrying={retrying} />
       </>
     );
@@ -153,7 +153,7 @@ const App = () => {
   return (
     <>
       <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="light-content" backgroundColor="#000007" />
+        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
         <AppNavigator />
         {/* <PerformanceMonitor screenName="AppRoot" /> */}
         {(() => {

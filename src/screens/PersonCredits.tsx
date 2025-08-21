@@ -55,17 +55,6 @@ export const PersonCreditsScreen = () => {
   } = useScrollOptimization();
 
   // Ultra-aggressive staggered loading to prevent FPS drops
-  useEffect(() => {
-    const timer1 = setTimeout(() => setRenderPhase(1), 500);
-    const timer2 = setTimeout(() => setRenderPhase(2), 1000);
-    const timer3 = setTimeout(() => setShowMoreContent(true), 2000);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
-  }, []);
 
   // Get person details
   const {data: personDetails, isLoading: isLoadingDetails} =
@@ -146,7 +135,124 @@ export const PersonCreditsScreen = () => {
     tvCredits.refetch();
   };
 
-  console.log('person', personDetails);
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingTop: isTablet ? 200 : 120,
+      paddingBottom: spacing.xxl,
+      zIndex: 1,
+    },
+    titleContainer: {
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+    },
+    title: {
+      ...typography.h1,
+      color: colors.text.primary,
+    },
+    subtitle: {
+      ...typography.body1,
+      color: colors.text.secondary,
+      marginTop: spacing.xs,
+    },
+    listContent: {
+      paddingBottom: 120,
+    },
+    cardContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      // Avoid forcing fractional flex that creates space-between gaps
+      flexGrow: 0,
+    },
+    columnWrapper: {
+      justifyContent: 'center',
+    },
+    footerLoader: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    footerSpace: {
+      height: 100,
+    },
+    loadingIndicatorContainer: {
+      height: 50,
+      alignItems: 'center',
+      width: '100%',
+    },
+    loadingText: {
+      color: colors.text.primary,
+      marginTop: spacing.md,
+      ...typography.body1,
+    },
+    emptyContainer: {
+      padding: spacing.xxl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyText: {
+      ...typography.body1,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+    },
+    fullScreenLoader: {
+      flex: 1,
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(10, 10, 26, 0.85)',
+    },
+    loadingTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginTop: spacing.md,
+    },
+    loadingSubtitle: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      marginTop: spacing.xs,
+    },
+    profileContainer: {
+      height: isTablet ? 700 : 400,
+      width: '70%',
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      zIndex: 0,
+    },
+    profileImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    profileGradient: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      width: '100%',
+      height: '100%',
+    },
+    profileGradientHorizontal: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+    },
+    loadingContainer: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+  });
 
   // Only render content after renderPhase allows it
   if (movieCredits.isLoading || tvCredits.isLoading) {
@@ -176,7 +282,10 @@ export const PersonCreditsScreen = () => {
       <View style={styles.profileContainer}>
         <Image
           source={{
-            uri: getImageUrl(personDetails?.profile_path || '', 'w185'),
+            uri: getImageUrl(
+              personDetails?.profile_path || '',
+              isTablet ? 'original' : 'w185',
+            ),
           }}
           style={styles.profileImage}
         />
@@ -212,10 +321,6 @@ export const PersonCreditsScreen = () => {
         contentContainerStyle={styles.listContent}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
-        onScroll={handleScroll}
-        onScrollBeginDrag={handleScrollBeginDrag}
-        onScrollEndDrag={handleScrollEndDrag}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.titleContainer}>
@@ -262,122 +367,3 @@ export const PersonCreditsScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingTop: 120,
-    paddingBottom: spacing.xxl,
-    zIndex: 1,
-  },
-  titleContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  title: {
-    ...typography.h1,
-    color: colors.text.primary,
-  },
-  subtitle: {
-    ...typography.body1,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
-  },
-  listContent: {
-    paddingBottom: 120,
-  },
-  cardContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Avoid forcing fractional flex that creates space-between gaps
-    flexGrow: 0,
-  },
-  columnWrapper: {
-    justifyContent: 'center',
-  },
-  footerLoader: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  footerSpace: {
-    height: 100,
-  },
-  loadingIndicatorContainer: {
-    height: 50,
-    alignItems: 'center',
-    width: '100%',
-  },
-  loadingText: {
-    color: colors.text.primary,
-    marginTop: spacing.md,
-    ...typography.body1,
-  },
-  emptyContainer: {
-    padding: spacing.xxl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    ...typography.body1,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-  },
-  fullScreenLoader: {
-    flex: 1,
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(10, 10, 26, 0.85)',
-  },
-  loadingTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginTop: spacing.md,
-  },
-  loadingSubtitle: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
-  },
-  profileContainer: {
-    height: 400,
-    width: '70%',
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    zIndex: 0,
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  profileGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: '100%',
-    height: '100%',
-  },
-  profileGradientHorizontal: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-});

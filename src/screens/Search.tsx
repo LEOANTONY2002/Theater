@@ -487,6 +487,8 @@ export const SearchScreen = React.memo(() => {
                     borderBottomWidth: 0,
                     borderColor: colors.modal.border,
                     borderRadius: borderRadius.lg,
+                    maxWidth: 400,
+                    alignSelf: 'center',
                   }}>
                   <LinearGradient
                     colors={[

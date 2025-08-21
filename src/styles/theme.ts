@@ -3,8 +3,8 @@ export const colors = {
   secondary: '#FF5E87',
   tertiary: '#4DCFFF',
   accent: '#FFFFFF',
-  transparent: 'rgba(166, 166, 166, 0)',
-  transparentDim: 'rgba(102, 102, 102, 0)',
+  transparent: 'rgba(0, 0, 0, 0)',
+  transparentDim: 'rgba(15, 0, 6, 0.14)',
   background: {
     primary: '#000007',
     secondary: 'rgba(255, 255, 255, 0.08)',

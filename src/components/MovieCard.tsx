@@ -1,5 +1,5 @@
 import React, {useState, useCallback} from 'react';
-import {View, TouchableOpacity, StyleSheet, Dimensions} from 'react-native';
+import {View, TouchableOpacity, StyleSheet, Dimensions, useWindowDimensions} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
@@ -11,6 +11,7 @@ interface MovieCardProps {
   item: ContentItem;
   onPress: (item: ContentItem) => void;
   size?: 'normal' | 'large';
+  cardWidth?: number; // optional external width to allow perfect grid fit
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -42,15 +43,18 @@ export const MovieCard: React.FC<MovieCardProps> = ({
   item,
   onPress,
   size = 'normal',
+  cardWidth,
 }) => {
   const {isTablet} = useResponsive();
-  const columns = isTablet ? 5 : 3;
-  const cardWidth = SCREEN_WIDTH / columns - 8; // margin compensation
-  const cardHeight = cardWidth * 1.5;
+  const {width: currentWidth} = useWindowDimensions();
+  // If external width not provided, fall back to previous heuristic
+  const internalColumns = isTablet ? 5 : 3;
+  const effectiveWidth = cardWidth ?? currentWidth / internalColumns - 8; // margin compensation
+  const cardHeight = effectiveWidth * 1.5;
   return (
     <TouchableOpacity
       style={[
-        {width: cardWidth, height: cardHeight},
+        {width: effectiveWidth, height: cardHeight},
         baseStyles.container,
         size === 'large' && baseStyles.containerLarge,
       ]}
