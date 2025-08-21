@@ -192,7 +192,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
                     style={{
                       width: '100%',
                       height: '100%',
-                      resizeMode: 'contain',
+                      resizeMode: 'cover',
                       marginBottom: spacing.lg,
                     }}
                   />
@@ -256,7 +256,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
                     <Animated.Image
                       style={{width: '100%', height: '100%'}}
                       source={item.image}
-                      resizeMode="contain"
+                      resizeMode="cover"
                     />
                   </View>
                 </View>

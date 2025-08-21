@@ -1,9 +1,10 @@
 import React, {useEffect} from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, DarkTheme} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {BottomTabNavigator} from './BottomTabNavigator';
 import {RootStackParamList} from '../types/navigation';
 import {queryClient} from '../services/queryClient';
+import {colors} from '../styles/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -28,10 +29,21 @@ export const AppNavigator = () => {
 
   return (
     <NavigationContainer
+      theme={{
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          background: colors.background.primary,
+          card: colors.background.primary,
+        },
+      }}
       ref={ref => {
         (global as any).__navigationRef = ref;
       }}>
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          contentStyle: {backgroundColor: colors.background.primary},
+        }}>
         <Stack.Screen
           name="Main"
           component={BottomTabNavigator}

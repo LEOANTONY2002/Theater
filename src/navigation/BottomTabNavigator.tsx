@@ -26,7 +26,7 @@ interface TabIconProps {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.background.primary,
   },
   blurWrapper: {
     position: 'absolute',
@@ -102,21 +102,25 @@ export const BottomTabNavigator = () => {
 
   // Function to check if we're currently on OnlineAI screen
   const isOnOnlineAIScreen = () => {
-    if (!navigationState) return false;
+    try {
+      if (!navigationState) return false;
+      const tabIndex = navigationState.index ?? 0;
+      const currentTab = navigationState.routes?.[tabIndex];
+      if (!currentTab || typeof currentTab !== 'object') return false;
 
-    // Get the current route
-    const currentRoute = navigationState.routes[navigationState.index];
+      // MySpace tab is the 5th tab (index 4)
+      const tabState: any = (currentTab as any).state;
+      if (!tabState || tabState.index !== 4) return false;
 
-    // Check if we're in MySpace tab and on OnlineAI screen
-    if (currentRoute?.state && currentRoute?.state?.index === 4) {
-      const mySpaceState =
-        currentRoute?.state?.routes[currentRoute?.state?.index];
-      const currentMySpaceRoute =
-        mySpaceState?.state?.routes[mySpaceState?.state?.index];
+      const mySpaceStack = tabState.routes?.[tabState.index];
+      const mySpaceState: any = mySpaceStack?.state;
+      if (!mySpaceState || typeof mySpaceState.index !== 'number') return false;
+
+      const currentMySpaceRoute = mySpaceState.routes?.[mySpaceState.index];
       return currentMySpaceRoute?.name === 'OnlineAIScreen';
+    } catch {
+      return false;
     }
-
-    return false;
   };
 
   return (

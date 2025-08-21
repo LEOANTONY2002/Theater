@@ -9,6 +9,9 @@ import {
   Image,
   Animated,
   Easing,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {cinemaChat} from '../services/gemini';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
@@ -19,6 +22,8 @@ import {BlurView} from '@react-native-community/blur';
 import {useNavigation} from '@react-navigation/native';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {AISettingsManager} from '../store/aiSettings';
+import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
+import {useResponsive} from '../hooks/useResponsive';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -136,6 +141,9 @@ export const OnlineAIScreen: React.FC = () => {
   const [animatedContent, setAnimatedContent] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const [isDefaultKey, setIsDefaultKey] = useState<boolean>(false);
+  const inputRef = useRef<TextInput>(null);
+  const androidInset = useAndroidKeyboardInset(10);
+  const {isTablet} = useResponsive();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -177,6 +185,8 @@ export const OnlineAIScreen: React.FC = () => {
       }),
     ]).start();
   }, []);
+
+  // Android keyboard inset handled via hook
 
   // Load isDefault flag for API key
   useEffect(() => {
@@ -471,303 +481,321 @@ export const OnlineAIScreen: React.FC = () => {
     : messages;
 
   return (
-    <Animated.View
-      style={[
-        {flex: 1, position: 'relative'},
-        {
-          opacity: fadeAnim,
-          transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
-        },
-      ]}>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        style={{
-          position: 'absolute',
-          top: 50,
-          left: 20,
-          zIndex: 1,
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: borderRadius.round,
-          height: 50,
-          width: 50,
-          borderColor: colors.modal.border,
-          borderWidth: 1,
-        }}
-        onPress={() => navigation.goBack()}>
-        <BlurView
-          blurType="dark"
-          blurAmount={5}
-          style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
-          overlayColor={colors.modal.blur}
-        />
-        <Icon name="chevron-back" size={24} color="white" />
-      </TouchableOpacity>
-      <LinearGradient
-        colors={[
-          'rgb(209, 8, 112)',
-          'rgba(209, 8, 125, 0.72)',
-          'rgba(75, 8, 209, 0.54)',
-          'rgb(133, 7, 183)',
-        ]}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-      />
-      <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={{flex: 1}}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}>
+      <Animated.View
+        style={[
+          {flex: 1, position: 'relative'},
+          {
+            opacity: fadeAnim,
+            transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
+          },
+        ]}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={{
+            position: 'absolute',
+            top: 50,
+            left: 20,
+            zIndex: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: borderRadius.round,
+            height: 50,
+            width: 50,
+            borderColor: colors.modal.border,
+            borderWidth: 1,
+          }}
+          onPress={() => navigation.goBack()}>
+          <BlurView
+            blurType="dark"
+            blurAmount={5}
+            style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
+            overlayColor={colors.modal.blur}
+          />
+          <Icon name="chevron-back" size={24} color="white" />
+        </TouchableOpacity>
         <LinearGradient
-          colors={['rgba(57, 0, 40, 0.7)', 'rgba(98, 0, 55, 0)']}
+          colors={[
+            'rgb(209, 8, 112)',
+            'rgba(209, 8, 125, 0.72)',
+            'rgba(75, 8, 209, 0.54)',
+            'rgb(133, 7, 183)',
+          ]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
-            height: 120,
-            zIndex: 10,
-            marginHorizontal: 2,
-          }}
-        />
-        <FlatList
-          ref={flatListRef}
-          data={displayMessages}
-          renderItem={renderItem}
-          keyExtractor={(_, idx) => idx.toString()}
-          contentContainerStyle={[styles.chat]}
-          showsVerticalScrollIndicator={false}
-          ListFooterComponent={
-            loading ? (
-              <Animated.View
-                style={{
-                  // position: 'absolute',
-                  // bottom: 30,
-                  marginHorizontal: spacing.lg,
-                  marginBottom: 150,
-                }}>
-                <GradientSpinner
-                  size={30}
-                  thickness={3}
-                  style={{
-                    alignItems: 'center',
-                    alignSelf: 'center',
-                    backgroundColor: 'transparent',
-                  }}
-                  colors={[
-                    colors.primary,
-                    colors.secondary,
-                    'rgba(239, 0, 184, 0.06)',
-                    'rgba(67, 2, 75, 0.06)',
-                    'rgba(211, 0, 239, 0.06)',
-                    'rgba(39, 1, 44, 0.06)',
-                    'rgba(211, 0, 239, 0.06)',
-                    'rgba(183, 0, 239, 0.34)',
-                    'rgba(213, 146, 249, 0.06)',
-                    'rgba(128, 0, 239, 0.06)',
-                    'rgba(0, 96, 239, 0.06)',
-                    'rgba(72, 0, 239, 0.06)',
-                    'rgba(44, 0, 239, 0.06)',
-                    'rgba(18, 0, 239, 0.06)',
-                    'rgba(0, 0, 239, 0.06)',
-                    'rgba(0, 123, 211, 0.06)',
-                    'rgba(0, 117, 184, 0.06)',
-                    'rgba(0, 0, 156, 0.06)',
-                    'rgba(0, 92, 128, 0.06)',
-                    'rgba(0, 0, 100, 0.06)',
-                    'rgba(0, 0, 72, 0.06)',
-                    'rgba(35, 0, 44, 0.06)',
-                    'rgba(18, 0, 15, 0.06)',
-                    'rgba(0, 0, 0, 0.06)',
-                  ]}
-                />
-                <Animated.Text
-                  style={[
-                    {
-                      color: colors.text.secondary,
-                      textAlign: 'center',
-                      fontSize: 12,
-                      marginTop: 4,
-                      fontStyle: 'italic',
-                    },
-                    {
-                      opacity: pulseAnim,
-                    },
-                  ]}>
-                  Theater AI is thinking...
-                </Animated.Text>
-              </Animated.View>
-            ) : null
-          }
-          ListEmptyComponent={
-            <View
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100%',
-              }}>
-              <View style={{height: 250}} />
-              <Image
-                source={require('../assets/theater.png')}
-                style={{width: 100, height: 100}}
-              />
-              <Text
-                style={{
-                  color: colors.modal.activeBorder,
-                  ...typography.h3,
-                  fontSize: 18,
-                }}>
-                Start chatting with our AI assistant!
-              </Text>
-              <Text
-                style={{
-                  color: colors.modal.active,
-                  ...typography.body2,
-                  fontSize: 14,
-                }}>
-                Ask me anything about movies, TV shows, and more!
-              </Text>
-              {isDefaultKey && (
-                <View style={{marginTop: spacing.lg, alignItems: 'center'}}>
-                  <View
-                    style={{
-                      borderTopColor: colors.modal.blur,
-                      borderTopWidth: 1,
-                      paddingTop: spacing.md,
-                      width: 200,
-                    }}
-                  />
-                  <Text
-                    style={{
-                      color: colors.text.secondary,
-                      ...typography.body2,
-                      textAlign: 'center',
-                      marginHorizontal: spacing.lg,
-                    }}>
-                    You are using the default Gemini API key. For better
-                    reliability, add your own API key in AI Settings.
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      (navigation as any).navigate('AISettingsScreen')
-                    }
-                    activeOpacity={0.9}
-                    style={{
-                      marginTop: spacing.md,
-                      borderRadius: 24,
-                      overflow: 'hidden',
-                    }}>
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{x: 0, y: 0}}
-                      end={{x: 1, y: 1}}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 10,
-                        borderRadius: 24,
-                      }}>
-                      <View
-                        style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <Icon
-                          name="settings-outline"
-                          size={18}
-                          color={colors.text.primary}
-                        />
-                        <Text
-                          style={{
-                            color: colors.text.primary,
-                            ...typography.button,
-                            marginLeft: 8,
-                          }}>
-                          Open AI Settings
-                        </Text>
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          }
-        />
-        <LinearGradient
-          colors={['transparent', 'rgb(31, 2, 53)']}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
             bottom: 0,
-            height: 150,
-            marginHorizontal: 2,
-            zIndex: 0,
           }}
         />
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 30,
-            marginHorizontal: spacing.lg,
-            borderRadius: 50,
-            overflow: 'hidden',
-            zIndex: 1,
-          }}>
-          <BlurView
-            blurAmount={10}
-            blurRadius={5}
-            blurType="light"
-            overlayColor={colors.modal.blur}
+        <View style={styles.container}>
+          <LinearGradient
+            colors={['rgba(57, 0, 40, 0.7)', 'rgba(98, 0, 55, 0)']}
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
-              bottom: 0,
-              borderRadius: 50,
+              height: 120,
+              zIndex: 10,
+              marginHorizontal: 2,
             }}
           />
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask about movies, TV, actors..."
-              placeholderTextColor={colors.text.tertiary}
-              editable={!loading}
-              onSubmitEditing={sendMessage}
-              returnKeyType="send"
-            />
-            <Animated.View>
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  {
-                    opacity: loading || !input.trim() ? 0.5 : 1,
-                  },
-                ]}
-                onPress={sendMessage}
-                disabled={loading || !input.trim()}>
-                <Icon
-                  name={'send'}
-                  size={24}
-                  color={
-                    loading || !input.trim()
-                      ? colors.modal.active
-                      : colors.text.primary
-                  }
+          <FlatList
+            ref={flatListRef}
+            data={displayMessages}
+            renderItem={renderItem}
+            keyExtractor={(_, idx) => idx.toString()}
+            contentContainerStyle={[styles.chat]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            ListFooterComponent={
+              loading ? (
+                <Animated.View
+                  style={{
+                    // position: 'absolute',
+                    // bottom: 30,
+                    marginHorizontal: spacing.lg,
+                    marginBottom: 150,
+                  }}>
+                  <GradientSpinner
+                    size={30}
+                    thickness={3}
+                    style={{
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                      backgroundColor: 'transparent',
+                    }}
+                    colors={[
+                      colors.primary,
+                      colors.secondary,
+                      'rgba(239, 0, 184, 0.06)',
+                      'rgba(67, 2, 75, 0.06)',
+                      'rgba(211, 0, 239, 0.06)',
+                      'rgba(39, 1, 44, 0.06)',
+                      'rgba(211, 0, 239, 0.06)',
+                      'rgba(183, 0, 239, 0.34)',
+                      'rgba(213, 146, 249, 0.06)',
+                      'rgba(128, 0, 239, 0.06)',
+                      'rgba(0, 96, 239, 0.06)',
+                      'rgba(72, 0, 239, 0.06)',
+                      'rgba(44, 0, 239, 0.06)',
+                      'rgba(18, 0, 239, 0.06)',
+                      'rgba(0, 0, 239, 0.06)',
+                      'rgba(0, 123, 211, 0.06)',
+                      'rgba(0, 117, 184, 0.06)',
+                      'rgba(0, 0, 156, 0.06)',
+                      'rgba(0, 92, 128, 0.06)',
+                      'rgba(0, 0, 100, 0.06)',
+                      'rgba(0, 0, 72, 0.06)',
+                      'rgba(35, 0, 44, 0.06)',
+                      'rgba(18, 0, 15, 0.06)',
+                      'rgba(0, 0, 0, 0.06)',
+                    ]}
+                  />
+                  <Animated.Text
+                    style={[
+                      {
+                        color: colors.text.secondary,
+                        textAlign: 'center',
+                        fontSize: 12,
+                        marginTop: 4,
+                        fontStyle: 'italic',
+                      },
+                      {
+                        opacity: pulseAnim,
+                      },
+                    ]}>
+                    Theater AI is thinking...
+                  </Animated.Text>
+                </Animated.View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '100%',
+                }}>
+                <View style={{height: 250}} />
+                <Image
+                  source={require('../assets/theater.png')}
+                  style={{width: 100, height: 100}}
                 />
-              </TouchableOpacity>
-            </Animated.View>
+                <Text
+                  style={{
+                    color: colors.modal.activeBorder,
+                    ...typography.h3,
+                    fontSize: 18,
+                  }}>
+                  Start chatting with our AI assistant!
+                </Text>
+                <Text
+                  style={{
+                    color: colors.modal.active,
+                    ...typography.body2,
+                    fontSize: 14,
+                  }}>
+                  Ask me anything about movies, TV shows, and more!
+                </Text>
+                {isDefaultKey && (
+                  <View style={{marginTop: spacing.lg, alignItems: 'center'}}>
+                    <View
+                      style={{
+                        borderTopColor: colors.modal.blur,
+                        borderTopWidth: 1,
+                        paddingTop: spacing.md,
+                        width: 200,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        ...typography.body2,
+                        textAlign: 'center',
+                        marginHorizontal: spacing.lg,
+                      }}>
+                      You are using the default Gemini API key. For better
+                      reliability, add your own API key in AI Settings.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        (navigation as any).navigate('AISettingsScreen')
+                      }
+                      activeOpacity={0.9}
+                      style={{
+                        marginTop: spacing.md,
+                        borderRadius: 24,
+                        overflow: 'hidden',
+                      }}>
+                      <LinearGradient
+                        colors={[colors.primary, colors.secondary]}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 1}}
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 10,
+                          borderRadius: 24,
+                        }}>
+                        <View
+                          style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Icon
+                            name="settings-outline"
+                            size={18}
+                            color={colors.text.primary}
+                          />
+                          <Text
+                            style={{
+                              color: colors.text.primary,
+                              ...typography.button,
+                              marginLeft: 8,
+                            }}>
+                            Open AI Settings
+                          </Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            }
+          />
+          <LinearGradient
+            colors={['transparent', 'rgb(31, 2, 53)']}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 150,
+              marginHorizontal: 2,
+              zIndex: 0,
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: Platform.OS === 'android' ? androidInset : 30,
+              marginHorizontal: isTablet ? 100 : spacing.lg,
+              borderRadius: 50,
+              overflow: 'hidden',
+              zIndex: 1,
+              marginBottom: spacing.lg,
+            }}>
+            <BlurView
+              blurAmount={10}
+              blurRadius={5}
+              blurType="light"
+              overlayColor={colors.modal.blur}
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 50,
+              }}
+            />
+            <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
+              <View style={styles.inputRow}>
+                <TextInput
+                  ref={inputRef}
+                  style={styles.input}
+                  value={input}
+                  onChangeText={setInput}
+                  placeholder="Ask about movies, TV, actors..."
+                  placeholderTextColor={colors.text.tertiary}
+                  editable={true}
+                  onFocus={() =>
+                    setTimeout(
+                      () => flatListRef.current?.scrollToEnd({animated: true}),
+                      50,
+                    )
+                  }
+                  onSubmitEditing={sendMessage}
+                  returnKeyType="send"
+                />
+                <Animated.View>
+                  <TouchableOpacity
+                    style={[
+                      styles.sendButton,
+                      {
+                        opacity: loading || !input.trim() ? 0.5 : 1,
+                      },
+                    ]}
+                    onPress={sendMessage}
+                    disabled={loading || !input.trim()}>
+                    <Icon
+                      name={'send'}
+                      size={24}
+                      color={
+                        loading || !input.trim()
+                          ? colors.modal.active
+                          : colors.text.primary
+                      }
+                    />
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
         </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -670,8 +670,9 @@ export const MoviesScreen = React.memo(() => {
     return (
       <View
         style={{
+          flex: 1,
           backgroundColor: colors.background.primary,
-          marginTop: -20,
+          paddingTop: 0,
           paddingBottom: 100,
         }}>
         <BannerSkeleton />
@@ -690,6 +691,7 @@ export const MoviesScreen = React.memo(() => {
         renderItem={renderSection}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
+        style={{backgroundColor: colors.background.primary}}
         contentContainerStyle={{paddingBottom: 100}}
         estimatedItemSize={300}
         removeClippedSubviews={true}
