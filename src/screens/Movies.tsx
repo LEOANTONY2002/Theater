@@ -26,6 +26,8 @@ import {useRegion} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
 import {HorizontalGenreList} from '../components/HorizontalGenreList';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {FlatList, GestureHandlerRootView} from 'react-native-gesture-handler';
+import {GestureHandlerRootView as RNGestureHandlerRootView} from 'react-native-gesture-handler';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -668,35 +670,38 @@ export const MoviesScreen = React.memo(() => {
 
   if (isInitialLoading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background.primary,
-          paddingTop: 0,
-          paddingBottom: 100,
-        }}>
-        <BannerSkeleton />
-        <HeadingSkeleton />
-        <GenreListSkeleton />
-        <HeadingSkeleton />
-        <HorizontalListSkeleton />
-      </View>
+      <RNGestureHandlerRootView style={{flex: 1}}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.background.primary,
+            paddingTop: 0,
+            paddingBottom: 100,
+          }}>
+          <BannerSkeleton />
+          <HeadingSkeleton />
+          <GenreListSkeleton />
+          <HeadingSkeleton />
+          <HorizontalListSkeleton />
+        </View>
+      </RNGestureHandlerRootView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <FlashList
-        data={sections}
-        renderItem={renderSection}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        style={{backgroundColor: colors.background.primary}}
-        contentContainerStyle={{paddingBottom: 100}}
-        estimatedItemSize={300}
-        removeClippedSubviews={true}
-      />
-    </View>
+    <RNGestureHandlerRootView style={{flex: 1}}>
+      <View style={styles.container}>
+        <FlatList
+          data={sections}
+          renderItem={renderSection}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingBottom: 100}}
+          removeClippedSubviews={true}
+          keyboardShouldPersistTaps="handled"
+        />
+      </View>
+    </RNGestureHandlerRootView>
   );
 });
 

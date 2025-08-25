@@ -1,6 +1,10 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, FlatList, StyleSheet, Dimensions, Text} from 'react-native';
-import {useMoviesList, useTop10MoviesTodayByRegion} from '../hooks/useMovies';
+import {
+  useLatestMoviesByRegion,
+  useMoviesList,
+  useTop10MoviesTodayByRegion,
+} from '../hooks/useMovies';
 import {useTop10ShowsTodayByRegion, useTVShowsList} from '../hooks/useTVShows';
 import {ContentItem} from '../components/MovieList';
 import {HorizontalList} from '../components/HorizontalList';
@@ -27,6 +31,7 @@ import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
+import {useResponsive} from '../hooks/useResponsive';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -61,6 +66,13 @@ export const HomeScreen = React.memo(() => {
     hasNextPage: hasNextPopularMovies,
     isFetchingNextPage: isFetchingPopularMovies,
   } = useMoviesList('popular');
+
+  const {
+    data: latestMoviesByRegion,
+    hasNextPage: hasNextLatestMoviesByRegion,
+    isFetchingNextPage: isFetchingLatestMoviesByRegion,
+    fetchNextPage: fetchNextLatestMoviesByRegion,
+  } = useMoviesList('latest_by_region');
 
   const {
     data: topRatedMovies,
@@ -289,6 +301,7 @@ export const HomeScreen = React.memo(() => {
   );
 
   const WIDTH = Dimensions.get('window').width;
+  const {isTablet} = useResponsive();
 
   const sections = useMemo(() => {
     const sectionsList = [];
@@ -329,6 +342,25 @@ export const HomeScreen = React.memo(() => {
     } else if (isFetchingRecentMovies) {
       sectionsList.push({
         id: 'recentMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
+
+    if (latestMoviesByRegion?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'latestMoviesByRegion',
+        type: 'horizontalList',
+        title: 'Latest Movies in ' + region?.english_name,
+        data: getMoviesFromData(latestMoviesByRegion),
+        isLoading: isFetchingLatestMoviesByRegion,
+        onEndReached: hasNextLatestMoviesByRegion
+          ? fetchNextLatestMoviesByRegion
+          : undefined,
+        isSeeAll: false,
+      });
+    } else if (isFetchingLatestMoviesByRegion) {
+      sectionsList.push({
+        id: 'latestMoviesByRegionSkeleton',
         type: 'horizontalListSkeleton',
       });
     }
@@ -469,6 +501,7 @@ export const HomeScreen = React.memo(() => {
     featuredItems,
     renderPhase,
     recentMovies,
+    latestMoviesByRegion,
     recentTVShows,
     showMoreContent,
     top10ContentByRegion,
@@ -546,7 +579,7 @@ export const HomeScreen = React.memo(() => {
                   colors={['transparent', colors.background.primary]}
                   start={{x: 0.5, y: 0}}
                   end={{x: 0.5, y: 1}}
-                  style={styles.gradient}
+                  style={[styles.gradient, {height: isTablet ? 200 : 100}]}
                 />
                 <Text style={styles.headingText}>My Filters</Text>
               </View>

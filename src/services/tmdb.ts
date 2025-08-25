@@ -11,12 +11,23 @@ const getLanguageParam = async () => {
   return contentLanguages.map(lang => lang.iso_639_1).join('|');
 };
 
+const getRegionParam = async () => {
+  const region = await SettingsManager.getRegion();
+  return region?.iso_3166_1 || 'US';
+};
+
 function formatDate(date: any) {
   return date.toISOString().split('T')[0];
 }
 
 export const getMovies = async (
-  type: 'latest' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing',
+  type:
+    | 'latest'
+    | 'popular'
+    | 'top_rated'
+    | 'upcoming'
+    | 'now_playing'
+    | 'latest_by_region',
   page = 1,
 ) => {
   // Current date
@@ -28,6 +39,7 @@ export const getMovies = async (
   futureDate.setDate(futureDate.getDate() + 60);
   const future = formatDate(futureDate);
   const with_original_language = await getLanguageParam();
+  const region = await getRegionParam();
 
   const params: any = {
     page,
@@ -65,6 +77,14 @@ export const getMovies = async (
     if (type === 'latest') {
       const response = await tmdbApi.get('/discover/movie', {
         params: {...requestParams, with_original_language},
+      });
+
+      return response.data;
+    }
+
+    if (type === 'latest_by_region') {
+      const response = await tmdbApi.get('/discover/movie', {
+        params: {...requestParams, with_original_language, region},
       });
 
       return response.data;
@@ -153,6 +173,7 @@ export const getTVShows = async (
   const today = new Date().toISOString().split('T')[0];
   const start = new Date('2000-01-01').toISOString().split('T')[0];
   const with_original_language = await getLanguageParam();
+  const region = await getRegionParam();
 
   const params: any = {
     page,

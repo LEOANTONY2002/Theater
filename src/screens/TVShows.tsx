@@ -19,6 +19,7 @@ import {
 } from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography} from '../styles/theme';
+import {GestureHandlerRootView as RNGestureHandlerRootView} from 'react-native-gesture-handler';
 import {
   BannerSkeleton,
   GenreListSkeleton,
@@ -31,6 +32,7 @@ import {useRegion} from '../hooks/useApp';
 import {HorizontalGenreList} from '../components/HorizontalGenreList';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {Movie} from '../types/movie';
+import {FlatList, RotationGestureHandler} from 'react-native-gesture-handler';
 
 type TVShowsScreenNavigationProp =
   NativeStackNavigationProp<TVShowsStackParamList>;
@@ -564,51 +566,29 @@ export const TVShowsScreen = React.memo(() => {
   }
 
   return (
-    <View style={styles.container}>
-      <FlashList
-        data={sections}
-        renderItem={renderSection}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{paddingBottom: 100}}
-        estimatedItemSize={320}
-        getItemType={(item: any) => item.type}
-        overrideItemLayout={(layout, item) => {
-          // Provide stable heights to avoid on-the-fly measurements
-          switch (item.type) {
-            case 'featured':
-              layout.size = 420; // banner height + paddings
-              break;
-            case 'featuredSkeleton':
-              layout.size = 420;
-              break;
-            case 'genres':
-              layout.size = 140; // heading + chips
-              break;
-            case 'horizontalList':
-              layout.size = 300; // heading + row list
-              break;
-            case 'horizontalListSkeleton':
-              layout.size = 300;
-              break;
-            default:
-              layout.size = 300;
-          }
-        }}
-        // FlashList optimizations
-        removeClippedSubviews={true}
-        // Scroll optimizations
-        scrollEventThrottle={16}
-        // Performance optimizations
-        extraData={null}
-        onScrollBeginDrag={() => {}}
-        onScrollEndDrag={() => {}}
-        onMomentumScrollEnd={() => {}}
-        // Memory management
-        disableIntervalMomentum={false}
-        // initialNumToRender and windowSize removed, not supported by FlashList
-      />
-    </View>
+    <RNGestureHandlerRootView style={{flex: 1}}>
+      <View style={styles.container}>
+        <FlatList
+          data={sections}
+          renderItem={renderSection}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingBottom: 100}}
+          // FlashList optimizations
+          removeClippedSubviews={true}
+          // Scroll optimizations
+          scrollEventThrottle={16}
+          // Performance optimizations
+          extraData={null}
+          onScrollBeginDrag={() => {}}
+          onScrollEndDrag={() => {}}
+          onMomentumScrollEnd={() => {}}
+          // Memory management
+          disableIntervalMomentum={false}
+          // initialNumToRender and windowSize removed, not supported by FlashList
+        />
+      </View>
+    </RNGestureHandlerRootView>
   );
 });
 

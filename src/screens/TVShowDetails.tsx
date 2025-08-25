@@ -670,10 +670,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     );
   }
 
-  const similarShowsData =
-    similarShows?.pages.flatMap(page =>
-      page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
-    ) || [];
+  const similarShowsData = showDetails?.genres?.some(
+    (genre: Genre) => genre.id === 10749,
+  )
+    ? []
+    : similarShows?.pages.flatMap(page =>
+        page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
+      ) || [];
 
   // const recommendedShowsData =
   //   recommendedShows?.pages.flatMap(page =>
@@ -875,7 +878,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       .map((genre: Genre, index: number) => (
                         <View key={genre?.id} style={styles.genreWrapper}>
                           <Text style={styles.genre}>{genre?.name}</Text>
-                          {index < Math.min(showDetails.genres.length - 1, 2) && (
+                          {index <
+                            Math.min(showDetails.genres.length - 1, 2) && (
                             <Text style={styles.genreDivider}>|</Text>
                           )}
                         </View>
@@ -909,10 +913,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     renderItem={({item: person}: {item: Cast}) => (
                       <TouchableOpacity
                         style={styles.castItem}
-                        onPress={() => handlePersonPress(person.id, person.name)}>
+                        onPress={() =>
+                          handlePersonPress(person.id, person.name)
+                        }>
                         <PersonCard
                           item={getImageUrl(person.profile_path || '', 'w154')}
-                          onPress={() => handlePersonPress(person.id, person.name)}
+                          onPress={() =>
+                            handlePersonPress(person.id, person.name)
+                          }
                         />
                         <Text style={styles.castName} numberOfLines={2}>
                           {person.name}
@@ -929,7 +937,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
               ) : null;
             case 'providers':
               return watchProviders ? (
-                <WatchProviders providers={watchProviders} />
+                <WatchProviders
+                  providers={watchProviders}
+                  contentId={show.id.toString()}
+                  title={show.name}
+                  type="tv"
+                />
               ) : null;
             case 'seasons':
               return showDetails?.seasons ? (
@@ -950,7 +963,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     />
                   </TouchableOpacity>
 
-                  {selectedSeason && episodes && episodes.episodes.length > 0 ? (
+                  {selectedSeason &&
+                  episodes &&
+                  episodes.episodes.length > 0 ? (
                     <FlashList
                       data={episodes.episodes}
                       horizontal

@@ -124,6 +124,14 @@ export const HeadingSkeleton = () => {
   );
 };
 
+export const IMDBSkeleton = () => {
+  return (
+    <View style={styles.headingSkeletonContainer}>
+      <AnimatedShimmer width={50} height={30} radius={8} />
+    </View>
+  );
+};
+
 export const GenreListSkeleton = () => (
   <ScrollView
     horizontal

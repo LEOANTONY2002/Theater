@@ -35,6 +35,8 @@ import {
   DetailScreenSkeleton,
   BannerHomeSkeleton,
   BannerSkeleton,
+  HeadingSkeleton,
+  IMDBSkeleton,
 } from '../components/LoadingSkeleton';
 import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
@@ -59,6 +61,7 @@ import {ServerModal} from '../components/ServerModal';
 import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
+import {useIMDBRating} from '../hooks/useScrap';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -213,6 +216,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       return () => clearTimeout(timer);
     }
   }, [movieDetails, isLoadingDetails]);
+
   const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
     movie.id,
   );
@@ -225,6 +229,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
 
   const {data: watchProviders} = useWatchProviders(movie.id, 'movie');
+  const {data: imdbRating, isLoading: isLoadingImdbRating} = useIMDBRating(
+    movieDetails?.imdb_id?.toString() || '',
+  );
 
   useEffect(() => {
     async function fetchAiSimilar() {
@@ -303,6 +310,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   }, [navigation]);
 
   const similarMoviesData = useMemo(() => {
+    if (movieDetails?.genres?.some((genre: Genre) => genre.id === 10749)) {
+      return [];
+    }
     return (
       similarMovies?.pages?.flatMap(page =>
         page.results.map((movie: Movie) => ({
@@ -815,6 +825,72 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         </View>
                       ))}
                   </View>
+                  {isLoadingImdbRating ? (
+                    <View
+                      style={{
+                        width: 100,
+                        height: 30,
+                        borderRadius: 10,
+                        position: 'relative',
+                        paddingHorizontal: spacing.sm,
+                      }}>
+                      <Image
+                        source={require('../assets/imdb.png')}
+                        style={{
+                          width: 50,
+                          height: 30,
+                          resizeMode: 'contain',
+                          opacity: 0.5,
+                        }}
+                      />
+                      <View
+                        style={{
+                          position: 'absolute',
+                          width: 70,
+                          height: 30,
+                          overflow: 'hidden',
+                          borderRadius: 10,
+                          top: 0,
+                          left: -10,
+                          opacity: 0.5,
+                        }}>
+                        <IMDBSkeleton />
+                      </View>
+                    </View>
+                  ) : imdbRating?.rating ? (
+                    <View
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexDirection: 'row',
+                      }}>
+                      <Image
+                        source={require('../assets/imdb.png')}
+                        style={{
+                          width: 50,
+                          height: 30,
+                          resizeMode: 'contain',
+                        }}
+                      />
+                      <Text
+                        style={{
+                          ...typography.body1,
+                          color: colors.text.primary,
+                          fontWeight: 'bold',
+                          marginLeft: spacing.sm,
+                        }}>
+                        {imdbRating?.rating}
+                      </Text>
+                      <Text
+                        style={{
+                          ...typography.body1,
+                          color: colors.text.muted,
+                          marginLeft: spacing.xs,
+                        }}>
+                        ({imdbRating?.voteCount})
+                      </Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.overview}>{movie.overview}</Text>
                 </Animated.View>
               );
@@ -867,7 +943,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               ) : null;
             case 'providers':
               return watchProviders ? (
-                <WatchProviders providers={watchProviders} />
+                <WatchProviders
+                  providers={watchProviders}
+                  contentId={movie.id.toString()}
+                  title={movie.title}
+                  type="movie"
+                />
               ) : null;
             case 'similar':
               return (

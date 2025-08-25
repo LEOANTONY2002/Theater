@@ -512,9 +512,9 @@ export const FeaturedBanner = memo(
             <Animated.Image
               onLoadEnd={() => setLoading(false)}
               source={{
-                uri: `https://image.tmdb.org/t/p/${isTablet ? 'w780' : 'w500'}${
-                  (slide as any)?.backdrop_path
-                }`,
+                uri: `https://image.tmdb.org/t/p/${
+                  isTablet ? 'original' : 'w500'
+                }${(slide as any)?.backdrop_path}`,
               }}
               style={[StyleSheet.absoluteFillObject, {opacity: imageOpacity}]}
               resizeMode="cover"

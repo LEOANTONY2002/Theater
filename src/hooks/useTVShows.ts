@@ -16,7 +16,7 @@ import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
-const STALE_TIME = 1000 * 60 * 5; // 5 minutes
+const STALE_TIME = 1000 * 60 * 30; // 30 minutes
 
 export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
   return useInfiniteQuery({
@@ -100,7 +100,7 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
   const {data: contentLanguages} = useQuery({
     queryKey: ['content_languages'],
     queryFn: SettingsManager.getContentLanguages,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIME,
   });
 
   return useInfiniteQuery({
@@ -115,7 +115,7 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
     gcTime: CACHE_TIME,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIME,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -140,7 +140,7 @@ export const useTop10ShowsTodayByRegion = () => {
   const {data: region} = useQuery<{iso_3166_1: string; english_name: string}>({
     queryKey: ['region'],
     queryFn: SettingsManager.getRegion,
-    staleTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: STALE_TIME,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -150,7 +150,7 @@ export const useTop10ShowsTodayByRegion = () => {
     queryKey: ['top_10_shows_today_by_region', region?.iso_3166_1],
     queryFn: () => getTop10TVShowsTodayByRegion(),
     gcTime: CACHE_TIME,
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: STALE_TIME,
     enabled: !!region?.iso_3166_1,
     refetchOnMount: true,
     refetchOnWindowFocus: false,

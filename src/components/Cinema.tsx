@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import {colors} from '../styles/theme';
-import { GradientSpinner } from './GradientSpinner';
+import {GradientSpinner} from './GradientSpinner';
 
 const Cinema = ({
   id,
@@ -57,43 +57,6 @@ const Cinema = ({
   const handleLoadEnd = () => {
     setIsLoading(false);
     // Reapply fit-to-screen CSS when loading ends
-    if (webviewRef.current) {
-      webviewRef.current.injectJavaScript(`
-        (function() {
-          try {
-            const videos = document.querySelectorAll('video, iframe, embed, object');
-            const newFit = 'cover';
-            
-            videos.forEach(video => {
-              video.style.objectFit = newFit;
-              video.style.position = 'fixed';
-              video.style.top = '0';
-              video.style.left = '0';
-              video.style.width = '100vw';
-              video.style.height = '100vh';
-              video.style.margin = '0';
-              video.style.padding = '0';
-              video.style.border = 'none';
-              video.style.background = '#000';
-            });
-            
-            // Also apply to containers
-            const containers = document.querySelectorAll('.video-container, .player-container, [class*="video"], [class*="player"]');
-            containers.forEach(container => {
-              container.style.position = 'fixed';
-              container.style.top = '0';
-              container.style.left = '0';
-              container.style.width = '100vw';
-              container.style.height = '100vh';
-              container.style.margin = '0';
-              container.style.padding = '0';
-            });
-          } catch(e) {
-            console.log('Reapply CSS failed:', e);
-          }
-        })();
-      `);
-    }
   };
 
   const handleError = (syntheticEvent: any) => {
@@ -111,59 +74,6 @@ const Cinema = ({
     setIsLoading(true);
     setLoadingText('Switching server...');
   }, [currentServer]);
-
-  const injectedJS = `
-    (function() {
-      // Add viewport meta tag for proper scaling and zoom
-      let viewport = document.querySelector('meta[name="viewport"]');
-      if (!viewport) {
-        viewport = document.createElement('meta');
-        viewport.name = 'viewport';
-        document.head.appendChild(viewport);
-      }
-      viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=3.0, minimum-scale=1.0, user-scalable=yes';
-      
-      // Basic CSS for fullscreen video with proper fit
-      const style = document.createElement('style');
-      style.textContent = '
-        body {
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #000 !important;
-          overflow: hidden !important;
-        }
-        iframe, video, embed, object {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          border: none !important;
-          object-fit: contain !important;
-          background: #000 !important;
-        }
-        .video-container, .player-container, [class*="video"], [class*="player"] {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-      ';
-      document.head.appendChild(style);
-
-      // Disable new windows/popups
-      window.open = function() { return null; };
-      window.location.assign = function() { return null; };
-      window.location.replace = function() { return null; };
-
-      true;
-    })();
-  `;
 
   useEffect(() => {
     return () => {
@@ -189,7 +99,6 @@ const Cinema = ({
         allowsFullscreenVideo={true}
         setSupportMultipleWindows={false}
         javaScriptCanOpenWindowsAutomatically={false}
-        injectedJavaScript={injectedJS}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
         onLoadStart={handleLoadStart}
         onLoadEnd={handleLoadEnd}

@@ -13,6 +13,7 @@ export interface WatchProvider {
 
 export interface WatchProviders {
   link: string;
+  ads?: WatchProvider[];
   flatrate?: WatchProvider[];
   rent?: WatchProvider[];
   buy?: WatchProvider[];
