@@ -44,37 +44,32 @@ const getRegionFromIpInfo = async (): Promise<string | null> => {
  * Uses multiple services for redundancy
  * Falls back to 'US' if all services fail
  */
-export const detectRegion = async (): Promise<string> => {
+export const detectRegion = async (): Promise<string | null> => {
   try {
     // Try to get existing region from settings first
-    // const existingRegion = await SettingsManager.getRegion();
-    // if (existingRegion) {
-    //   return existingRegion;
-    // }
-
-    // Try ipapi.co first
-    const ipapiRegion = await getRegionFromIpApi();
-    console.log('ipapiRegion', ipapiRegion);
-    if (ipapiRegion) {
-      await SettingsManager.setRegion(ipapiRegion);
-      return ipapiRegion;
+    const existingRegion = await SettingsManager.getRegion();
+    if (existingRegion?.iso_3166_1) {
+      return existingRegion.iso_3166_1;
     }
 
-    // Fall back to ipinfo.io
-    const ipinfoRegion = await getRegionFromIpInfo();
-    console.log('ipinfoRegion', ipinfoRegion);
-    if (ipinfoRegion) {
-      await SettingsManager.setRegion(ipinfoRegion);
-      return ipinfoRegion;
+    // Try primary service
+    const regionCode = await getRegionFromIpApi();
+    if (regionCode) {
+      // Don't set region here, just return the code
+      return regionCode;
     }
 
-    // If all services fail, default to 'US'
-    console.warn('All region detection services failed, defaulting to US');
-    await SettingsManager.setRegion('US');
-    return 'US';
+    // Fallback to secondary service
+    const regionCode2 = await getRegionFromIpInfo();
+    if (regionCode2) {
+      // Don't set region here, just return the code
+      return regionCode2;
+    }
+
+    // If all else fails, return null to let the user select their region
+    return null;
   } catch (error) {
     console.error('Error detecting region:', error);
-    await SettingsManager.setRegion('US');
-    return 'US';
+    return null;
   }
 };

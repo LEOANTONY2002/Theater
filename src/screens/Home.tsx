@@ -39,26 +39,9 @@ export const HomeScreen = React.memo(() => {
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
-  const [renderPhase, setRenderPhase] = useState(0);
-  const [showMoreContent, setShowMoreContent] = useState(false);
+  const [renderPhase, setRenderPhase] = useState(2);
+  const [showMoreContent, setShowMoreContent] = useState(true);
   const queryClient = useQueryClient();
-
-  // Ultra-aggressive staggered loading to prevent FPS drops
-  useEffect(() => {
-    // Temporarily disable staggered loading to debug
-    setRenderPhase(2);
-    setShowMoreContent(true);
-
-    // const timer1 = setTimeout(() => setRenderPhase(1), 500);
-    // const timer2 = setTimeout(() => setRenderPhase(2), 1000);
-    // const timer3 = setTimeout(() => setShowMoreContent(true), 2000);
-
-    // return () => {
-    //   clearTimeout(timer1);
-    //   clearTimeout(timer2);
-    //   clearTimeout(timer3);
-    // };
-  }, []);
 
   const {
     data: popularMovies,
@@ -108,7 +91,7 @@ export const HomeScreen = React.memo(() => {
     fetchNextPage: fetchNextRecentMovies,
     hasNextPage: hasNextRecentMovies,
     isFetchingNextPage: isFetchingRecentMovies,
-  } = useMoviesList('now_playing');
+  } = useMoviesList('latest');
 
   // Recent TV Shows (On Air)
   const {

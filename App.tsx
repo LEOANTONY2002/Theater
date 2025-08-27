@@ -63,15 +63,15 @@ const App = () => {
         //   return;
         // }
         // Detect and set region
-        var region = await SettingsManager.getRegion();
-        if (!region) {
-          await detectRegion();
-          await getRegions();
-          const regions = await SettingsManager.getRegions();
-          const regionData = regions.find((r: any) => r?.iso_3166_1 === region);
-          await SettingsManager.setRegion(regionData);
-          var region = await SettingsManager.getRegion();
-        }
+        // var region = await SettingsManager.getRegion();
+        // if (!region) {
+        //   await detectRegion();
+        //   await getRegions();
+        //   const regions = await SettingsManager.getRegions();
+        //   const regionData = regions.find((r: any) => r?.iso_3166_1 === region);
+        //   await SettingsManager.setRegion(regionData);
+        //   var region = await SettingsManager.getRegion();
+        // }
         setIsLoading(false);
       } catch (error) {
         setIsLoading(false);
@@ -121,6 +121,8 @@ const App = () => {
       </>
     );
   }
+
+  // OnboardingManager.setIsOnboarded(false);
 
   // Show onboarding if required
   if (isOnboarded === false) {

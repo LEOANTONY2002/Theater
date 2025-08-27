@@ -45,7 +45,6 @@ export const getMovies = async (
     page,
     sort_by: 'release_date.desc',
     'vote_average.gte': 4,
-    with_adult: false,
     include_adult: false,
     'vote_count.gte': 10,
     with_original_language,
@@ -83,7 +82,7 @@ export const getMovies = async (
     }
 
     if (type === 'latest_by_region') {
-      const response = await tmdbApi.get('/discover/movie', {
+      const response = await tmdbApi.get('/movie/now_playing', {
         params: {...requestParams, with_original_language, region},
       });
 

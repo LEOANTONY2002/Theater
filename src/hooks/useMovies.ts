@@ -27,6 +27,8 @@ export const useMoviesList = (
     | 'now_playing'
     | 'latest_by_region',
 ) => {
+  console.log('useMoviesList', type);
+
   return useInfiniteQuery({
     queryKey: ['movies', type],
     queryFn: async ({pageParam = 1}) => {

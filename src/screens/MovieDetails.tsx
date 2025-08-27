@@ -5,7 +5,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   TouchableOpacity,
   ActivityIndicator,
   Modal,
@@ -62,6 +62,7 @@ import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {useIMDBRating} from '../hooks/useScrap';
+import {ImageBackground} from 'react-native';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -74,8 +75,6 @@ interface MovieDetailsScreenProps {
   navigation: MovieDetailsScreenNavigationProp;
   route: MovieDetailsScreenRouteProp;
 }
-
-const {width} = Dimensions.get('window');
 
 // Simple function to get language name
 const getLanguage = (code: string) => {
@@ -102,7 +101,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [aiSimilarMovies, setAiSimilarMovies] = useState<any[]>([]);
   const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
-  const {isTablet} = useResponsive();
+  const {isTablet, orientation} = useResponsive();
+  const {width, height} = useWindowDimensions();
 
   // Animation values for loading states and components
   const loadingPulseAnim = useRef(new Animated.Value(1)).current;
@@ -364,12 +364,17 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     main: {
       position: 'relative',
       width: width - 32,
-      height: isTablet ? 500 : 250,
-      borderRadius: 40,
+      height:
+        isTablet && orientation === 'portrait'
+          ? 500
+          : isTablet && orientation === 'landscape'
+          ? height * 0.7
+          : 250,
+      margin: 16,
+      borderRadius: isTablet ? 40 : 20,
       alignSelf: 'center',
       borderCurve: 'continuous',
       overflow: 'hidden',
-      margin: 16,
       elevation: 20,
       shadowColor: '#000',
       shadowOffset: {width: 5, height: 20},
@@ -381,7 +386,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       width: '100%',
       height: '100%',
       backgroundColor: colors.background.secondary,
-      borderRadius: 40,
     },
     content: {
       padding: 16,
@@ -522,7 +526,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     posterContainer: {
       position: 'relative',
       width: '100%',
-      height: Dimensions.get('window').height * 0.5625,
     },
     posterImage: {
       width: '100%',
@@ -654,13 +657,43 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             case 'header':
               return (
                 <View>
-                  <LinearGradient
+                  {/* <LinearGradient
                     colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
                     style={styles.gradientShade}
                     start={{x: 0, y: 0}}
                     end={{x: 0.5, y: 0.5}}
-                  />
+                  /> */}
+
                   <View style={styles.main}>
+                    <ImageBackground
+                      source={require('../assets/curve.png')}
+                      style={{
+                        width: width,
+                        alignSelf: 'center',
+                        height: width * 0.02,
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 200,
+                      }}
+                      resizeMode="contain"></ImageBackground>
+
+                    <ImageBackground
+                      source={require('../assets/curve.png')}
+                      style={{
+                        width: width,
+                        alignSelf: 'center',
+                        height: width * 0.02,
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 200,
+                        transform: [{rotateX: '180deg'}],
+                      }}
+                      resizeMode="contain"></ImageBackground>
+
                     {isPosterLoading && !isPlaying && <BannerSkeleton />}
                     {!isPlaying ? (
                       <Animated.View style={{opacity: posterFadeAnim}}>
