@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  FlatList,
 } from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 import {ContentItem} from './MovieList';
@@ -199,7 +200,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
         ) : null}
 
         <View style={styles.listWrapper}>
-          <FlashList
+          <FlatList
             horizontal
             data={data}
             renderItem={renderItem}
@@ -210,10 +211,6 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
             ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
-            removeClippedSubviews={true}
-            scrollEventThrottle={16}
-            estimatedItemSize={180}
-            getItemType={() => 'content'}
           />
         </View>
       </View>

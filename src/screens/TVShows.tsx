@@ -248,24 +248,49 @@ export const TVShowsScreen = React.memo(() => {
     [handleSeeAllPress],
   );
   const onSeeAllKids = useCallback(
-    () => handleSeeAllPress('Kids', 'popular'),
-    [handleSeeAllPress],
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Kids',
+        contentType: 'tv',
+        filter: {with_genres: kidsGenreId.toString()},
+      }),
+    [navigateWithLimit],
   );
   const onSeeAllFamily = useCallback(
-    () => handleSeeAllPress('Family', 'popular'),
-    [handleSeeAllPress],
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Family',
+        contentType: 'tv',
+        filter: {with_genres: familyGenreId.toString()},
+      }),
+    [navigateWithLimit],
   );
   const onSeeAllComedy = useCallback(
-    () => handleSeeAllPress('Comedy', 'popular'),
-    [handleSeeAllPress],
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Comedy',
+        contentType: 'tv',
+        filter: {with_genres: comedyGenreId.toString()},
+      }),
+    [navigateWithLimit],
   );
   const onSeeAllRomance = useCallback(
-    () => handleSeeAllPress('Romance', 'popular'),
-    [handleSeeAllPress],
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Romance',
+        contentType: 'tv',
+        filter: {with_genres: romanceGenreId.toString()},
+      }),
+    [navigateWithLimit],
   );
   const onSeeAllAction = useCallback(
-    () => handleSeeAllPress('Action', 'popular'),
-    [handleSeeAllPress],
+    () =>
+      navigateWithLimit('Category', {
+        title: 'Action',
+        contentType: 'tv',
+        filter: {with_genres: actionGenreId.toString()},
+      }),
+    [navigateWithLimit],
   );
 
   // 3. Optimize useMemo for sections

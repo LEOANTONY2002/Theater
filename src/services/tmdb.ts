@@ -5,6 +5,24 @@ import {SettingsManager} from '../store/settings';
 import languageData from '../utils/language.json';
 import regionData from '../utils/region.json';
 
+// Helper function to filter out 'tl' language content if region is not Philippines
+const filterTagalogContent = async (data: any): Promise<any> => {
+  try {
+    const region = await getRegionParam();
+    if (region !== 'PH' && data?.results) {
+      data.results = data.results.filter(
+        (item: any) => item.original_language !== 'tl',
+      );
+      // Update the total results count after filtering
+      data.total_results = data.results.length;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error filtering Tagalog content:', error);
+    return data;
+  }
+};
+
 const getLanguageParam = async () => {
   const contentLanguages = await SettingsManager.getContentLanguages();
   if (contentLanguages.length === 0) return undefined;
@@ -27,7 +45,8 @@ export const getMovies = async (
     | 'top_rated'
     | 'upcoming'
     | 'now_playing'
-    | 'latest_by_region',
+    | 'latest_by_region'
+    | 'upcoming_by_region',
   page = 1,
 ) => {
   // Current date
@@ -48,6 +67,7 @@ export const getMovies = async (
     include_adult: false,
     'vote_count.gte': 10,
     with_original_language,
+    without_genres: '99,10755',
   };
 
   // Only apply language filter if we have languages set and it's not too restrictive
@@ -90,46 +110,64 @@ export const getMovies = async (
     }
 
     if (type === 'upcoming') {
-      const region = await SettingsManager.getRegion();
       console.log('upcoming', today, future, region);
 
       const response = await tmdbApi.get('/discover/movie', {
         params: {
-          with_original_language,
-          // 'primary_release_date.lte': future,
-          'primary_release_date.gte': today,
+          page,
+          include_adult: false,
+          'release_date.lte': future,
+          'release_date.gte': today,
+          with_release_type: '2|3',
           sort_by: 'popularity.desc',
-          region: region.iso_3166_1,
         },
       });
       return response.data;
     }
 
-    // if (type === 'popular') {
-    //   requestParams.sort_by = 'popularity.desc';
-    //   if (useRatingFilter) {
-    //     requestParams['vote_average.gte'] = 6;
-    //   }
-    //   const response = await tmdbApi.get('/discover/movie', {
-    //     params: requestParams,
-    //   });
+    if (type === 'upcoming_by_region') {
+      console.log('upcoming', today, future, region);
 
-    //   return response.data;
-    // }
+      const response = await tmdbApi.get('/discover/movie', {
+        params: {
+          page,
+          include_adult: false,
+          'release_date.lte': future,
+          'release_date.gte': today,
+          with_release_type: '2|3',
+          sort_by: 'popularity.desc',
+          region,
+        },
+      });
+      return response.data;
+    }
 
-    // if (type === 'top_rated') {
-    //   requestParams.sort_by = 'vote_average.desc';
-    //   if (useRatingFilter) {
-    //     requestParams['vote_average.gte'] = 7;
-    //     requestParams['vote_average.lte'] = 10;
-    //     requestParams['vote_count.gte'] = 100;
-    //   }
-    //   const response = await tmdbApi.get('/discover/movie', {
-    //     params: requestParams,
-    //   });
+    if (type === 'popular') {
+      requestParams.sort_by = 'popularity.desc';
+      if (useRatingFilter) {
+        requestParams['vote_average.gte'] = 6;
+        requestParams['vote_count.gte'] = 200;
+      }
+      const response = await tmdbApi.get('/discover/movie', {
+        params: requestParams,
+      });
 
-    //   return response.data;
-    // }
+      return response.data;
+    }
+
+    if (type === 'top_rated') {
+      requestParams.sort_by = 'vote_average.desc';
+      if (useRatingFilter) {
+        requestParams['vote_average.gte'] = 7;
+        requestParams['vote_average.lte'] = 10;
+        requestParams['vote_count.gte'] = 500;
+      }
+      const response = await tmdbApi.get('/discover/movie', {
+        params: requestParams,
+      });
+
+      return response.data;
+    }
 
     // For other types, use built-in endpoints
     const response = await tmdbApi.get(`/movie/${type}`, {
@@ -162,7 +200,7 @@ export const getMovies = async (
     result = await makeRequest(false, false);
   }
 
-  return result;
+  return filterTagalogContent(result);
 };
 
 export const getTVShows = async (
@@ -420,7 +458,7 @@ export const getOptimizedImageUrl = (
 
 export const getSimilarMovies = async (movieId: number, page = 1) => {
   const with_original_language = await getLanguageParam();
-  const response = await tmdbApi.get(`/discover/movie`, {
+  const response = await tmdbApi.get(`/movie/${movieId}/similar`, {
     params: {
       page,
       with_original_language,
@@ -431,7 +469,7 @@ export const getSimilarMovies = async (movieId: number, page = 1) => {
       include_adult: false,
     },
   });
-  return response.data;
+  return filterTagalogContent(response.data);
 };
 
 export const getMovieRecommendations = async (movieId: number, page = 1) => {
@@ -453,7 +491,7 @@ export const getMovieRecommendations = async (movieId: number, page = 1) => {
 
 export const getSimilarTVShows = async (tvId: number, page = 1) => {
   const with_original_language = await getLanguageParam();
-  const response = await tmdbApi.get(`/discover/tv`, {
+  const response = await tmdbApi.get(`/tv/${tvId}/similar`, {
     params: {
       page,
       with_original_language,
@@ -689,7 +727,7 @@ export const getContentByGenre = async (
       (item: any) => !item.adult,
     );
   }
-  return response.data;
+  return filterTagalogContent(response.data);
 };
 
 export const getRegions = async () => {

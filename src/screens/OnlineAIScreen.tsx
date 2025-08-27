@@ -144,6 +144,7 @@ export const OnlineAIScreen: React.FC = () => {
   const inputRef = useRef<TextInput>(null);
   const androidInset = useAndroidKeyboardInset(10);
   const {isTablet} = useResponsive();
+  const [isRateLimitExceeded, setIsRateLimitExceeded] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -367,11 +368,15 @@ export const OnlineAIScreen: React.FC = () => {
       }
       animate();
     } catch (e) {
+      setIsRateLimitExceeded(e?.toString()?.includes('429') ? true : false);
       console.log(e);
+      console.log(isRateLimitExceeded ? 'Rate limit exceeded' : 'Other error');
 
       const errorMessage: Message = {
         role: 'assistant',
-        content: 'Sorry, there was an error.',
+        content: isRateLimitExceeded
+          ? 'Sorry, you cannot continue. Please change your API key in the settings.'
+          : 'Sorry, there was an error.',
       };
       setMessages([...newMessages, errorMessage]);
       setAnimating(false);
@@ -618,6 +623,101 @@ export const OnlineAIScreen: React.FC = () => {
                     Theater AI is thinking...
                   </Animated.Text>
                 </Animated.View>
+              ) : isRateLimitExceeded ? (
+                <View
+                  style={{
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginTop: -200,
+                    marginBottom: 200,
+                  }}>
+                  <View style={{height: 250}} />
+                  <Image
+                    source={require('../assets/theater.png')}
+                    style={{width: 100, height: 100}}
+                  />
+                  <Text
+                    style={{
+                      color: colors.modal.activeBorder,
+                      ...typography.h3,
+                      fontSize: 18,
+                    }}>
+                    Theater AI
+                  </Text>
+
+                  {!isDefaultKey ? (
+                    <Text
+                      style={{
+                        color: colors.modal.active,
+                        ...typography.body2,
+                        fontSize: 14,
+                      }}>
+                      Your Gemini API key is rate limited. Please try again
+                      later.
+                    </Text>
+                  ) : (
+                    <View style={{marginTop: spacing.lg, alignItems: 'center'}}>
+                      <View
+                        style={{
+                          borderTopColor: colors.modal.blur,
+                          borderTopWidth: 1,
+                          paddingTop: spacing.md,
+                          width: 200,
+                        }}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          ...typography.body2,
+                          textAlign: 'center',
+                          marginHorizontal: spacing.lg,
+                        }}>
+                        You are using the default Gemini API key, it's rate
+                        limited. Add your own API key in AI Settings.
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          (navigation as any).navigate('AISettingsScreen')
+                        }
+                        activeOpacity={0.9}
+                        style={{
+                          marginTop: spacing.md,
+                          borderRadius: 24,
+                          overflow: 'hidden',
+                        }}>
+                        <LinearGradient
+                          colors={[colors.primary, colors.secondary]}
+                          start={{x: 0, y: 0}}
+                          end={{x: 1, y: 1}}
+                          style={{
+                            paddingHorizontal: 16,
+                            paddingVertical: 10,
+                            borderRadius: 24,
+                          }}>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            }}>
+                            <Icon
+                              name="settings-outline"
+                              size={18}
+                              color={colors.text.primary}
+                            />
+                            <Text
+                              style={{
+                                color: colors.text.primary,
+                                ...typography.button,
+                                marginLeft: 8,
+                              }}>
+                              Open AI Settings
+                            </Text>
+                          </View>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               ) : null
             }
             ListEmptyComponent={

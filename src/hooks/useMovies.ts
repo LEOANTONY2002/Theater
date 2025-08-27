@@ -7,7 +7,6 @@ import {
   getSimilarMovies,
   getMovieRecommendations,
   getTrendingMovies,
-  discoverMovies,
   getTop10MoviesTodayByRegion,
   getContentByGenre,
 } from '../services/tmdb';
@@ -25,10 +24,9 @@ export const useMoviesList = (
     | 'top_rated'
     | 'upcoming'
     | 'now_playing'
-    | 'latest_by_region',
+    | 'latest_by_region'
+    | 'upcoming_by_region',
 ) => {
-  console.log('useMoviesList', type);
-
   return useInfiniteQuery({
     queryKey: ['movies', type],
     queryFn: async ({pageParam = 1}) => {

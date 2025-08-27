@@ -93,7 +93,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {navigateWithLimit} = useNavigationState();
-  const {isDeepNavigation} = useDeepNavigationProtection();
   const queryClient = useQueryClient();
   const cinema = true;
   const isFocused = useIsFocused();
@@ -380,12 +379,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       shadowOffset: {width: 5, height: 20},
       shadowOpacity: 0.25,
       shadowRadius: 10,
-      backgroundColor: colors.background.tertiary,
+      backgroundColor: colors.background.primary,
     },
     backdrop: {
       width: '100%',
       height: '100%',
-      backgroundColor: colors.background.secondary,
+      backgroundColor: colors.background.primary,
     },
     content: {
       padding: 16,

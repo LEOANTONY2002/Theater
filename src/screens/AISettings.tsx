@@ -23,6 +23,7 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {FlashList} from '@shopify/flash-list';
 import {useQueryClient} from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {useResponsive} from '../hooks/useResponsive';
 
 const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
 const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
@@ -141,6 +142,7 @@ const AISettingsScreen: React.FC = () => {
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
   const queryClient = useQueryClient();
+  const {isTablet} = useResponsive();
 
   const showAlert = (title: string, message: string) => {
     setModalTitle(title);
@@ -391,80 +393,7 @@ const AISettingsScreen: React.FC = () => {
           <Text style={styles.headerTitle}>AI Settings</Text>
           <View />
         </View>
-        {/* API Key Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>API Key</Text>
-          <Text style={styles.sectionDescription}>
-            {apiKey
-              ? 'Your API key is saved securely'
-              : 'Add your Google Gemini API key to enable AI features'}
-          </Text>
 
-          {showApiKeyInput ? (
-            <View>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[styles.input, {paddingRight: 40}]}
-                  value={apiKey === DEFAULT_API_KEY ? '' : apiKey}
-                  onChangeText={setApiKey}
-                  placeholder="Enter your Gemini API key..."
-                  placeholderTextColor={colors.text.tertiary}
-                  secureTextEntry={apiKey === DEFAULT_API_KEY}
-                  multiline={false}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoFocus={true}
-                />
-                <TouchableOpacity
-                  style={styles.clipboardButton}
-                  onPress={handlePasteFromClipboard}
-                  activeOpacity={0.7}>
-                  <Icon
-                    name={isApiKeyCopied ? 'checkmark' : 'clipboard-outline'}
-                    size={20}
-                    color={
-                      isApiKeyCopied ? colors.primary : colors.text.secondary
-                    }
-                  />
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL('https://aistudio.google.com/app/apikey')
-                }
-                activeOpacity={0.8}>
-                <Text style={styles.inputHint}>
-                  Get your API key from Google AI Studio
-                </Text>
-                <Text
-                  style={{
-                    color: colors.text.tertiary,
-                    fontStyle: 'italic',
-                    textDecorationLine: 'underline',
-                    textDecorationColor: colors.text.primary,
-                    textDecorationStyle: 'solid',
-                  }}>
-                  https://aistudio.google.com/app/apikey
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.apiKeyButton}
-              onPress={toggleApiKeyInput}
-              activeOpacity={0.8}>
-              <Icon
-                name={apiKey ? 'key-outline' : 'add-circle-outline'}
-                size={20}
-                color={colors.text.primary}
-                style={styles.apiKeyButtonIcon}
-              />
-              <Text style={styles.apiKeyButtonText}>
-                {apiKey !== DEFAULT_API_KEY ? 'Edit API Key' : 'Add API Key'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
         {/* Model Selection Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -568,12 +497,127 @@ const AISettingsScreen: React.FC = () => {
           )}
         </View>
 
+        {/* API Key Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>API Key</Text>
+          <Text style={styles.sectionDescription}>
+            {apiKey
+              ? 'Your API key is saved securely'
+              : 'Add your Google Gemini API key to enable AI features'}
+          </Text>
+
+          {showApiKeyInput ? (
+            <View>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, {paddingRight: 40}]}
+                  value={apiKey === DEFAULT_API_KEY ? '' : apiKey}
+                  onChangeText={setApiKey}
+                  placeholder="Enter your Gemini API key..."
+                  placeholderTextColor={colors.text.tertiary}
+                  secureTextEntry={apiKey === DEFAULT_API_KEY}
+                  multiline={false}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoFocus={true}
+                />
+                <TouchableOpacity
+                  style={styles.clipboardButton}
+                  onPress={handlePasteFromClipboard}
+                  activeOpacity={0.7}>
+                  <Icon
+                    name={isApiKeyCopied ? 'checkmark' : 'clipboard-outline'}
+                    size={20}
+                    color={
+                      isApiKeyCopied ? colors.primary : colors.text.secondary
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL('https://aistudio.google.com/app/apikey')
+                }
+                activeOpacity={0.8}>
+                <Text style={styles.inputHint}>
+                  Get your API key from Google AI Studio
+                </Text>
+                <Text
+                  style={{
+                    color: colors.text.tertiary,
+                    fontStyle: 'italic',
+                    textDecorationLine: 'underline',
+                    textDecorationColor: colors.text.primary,
+                    textDecorationStyle: 'solid',
+                  }}>
+                  https://aistudio.google.com/app/apikey
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.apiKeyButton}
+              onPress={toggleApiKeyInput}
+              activeOpacity={0.8}>
+              <Icon
+                name={apiKey ? 'key-outline' : 'add-circle-outline'}
+                size={20}
+                color={colors.text.primary}
+                style={styles.apiKeyButtonIcon}
+              />
+              <Text style={styles.apiKeyButtonText}>
+                {apiKey !== DEFAULT_API_KEY ? 'Edit API Key' : 'Add API Key'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Instructions to get Gemini API key */}
+        <View>
+          <Text style={[styles.sectionTitle, {marginBottom: spacing.md}]}>
+            Instructions to get Gemini API key
+          </Text>
+          <View>
+            <Text style={styles.sectionDescription}>
+              1. Go to Google AI Studio
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL('https://aistudio.google.com/app/apikey')
+              }
+              style={{marginBottom: spacing.md}}
+              activeOpacity={0.8}>
+              <Text style={styles.inputHint}>
+                Click here to get your API key from Google AI Studio
+              </Text>
+              <Text
+                style={{
+                  color: colors.text.tertiary,
+                  fontStyle: 'italic',
+                  textDecorationLine: 'underline',
+                  textDecorationColor: colors.text.primary,
+                  textDecorationStyle: 'solid',
+                }}>
+                https://aistudio.google.com/app/apikey
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.sectionDescription}>
+            2. Click on "Create API key"
+          </Text>
+          <Text style={styles.sectionDescription}>3. Copy the API key</Text>
+          <Text style={styles.sectionDescription}>
+            4. Paste the API key above
+          </Text>
+        </View>
+
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[
               styles.saveButton,
               !hasChanges() || isValidating ? {opacity: 0.3} : null,
+              isTablet && {width: '60%', alignSelf: 'center'},
             ]}
             onPress={saveSettings}
             disabled={!hasChanges() || isValidating}
@@ -776,6 +820,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     height: 60,
     backgroundColor: colors.primary,
+    marginTop: spacing.md,
   },
   saveButtonGradient: {
     paddingVertical: spacing.md,

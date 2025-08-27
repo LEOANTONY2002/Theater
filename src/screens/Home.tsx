@@ -44,18 +44,18 @@ export const HomeScreen = React.memo(() => {
   const queryClient = useQueryClient();
 
   const {
-    data: popularMovies,
-    fetchNextPage: fetchNextPopularMovies,
-    hasNextPage: hasNextPopularMovies,
-    isFetchingNextPage: isFetchingPopularMovies,
-  } = useMoviesList('popular');
-
-  const {
     data: latestMoviesByRegion,
     hasNextPage: hasNextLatestMoviesByRegion,
     isFetchingNextPage: isFetchingLatestMoviesByRegion,
     fetchNextPage: fetchNextLatestMoviesByRegion,
   } = useMoviesList('latest_by_region');
+
+  const {
+    data: popularMovies,
+    fetchNextPage: fetchNextPopularMovies,
+    hasNextPage: hasNextPopularMovies,
+    isFetchingNextPage: isFetchingPopularMovies,
+  } = useMoviesList('popular');
 
   const {
     data: topRatedMovies,
@@ -70,6 +70,13 @@ export const HomeScreen = React.memo(() => {
     hasNextPage: hasNextUpcomingMovies,
     isFetchingNextPage: isFetchingUpcomingMovies,
   } = useMoviesList('upcoming');
+
+  const {
+    data: upcomingMoviesByRegion,
+    fetchNextPage: fetchNextUpcomingMoviesByRegion,
+    hasNextPage: hasNextUpcomingMoviesByRegion,
+    isFetchingNextPage: isFetchingUpcomingMoviesByRegion,
+  } = useMoviesList('upcoming_by_region');
 
   const {
     data: popularTVShows,
@@ -311,7 +318,7 @@ export const HomeScreen = React.memo(() => {
     }
 
     // Recent Movies section
-    if (renderPhase >= 1 && recentMovies?.pages?.[0]?.results?.length) {
+    if (recentMovies?.pages?.[0]?.results?.length) {
       sectionsList.push({
         id: 'recentMovies',
         type: 'horizontalList',
@@ -349,7 +356,7 @@ export const HomeScreen = React.memo(() => {
     }
 
     // Latest Shows section
-    if (renderPhase >= 2 && recentTVShows?.pages?.[0]?.results?.length) {
+    if (recentTVShows?.pages?.[0]?.results?.length) {
       sectionsList.push({
         id: 'latestShows',
         type: 'horizontalList',
@@ -366,108 +373,141 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
-    // Additional content sections
-    if (showMoreContent) {
-      // Top 10 section
-      if (
-        isFetchingTop10MoviesTodayByRegion ||
-        isFetchingTop10ShowsTodayByRegion
-      ) {
-        sectionsList.push({
-          id: 'top10Skeleton',
-          type: 'horizontalListSkeleton',
-        });
-      } else if (top10ContentByRegion?.length) {
-        sectionsList.push({
-          id: 'top10',
-          type: 'horizontalList',
-          title: `Top 10 in ${region ? region?.english_name : 'your region'}`,
-          data: top10ContentByRegion,
-          isLoading: false,
-          isSeeAll: false,
-          isTop10: true,
-        });
-      }
+    // Top 10 section
+    if (
+      isFetchingTop10MoviesTodayByRegion ||
+      isFetchingTop10ShowsTodayByRegion
+    ) {
+      sectionsList.push({
+        id: 'top10Skeleton',
+        type: 'horizontalListSkeleton',
+      });
+    } else if (top10ContentByRegion?.length) {
+      sectionsList.push({
+        id: 'top10',
+        type: 'horizontalList',
+        title: `Top 10 in ${region ? region?.english_name : 'your region'}`,
+        data: top10ContentByRegion,
+        isLoading: false,
+        isSeeAll: false,
+        isTop10: true,
+      });
+    }
 
-      // Popular Shows section
-      if (isFetchingPopularTV) {
-        sectionsList.push({
-          id: 'popularShowsSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      } else if (popularTVShows?.pages?.[0]?.results?.length) {
-        sectionsList.push({
-          id: 'popularShows',
-          type: 'horizontalList',
-          title: 'Popular Shows',
-          data: getTVShowsFromData(popularTVShows),
-          isLoading: isFetchingPopularTV,
-          onEndReached: hasNextPopularTV ? fetchNextPopularTV : undefined,
-          onSeeAllPress: () =>
-            handleSeeAllPress('Popular Shows', 'popular', 'tv'),
-        });
-      }
+    if (popularMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'popularMovies',
+        type: 'horizontalList',
+        title: 'Popular Movies',
+        data: getMoviesFromData(popularMovies),
+        isLoading: isFetchingPopularMovies,
+        onEndReached: hasNextPopularMovies ? fetchNextPopularMovies : undefined,
+        isSeeAll: true,
+      });
+    } else if (isFetchingPopularMovies) {
+      sectionsList.push({
+        id: 'popularMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
 
-      // Top Rated Movies section
-      if (topRatedMovies?.pages?.[0]?.results?.length) {
-        sectionsList.push({
-          id: 'topRatedMovies',
-          type: 'horizontalList',
-          title: 'Top Rated Movies',
-          data: getMoviesFromData(topRatedMovies),
-          isLoading: isFetchingTopRatedMovies,
-          onEndReached: hasNextTopRatedMovies
-            ? fetchNextTopRatedMovies
-            : undefined,
-          onSeeAllPress: () =>
-            handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie'),
-        });
-      } else if (isFetchingTopRatedMovies) {
-        sectionsList.push({
-          id: 'topRatedMoviesSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      }
+    // Popular Shows section
+    if (popularTVShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'popularShows',
+        type: 'horizontalList',
+        title: 'Popular Shows',
+        data: getTVShowsFromData(popularTVShows),
+        isLoading: isFetchingPopularTV,
+        onEndReached: hasNextPopularTV ? fetchNextPopularTV : undefined,
+        onSeeAllPress: () =>
+          handleSeeAllPress('Popular Shows', 'popular', 'tv'),
+      });
+    } else if (isFetchingPopularTV) {
+      sectionsList.push({
+        id: 'popularShowsSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
 
-      // Top Rated TV Shows section
-      if (topRatedTVShows?.pages?.[0]?.results?.length) {
-        sectionsList.push({
-          id: 'topRatedTVShows',
-          type: 'horizontalList',
-          title: 'Top Rated TV Shows',
-          data: getTVShowsFromData(topRatedTVShows),
-          isLoading: isFetchingTopRatedTV,
-          onEndReached: hasNextTopRatedTV ? fetchNextTopRatedTV : undefined,
-          onSeeAllPress: () =>
-            handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv'),
-        });
-      } else if (isFetchingTopRatedTV) {
-        sectionsList.push({
-          id: 'topRatedTVShowsSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      }
+    // Top Rated Movies section
+    if (topRatedMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'topRatedMovies',
+        type: 'horizontalList',
+        title: 'Top Rated Movies',
+        data: getMoviesFromData(topRatedMovies),
+        isLoading: isFetchingTopRatedMovies,
+        onEndReached: hasNextTopRatedMovies
+          ? fetchNextTopRatedMovies
+          : undefined,
+        onSeeAllPress: () =>
+          handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie'),
+      });
+    } else if (isFetchingTopRatedMovies) {
+      sectionsList.push({
+        id: 'topRatedMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
 
-      // Upcoming Movies section
-      if (upcomingMovies?.pages?.[0]?.results?.length) {
-        sectionsList.push({
-          id: 'upcomingMovies',
-          type: 'horizontalList',
-          title: 'Upcoming Movies',
-          data: getMoviesFromData(upcomingMovies),
-          isLoading: isFetchingUpcomingMovies,
-          onEndReached: hasNextUpcomingMovies
-            ? fetchNextUpcomingMovies
-            : undefined,
-          onSeeAllPress: () =>
-            handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie'),
-        });
-      } else if (isFetchingUpcomingMovies) {
-        sectionsList.push({
-          id: 'upcomingMoviesSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      }
+    // Top Rated TV Shows section
+    if (topRatedTVShows?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'topRatedTVShows',
+        type: 'horizontalList',
+        title: 'Top Rated TV Shows',
+        data: getTVShowsFromData(topRatedTVShows),
+        isLoading: isFetchingTopRatedTV,
+        onEndReached: hasNextTopRatedTV ? fetchNextTopRatedTV : undefined,
+        onSeeAllPress: () =>
+          handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv'),
+      });
+    } else if (isFetchingTopRatedTV) {
+      sectionsList.push({
+        id: 'topRatedTVShowsSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
+
+    // Upcoming Movies section
+    if (upcomingMovies?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'upcomingMovies',
+        type: 'horizontalList',
+        title: 'Upcoming Movies',
+        data: getMoviesFromData(upcomingMovies),
+        isLoading: isFetchingUpcomingMovies,
+        onEndReached: hasNextUpcomingMovies
+          ? fetchNextUpcomingMovies
+          : undefined,
+        onSeeAllPress: () =>
+          handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie'),
+      });
+    } else if (isFetchingUpcomingMovies) {
+      sectionsList.push({
+        id: 'upcomingMoviesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
+
+    if (upcomingMoviesByRegion?.pages?.[0]?.results?.length) {
+      sectionsList.push({
+        id: 'upcomingMoviesByRegion',
+        type: 'horizontalList',
+        title: 'Upcoming Movies in ' + region?.english_name,
+        data: getMoviesFromData(upcomingMoviesByRegion),
+        isLoading: isFetchingUpcomingMoviesByRegion,
+        onEndReached: hasNextUpcomingMoviesByRegion
+          ? fetchNextUpcomingMoviesByRegion
+          : undefined,
+        isSeeAll: true,
+      });
+    } else if (isFetchingUpcomingMoviesByRegion) {
+      sectionsList.push({
+        id: 'upcomingMoviesByRegionSkeleton',
+        type: 'horizontalListSkeleton',
+      });
     }
 
     // Saved Filters section

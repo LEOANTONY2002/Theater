@@ -110,7 +110,7 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      throw new Error(`${response?.status}`);
     }
 
     const data = await response.json();

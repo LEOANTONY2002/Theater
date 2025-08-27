@@ -55,7 +55,7 @@ export const useNavigationState = () => {
       }
 
       // If we already have 2 or more screens, use replace instead of navigate
-      if (routes.length >= 2) {
+      if (false) {
         (navigation as any).replace(routeName, params);
       } else {
         navigation.navigate(routeName as any, params);
