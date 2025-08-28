@@ -127,7 +127,7 @@ const App = () => {
   // Show onboarding if required
   if (isOnboarded === false) {
     return (
-      <>
+      <QueryClientProvider client={queryClient}>
         <StatusBar barStyle="dark-content" backgroundColor="#000007" />
         <Onboarding
           onDone={async () => {
@@ -138,38 +138,52 @@ const App = () => {
             setIsOnline(ok);
           }}
         />
-      </>
+      </QueryClientProvider>
     );
   }
 
   // After onboarding is completed, if offline, show NoInternet
   if (!isOnline) {
     return (
-      <>
+      <QueryClientProvider client={queryClient}>
         <StatusBar barStyle="dark-content" backgroundColor="#000007" />
         <NoInternet onRetry={handleTryAgain} isRetrying={retrying} />
-      </>
+      </QueryClientProvider>
     );
   }
 
   return (
-    <>
-      <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
-        <AppNavigator />
-        {/* <PerformanceMonitor screenName="AppRoot" /> */}
-        {(() => {
-          // Make queryClient globally accessible for monitoring
-          (global as any).queryClient = queryClient;
-          return null;
-        })()}
-      </QueryClientProvider>
-      <DNSInstructionsModal
-        visible={showDNSModal}
-        onClose={() => setShowDNSModal(false)}
-        onTryAgain={handleTryAgain}
-      />
-    </>
+    <QueryClientProvider client={queryClient}>
+      <StatusBar barStyle="dark-content" backgroundColor="#000007" />
+      {!isOnboarded ? (
+        <Onboarding
+          onDone={async () => {
+            await OnboardingManager.setIsOnboarded(true);
+            setIsOnboarded(true);
+            // After onboarding completes, re-check connectivity so NoInternet can appear next if offline
+            const ok = await checkInternet();
+            setIsOnline(ok);
+          }}
+        />
+      ) : !isOnline ? (
+        <NoInternet onRetry={handleTryAgain} isRetrying={retrying} />
+      ) : (
+        <>
+          <AppNavigator />
+          {/* <PerformanceMonitor screenName="AppRoot" /> */}
+          {(() => {
+            // Make queryClient globally accessible for monitoring
+            (global as any).queryClient = queryClient;
+            return null;
+          })()}
+          <DNSInstructionsModal
+            visible={showDNSModal}
+            onClose={() => setShowDNSModal(false)}
+            onTryAgain={handleTryAgain}
+          />
+        </>
+      )}
+    </QueryClientProvider>
   );
 };
 

@@ -9,10 +9,13 @@ import {
   getTrendingMovies,
   getTop10MoviesTodayByRegion,
   getContentByGenre,
+  fetchContentFromAI,
 } from '../services/tmdb';
 import {Movie, MovieDetails, MoviesResponse} from '../types/movie';
 import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
+import {getSimilarByStory} from '../services/gemini';
+import {Genre} from '../types/movie';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 30; // 30 minutes
@@ -148,5 +151,50 @@ export const useTop10MoviesTodayByRegion = () => {
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
+  });
+};
+
+export const useAISimilarMovies = (
+  movieId: number,
+  title?: string,
+  overview?: string,
+  genres?: Genre[],
+) => {
+  return useQuery({
+    queryKey: ['ai_similar_movies', movieId, title, overview],
+    queryFn: async () => {
+      if (!title || !overview) {
+        return [];
+      }
+
+      try {
+        const aiResponse = await getSimilarByStory({
+          title,
+          overview,
+          genres: genres?.map((g: Genre) => g?.name).join(', ') || '',
+          type: 'movie',
+        });
+
+        if (Array.isArray(aiResponse) && aiResponse.length > 0) {
+          const tmdbMovies = await fetchContentFromAI(aiResponse, 'movie');
+          return tmdbMovies
+            .filter((m: any) => m && m.poster_path)
+            .map((m: any) => ({
+              ...m,
+              type: 'movie' as const,
+            }));
+        }
+        return [];
+      } catch (error) {
+        console.error('Error fetching AI similar movies:', error);
+        return [];
+      }
+    },
+    enabled: !!title && !!overview,
+    gcTime: CACHE_TIME * 2, // Cache for 2 hours since AI calls are expensive
+    staleTime: STALE_TIME * 4, // Keep data fresh for 2 hours
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };

@@ -20,6 +20,7 @@ import {
   useMovieDetails,
   useSimilarMovies,
   useMovieRecommendations,
+  useAISimilarMovies,
 } from '../hooks/useMovies';
 import {fetchContentFromAI, getImageUrl} from '../services/tmdb';
 import {Movie, MovieDetails as MovieDetailsType} from '../types/movie';
@@ -63,6 +64,7 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {useIMDBRating} from '../hooks/useScrap';
 import {ImageBackground} from 'react-native';
+import {MovieAIChatModal} from '../components/MovieAIChatModal';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -98,8 +100,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
-  const [aiSimilarMovies, setAiSimilarMovies] = useState<any[]>([]);
-  const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
+  const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
 
@@ -232,40 +233,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     movieDetails?.imdb_id?.toString() || '',
   );
 
-  useEffect(() => {
-    async function fetchAiSimilar() {
-      if (movieDetails?.overview && movieDetails?.title) {
-        setIsLoadingAiSimilar(true);
-        try {
-          const aiResponse = await getSimilarByStory({
-            title: movieDetails.title,
-            overview: movieDetails.overview,
-            genres:
-              movieDetails?.genres?.map((g: Genre) => g?.name).join(', ') || '',
-            type: 'movie',
-          });
-          if (Array.isArray(aiResponse) && aiResponse.length > 0) {
-            const tmdbMovies = await fetchContentFromAI(aiResponse, 'movie');
-            const mapped = tmdbMovies
-              .filter((m: any) => m && m.poster_path)
-              .map((m: any) => ({
-                id: m.id,
-                poster_path: m.poster_path,
-                type: 'movie',
-              }));
-            setAiSimilarMovies(mapped);
-          } else {
-            setAiSimilarMovies([]);
-          }
-        } catch {
-          setAiSimilarMovies([]);
-        } finally {
-          setIsLoadingAiSimilar(false);
-        }
-      }
-    }
-    fetchAiSimilar();
-  }, [movieDetails?.overview, movieDetails?.title]);
+  // Use memoized AI similar movies hook
+  const {data: aiSimilarMovies = [], isLoading: isLoadingAiSimilar} =
+    useAISimilarMovies(
+      movie.id,
+      movieDetails?.title,
+      movieDetails?.overview,
+      movieDetails?.genres,
+    );
 
   const handleWatchlistPress = useCallback(async () => {
     if (isInWatchlist && watchlistContainingItem) {
@@ -407,12 +382,18 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       fontFamily: 'Inter',
     },
     infoContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.xs,
+      flexDirection: 'column',
+      gap: 8,
+      marginBottom: 12,
+      marginTop: 4,
       alignItems: 'center',
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
       justifyContent: 'center',
-      marginBottom: spacing.md,
     },
     infoWrapper: {
       flexDirection: 'row',
@@ -629,6 +610,21 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       flexDirection: 'column',
       gap: 16,
     },
+    aiButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginLeft: 4,
+    },
+    aiButtonText: {
+      color: colors.text.primary,
+      fontSize: 12,
+      fontWeight: '500',
+      marginLeft: 4,
+    },
   });
 
   // Show loading state immediately to prevent FPS drop
@@ -642,6 +638,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
   return (
     <View style={styles.container}>
+      <MovieAIChatModal
+        visible={isAIChatModalOpen}
+        onClose={() => setIsAIChatModalOpen(false)}
+        movieTitle={movie.title}
+        movieYear={new Date(movie.release_date).getFullYear()}
+        movieOverview={movie.overview}
+        movieGenres={movieDetails?.genres?.map((g: any) => g.name) || []}
+      />
       <FlashList
         data={[
           {type: 'header', id: 'header'},
@@ -760,43 +764,45 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   ]}>
                   <Text style={styles.title}>{movie.title}</Text>
                   <View style={styles.infoContainer}>
-                    <Text style={styles.info}>
-                      {new Date(movie.release_date).getFullYear()}
-                    </Text>
-                    {movieDetails?.runtime && (
-                      <>
-                        <Text style={styles.infoDot}>•</Text>
-                        <Text style={styles.info}>
-                          {Math.floor(movieDetails.runtime / 60)}h{' '}
-                          {movieDetails.runtime % 60}m
-                        </Text>
-                      </>
-                    )}
-                    {movieDetails?.original_language && (
-                      <>
-                        <Text style={styles.infoDot}>•</Text>
-                        <Text style={styles.info}>
-                          {getLanguage(movieDetails?.original_language)}
-                        </Text>
-                      </>
-                    )}
-                    {movieDetails?.vote_average && (
-                      <>
-                        <Text style={styles.infoDot}>•</Text>
-                        <View
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: spacing.xs,
-                          }}>
-                          <Icon name="star" size={12} color="#ffffff70" />
+                    <View style={styles.infoRow}>
+                      <Text style={styles.info}>
+                        {new Date(movie.release_date).getFullYear()}
+                      </Text>
+                      {movieDetails?.runtime && (
+                        <>
+                          <Text style={styles.infoDot}>•</Text>
                           <Text style={styles.info}>
-                            {movieDetails.vote_average.toFixed(1)}
+                            {Math.floor(movieDetails.runtime / 60)}h{' '}
+                            {movieDetails.runtime % 60}m
                           </Text>
-                        </View>
-                      </>
-                    )}
+                        </>
+                      )}
+                      {movieDetails?.original_language && (
+                        <>
+                          <Text style={styles.infoDot}>•</Text>
+                          <Text style={styles.info}>
+                            {getLanguage(movieDetails?.original_language)}
+                          </Text>
+                        </>
+                      )}
+                      {movieDetails?.vote_average && (
+                        <>
+                          <Text style={styles.infoDot}>•</Text>
+                          <View
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: spacing.xs,
+                            }}>
+                            <Icon name="star" size={12} color="#ffffff70" />
+                            <Text style={styles.info}>
+                              {movieDetails.vote_average.toFixed(1)}
+                            </Text>
+                          </View>
+                        </>
+                      )}
+                    </View>
                   </View>
                   <View style={styles.buttonRow}>
                     {cinema && isFocused ? (
@@ -857,6 +863,17 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         </View>
                       ))}
                   </View>
+                  <TouchableOpacity
+                    onPress={() => setIsAIChatModalOpen(true)}
+                    style={styles.aiButton}
+                    activeOpacity={0.7}>
+                    <Icon
+                      name="sparkles"
+                      size={16}
+                      color={colors.text.primary}
+                    />
+                    <Text style={styles.aiButtonText}>Ask AI</Text>
+                  </TouchableOpacity>
                   {isLoadingImdbRating ? (
                     <View
                       style={{
