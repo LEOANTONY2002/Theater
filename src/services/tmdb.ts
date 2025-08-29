@@ -318,6 +318,11 @@ export const searchMovies = async (
     'vote_count.gte': 100,
   };
 
+  // Add watch region if watch providers are specified
+  if (filters.with_watch_providers) {
+    params.watch_region = filters.watch_region || 'US';
+  }
+
   if (!query) {
     const response = await tmdbApi.get('/discover/movie', {params});
     return response.data;
@@ -334,6 +339,11 @@ export const searchMovies = async (
     'vote_count.gte': filters?.['vote_average.lte'] || filters?.sort_by || 200,
     'vote_average.gte': filters['vote_average.gte'] || 4,
   };
+
+  // Add watch region for search queries too
+  if (filters.with_watch_providers) {
+    params2.watch_region = filters.watch_region || 'US';
+  }
 
   console.log('SEARCH MOVIE PARAMS', params2);
 
@@ -357,23 +367,35 @@ export const searchTVShows = async (
     include_adult: false,
   };
 
+  // Add watch region if watch providers are specified
+  if (filters.with_watch_providers) {
+    params.watch_region = filters.watch_region || 'US';
+  }
+
   if (!query) {
     const response = await tmdbApi.get('/discover/tv', {params});
     return response.data;
   }
 
+  const searchParams = {
+    query,
+    page,
+    ...filters,
+    sort_by: filters.sort_by || 'popularity.desc',
+    include_adult: false,
+    'vote_count.gte': 100,
+    'vote_average.gte': filters['vote_average.gte'] || 4,
+  };
+
+  // Add watch region for search queries too
+  if (filters.with_watch_providers) {
+    searchParams.watch_region = filters.watch_region || 'US';
+  }
+
   // For search queries, we need to use the search endpoint
   // but still respect the sort_by parameter if provided
   let searchResponse = await tmdbApi.get('/search/tv', {
-    params: {
-      query,
-      page,
-      ...filters,
-      sort_by: filters.sort_by || 'popularity.desc',
-      include_adult: false,
-      'vote_count.gte': 100,
-      'vote_average.gte': filters['vote_average.gte'] || 4,
-    },
+    params: searchParams,
   });
 
   return searchResponse.data;
@@ -611,6 +633,11 @@ export const getWatchProviders = async (
   );
   const results = response.data.results || {};
   return results[region?.iso_3166_1 || 'US'] || null;
+};
+
+export const getAvailableWatchProviders = async (region = 'US') => {
+  const response = await tmdbApi.get(`/watch/providers/movie?watch_region=${region}`);
+  return response.data.results || [];
 };
 
 export const getPersonMovieCredits = async (personId: number, page = 1) => {

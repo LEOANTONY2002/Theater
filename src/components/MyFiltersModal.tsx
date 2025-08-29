@@ -18,7 +18,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS, SavedFilter} from '../types/filters';
-import {getLanguages, getGenres, searchFilterContent} from '../services/tmdb';
+import {getLanguages, getGenres, searchFilterContent, getAvailableWatchProviders} from '../services/tmdb';
 import {FiltersManager} from '../store/filters';
 import {Chip} from './Chip';
 import {queryClient} from '../services/queryClient';
@@ -36,6 +36,12 @@ interface Language {
 interface Genre {
   id: number;
   name: string;
+}
+
+interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
 }
 
 interface MyFiltersModalProps {
@@ -84,6 +90,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [tempLanguageSelection, setTempLanguageSelection] = useState<
     SettingsLanguage[]
   >([]);
+  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
+  const [isLoadingWatchProviders, setIsLoadingWatchProviders] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -155,8 +163,21 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       }
     };
 
+    const fetchWatchProviders = async () => {
+      try {
+        setIsLoadingWatchProviders(true);
+        const providersData = await getAvailableWatchProviders();
+        setWatchProviders(providersData);
+      } catch (error) {
+        console.error('Error loading watch providers:', error);
+      } finally {
+        setIsLoadingWatchProviders(false);
+      }
+    };
+
     if (visible) {
       fetchGenres();
+      fetchWatchProviders();
     }
   }, [visible]);
 
@@ -391,6 +412,26 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       return;
     }
     handleGenreToggleIds([genreId]);
+  };
+
+  const handleWatchProviderToggle = (providerId: number) => {
+    setFilters(prev => {
+      const current = prev.with_watch_providers ? prev.with_watch_providers.split('|') : [];
+      const providerStr = providerId.toString();
+      const isSelected = current.includes(providerStr);
+      const next = isSelected
+        ? current.filter(id => id !== providerStr)
+        : [...current, providerStr];
+      
+      const result = {
+        ...prev, 
+        with_watch_providers: next.filter(Boolean).join('|') || undefined,
+        watch_region: next.length > 0 ? 'US' : prev.watch_region
+      };
+      
+      console.log('MyFilters watch provider toggle:', {providerId, isSelected, current, next, result});
+      return result;
+    });
   };
 
   const getFilteredGenres = () => {
@@ -645,6 +686,35 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               />
             </View>
 
+            {/* Watch Providers */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Watch Providers</Text>
+              {isLoadingWatchProviders ? (
+                <View style={styles.genresContainer}>
+                  <GradientSpinner size={24} thickness={3} />
+                </View>
+              ) : (
+                <View style={styles.genresContainer}>
+                  {watchProviders.map((provider, index) => (
+                    <Chip
+                      key={`myfilter-provider-${provider.provider_id}-${index}`}
+                      label={provider.provider_name}
+                      selected={(() => {
+                        if (!filters.with_watch_providers) return false;
+                        return filters.with_watch_providers.split('|').includes(provider.provider_id.toString());
+                      })()}
+                      onPress={() => {
+                        console.log('MyFilters chip pressed:', provider.provider_id, provider.provider_name);
+                        handleWatchProviderToggle(provider.provider_id);
+                      }}
+                      imageUrl={provider.logo_path}
+                      imageOnly={true}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+
             {/* Release Date */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
@@ -888,6 +958,16 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
 const styles = {
   ...modalStyles,
+  loadingContainer: {
+    alignItems: 'center' as import('react-native').ViewStyle['alignItems'],
+    justifyContent: 'center' as import('react-native').ViewStyle['justifyContent'],
+    padding: spacing.md,
+  },
+  loadingText: {
+    ...typography.body2,
+    color: colors.text.secondary,
+    marginTop: spacing.sm,
+  },
   confirmOverlay: {
     position: 'absolute' as import('react-native').ViewStyle['position'],
     top: 0,
@@ -928,28 +1008,27 @@ const styles = {
     justifyContent:
       'space-between' as import('react-native').ViewStyle['justifyContent'],
     width: '100%' as never,
-    // gap: spacing.md, // Remove gap if unsupported
   },
   confirmButton: {
     flex: 1,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.md,
     alignItems: 'center' as import('react-native').ViewStyle['alignItems'],
+    marginHorizontal: spacing.sm,
   },
   cancelButton: {
-    backgroundColor: colors.text.primary,
-    marginRight: spacing.sm,
+    backgroundColor: colors.modal.content,
   },
   deleteButton: {
-    backgroundColor: colors.modal.active,
-    marginLeft: spacing.sm,
+    backgroundColor: colors.button.delete,
   },
   cancelButtonText: {
-    color: colors.background.primary,
     ...typography.button,
+    color: colors.text.primary,
   },
   deleteButtonText: {
-    color: colors.text.primary,
     ...typography.button,
+    color: colors.text.primary,
   },
 };

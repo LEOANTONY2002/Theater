@@ -12,7 +12,7 @@ import {
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
-import {getGenres} from '../services/tmdb';
+import {getGenres, getAvailableWatchProviders} from '../services/tmdb';
 import {Chip} from './Chip';
 
 export type FilterOptions = {
@@ -30,11 +30,18 @@ export type FilterOptions = {
   sortOrder: 'asc' | 'desc';
   includeAdult: boolean;
   language: string;
+  watchProviders: string[];
 };
 
 type Genre = {
   id: number;
   name: string;
+};
+
+type WatchProvider = {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
 };
 
 type Props = {
@@ -58,16 +65,19 @@ export const SearchFilters: React.FC<Props> = ({
   const [filters, setFilters] = useState<FilterOptions>(initialFilters);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
+  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
 
   useEffect(() => {
     const loadGenres = async () => {
       try {
-        const [movieGenresData, tvGenresData] = await Promise.all([
+        const [movieGenresData, tvGenresData, watchProvidersData] = await Promise.all([
           getGenres('movie'),
           getGenres('tv'),
+          getAvailableWatchProviders(),
         ]);
         setMovieGenres(movieGenresData);
         setTvGenres(tvGenresData);
+        setWatchProviders(watchProvidersData);
       } catch (error) {
         console.error('Error loading genres:', error);
       }
@@ -85,6 +95,15 @@ export const SearchFilters: React.FC<Props> = ({
       genres: prev.genres.includes(genreId)
         ? prev.genres.filter(id => id !== genreId)
         : [...prev.genres, genreId],
+    }));
+  };
+
+  const handleWatchProviderToggle = (providerId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      watchProviders: prev.watchProviders.includes(providerId)
+        ? prev.watchProviders.filter(id => id !== providerId)
+        : [...prev.watchProviders, providerId],
     }));
   };
 
@@ -117,6 +136,7 @@ export const SearchFilters: React.FC<Props> = ({
       sortOrder: 'desc',
       includeAdult: false,
       language: 'en',
+      watchProviders: [],
     });
   };
 
@@ -199,7 +219,7 @@ export const SearchFilters: React.FC<Props> = ({
                   <Chip
                     key={genre.id}
                     label={genre.name}
-                    isSelected={filters.genres.includes(String(genre.id))}
+                    selected={filters.genres.includes(String(genre.id))}
                     onPress={() => handleGenreToggle(String(genre.id))}
                   />
                 ))}
@@ -357,6 +377,26 @@ export const SearchFilters: React.FC<Props> = ({
               </View>
             </View>
 
+            {/* Watch Providers */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Watch Providers</Text>
+              <View style={styles.genresContainer}>
+                {watchProviders.map((provider, index) => (
+                  <Chip
+                    key={`search-provider-${provider.provider_id}-${index}`}
+                    label={provider.provider_name}
+                    selected={filters.watchProviders.includes(String(provider.provider_id))}
+                    onPress={() => {
+                      console.log('SearchFilters chip pressed:', provider.provider_id, provider.provider_name);
+                      handleWatchProviderToggle(String(provider.provider_id));
+                    }}
+                    imageUrl={provider.logo_path}
+                    imageOnly={true}
+                  />
+                ))}
+              </View>
+            </View>
+
             {/* Adult Content */}
             <View style={styles.section}>
               <View style={styles.switchContainer}>
@@ -367,7 +407,7 @@ export const SearchFilters: React.FC<Props> = ({
                     setFilters(prev => ({...prev, includeAdult: value}))
                   }
                   trackColor={{
-                    false: colors.text.secondary,
+                    false: '#666',
                     true: colors.primary,
                   }}
                 />
@@ -381,7 +421,17 @@ export const SearchFilters: React.FC<Props> = ({
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.applyButton}
-              onPress={() => onApply(filters)}>
+              onPress={() => {
+                // Convert watchProviders array to with_watch_providers format (using | for OR operation)
+                const convertedFilters = {
+                  ...filters,
+                  with_watch_providers: filters.watchProviders.length > 0 
+                    ? filters.watchProviders.join('|') 
+                    : undefined,
+                  watch_region: filters.watchProviders.length > 0 ? 'US' : undefined,
+                };
+                onApply(convertedFilters);
+              }}>
               <Text style={styles.applyButtonText}>Apply</Text>
             </TouchableOpacity>
           </View>
@@ -448,7 +498,7 @@ const styles = StyleSheet.create({
     ...typography.body2,
   },
   activeText: {
-    color: colors.text.inverse,
+    color: '#fff',
   },
   genresContainer: {
     flexDirection: 'row',
@@ -553,7 +603,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   applyButtonText: {
-    color: colors.text.inverse,
+    color: '#fff',
     ...typography.body1,
   },
 });

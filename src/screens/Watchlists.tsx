@@ -44,7 +44,7 @@ export const WatchlistsScreen: React.FC = () => {
   const deleteWatchlistMutation = useDeleteWatchlist();
   const navigation = useNavigation<WatchlistsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
-  const {isTablet} = useResponsive();
+  const {isTablet, orientation} = useResponsive();
 
   // Animated values for scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -168,7 +168,7 @@ export const WatchlistsScreen: React.FC = () => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: '60%',
+      marginTop: isTablet && orientation === 'landscape' ? '20%' : '60%',
       paddingBottom: 200,
     },
     emptyStateTitle: {

@@ -58,6 +58,7 @@ import ServerModal from '../components/ServerModal';
 import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
+import {MovieAIChatModal} from '../components/MovieAIChatModal';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -89,6 +90,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [episode, setEpisode] = useState(1);
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
   const [aiSimilarShows, setAiSimilarShows] = useState<any[]>([]);
   const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
   const {isTablet, orientation} = useResponsive();
@@ -396,6 +398,41 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       height: '100%',
       backgroundColor: colors.background.primary,
     },
+    headerControls: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.lg,
+      zIndex: 300,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    aiChatButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.lg,
+    },
+    aiChatButtonText: {
+      color: colors.text.primary,
+      fontSize: typography.body1.fontSize,
+      fontWeight: '600',
+      marginLeft: spacing.xs,
+    },
     content: {
       padding: 16,
       flexDirection: 'column',
@@ -659,6 +696,21 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       textAlign: 'center',
       marginTop: spacing.sm,
     },
+    aiButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginLeft: 4,
+    },
+    aiButtonText: {
+      color: colors.text.primary,
+      fontSize: 12,
+      fontWeight: '500',
+      marginLeft: 4,
+    },
   });
 
   if (isLoading) {
@@ -737,6 +789,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         transform: [{rotateX: '180deg'}],
                       }}
                       resizeMode="contain"></ImageBackground>
+
                     {isPosterLoading && !isPlaying && <BannerSkeleton />}
                     {!isPlaying ? (
                       <Animated.View style={{opacity: posterFadeAnim}}>
@@ -908,6 +961,17 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         </View>
                       ))}
                   </View>
+                  <TouchableOpacity
+                    onPress={() => setIsAIChatModalOpen(true)}
+                    style={styles.aiButton}
+                    activeOpacity={0.7}>
+                    <Ionicons
+                      name="sparkles"
+                      size={16}
+                      color={colors.text.primary}
+                    />
+                    <Text style={styles.aiButtonText}>Ask AI</Text>
+                  </TouchableOpacity>
                   <Text style={styles.overview}>{showDetails.overview}</Text>
                 </Animated.View>
               );
@@ -1190,6 +1254,20 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         onClose={() => setIsServerModalOpen(false)}
         currentServer={currentServer}
         setCurrentServer={setCurrentServer}
+      />
+
+      <MovieAIChatModal
+        visible={isAIChatModalOpen}
+        onClose={() => setIsAIChatModalOpen(false)}
+        movieTitle={show.name}
+        movieYear={
+          showDetails?.first_air_date
+            ? new Date(showDetails.first_air_date).getFullYear()
+            : new Date().getFullYear()
+        }
+        movieOverview={show.overview}
+        movieGenres={showDetails?.genres?.map((g: any) => g.name) || []}
+        contentType="tv"
       />
     </View>
   );

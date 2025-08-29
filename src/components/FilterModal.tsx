@@ -20,7 +20,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS} from '../types/filters';
-import {getLanguages, getGenres, searchFilterContent} from '../services/tmdb';
+import {getLanguages, getGenres, searchFilterContent, getAvailableWatchProviders} from '../services/tmdb';
 import {Chip} from './Chip';
 import {FiltersManager} from '../store/filters';
 import type {SavedFilter} from '../types/filters';
@@ -38,6 +38,12 @@ interface Language {
 interface Genre {
   id: number;
   name: string;
+}
+
+interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
 }
 
 interface FilterModalProps {
@@ -68,6 +74,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
   const [tvGenres, setTvGenres] = useState<Genre[]>([]);
+  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isApplyingSavedFilter, setIsApplyingSavedFilter] = useState(false);
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
@@ -141,12 +148,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const [movieGenresData, tvGenresData] = await Promise.all([
+        const [movieGenresData, tvGenresData, watchProvidersData] = await Promise.all([
           getGenres('movie'),
           getGenres('tv'),
+          getAvailableWatchProviders(),
         ]);
         setMovieGenres(movieGenresData);
         setTvGenres(tvGenresData);
+        setWatchProviders(watchProvidersData);
       } catch (error) {
         console.error('Error loading genres:', error);
       }
@@ -254,6 +263,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       return;
     }
     handleGenreToggleIds([genreId]);
+  };
+
+  const handleWatchProviderToggle = (providerId: number) => {
+    setFilters(prev => {
+      const current = prev.with_watch_providers ? prev.with_watch_providers.split('|') : [];
+      const providerStr = providerId.toString();
+      const isSelected = current.includes(providerStr);
+      const next = isSelected
+        ? current.filter(id => id !== providerStr)
+        : [...current, providerStr];
+      
+      const result = {
+        ...prev, 
+        with_watch_providers: next.filter(Boolean).join('|') || undefined,
+        watch_region: next.length > 0 ? 'US' : prev.watch_region
+      };
+      
+      console.log('Watch provider toggle:', {providerId, isSelected, current, next, result});
+      return result;
+    });
   };
 
   const handleSortOrderToggle = () => {
@@ -612,6 +641,29 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 showValue={true}
                 height={16}
               />
+            </View>
+
+            {/* Watch Providers */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Watch Providers</Text>
+              <View style={styles.genresContainer}>
+                {watchProviders.map((provider, index) => (
+                  <Chip
+                    key={`provider-${provider.provider_id}-${index}`}
+                    label={provider.provider_name}
+                    selected={(() => {
+                      if (!filters.with_watch_providers) return false;
+                      return filters.with_watch_providers.split('|').includes(provider.provider_id.toString());
+                    })()}
+                    onPress={() => {
+                      console.log('Chip pressed:', provider.provider_id, provider.provider_name);
+                      handleWatchProviderToggle(provider.provider_id);
+                    }}
+                    imageUrl={provider.logo_path}
+                    imageOnly={true}
+                  />
+                ))}
+              </View>
             </View>
 
             {/* Release Date */}

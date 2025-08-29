@@ -35,9 +35,10 @@ type MovieAIChatModalProps = {
   movieYear: number;
   movieOverview: string;
   movieGenres: string[];
+  contentType?: 'movie' | 'tv';
 };
 
-const DEFAULT_QUESTIONS = [
+const DEFAULT_MOVIE_QUESTIONS = [
   'Who is the director?',
   'What are viewers saying about this movie?',
   'Can you explain the plot?',
@@ -48,6 +49,17 @@ const DEFAULT_QUESTIONS = [
   'When was this movie released?',
 ];
 
+const DEFAULT_TV_QUESTIONS = [
+  'Who created this show?',
+  'What are viewers saying about this series?',
+  'Can you explain the plot?',
+  'Who are the main actors?',
+  "What's the show's rating?",
+  'Is this series worth watching?',
+  'What genre is this show?',
+  'When did this series first air?',
+];
+
 export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   visible,
   onClose,
@@ -55,6 +67,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   movieYear,
   movieOverview,
   movieGenres,
+  contentType = 'movie',
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -226,7 +239,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.suggestionsScrollContent}>
-          {DEFAULT_QUESTIONS.map((question, index) => (
+          {(contentType === 'tv' ? DEFAULT_TV_QUESTIONS : DEFAULT_MOVIE_QUESTIONS).map((question: string, index: number) => (
             <TouchableOpacity
               key={index}
               style={styles.suggestionChip}
