@@ -32,6 +32,8 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
+import {MyNextWatch} from '../components/MyNextWatch';
+import {BecauseYouWatched} from '../components/BecauseYouWatched';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -317,6 +319,20 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
+    // My Next Watch section
+    sectionsList.push({
+      id: 'myNextWatch',
+      type: 'myNextWatch',
+      data: [],
+    });
+
+    // Because You Watched section
+    sectionsList.push({
+      id: 'becauseYouWatched',
+      type: 'becauseYouWatched',
+      data: [],
+    });
+
     // Recent Movies section
     if (recentMovies?.pages?.[0]?.results?.length) {
       sectionsList.push({
@@ -564,19 +580,22 @@ export const HomeScreen = React.memo(() => {
           return <FeaturedBannerHome items={item.data} />;
 
         case 'featuredSkeleton':
-          return (
-            <View style={styles.skeletonContainer}>
-              <BannerHomeSkeleton />
-            </View>
-          );
+          return <BannerHomeSkeleton />;
+
+        // case 'myNextWatch':
+        //   return <MyNextWatch key={item.id} />;
+
+        case 'becauseYouWatched':
+          return <BecauseYouWatched key={item.id} />;
 
         case 'horizontalList':
           return (
             <HorizontalList
+              key={item.id}
               title={item.title}
               data={item.data}
-              isLoading={item.isLoading}
               onItemPress={handleItemPress}
+              isLoading={item.isLoading}
               onEndReached={item.onEndReached}
               onSeeAllPress={item.onSeeAllPress}
               isSeeAll={item.isSeeAll}

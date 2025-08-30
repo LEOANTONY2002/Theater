@@ -125,22 +125,6 @@ const App = () => {
   // OnboardingManager.setIsOnboarded(false);
 
   // Show onboarding if required
-  if (isOnboarded === false) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
-        <Onboarding
-          onDone={async () => {
-            await OnboardingManager.setIsOnboarded(true);
-            setIsOnboarded(true);
-            // After onboarding completes, re-check connectivity so NoInternet can appear next if offline
-            const ok = await checkInternet();
-            setIsOnline(ok);
-          }}
-        />
-      </QueryClientProvider>
-    );
-  }
 
   // After onboarding is completed, if offline, show NoInternet
   if (!isOnline) {

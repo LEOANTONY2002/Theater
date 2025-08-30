@@ -12,6 +12,7 @@ import {
   FlatList,
   Alert,
   Modal as RNModal,
+  Image,
 } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -20,7 +21,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS} from '../types/filters';
-import {getLanguages, getGenres, searchFilterContent, getAvailableWatchProviders} from '../services/tmdb';
+import {
+  getLanguages,
+  getGenres,
+  searchFilterContent,
+  getAvailableWatchProviders,
+} from '../services/tmdb';
 import {Chip} from './Chip';
 import {FiltersManager} from '../store/filters';
 import type {SavedFilter} from '../types/filters';
@@ -148,11 +154,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const [movieGenresData, tvGenresData, watchProvidersData] = await Promise.all([
-          getGenres('movie'),
-          getGenres('tv'),
-          getAvailableWatchProviders(),
-        ]);
+        const [movieGenresData, tvGenresData, watchProvidersData] =
+          await Promise.all([
+            getGenres('movie'),
+            getGenres('tv'),
+            getAvailableWatchProviders(),
+          ]);
         setMovieGenres(movieGenresData);
         setTvGenres(tvGenresData);
         setWatchProviders(watchProvidersData);
@@ -246,7 +253,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       const next = allSelected
         ? current.filter(id => !idStrs.includes(id))
         : Array.from(new Set([...current, ...idStrs]));
-      return {...prev, with_genres: next.filter(Boolean).join(',') || undefined};
+      return {
+        ...prev,
+        with_genres: next.filter(Boolean).join(',') || undefined,
+      };
     });
   };
 
@@ -267,20 +277,28 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
   const handleWatchProviderToggle = (providerId: number) => {
     setFilters(prev => {
-      const current = prev.with_watch_providers ? prev.with_watch_providers.split('|') : [];
+      const current = prev.with_watch_providers
+        ? prev.with_watch_providers.split('|')
+        : [];
       const providerStr = providerId.toString();
       const isSelected = current.includes(providerStr);
       const next = isSelected
         ? current.filter(id => id !== providerStr)
         : [...current, providerStr];
-      
+
       const result = {
-        ...prev, 
+        ...prev,
         with_watch_providers: next.filter(Boolean).join('|') || undefined,
-        watch_region: next.length > 0 ? 'US' : prev.watch_region
+        watch_region: next.length > 0 ? 'US' : prev.watch_region,
       };
-      
-      console.log('Watch provider toggle:', {providerId, isSelected, current, next, result});
+
+      console.log('Watch provider toggle:', {
+        providerId,
+        isSelected,
+        current,
+        next,
+        result,
+      });
       return result;
     });
   };
@@ -544,14 +562,21 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     selected={(() => {
                       if (!filters.with_genres) return false;
                       if (contentType !== 'all') {
-                        return filters.with_genres.includes(genre.id.toString());
+                        return filters.with_genres.includes(
+                          genre.id.toString(),
+                        );
                       }
-                      const movieMatch = movieGenres.find(g => g.name === genre.name);
+                      const movieMatch = movieGenres.find(
+                        g => g.name === genre.name,
+                      );
                       const tvMatch = tvGenres.find(g => g.name === genre.name);
                       const ids = [movieMatch?.id, tvMatch?.id]
                         .filter(Boolean)
                         .map(String) as string[];
-                      if (ids.length === 0) return filters.with_genres.includes(genre.id.toString());
+                      if (ids.length === 0)
+                        return filters.with_genres.includes(
+                          genre.id.toString(),
+                        );
                       return ids.some(id => filters.with_genres!.includes(id));
                     })()}
                     onPress={() => handleGenreToggle(genre.id, genre.name)}
@@ -643,34 +668,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               />
             </View>
 
-            {/* Watch Providers */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Watch Providers</Text>
-              <View style={styles.genresContainer}>
-                {watchProviders.map((provider, index) => (
-                  <Chip
-                    key={`provider-${provider.provider_id}-${index}`}
-                    label={provider.provider_name}
-                    selected={(() => {
-                      if (!filters.with_watch_providers) return false;
-                      return filters.with_watch_providers.split('|').includes(provider.provider_id.toString());
-                    })()}
-                    onPress={() => {
-                      console.log('Chip pressed:', provider.provider_id, provider.provider_name);
-                      handleWatchProviderToggle(provider.provider_id);
-                    }}
-                    imageUrl={provider.logo_path}
-                    imageOnly={true}
-                  />
-                ))}
-              </View>
-            </View>
-
             {/* Release Date */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                {contentType === 'movie' ? 'Release Date' : 'Air Date'}
-              </Text>
+              <Text style={styles.sectionTitle}>Release Date</Text>
               <View style={styles.dateContainer}>
                 <TouchableOpacity
                   style={styles.dateButton}
@@ -694,6 +694,59 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     ] || 'To Date'}
                   </Text>
                 </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Watch Providers */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Watch Providers</Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                {watchProviders.map((provider, index) => {
+                  const selected = (() => {
+                    if (!filters.with_watch_providers) return false;
+                    return filters.with_watch_providers
+                      .split('|')
+                      .includes(provider.provider_id.toString());
+                  })();
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      key={`provider-${provider.provider_id}-${index}`}
+                      onPress={() =>
+                        handleWatchProviderToggle(provider.provider_id)
+                      }
+                      style={[
+                        {
+                          borderRadius: 10,
+                          margin: 3,
+                          opacity: 0.7,
+                        },
+                        selected && {
+                          backgroundColor: colors.modal.active,
+                          opacity: 1,
+                        },
+                      ]}>
+                      <Image
+                        source={{
+                          uri: `https://image.tmdb.org/t/p/w92${provider.logo_path}`,
+                        }}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          margin: 2,
+                          borderRadius: 8,
+                        }}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 

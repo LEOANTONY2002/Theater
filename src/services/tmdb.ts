@@ -31,7 +31,7 @@ const getLanguageParam = async () => {
 
 const getRegionParam = async () => {
   const region = await SettingsManager.getRegion();
-  return region?.iso_3166_1 || 'US';
+  return region?.iso_3166_1;
 };
 
 function formatDate(date: any) {
@@ -636,7 +636,9 @@ export const getWatchProviders = async (
 };
 
 export const getAvailableWatchProviders = async (region = 'US') => {
-  const response = await tmdbApi.get(`/watch/providers/movie?watch_region=${region}`);
+  const response = await tmdbApi.get(
+    `/watch/providers/movie?watch_region=${region}`,
+  );
   return response.data.results || [];
 };
 

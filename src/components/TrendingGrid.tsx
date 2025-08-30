@@ -52,11 +52,21 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
       return Math.max(3, rawCols);
     }
     return rawCols;
-  }, [width, horizontalPadding, minCardWidth, perCardGap, isTablet, orientation]);
+  }, [
+    width,
+    horizontalPadding,
+    minCardWidth,
+    perCardGap,
+    isTablet,
+    orientation,
+  ]);
 
   // Now compute exact card width so that row width fits perfectly
   const cardWidth = useMemo(() => {
-    const available = Math.max(0, width - horizontalPadding - columns * perCardGap);
+    const available = Math.max(
+      0,
+      width - horizontalPadding - columns * perCardGap,
+    );
     return columns > 0 ? available / columns : available;
   }, [width, horizontalPadding, columns, perCardGap]);
 
@@ -77,7 +87,6 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Trending</Text>
       <FlatList
         key={`cols-${columns}`}
         data={data}

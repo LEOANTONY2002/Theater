@@ -27,6 +27,7 @@ import {Movie, MovieDetails as MovieDetailsType} from '../types/movie';
 import {Video, Genre, Cast} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
+import {MovieTrivia} from '../components/MovieTrivia';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 import {MySpaceStackParamList} from '../types/navigation';
@@ -65,6 +66,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import {useIMDBRating} from '../hooks/useScrap';
 import {ImageBackground} from 'react-native';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
+import TheaterAIIcon from '../assets/theaterai.png';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -468,7 +470,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       color: colors.text.muted,
       fontSize: 14,
       lineHeight: 20,
-      marginBottom: 30,
     },
     sectionTitle: {
       ...typography.h3,
@@ -610,20 +611,29 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       flexDirection: 'column',
       gap: 16,
     },
+    aiButtonWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: borderRadius.round,
+    },
     aiButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 12,
-      marginLeft: 4,
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(15, 15, 15, 0.85)',
+      borderWidth: 1,
+      borderColor: 'rgba(43, 42, 42, 0.31)',
+      padding: 10,
+      paddingHorizontal: 12,
+      borderRadius: borderRadius.round,
     },
     aiButtonText: {
       color: colors.text.primary,
       fontSize: 12,
       fontWeight: '500',
-      marginLeft: 4,
+      opacity: 0.8,
     },
   });
 
@@ -646,12 +656,45 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         movieOverview={movie.overview}
         movieGenres={movieDetails?.genres?.map((g: any) => g.name) || []}
       />
+      <LinearGradient
+        colors={['rgba(132, 5, 250, 0.35)', 'rgba(250, 31, 162, 0.37)']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
+        style={{
+          position: 'absolute',
+          bottom: 100,
+          right: 36,
+          width: 60,
+          height: 60,
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: borderRadius.round,
+        }}>
+        <TouchableOpacity
+          onPress={() => setIsAIChatModalOpen(true)}
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: borderRadius.round,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(20, 20, 20, 0.86)',
+            borderWidth: 1,
+            borderColor: colors.modal.blur,
+          }}
+          activeOpacity={0.7}>
+          <Image source={TheaterAIIcon} style={{width: 34, height: 24}} />
+        </TouchableOpacity>
+      </LinearGradient>
       <FlashList
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
+          {type: 'trivia', id: 'trivia'},
           {type: 'similar', id: 'similar'},
           {type: 'recommendations', id: 'recommendations'},
         ]}
@@ -863,17 +906,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         </View>
                       ))}
                   </View>
-                  <TouchableOpacity
-                    onPress={() => setIsAIChatModalOpen(true)}
-                    style={styles.aiButton}
-                    activeOpacity={0.7}>
-                    <Icon
-                      name="sparkles"
-                      size={16}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.aiButtonText}>Ask AI</Text>
-                  </TouchableOpacity>
                   {isLoadingImdbRating ? (
                     <View
                       style={{
@@ -941,6 +973,22 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     </View>
                   ) : null}
                   <Text style={styles.overview}>{movie.overview}</Text>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={styles.aiButtonWrapper}>
+                    <TouchableOpacity
+                      onPress={() => setIsAIChatModalOpen(true)}
+                      style={styles.aiButton}
+                      activeOpacity={0.7}>
+                      <Image
+                        source={TheaterAIIcon}
+                        style={{width: 34, height: 24}}
+                      />
+                      <Text style={styles.aiButtonText}>Ask Theater AI</Text>
+                    </TouchableOpacity>
+                  </LinearGradient>
                 </Animated.View>
               );
             case 'cast':
@@ -990,6 +1038,16 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   />
                 </Animated.View>
               ) : null;
+            case 'trivia':
+              return (
+                <View style={{paddingHorizontal: spacing.md}}>
+                  <MovieTrivia
+                    title={movie.title}
+                    year={new Date(movie.release_date).getFullYear().toString()}
+                    type="movie"
+                  />
+                </View>
+              );
             case 'providers':
               return watchProviders ? (
                 <WatchProviders
@@ -1068,17 +1126,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   ) : null}
                 </Animated.View>
               );
-            // case 'recommendations':
-            //   return recommendationsData.length > 0 ? (
-            //     <View style={{marginBottom: 100}}>
-            //       <HorizontalList
-            //         title="Recommended Movies"
-            //         data={recommendationsData}
-            //         onItemPress={handleItemPress}
-            //         isSeeAll={false}
-            //       />
-            //     </View>
-            //   ) : null;
             default:
               return null;
           }

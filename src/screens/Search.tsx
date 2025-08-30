@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  ScrollView,
 } from 'react-native';
 import {useMovieSearch} from '../hooks/useMovies';
 import {useTVShowSearch} from '../hooks/useTVShows';
@@ -23,16 +24,19 @@ import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types/navigation';
 import {FilterModal} from '../components/FilterModal';
-import {FilterParams} from '../types/filters';
+import {FilterParams, SavedFilter} from '../types/filters';
 import {useTrending} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQueryClient, useQuery} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {BlurView} from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
 import FastImage from 'react-native-fast-image';
 import {GradientButton} from '../components/GradientButton';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {FiltersManager} from '../store/filters';
+import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
+import {HomeFilterRow} from '../components/HomeFilterRow';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -74,6 +78,8 @@ const NoResults = ({query}: {query: string}) => (
   </View>
 );
 
+type TabType = 'trending' | 'filters' | 'watchlists';
+
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
   const [query, setQuery] = useState('');
@@ -82,7 +88,17 @@ export const SearchScreen = React.memo(() => {
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterParams>({});
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
+  const [activeTab, setActiveTab] = useState<TabType>('trending');
   const queryClient = useQueryClient();
+
+  // Get real saved filters data
+  const {data: savedFilters = []} = useQuery({
+    queryKey: ['savedFilters'],
+    queryFn: FiltersManager.getSavedFilters,
+  });
+
+  // Get real watchlists data
+  const {data: watchlists = []} = useWatchlists();
 
   // Search or discover based on query
   const {
@@ -390,6 +406,126 @@ export const SearchScreen = React.memo(() => {
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
   const showSearchResults = debouncedQuery.length > 0 || hasActiveFilters;
 
+  // Tab rendering functions
+  const renderTabButton = (tab: TabType, label: string) => (
+    <TouchableOpacity
+      key={tab}
+      style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+      onPress={() => setActiveTab(tab)}>
+      <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderTrendingContent = () => (
+    <TrendingGrid
+      data={
+        trendingData?.pages?.flatMap((page: any) =>
+          page.results.map((item: any) => ({
+            ...item,
+            type: item.media_type === 'movie' ? 'movie' : 'tv',
+          })),
+        ) || []
+      }
+      onItemPress={handleItemPress}
+      isLoading={isLoadingTrending}
+      fetchNextPage={fetchNextTrendingPage}
+      hasNextPage={hasNextTrendingPage}
+      isFetchingNextPage={isFetchingTrendingPage}
+    />
+  );
+
+  const renderFiltersContent = () => {
+    return (
+      <View>
+        {savedFilters.map((filter: SavedFilter) => (
+          <HomeFilterRow key={filter.id} savedFilter={filter} />
+        ))}
+      </View>
+    );
+  };
+
+  const renderWatchlistsContent = () => {
+    return (
+      <View>
+        {watchlists.map(watchlist => (
+          <WatchlistRow
+            key={watchlist.id}
+            watchlist={watchlist}
+            onItemPress={handleItemPress}
+            navigation={navigation}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  // Separate component to handle individual watchlist rendering
+  const WatchlistRow = ({watchlist, onItemPress, navigation}: any) => {
+    const {data: watchlistItems = []} = useWatchlistItems(watchlist.id);
+
+    // Transform watchlist items to ContentItem format
+    const transformedItems = watchlistItems.map((item: any) => {
+      if (item.type === 'tv') {
+        return {
+          ...item,
+          type: 'tv' as const,
+          name: item.name || item.title || '',
+          first_air_date: item.first_air_date || item.release_date || '',
+          genre_ids: item.genre_ids || [],
+          original_language: item.original_language || 'en',
+          origin_country: item.origin_country || [],
+        };
+      } else {
+        return {
+          ...item,
+          type: 'movie' as const,
+          title: item.title || item.name || '',
+          originalTitle: item.originalTitle || item.title || item.name || '',
+          release_date: item.release_date || item.first_air_date || '',
+          genre_ids: item.genre_ids || [],
+          original_language: item.original_language || 'en',
+          adult: false,
+          video: false,
+        };
+      }
+    });
+
+    return (
+      <HorizontalList
+        title={watchlist.name}
+        data={transformedItems}
+        isLoading={false}
+        onItemPress={onItemPress}
+        onSeeAllPress={() => {
+          navigation.navigate('Main', {
+            screen: 'MySpace',
+            params: {
+              screen: 'WatchlistDetails',
+              params: {
+                watchlistId: watchlist.id,
+              },
+            },
+          });
+        }}
+      />
+    );
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'trending':
+        return renderTrendingContent();
+      case 'filters':
+        return renderFiltersContent();
+      case 'watchlists':
+        return renderWatchlistsContent();
+      default:
+        return renderTrendingContent();
+    }
+  };
+
   useEffect(() => {
     const handleSettingsChange = () => {
       queryClient.invalidateQueries({queryKey: ['movies']});
@@ -479,7 +615,6 @@ export const SearchScreen = React.memo(() => {
                 )}
                 <View
                   style={{
-                    // alignItems: 'center',
                     justifyContent: 'center',
                     margin: spacing.md,
                     padding: spacing.md,
@@ -503,7 +638,6 @@ export const SearchScreen = React.memo(() => {
                       position: 'absolute',
                       bottom: -25,
                       left: -50,
-                      // paddingHorizontal: 10,
                       zIndex: 0,
                       transform: [{rotate: '-15deg'}],
                     }}
@@ -569,21 +703,17 @@ export const SearchScreen = React.memo(() => {
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
-                <TrendingGrid
-                  data={
-                    trendingData?.pages?.flatMap((page: any) =>
-                      page.results.map((item: any) => ({
-                        ...item,
-                        type: item.media_type === 'movie' ? 'movie' : 'tv',
-                      })),
-                    ) || []
-                  }
-                  onItemPress={handleItemPress}
-                  isLoading={isLoadingTrending}
-                  fetchNextPage={fetchNextTrendingPage}
-                  hasNextPage={hasNextTrendingPage}
-                  isFetchingNextPage={isFetchingTrendingPage}
-                />
+
+                {/* Tab Navigation */}
+                <View style={styles.tabContainer}>
+                  {renderTabButton('trending', 'Trending')}
+                  {renderTabButton('filters', 'My Filters')}
+                  {renderTabButton('watchlists', 'My Watchlists')}
+                </View>
+
+                {/* Tab Content */}
+                {renderTabContent()}
+                <View style={{height: 200}} />
               </>
             )}
             showsVerticalScrollIndicator={false}
@@ -823,5 +953,172 @@ const styles = StyleSheet.create({
     ...typography.body2,
     textAlign: 'center',
     marginTop: spacing.sm,
+  },
+  // Tab styles
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xs,
+    marginVertical: spacing.md,
+  },
+  tabButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+    alignItems: 'center',
+  },
+  activeTabButton: {
+    backgroundColor: colors.modal.active,
+    borderWidth: 1,
+    borderColor: colors.modal.activeBorder,
+  },
+  tabText: {
+    color: colors.text.secondary,
+    ...typography.body2,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: colors.text.primary,
+    fontWeight: '700',
+  },
+  tabContent: {
+    padding: spacing.md,
+  },
+  sectionSubtitle: {
+    color: colors.text.secondary,
+    ...typography.body2,
+    marginBottom: spacing.lg,
+  },
+  // Filter tab styles
+  currentFiltersContainer: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  currentFiltersTitle: {
+    color: colors.text.primary,
+    ...typography.h3,
+    marginBottom: spacing.sm,
+  },
+  filterChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  filterChip: {
+    backgroundColor: colors.modal.active,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  filterChipText: {
+    color: colors.text.primary,
+    ...typography.caption,
+  },
+  saveFilterButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  saveFilterText: {
+    color: colors.text.primary,
+    ...typography.body2,
+    fontWeight: '600',
+  },
+  createFilterButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  createFilterButtonText: {
+    color: colors.text.primary,
+    ...typography.body2,
+    fontWeight: '600',
+  },
+  savedFiltersContainer: {
+    marginTop: spacing.md,
+  },
+  savedFiltersTitle: {
+    color: colors.text.primary,
+    ...typography.h3,
+    marginBottom: spacing.md,
+  },
+  savedFilterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.secondary,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
+  },
+  savedFilterInfo: {
+    flex: 1,
+  },
+  savedFilterName: {
+    color: colors.text.primary,
+    ...typography.body1,
+    fontWeight: '600',
+  },
+  savedFilterDetails: {
+    color: colors.text.secondary,
+    ...typography.caption,
+    marginTop: spacing.xs,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  emptyStateTitle: {
+    color: colors.text.primary,
+    ...typography.h3,
+    marginTop: spacing.md,
+  },
+  emptyStateText: {
+    color: colors.text.secondary,
+    ...typography.body2,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  // Watchlist tab styles
+  watchlistsContainer: {
+    marginTop: spacing.md,
+  },
+  watchlistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.secondary,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
+  },
+  watchlistIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.modal.active,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  watchlistInfo: {
+    flex: 1,
+  },
+  watchlistName: {
+    color: colors.text.primary,
+    ...typography.body1,
+    fontWeight: '600',
+  },
+  watchlistDescription: {
+    color: colors.text.secondary,
+    ...typography.caption,
+    marginTop: spacing.xs,
   },
 });

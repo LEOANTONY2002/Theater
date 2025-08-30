@@ -205,3 +205,143 @@ export async function cinemaChat(
 
   return {aiResponse, arr};
 }
+
+// For Movie/TV Trivia & Facts
+export async function getMovieTrivia({
+  title,
+  year,
+  type,
+}: {
+  title: string;
+  year?: string;
+  type: 'movie' | 'tv';
+}) {
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI, an expert in movie and TV trivia. 
+      Generate 3-4 interesting, lesser-known facts about the given ${type}.
+      Include behind-the-scenes information, production trivia, cast facts, or interesting details.
+      
+      Return ONLY a JSON array of fact objects:
+      [{"fact": "Interesting trivia fact here", "category": "Production" | "Cast" | "Behind the Scenes" | "Fun Fact"}]
+      
+      Do not include any explanation or extra text. Just return the JSON array.`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `${type === 'movie' ? 'Movie' : 'TV Show'}: ${title}${year ? ` (${year})` : ''}`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    
+    // Try to extract JSON from the response
+    const jsonMatch = result.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+
+    // If no JSON array found, try to parse the entire response
+    const parsed = JSON.parse(result);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('Error parsing trivia response:', error);
+    return [];
+  }
+}
+
+// For My Next Watch: get personalized recommendations
+export async function getPersonalizedRecommendation(
+  favoriteGenres: string[],
+  feedbackHistory: Array<{
+    contentId: number;
+    title: string;
+    liked: boolean;
+    genres: string[];
+    timestamp: number;
+  }>
+): Promise<any> {
+  const likedContent = feedbackHistory.filter(f => f.liked);
+  const dislikedContent = feedbackHistory.filter(f => !f.liked);
+  
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI, a personalized movie/TV recommendation engine. 
+      Based on user's favorite genres and their feedback history, recommend ONE single movie or TV show.
+      
+      Return ONLY a JSON object with these exact fields:
+      {"title": "Movie/Show Title", "year": "2024", "type": "movie" or "tv", "description": "A detailed, engaging plot summary that explains why this content matches the user's preferences. Include key themes, tone, and what makes it compelling. Make it 2-3 sentences long."}
+      
+      Do not include any explanation or extra text. Just return the JSON object.`,
+  };
+
+  let userPrompt = `Favorite genres: ${favoriteGenres.join(', ')}\n\n`;
+  
+  if (likedContent.length > 0) {
+    userPrompt += `Content I liked:\n${likedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+  }
+  
+  if (dislikedContent.length > 0) {
+    userPrompt += `Content I didn't like:\n${dislikedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+  }
+  
+  userPrompt += 'Recommend ONE movie or TV show that I would enjoy based on my preferences.';
+
+  const user = {
+    role: 'user' as const,
+    content: userPrompt,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    
+    // Try to extract JSON from the response
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const aiRecommendation = JSON.parse(jsonMatch[0]);
+      
+      // Now search TMDB for the actual content data
+      let tmdbData = null;
+      if (aiRecommendation.type === 'movie') {
+        const res = await fetch(
+          `https://api.themoviedb.org/3/search/movie?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+            aiRecommendation.title,
+          )}&year=${aiRecommendation.year}`,
+        );
+        const data = await res.json();
+        tmdbData = data.results && data.results.length > 0 ? data.results[0] : null;
+      } else if (aiRecommendation.type === 'tv') {
+        const res = await fetch(
+          `https://api.themoviedb.org/3/search/tv?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+            aiRecommendation.title,
+          )}&first_air_date_year=${aiRecommendation.year}`,
+        );
+        const data = await res.json();
+        tmdbData = data.results && data.results.length > 0 ? data.results[0] : null;
+      }
+      
+      if (tmdbData) {
+        return {
+          id: tmdbData.id,
+          title: tmdbData.title,
+          name: tmdbData.name,
+          overview: aiRecommendation.description || tmdbData.overview, // Use AI description first
+          poster_path: tmdbData.poster_path,
+          backdrop_path: tmdbData.backdrop_path,
+          vote_average: tmdbData.vote_average,
+          release_date: tmdbData.release_date,
+          first_air_date: tmdbData.first_air_date,
+          genre_ids: tmdbData.genre_ids || [],
+          media_type: aiRecommendation.type,
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting personalized recommendation:', error);
+    return null;
+  }
+}

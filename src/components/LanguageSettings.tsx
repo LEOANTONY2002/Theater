@@ -196,7 +196,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <GradientSpinner
@@ -221,7 +221,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
             Choose your preferred content languages
           </Text>
           {/* Suggested languages (small set) */}
-          <View style={styles.section}>
+          <View style={styles.suggestedSection}>
             {suggestedLanguages.map(language => (
               <View key={language.iso_639_1}>
                 {renderLanguageItem({
@@ -237,22 +237,26 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
             ))}
           </View>
 
-          {/* Virtualized large list */}
-          <View style={styles.section}>
+          {/* All other languages */}
+          <View style={styles.moreLanguagesSection}>
             <Text style={styles.description}>More Languages</Text>
-            <FlatList
-              data={otherLanguages}
-              keyExtractor={l => l.iso_639_1}
-              renderItem={renderLanguageItem}
-              initialNumToRender={30}
-              maxToRenderPerBatch={30}
-              windowSize={5}
-              removeClippedSubviews
-            />
+            {otherLanguages.map(language => (
+              <View key={language.iso_639_1}>
+                {renderLanguageItem({
+                  item: language,
+                  index: 0,
+                  separators: {
+                    highlight() {},
+                    unhighlight() {},
+                    updateProps() {},
+                  },
+                } as any)}
+              </View>
+            ))}
           </View>
         </>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
@@ -260,8 +264,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: spacing.lg,
-    // paddingTop: 100,
-    height: 900,
   },
   loadingContainer: {
     flex: 1,
@@ -277,7 +279,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
+    flex: 1,
     marginBottom: spacing.md,
+  },
+  suggestedSection: {
+    marginBottom: spacing.lg,
+  },
+  moreLanguagesSection: {
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
     ...typography.h3,

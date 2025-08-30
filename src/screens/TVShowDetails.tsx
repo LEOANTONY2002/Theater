@@ -29,6 +29,7 @@ import {
 import {Video, Genre, Cast, Movie} from '../types/movie';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
+import {MovieTrivia} from '../components/MovieTrivia';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {ContentItem} from '../components/MovieList';
@@ -59,6 +60,7 @@ import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
+import TheaterAIIcon from '../assets/theaterai.png';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -696,20 +698,28 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       textAlign: 'center',
       marginTop: spacing.sm,
     },
+    aiButtonWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: borderRadius.round,
+    },
     aiButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 12,
-      marginLeft: 4,
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(15, 15, 15, 0.85)',
+      borderWidth: 1,
+      borderColor: 'rgba(43, 42, 42, 0.31)',
+      padding: 10,
+      paddingHorizontal: 12,
+      borderRadius: borderRadius.round,
     },
     aiButtonText: {
       color: colors.text.primary,
       fontSize: 12,
       fontWeight: '500',
-      marginLeft: 4,
     },
   });
 
@@ -749,6 +759,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
+          {type: 'trivia', id: 'trivia'},
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
           {type: 'seasons', id: 'seasons'},
@@ -961,19 +972,40 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         </View>
                       ))}
                   </View>
-                  <TouchableOpacity
-                    onPress={() => setIsAIChatModalOpen(true)}
-                    style={styles.aiButton}
-                    activeOpacity={0.7}>
-                    <Ionicons
-                      name="sparkles"
-                      size={16}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.aiButtonText}>Ask AI</Text>
-                  </TouchableOpacity>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={styles.aiButtonWrapper}>
+                    <TouchableOpacity
+                      onPress={() => setIsAIChatModalOpen(true)}
+                      style={styles.aiButton}
+                      activeOpacity={0.7}>
+                      <Image
+                        source={TheaterAIIcon}
+                        style={{width: 30, height: 20}}
+                      />
+                      <Text style={styles.aiButtonText}>Ask Theater AI</Text>
+                    </TouchableOpacity>
+                  </LinearGradient>
                   <Text style={styles.overview}>{showDetails.overview}</Text>
                 </Animated.View>
+              );
+            case 'trivia':
+              return (
+                <View style={{paddingHorizontal: spacing.md}}>
+                  <MovieTrivia
+                    title={show.name}
+                    year={
+                      showDetails?.first_air_date
+                        ? new Date(showDetails.first_air_date)
+                            .getFullYear()
+                            .toString()
+                        : undefined
+                    }
+                    type="tv"
+                  />
+                </View>
               );
             case 'cast':
               return showDetails?.credits?.cast?.length > 0 ? (

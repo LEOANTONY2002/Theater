@@ -190,7 +190,7 @@ export const BottomTabNavigator = () => {
             tabBarIcon: ({focused, color}) => (
               <TabIcon focused={focused} name="search" color={color} />
             ),
-            tabBarLabel: 'Search',
+            tabBarLabel: 'Explore',
           }}
         />
         <Tab.Screen
