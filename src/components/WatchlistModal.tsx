@@ -26,6 +26,7 @@ import {TVShow} from '../types/tvshow';
 import LinearGradient from 'react-native-linear-gradient';
 import {modalStyles} from '../styles/styles';
 import CreateButton from './createButton';
+import {useResponsive} from '../hooks/useResponsive';
 
 interface WatchlistModalProps {
   visible: boolean;
@@ -47,6 +48,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
   const {data: watchlists = [], isLoading} = useWatchlists();
   const createWatchlistMutation = useCreateWatchlist();
   const addToWatchlistMutation = useAddToWatchlist();
+  const {isTablet} = useResponsive();
 
   // Handle keyboard show/hide events with height
   useEffect(() => {
@@ -119,9 +121,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
       transparent={true}
       onRequestClose={handleClose}>
       <View style={styles.modalContainer}>
-        <BlurView
-          blurType="dark"
-          blurAmount={10}
+        <View
           style={[
             styles.modalContent,
             keyboardHeight > 0 && {
@@ -129,6 +129,14 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
               marginBottom: keyboardHeight,
             },
           ]}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurRadius={10}
+            blurAmount={20}
+            overlayColor={colors.modal.blur}
+          />
+
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {showCreateForm ? 'Create New Watchlist' : 'Add to Watchlist'}
@@ -146,7 +154,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                   style={[
                     modalStyles.input,
                     {
-                      marginBottom: 100,
+                      marginBottom: 120,
                       height: 50,
                       marginTop: spacing.sm,
                     },
@@ -157,7 +165,14 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                   placeholderTextColor={colors.text.muted}
                   autoFocus
                 />
-                <View style={[modalStyles.footer, {marginBottom: 0}]}>
+                <View
+                  style={[
+                    modalStyles.footer,
+                    {
+                      marginBottom: 20,
+                      marginHorizontal: isTablet ? '25%' : '0%',
+                    },
+                  ]}>
                   <TouchableOpacity
                     style={[modalStyles.footerButton, modalStyles.resetButton]}
                     onPress={() => setShowCreateForm(false)}>
@@ -254,7 +269,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
               </View>
             )}
           </View>
-        </BlurView>
+        </View>
       </View>
     </Modal>
   );

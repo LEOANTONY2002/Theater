@@ -581,7 +581,16 @@ export const MyNextWatch: React.FC = () => {
 
       {isLoading ? (
         <View style={styles.loadingRecommendation}>
-          <GradientSpinner size={40} />
+          <GradientSpinner
+            size={40}
+            thickness={3}
+            colors={[
+              colors.primary,
+              colors.secondary,
+              colors.transparentDim,
+              colors.transparent,
+            ]}
+          />
           <Text style={styles.loadingText}>Finding your next watch...</Text>
         </View>
       ) : currentRecommendation ? (

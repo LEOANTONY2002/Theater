@@ -890,7 +890,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             />
           )}
 
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              {marginHorizontal: isTablet ? '25%' : '0%'},
+            ]}>
             <TouchableOpacity
               style={[styles.footerButton, styles.resetButton]}
               onPress={handleReset}>

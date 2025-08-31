@@ -33,35 +33,39 @@ interface ScrapedProvider {
 const STREAMING_APPS: Record<string, ProviderURLs> = {
   Netflix: {
     app: 'netflix://',
-    web: 'https://www.netflix.com/123',
-  },
-  JioHotstar: {
-    app: 'jiohotstar://',
-    web: 'https://www.jiohotstar.com',
+    web: 'https://www.netflix.com',
   },
   'Amazon Prime Video': {
-    app: 'aiv-global://',
+    app: 'com.amazon.avod.thirdpartyclient://',
     web: 'https://www.primevideo.com',
   },
-  'HBO Max': {
-    app: 'hbomax://',
-    web: 'https://play.max.com',
+  'Disney Plus': {
+    app: 'disneyplus://',
+    web: 'https://www.disneyplus.com',
+  },
+  'Disney+ Hotstar': {
+    app: 'hotstar://',
+    web: 'https://www.hotstar.com',
   },
   Hulu: {
     app: 'hulu://',
     web: 'https://www.hulu.com',
   },
   'Apple TV+': {
-    app: 'appletv://',
+    app: 'videos://',
     web: 'https://tv.apple.com',
   },
-  Peacock: {
-    app: 'peacock://',
-    web: 'https://www.peacocktv.com',
+  'HBO Max': {
+    app: 'hbomax://',
+    web: 'https://play.max.com',
   },
   'Paramount+': {
-    app: 'paramountplus://',
+    app: 'cbsaa://',
     web: 'https://www.paramountplus.com',
+  },
+  Peacock: {
+    app: 'peacocktv://',
+    web: 'https://www.peacocktv.com',
   },
   Zee5: {
     app: 'zee5://',
@@ -70,6 +74,22 @@ const STREAMING_APPS: Record<string, ProviderURLs> = {
   'Sun NXT': {
     app: 'sunnxt://',
     web: 'https://www.sunnxt.com',
+  },
+  YouTube: {
+    app: 'youtube://',
+    web: 'https://www.youtube.com',
+  },
+  'YouTube TV': {
+    app: 'youtube://',
+    web: 'https://tv.youtube.com',
+  },
+  Crunchyroll: {
+    app: 'crunchyroll://',
+    web: 'https://www.crunchyroll.com',
+  },
+  Funimation: {
+    app: 'funimation://',
+    web: 'https://www.funimation.com',
   },
 };
 
@@ -130,28 +150,46 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
     fallbackUrl?: string,
   ) => {
     const provider = STREAMING_APPS[providerName];
+    
+    // If no provider config found, use fallback URL
     if (!provider && fallbackUrl) {
-      await Linking.openURL(fallbackUrl);
+      try {
+        await Linking.openURL(fallbackUrl);
+      } catch (error) {
+        console.error(`Error opening fallback URL:`, error);
+      }
       return;
     }
 
     if (!provider) {
-      console.warn(`Provider ${providerName} not found`);
+      console.warn(`Provider ${providerName} not found in STREAMING_APPS`);
       return;
     }
 
     try {
+      // Try app deep link first if available
       if (provider.app) {
         const canOpenDeepLink = await Linking.canOpenURL(provider.app);
         if (canOpenDeepLink) {
+          console.log(`Opening ${providerName} app with deep link: ${provider.app}`);
           await Linking.openURL(provider.app);
           return;
+        } else {
+          console.log(`Cannot open ${providerName} app, falling back to web`);
         }
       }
+      
+      // Fallback to web browser
+      console.log(`Opening ${providerName} in browser: ${provider.web}`);
       await Linking.openURL(provider.web);
     } catch (error) {
       console.error(`Error opening ${providerName}:`, error);
-      await Linking.openURL(provider.web);
+      // Final fallback to web
+      try {
+        await Linking.openURL(provider.web);
+      } catch (webError) {
+        console.error(`Failed to open web fallback for ${providerName}:`, webError);
+      }
     }
   };
 
