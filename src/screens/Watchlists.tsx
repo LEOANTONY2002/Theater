@@ -518,8 +518,7 @@ export const WatchlistsScreen: React.FC = () => {
                 style={StyleSheet.absoluteFill}
                 blurType="dark"
                 blurAmount={10}
-                overlayColor={colors.modal.blur}
-                reducedTransparencyFallbackColor={colors.modal.blur}
+                overlayColor={colors.modal.blurDark}
               />
 
               <View style={modalStyles.modalHeader}>

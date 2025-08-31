@@ -13,6 +13,7 @@ import {
   Easing,
   Keyboard,
   ScrollView,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {Modal} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
@@ -20,6 +21,10 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useResponsive} from '../hooks/useResponsive';
 import {cinemaChat} from '../services/gemini';
 import {GradientSpinner} from './GradientSpinner';
+import LinearGradient from 'react-native-linear-gradient';
+import {BlurView} from '@react-native-community/blur';
+import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
+import Markdown from 'react-native-markdown-display';
 
 type Message = {
   id: string;
@@ -74,10 +79,46 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
+  const androidInset = useAndroidKeyboardInset(10);
 
-  // Animation values for loading states
+  // Animation values (matching OnlineAI screen)
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideUpAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+
+  // Initialize entrance animations (matching OnlineAI screen)
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideUpAnim, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Reset animations when modal closes
+      fadeAnim.setValue(0);
+      slideUpAnim.setValue(50);
+      scaleAnim.setValue(0.95);
+    }
+  }, [visible]);
 
   // Pulse animation for loading states (matching OnlineAI screen)
   useEffect(() => {
@@ -105,8 +146,9 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
 
   // Prepare messages in the format expected by the Gemini service
   const prepareChatMessages = () => {
-    // Convert app messages to chat format
-    return messages.map(msg => ({
+    // Filter out the initial welcome message and convert to chat format
+    const conversationMessages = messages.filter(msg => msg.id !== '1');
+    return conversationMessages.map(msg => ({
       role: msg.sender === 'ai' ? ('assistant' as const) : ('user' as const),
       content: msg.text,
     }));
@@ -143,39 +185,49 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
     };
 
     // Add user message
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputText('');
     setIsLoading(true);
     setShowSuggestions(false); // Hide suggestions after first message
 
     try {
-      // Prepare the chat context
-      const chatContext = `You are a expert in movie "${movieTitle}". 
-      ${movieOverview ? `Movie Overview: ${movieOverview}` : ''}
-      ${movieGenres ? `Genres: ${movieGenres}` : ''}`;
-
-      // Add system message with context
-      const messagesWithContext = [
-        {role: 'system' as const, content: chatContext},
-        ...prepareChatMessages(),
-      ];
-
-      // Add movie context to the user's message
-      const userMessageWithContext = {
-        role: 'user' as const,
-        content: `[About the movie: ${movieTitle}]
-        ${movieYear ? `Year: ${movieYear}` : ''}
-        ${movieOverview ? `Overview: ${movieOverview}` : ''}
-        ${movieGenres ? `Genres: ${movieGenres}` : ''}
-        
-        ${inputText}`,
+      // Add system context to restrict AI to only this movie/show
+      const systemContext = {
+        role: 'assistant' as const,
+        content: `I am an AI assistant specialized in discussing "${movieTitle}"${
+          movieYear ? ` (${movieYear})` : ''
+        }. ${
+          movieOverview
+            ? `This ${
+                contentType === 'tv' ? 'TV show' : 'movie'
+              } is about: ${movieOverview}`
+            : ''
+        } ${
+          movieGenres && movieGenres.length > 0
+            ? `Genres: ${movieGenres.join(', ')}.`
+            : ''
+        } I will only answer questions related to this specific ${
+          contentType === 'tv' ? 'TV show' : 'movie'
+        } and politely decline to discuss other topics.`,
       };
 
-      // Call the AI service with the context-enhanced message
-      const {aiResponse} = await cinemaChat([
-        ...prepareChatMessages().slice(0, -1), // All messages except the last one
-        userMessageWithContext,
-      ]);
+      // Prepare chat messages from the updated messages array
+      const conversationMessages = updatedMessages.filter(
+        msg => msg.id !== '1',
+      );
+      const chatMessages = [
+        systemContext,
+        ...conversationMessages.map(msg => ({
+          role:
+            msg.sender === 'ai' ? ('assistant' as const) : ('user' as const),
+          content: msg.text,
+        })),
+      ];
+      console.log('Sending chat messages:', chatMessages);
+
+      // Call the AI service with the conversation messages
+      const {aiResponse} = await cinemaChat(chatMessages);
 
       // Add AI response
       const aiMessage: Message = {
@@ -188,6 +240,17 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error getting AI response:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+
+      // Recreate conversationMessages for error logging
+      const errorConversationMessages = updatedMessages.filter(
+        msg => msg.id !== '1',
+      );
+      console.error(
+        'Chat messages being sent:',
+        JSON.stringify(errorConversationMessages, null, 2),
+      );
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: 'Sorry, I encountered an error. Please try again later.',
@@ -206,26 +269,19 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
 
   const renderMessage = useCallback(({item}: {item: Message}) => {
     const isUser = item.sender === 'user';
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          isUser ? styles.userMessageContainer : styles.aiMessageContainer,
-        ]}>
-        <View
-          style={[
-            styles.messageBubble,
-            isUser ? styles.userMessageBubble : styles.aiMessageBubble,
-          ]}>
-          <Text
-            style={[
-              styles.messageText,
-              isUser ? styles.userMessageText : styles.aiMessageText,
-            ]}>
-            {item.text}
-          </Text>
-        </View>
+
+    return isUser ? (
+      <View style={[styles.message, styles.user]}>
+        <Text style={styles.userText}>{item.text}</Text>
       </View>
+    ) : (
+      <LinearGradient
+        colors={['rgba(19, 1, 45, 0.51)', 'rgba(91, 2, 62, 0.51)']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={[styles.message, styles.assistant]}>
+        <Markdown style={{body: styles.messageText}}>{item.text}</Markdown>
+      </LinearGradient>
     );
   }, []);
 
@@ -239,7 +295,10 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.suggestionsScrollContent}>
-          {(contentType === 'tv' ? DEFAULT_TV_QUESTIONS : DEFAULT_MOVIE_QUESTIONS).map((question: string, index: number) => (
+          {(contentType === 'tv'
+            ? DEFAULT_TV_QUESTIONS
+            : DEFAULT_MOVIE_QUESTIONS
+          ).map((question: string, index: number) => (
             <TouchableOpacity
               key={index}
               style={styles.suggestionChip}
@@ -256,228 +315,320 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   return (
     <Modal
       animationType="slide"
-      transparent={false}
+      navigationBarTranslucent={true}
+      transparent={true}
       visible={visible}
       onRequestClose={onClose}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Icon name="close" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.title}>Chat about {movieTitle}</Text>
-          <View style={styles.headerRight} />
-        </View>
-
-        <View style={styles.messagesContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessage}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.messagesList}
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({animated: true})
-            }
-            onLayout={() => flatListRef.current?.scrollToEnd({animated: true})}
-            keyboardDismissMode="interactive"
-          />
-          {renderSuggestions()}
-          {isLoading && (
-            <Animated.View style={styles.loadingContainer}>
-              <GradientSpinner
-                size={30}
-                thickness={3}
-                style={{
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                  backgroundColor: 'transparent',
-                }}
-                colors={[
-                  colors.primary,
-                  colors.secondary,
-                  'rgba(239, 0, 184, 0.06)',
-                  'rgba(67, 2, 75, 0.06)',
-                  'rgba(211, 0, 239, 0.06)',
-                  'rgba(39, 1, 44, 0.06)',
-                  'rgba(211, 0, 239, 0.06)',
-                  'rgba(183, 0, 239, 0.34)',
-                  'rgba(213, 146, 249, 0.06)',
-                  'rgba(128, 0, 239, 0.06)',
-                  'rgba(0, 96, 239, 0.06)',
-                  'rgba(72, 0, 239, 0.06)',
-                  'rgba(44, 0, 239, 0.06)',
-                  'rgba(18, 0, 239, 0.06)',
-                  'rgba(0, 0, 239, 0.06)',
-                  'rgba(0, 123, 211, 0.06)',
-                  'rgba(0, 117, 184, 0.06)',
-                  'rgba(0, 0, 156, 0.06)',
-                  'rgba(0, 92, 128, 0.06)',
-                  'rgba(0, 0, 100, 0.06)',
-                  'rgba(0, 0, 72, 0.06)',
-                  'rgba(35, 0, 44, 0.06)',
-                  'rgba(18, 0, 15, 0.06)',
-                  'rgba(0, 0, 0, 0.06)',
-                ]}
-              />
-              <Animated.Text
-                style={[
-                  styles.loadingText,
-                  {
-                    opacity: pulseAnim,
-                  },
-                ]}>
-                Theater AI is thinking...
-              </Animated.Text>
-            </Animated.View>
-          )}
-        </View>
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask about this movie..."
-            placeholderTextColor={colors.text.muted}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            multiline
+      <View
+        style={{
+          flex: 1,
+          borderTopLeftRadius: 50,
+          borderTopRightRadius: 50,
+          overflow: 'hidden',
+        }}>
+        <Animated.View
+          style={[
+            {flex: 1, position: 'relative'},
+            {
+              opacity: fadeAnim,
+              transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
+            },
+          ]}>
+          <BlurView
+            blurType="dark"
+            blurAmount={5}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+            overlayColor={colors.modal.blur}
           />
           <TouchableOpacity
-            style={styles.sendButton}
-            onPress={handleSend}
-            disabled={!inputText.trim() || isLoading}>
-            <Icon
-              name="send"
-              size={20}
-              color={inputText.trim() ? colors.primary : colors.text.muted}
-            />
+            activeOpacity={0.9}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: borderRadius.round,
+              height: 50,
+              width: 50,
+              borderColor: colors.modal.border,
+              borderWidth: 1,
+              backgroundColor: colors.modal.blur,
+              zIndex: 2,
+            }}
+            onPress={onClose}>
+            <Icon name="close" size={24} color="white" />
           </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+          <LinearGradient
+            colors={[
+              'rgba(209, 8, 112, 0.84)',
+              'rgba(209, 8, 125, 0.53)',
+              'rgba(75, 8, 209, 0.47)',
+              'rgb(133, 7, 183)',
+            ]}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              opacity: 0.5,
+            }}
+          />
+          <View style={styles.container}>
+            <LinearGradient
+              colors={['rgba(57, 0, 40, 0.7)', 'rgba(98, 0, 55, 0)']}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 120,
+                zIndex: 10,
+                marginHorizontal: 2,
+              }}
+            />
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderMessage}
+              keyExtractor={item => item.id}
+              contentContainerStyle={[styles.chat]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              onContentSizeChange={() =>
+                flatListRef.current?.scrollToEnd({animated: true})
+              }
+              onLayout={() =>
+                flatListRef.current?.scrollToEnd({animated: true})
+              }
+              ListFooterComponent={
+                isLoading ? (
+                  <Animated.View
+                    style={{
+                      marginHorizontal: spacing.lg,
+                      marginBottom: 150,
+                    }}>
+                    <GradientSpinner
+                      size={30}
+                      thickness={3}
+                      style={{
+                        alignItems: 'center',
+                        alignSelf: 'center',
+                        backgroundColor: 'transparent',
+                      }}
+                      colors={[
+                        colors.primary,
+                        colors.secondary,
+                        'rgba(239, 0, 184, 0.06)',
+                        'rgba(67, 2, 75, 0.06)',
+                        'rgba(211, 0, 239, 0.06)',
+                        'rgba(39, 1, 44, 0.06)',
+                        'rgba(211, 0, 239, 0.06)',
+                        'rgba(183, 0, 239, 0.34)',
+                        'rgba(213, 146, 249, 0.06)',
+                        'rgba(128, 0, 239, 0.06)',
+                        'rgba(0, 96, 239, 0.06)',
+                        'rgba(72, 0, 239, 0.06)',
+                        'rgba(44, 0, 239, 0.06)',
+                        'rgba(18, 0, 239, 0.06)',
+                        'rgba(0, 0, 239, 0.06)',
+                        'rgba(0, 123, 211, 0.06)',
+                        'rgba(0, 117, 184, 0.06)',
+                        'rgba(0, 0, 156, 0.06)',
+                        'rgba(0, 92, 128, 0.06)',
+                        'rgba(0, 0, 100, 0.06)',
+                        'rgba(0, 0, 72, 0.06)',
+                        'rgba(35, 0, 44, 0.06)',
+                        'rgba(18, 0, 15, 0.06)',
+                        'rgba(0, 0, 0, 0.06)',
+                      ]}
+                    />
+                    <Animated.Text
+                      style={[
+                        {
+                          color: colors.text.secondary,
+                          textAlign: 'center',
+                          fontSize: 12,
+                          marginTop: 4,
+                          fontStyle: 'italic',
+                        },
+                        {
+                          opacity: pulseAnim,
+                        },
+                      ]}>
+                      Theater AI is thinking...
+                    </Animated.Text>
+                  </Animated.View>
+                ) : null
+              }
+            />
+            <LinearGradient
+              colors={['transparent', 'rgb(31, 2, 53)']}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 150,
+                zIndex: 1,
+              }}
+            />
+            <View style={{zIndex: 1, backgroundColor: colors.modal.blur}}>
+              {renderSuggestions()}
+              <View
+                style={{
+                  bottom: Platform.OS === 'android' ? androidInset : 30,
+                  marginHorizontal: isTablet ? 100 : spacing.lg,
+                  borderRadius: 50,
+                  overflow: 'hidden',
+                  zIndex: 3,
+                  marginBottom: spacing.lg,
+                }}>
+                <TouchableWithoutFeedback
+                  onPress={() => inputRef.current?.focus()}>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      ref={inputRef}
+                      style={styles.input}
+                      value={inputText}
+                      onChangeText={setInputText}
+                      placeholder={`Ask about ${
+                        contentType === 'tv' ? 'this show' : 'this movie'
+                      }...`}
+                      placeholderTextColor={colors.text.tertiary}
+                      editable={true}
+                      onFocus={() =>
+                        setTimeout(
+                          () =>
+                            flatListRef.current?.scrollToEnd({animated: true}),
+                          50,
+                        )
+                      }
+                      onSubmitEditing={handleSend}
+                      returnKeyType="send"
+                    />
+                    <Animated.View>
+                      <TouchableOpacity
+                        style={[
+                          styles.sendButton,
+                          {
+                            opacity: isLoading || !inputText.trim() ? 0.5 : 1,
+                          },
+                        ]}
+                        onPress={handleSend}
+                        disabled={isLoading || !inputText.trim()}>
+                        <Icon
+                          name={'send'}
+                          size={24}
+                          color={
+                            isLoading || !inputText.trim()
+                              ? colors.modal.active
+                              : colors.text.primary
+                          }
+                        />
+                      </TouchableOpacity>
+                    </Animated.View>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgb(18, 0, 22)', // Match OnlineAI screen background
+    marginHorizontal: 2,
+    overflow: 'hidden',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  title: {
-    ...typography.h3,
-    color: colors.text.primary,
-    textAlign: 'center',
-    flex: 1,
-    marginHorizontal: spacing.md,
-  },
-  closeButton: {
-    padding: spacing.xs,
-  },
-  headerRight: {
-    width: 24, // Same as close button for balance
-  },
-  messagesContainer: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
-  },
-  messagesList: {
+  chat: {
     paddingVertical: spacing.md,
+    paddingTop: 70,
+    gap: spacing.md,
   },
-  messageContainer: {
-    marginBottom: spacing.md,
+  message: {
+    marginBottom: spacing.sm,
+    marginHorizontal: spacing.md,
+    padding: spacing.md,
     maxWidth: '80%',
   },
-  userMessageContainer: {
+  user: {
     alignSelf: 'flex-end',
-    alignItems: 'flex-end',
+    backgroundColor: 'rgba(229, 210, 255, 0.27)',
+    color: colors.background.primary,
+    borderRadius: borderRadius.xl,
   },
-  aiMessageContainer: {
+  assistant: {
     alignSelf: 'flex-start',
-    alignItems: 'flex-start',
+    borderRadius: borderRadius.xl,
   },
-  messageBubble: {
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  userMessageBubble: {
-    backgroundColor: 'rgba(229, 202, 242, 0.66)', // Match OnlineAI user message style
-    borderTopRightRadius: 0,
-  },
-  aiMessageBubble: {
-    backgroundColor: colors.background.secondary,
-    borderTopLeftRadius: 0,
-  },
-  messageText: {
-    ...typography.body1,
-    lineHeight: 20,
-  },
-  userMessageText: {
-    color: colors.background.primary, // Match OnlineAI user text color
+  userText: {
+    color: colors.text.primary,
+    ...typography.body2,
     fontWeight: '500',
   },
-  aiMessageText: {
+  messageText: {
     color: colors.text.primary,
+    ...typography.body2,
   },
-  inputContainer: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.background.secondary,
-    backgroundColor: colors.background.primary,
+    padding: spacing.sm,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: colors.modal.border,
+    backgroundColor: colors.modal.blur,
+    zIndex: 3,
   },
-  textInput: {
+  input: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    height: 50,
     color: colors.text.primary,
-    maxHeight: 120,
-    textAlignVertical: 'top',
-    ...typography.body1,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginRight: spacing.sm,
+    ...typography.body2,
   },
   sendButton: {
-    marginLeft: spacing.sm,
-    padding: spacing.sm,
-  },
-  loadingContainer: {
-    padding: spacing.sm,
+    height: 44,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: spacing.md,
-  },
-  loadingText: {
-    color: colors.text.secondary,
-    textAlign: 'center',
-    fontSize: 12,
-    marginTop: 4,
-    fontStyle: 'italic',
+    backgroundColor: 'transparent',
+    borderRadius: borderRadius.round,
+    paddingHorizontal: spacing.md,
   },
   suggestionsContainer: {
-    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.background.secondary,
+    zIndex: 1,
   },
   suggestionsTitle: {
     ...typography.body2,
     color: colors.text.muted,
+    marginLeft: spacing.md,
     marginBottom: spacing.sm,
     fontWeight: '500',
   },
   suggestionsScrollContent: {
-    paddingRight: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   suggestionChip: {
     backgroundColor: colors.background.secondary,

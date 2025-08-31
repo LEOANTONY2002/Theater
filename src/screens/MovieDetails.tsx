@@ -622,18 +622,17 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      backgroundColor: 'rgba(15, 15, 15, 0.85)',
+      backgroundColor: 'rgba(15, 15, 15, 0.94)',
       borderWidth: 1,
-      borderColor: 'rgba(43, 42, 42, 0.31)',
-      padding: 10,
+      borderColor: 'rgba(43, 42, 42, 0.37)',
+      padding: 8,
       paddingHorizontal: 12,
       borderRadius: borderRadius.round,
     },
     aiButtonText: {
       color: colors.text.primary,
-      fontSize: 12,
+      fontSize: 10,
       fontWeight: '500',
-      opacity: 0.8,
     },
   });
 
@@ -657,20 +656,25 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         movieGenres={movieDetails?.genres?.map((g: any) => g.name) || []}
       />
       <LinearGradient
-        colors={['rgba(132, 5, 250, 0.35)', 'rgba(250, 31, 162, 0.37)']}
+        colors={['rgba(142, 4, 255, 0.46)', 'rgba(255, 4, 125, 0.65)']}
         start={{x: 0, y: 0}}
         end={{x: 1, y: 0}}
         style={{
           position: 'absolute',
-          bottom: 100,
+          bottom: isTablet ? 60 : 100,
           right: 36,
           width: 60,
           height: 60,
-          zIndex: 1,
+          zIndex: 5,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: borderRadius.round,
+          overflow: 'hidden',
+          elevation: 5,
+          shadowColor: 'rgba(46, 1, 39, 0.48)',
+          shadowOffset: {width: 0, height: 0},
+          shadowRadius: 10,
         }}>
         <TouchableOpacity
           onPress={() => setIsAIChatModalOpen(true)}
@@ -680,12 +684,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             borderRadius: borderRadius.round,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'rgba(20, 20, 20, 0.86)',
-            borderWidth: 1,
-            borderColor: colors.modal.blur,
+            backgroundColor: 'rgba(15, 15, 15, 0.84)',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255, 255, 255, 0.13)',
           }}
           activeOpacity={0.7}>
-          <Image source={TheaterAIIcon} style={{width: 34, height: 24}} />
+          <Image source={TheaterAIIcon} style={{width: 30, height: 20}} />
         </TouchableOpacity>
       </LinearGradient>
       <FlashList
@@ -984,7 +988,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       activeOpacity={0.7}>
                       <Image
                         source={TheaterAIIcon}
-                        style={{width: 34, height: 24}}
+                        style={{width: 18, height: 10}}
                       />
                       <Text style={styles.aiButtonText}>Ask Theater AI</Text>
                     </TouchableOpacity>

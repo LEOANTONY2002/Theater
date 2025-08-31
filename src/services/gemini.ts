@@ -252,9 +252,9 @@ export async function getMovieTrivia({
   }
 }
 
-// For My Next Watch: get personalized recommendations
+// For My Next Watch: get personalized recommendations based on mood
 export async function getPersonalizedRecommendation(
-  favoriteGenres: string[],
+  moodAnswers: {[key: string]: string} | null,
   feedbackHistory: Array<{
     contentId: number;
     title: string;
@@ -269,25 +269,40 @@ export async function getPersonalizedRecommendation(
   const system = {
     role: 'system' as const,
     content: `You are Theater AI, a personalized movie/TV recommendation engine. 
-      Based on user's favorite genres and their feedback history, recommend ONE single movie or TV show.
+      Based on user's current mood/preferences and their feedback history, recommend ONE single movie or TV show that perfectly matches their current state of mind.
+      
+      Analyze their mood responses deeply to understand what they're truly looking for - not just genres, but emotional tone, pacing, themes, and viewing experience.
       
       Return ONLY a JSON object with these exact fields:
-      {"title": "Movie/Show Title", "year": "2024", "type": "movie" or "tv", "description": "A detailed, engaging plot summary that explains why this content matches the user's preferences. Include key themes, tone, and what makes it compelling. Make it 2-3 sentences long."}
+      {"title": "Movie/Show Title", "year": "2024", "type": "movie" or "tv", "description": "A detailed, engaging explanation of why this content perfectly matches their current mood and preferences. Include key themes, emotional tone, pacing, and what makes it compelling for their current state of mind. Make it 2-3 sentences long."}
       
       Do not include any explanation or extra text. Just return the JSON object.`,
   };
 
-  let userPrompt = `Favorite genres: ${favoriteGenres.join(', ')}\n\n`;
+  let userPrompt = '';
+  
+  if (moodAnswers) {
+    userPrompt += 'My current mood and preferences:\n';
+    Object.entries(moodAnswers).forEach(([questionId, answer]) => {
+      const questionMap: {[key: string]: string} = {
+        'current_mood': 'How I\'m feeling right now',
+        'time_preference': 'How much time I have',
+        'energy_level': 'My current energy level'
+      };
+      userPrompt += `- ${questionMap[questionId] || questionId}: ${answer}\n`;
+    });
+    userPrompt += '\n';
+  }
   
   if (likedContent.length > 0) {
-    userPrompt += `Content I liked:\n${likedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+    userPrompt += `Content I previously enjoyed:\n${likedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
   }
   
   if (dislikedContent.length > 0) {
-    userPrompt += `Content I didn't like:\n${dislikedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+    userPrompt += `Content I didn't enjoy:\n${dislikedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
   }
   
-  userPrompt += 'Recommend ONE movie or TV show that I would enjoy based on my preferences.';
+  userPrompt += 'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now.';
 
   const user = {
     role: 'user' as const,

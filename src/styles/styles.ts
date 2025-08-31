@@ -3,15 +3,15 @@ import {borderRadius, colors, spacing, typography} from './theme';
 
 export const modalStyles = StyleSheet.create({
   modalContainer: {
-    flex: 1,
-    backgroundColor: colors.modal.background,
-  },
-  modalContent: {
-    flex: 1,
     marginTop: 60,
+
+    flex: 1,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     overflow: 'hidden',
+  },
+  modalContent: {
+    flex: 1,
   },
   blurView: {
     position: 'absolute',

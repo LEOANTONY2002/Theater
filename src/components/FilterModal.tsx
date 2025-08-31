@@ -34,6 +34,7 @@ import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
 import {LanguageSettings} from './LanguageSettings';
 import {SettingsManager, Language as SettingsLanguage} from '../store/settings';
+import {useResponsive} from '../hooks/useResponsive';
 
 interface Language {
   iso_639_1: string;
@@ -96,6 +97,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [tempLanguageSelection, setTempLanguageSelection] = useState<
     SettingsLanguage[]
   >([]);
+  const {isTablet} = useResponsive();
 
   useEffect(() => {
     const fetchFilters = async () => {
@@ -421,14 +423,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <BlurView
-            style={styles.blurView}
-            blurType="dark"
-            blurAmount={20}
-            overlayColor={colors.modal.blur}
-            reducedTransparencyFallbackColor={'rgb(255, 255, 255)'}
-          />
+        <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filter</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -777,7 +772,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             />
           )}
 
-          <View style={[styles.footer, {alignItems: 'center'}]}>
+          <View
+            style={[
+              styles.footer,
+              {
+                alignItems: 'center',
+                marginHorizontal: isTablet ? '25%' : spacing.xl,
+              },
+            ]}>
             <TouchableOpacity
               style={[styles.footerButton, styles.resetButton]}
               onPress={handleReset}>
@@ -834,203 +836,191 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 </TouchableOpacity>
               ))}
           </View>
-
-          {/* Save Filter Modal */}
-          <RNModal
-            visible={showSaveModal}
-            transparent
-            animationType="fade"
-            onRequestClose={handleCancelSaveFilter}>
-            <View
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: colors.modal.blur,
-              }}>
-              <View
-                style={{
-                  backgroundColor: colors.modal.active,
-                  borderRadius: 16,
-                  padding: 24,
-                  width: 300,
-                  alignItems: 'center',
-                }}>
-                <Text
-                  style={{
-                    color: 'rgba(50, 50, 50, 0.8)',
-                    fontSize: 18,
-                    fontWeight: 800,
-                    marginBottom: 16,
-                  }}>
-                  Save Filter
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: colors.modal.active,
-                    color: '#fff',
-                    borderRadius: 8,
-                    padding: 10,
-                    width: '100%',
-                    height: 50,
-                    marginBottom: 16,
-                  }}
-                  placeholder="Filter name"
-                  placeholderTextColor="rgba(110, 110, 110, 0.27)"
-                  value={newFilterName}
-                  onChangeText={setNewFilterName}
-                  editable={!saving}
-                  autoFocus
-                />
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                  }}>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1 / 2,
-                      marginRight: 8,
-                      padding: 10,
-                      borderRadius: 8,
-                      backgroundColor: '#444',
-                      alignItems: 'center',
-                    }}
-                    onPress={handleCancelSaveFilter}
-                    disabled={saving}>
-                    <Text style={{color: '#fff', fontWeight: 600}}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1 / 2,
-                      marginLeft: 8,
-                      padding: 10,
-                      borderRadius: 8,
-                      backgroundColor: colors.text.primary,
-                      alignItems: 'center',
-                      opacity: !newFilterName.trim() || saving ? 0.5 : 1,
-                    }}
-                    onPress={handleConfirmSaveFilter}
-                    disabled={!newFilterName.trim() || saving}>
-                    <Text style={{color: '#444', fontWeight: 600}}>Save</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </RNModal>
-
-          {/* No Results Modal */}
-          <RNModal
-            visible={showNoResultsModal}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShowNoResultsModal(false)}>
-            <View
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: colors.modal.blur,
-              }}>
-              <View
-                style={{
-                  backgroundColor: colors.modal.active,
-                  borderRadius: 16,
-                  padding: 24,
-                  width: 300,
-                  alignItems: 'center',
-                }}>
-                <Text
-                  style={{
-                    color: '#444',
-                    fontSize: 18,
-                    marginBottom: 6,
-                    fontWeight: 800,
-                  }}>
-                  No Results
-                </Text>
-                <Text
-                  style={{color: '#fff', marginBottom: 16, fontWeight: 400}}>
-                  This filter has no content
-                </Text>
-                <TouchableOpacity
-                  style={{
-                    padding: 10,
-                    borderRadius: 8,
-                    backgroundColor: colors.accent,
-                    alignItems: 'center',
-                    width: 100,
-                  }}
-                  onPress={() => setShowNoResultsModal(false)}>
-                  <Text style={{color: '#444', fontWeight: 'bold'}}>OK</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </RNModal>
-
-          {/* Language Modal */}
-          <Modal
-            visible={showLanguageModal}
-            animationType="slide"
-            statusBarTranslucent={true}
-            transparent={true}
-            onRequestClose={async () => {
-              setShowLanguageModal(false);
-              setSelectedLanguages(tempLanguageSelection);
-              setFilters(prev => ({
-                ...prev,
-                with_original_language:
-                  tempLanguageSelection[0]?.iso_639_1 || undefined,
-              }));
-            }}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <BlurView
-                  style={StyleSheet.absoluteFill}
-                  blurType="dark"
-                  blurAmount={10}
-                  overlayColor={colors.modal.blur}
-                />
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Language Settings</Text>
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={async () => {
-                      setShowLanguageModal(false);
-                      setSelectedLanguages(tempLanguageSelection);
-                      setFilters(prev => ({
-                        ...prev,
-                        with_original_language:
-                          tempLanguageSelection[0]?.iso_639_1 || undefined,
-                      }));
-                    }}>
-                    <Ionicons
-                      name="close"
-                      size={24}
-                      color={colors.text.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.scrollContent}>
-                  <LanguageSettings
-                    singleSelect
-                    disablePersistence
-                    initialSelectedIso={
-                      filters.with_original_language
-                        ? [filters.with_original_language]
-                        : []
-                    }
-                    onChangeSelected={langs =>
-                      setTempLanguageSelection(langs as SettingsLanguage[])
-                    }
-                  />
-                </View>
-              </View>
-            </View>
-          </Modal>
-        </View>
+        </BlurView>
       </View>
+      {/* Save Filter Modal */}
+      <RNModal
+        visible={showSaveModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelSaveFilter}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.modal.blur,
+          }}>
+          <View
+            style={{
+              backgroundColor: colors.modal.active,
+              borderRadius: 16,
+              padding: 24,
+              width: 300,
+              alignItems: 'center',
+            }}>
+            <Text
+              style={{
+                color: 'rgba(50, 50, 50, 0.8)',
+                fontSize: 18,
+                fontWeight: 800,
+                marginBottom: 16,
+              }}>
+              Save Filter
+            </Text>
+            <TextInput
+              style={{
+                backgroundColor: colors.modal.active,
+                color: '#fff',
+                borderRadius: 8,
+                padding: 10,
+                width: '100%',
+                height: 50,
+                marginBottom: 16,
+              }}
+              placeholder="Filter name"
+              placeholderTextColor="rgba(110, 110, 110, 0.27)"
+              value={newFilterName}
+              onChangeText={setNewFilterName}
+              editable={!saving}
+              autoFocus
+            />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                width: '100%',
+              }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1 / 2,
+                  marginRight: 8,
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: '#444',
+                  alignItems: 'center',
+                }}
+                onPress={handleCancelSaveFilter}
+                disabled={saving}>
+                <Text style={{color: '#fff', fontWeight: 600}}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1 / 2,
+                  marginLeft: 8,
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: colors.text.primary,
+                  alignItems: 'center',
+                  opacity: !newFilterName.trim() || saving ? 0.5 : 1,
+                }}
+                onPress={handleConfirmSaveFilter}
+                disabled={!newFilterName.trim() || saving}>
+                <Text style={{color: '#444', fontWeight: 600}}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </RNModal>
+
+      {/* No Results Modal */}
+      <RNModal
+        visible={showNoResultsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNoResultsModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.modal.blur,
+          }}>
+          <View
+            style={{
+              backgroundColor: colors.modal.active,
+              borderRadius: 16,
+              padding: 24,
+              width: 300,
+              alignItems: 'center',
+            }}>
+            <Text
+              style={{
+                color: '#444',
+                fontSize: 18,
+                marginBottom: 6,
+                fontWeight: 800,
+              }}>
+              No Results
+            </Text>
+            <Text style={{color: '#fff', marginBottom: 16, fontWeight: 400}}>
+              This filter has no content
+            </Text>
+            <TouchableOpacity
+              style={{
+                padding: 10,
+                borderRadius: 8,
+                backgroundColor: colors.accent,
+                alignItems: 'center',
+                width: 100,
+              }}
+              onPress={() => setShowNoResultsModal(false)}>
+              <Text style={{color: '#444', fontWeight: 'bold'}}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </RNModal>
+
+      {/* Language Modal */}
+      <Modal
+        visible={showLanguageModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={async () => {
+          setShowLanguageModal(false);
+          setSelectedLanguages(tempLanguageSelection);
+          setFilters(prev => ({
+            ...prev,
+            with_original_language:
+              tempLanguageSelection[0]?.iso_639_1 || undefined,
+          }));
+        }}>
+        <View style={styles.modalContainer}>
+          <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Language Settings</Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={async () => {
+                  setShowLanguageModal(false);
+                  setSelectedLanguages(tempLanguageSelection);
+                  setFilters(prev => ({
+                    ...prev,
+                    with_original_language:
+                      tempLanguageSelection[0]?.iso_639_1 || undefined,
+                  }));
+                }}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.scrollContent}>
+              <LanguageSettings
+                singleSelect
+                disablePersistence
+                initialSelectedIso={
+                  filters.with_original_language
+                    ? [filters.with_original_language]
+                    : []
+                }
+                onChangeSelected={langs =>
+                  setTempLanguageSelection(langs as SettingsLanguage[])
+                }
+              />
+            </View>
+          </BlurView>
+        </View>
+      </Modal>
     </Modal>
   );
 };

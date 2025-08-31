@@ -19,6 +19,7 @@ import {
   useSimilarTVShows,
   useTVShowRecommendations,
   useSeasonDetails,
+  useAISimilarTVShows,
 } from '../hooks/useTVShows';
 import {fetchContentFromAI, getImageUrl, getLanguage} from '../services/tmdb';
 import {
@@ -93,8 +94,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
-  const [aiSimilarShows, setAiSimilarShows] = useState<any[]>([]);
-  const [isLoadingAiSimilar, setIsLoadingAiSimilar] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
 
@@ -232,33 +231,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     }
   }, [showDetails, selectedSeason]);
 
-  useEffect(() => {
-    async function fetchAiSimilar() {
-      if (showDetails?.overview && showDetails?.name) {
-        setIsLoadingAiSimilar(true);
-        try {
-          let aiResponse = await getSimilarByStory({
-            title: showDetails.name,
-            overview: showDetails.overview,
-            genres:
-              showDetails?.genres?.map((g: Genre) => g?.name).join(', ') || '',
-            type: 'tv',
-          });
-          if (Array.isArray(aiResponse) && aiResponse.length > 0) {
-            const shows = await fetchContentFromAI(aiResponse, 'tv');
-            setAiSimilarShows(shows);
-          } else {
-            setAiSimilarShows([]);
-          }
-        } catch {
-          setAiSimilarShows([]);
-        } finally {
-          setIsLoadingAiSimilar(false);
-        }
-      }
-    }
-    fetchAiSimilar();
-  }, [showDetails?.overview, showDetails?.name]);
+  // Use memoized AI similar TV shows hook
+  const {data: aiSimilarShows = [], isLoading: isLoadingAiSimilar} =
+    useAISimilarTVShows(
+      show.id,
+      showDetails?.name,
+      showDetails?.overview,
+      showDetails?.genres,
+    );
 
   const trailer = showDetails?.videos.results.find(
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
@@ -512,7 +492,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       gap: spacing.xs,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: spacing.md,
     },
     genreWrapper: {
       flexDirection: 'row',
@@ -709,16 +688,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      backgroundColor: 'rgba(15, 15, 15, 0.85)',
+      backgroundColor: 'rgba(15, 15, 15, 0.94)',
       borderWidth: 1,
-      borderColor: 'rgba(43, 42, 42, 0.31)',
-      padding: 10,
+      borderColor: 'rgba(43, 42, 42, 0.37)',
+      padding: 8,
       paddingHorizontal: 12,
       borderRadius: borderRadius.round,
     },
     aiButtonText: {
       color: colors.text.primary,
-      fontSize: 12,
+      fontSize: 10,
       fontWeight: '500',
     },
   });
@@ -755,6 +734,43 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={['rgba(142, 4, 255, 0.46)', 'rgba(255, 4, 125, 0.65)']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
+        style={{
+          position: 'absolute',
+          bottom: isTablet ? 60 : 100,
+          right: 36,
+          width: 60,
+          height: 60,
+          zIndex: 5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: borderRadius.round,
+          overflow: 'hidden',
+          elevation: 5,
+          shadowColor: 'rgba(46, 1, 39, 0.48)',
+          shadowOffset: {width: 0, height: 0},
+          shadowRadius: 10,
+        }}>
+        <TouchableOpacity
+          onPress={() => setIsAIChatModalOpen(true)}
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: borderRadius.round,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(15, 15, 15, 0.84)',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255, 255, 255, 0.13)',
+          }}
+          activeOpacity={0.7}>
+          <Image source={TheaterAIIcon} style={{width: 30, height: 20}} />
+        </TouchableOpacity>
+      </LinearGradient>
       <FlashList
         data={[
           {type: 'header', id: 'header'},
@@ -983,7 +999,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       activeOpacity={0.7}>
                       <Image
                         source={TheaterAIIcon}
-                        style={{width: 30, height: 20}}
+                        style={{width: 18, height: 10}}
                       />
                       <Text style={styles.aiButtonText}>Ask Theater AI</Text>
                     </TouchableOpacity>

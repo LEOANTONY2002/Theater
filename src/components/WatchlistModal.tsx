@@ -119,7 +119,9 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
       transparent={true}
       onRequestClose={handleClose}>
       <View style={styles.modalContainer}>
-        <View
+        <BlurView
+          blurType="dark"
+          blurAmount={10}
           style={[
             styles.modalContent,
             keyboardHeight > 0 && {
@@ -127,14 +129,6 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
               marginBottom: keyboardHeight,
             },
           ]}>
-          <BlurView
-            style={StyleSheet.absoluteFill}
-            blurType="dark"
-            blurRadius={10}
-            blurAmount={20}
-            overlayColor={colors.modal.blur}
-          />
-
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {showCreateForm ? 'Create New Watchlist' : 'Add to Watchlist'}
@@ -260,7 +254,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
               </View>
             )}
           </View>
-        </View>
+        </BlurView>
       </View>
     </Modal>
   );

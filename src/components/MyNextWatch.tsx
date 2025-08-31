@@ -11,6 +11,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
+import {useResponsive} from '../hooks/useResponsive';
+import LinearGradient from 'react-native-linear-gradient';
 import {GradientButton} from './GradientButton';
 import {GradientSpinner} from './GradientSpinner';
 import {getImageUrl} from '../services/tmdb';
@@ -21,6 +23,7 @@ import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 type RootStackParamList = {
   MovieDetails: {movie: any};
   TVShowDetails: {show: any};
+  MySpaceScreen: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -47,6 +50,18 @@ type UserFeedback = {
   timestamp: number;
 };
 
+type MoodQuestion = {
+  id: string;
+  question: string;
+  options: {
+    text: string;
+    genres: number[];
+    emoji: string;
+  }[];
+};
+
+type OnboardingStep = 'mood' | 'genres' | 'complete';
+
 const GENRES = [
   {id: 28, name: 'Action'},
   {id: 12, name: 'Adventure'},
@@ -69,6 +84,87 @@ const GENRES = [
   {id: 37, name: 'Western'},
 ];
 
+const MOOD_QUESTIONS: MoodQuestion[] = [
+  {
+    id: 'current_mood',
+    question: 'How are you feeling right now?',
+    options: [
+      {
+        text: 'Need some laughs',
+        genres: [35, 10751], // Comedy, Family
+        emoji: '😄',
+      },
+      {
+        text: 'Want an adventure',
+        genres: [12, 28, 878], // Adventure, Action, Sci-Fi
+        emoji: '🚀',
+      },
+      {
+        text: 'In the mood for romance',
+        genres: [10749, 18], // Romance, Drama
+        emoji: '💕',
+      },
+      {
+        text: 'Want to be scared',
+        genres: [27, 53], // Horror, Thriller
+        emoji: '😱',
+      },
+      {
+        text: 'Need something deep',
+        genres: [18, 36, 99], // Drama, History, Documentary
+        emoji: '🤔',
+      },
+      {
+        text: 'Want to escape reality',
+        genres: [14, 16, 878], // Fantasy, Animation, Sci-Fi
+        emoji: '✨',
+      },
+    ],
+  },
+  {
+    id: 'time_preference',
+    question: 'How much time do you have?',
+    options: [
+      {
+        text: 'Quick watch (90-120 min)',
+        genres: [35, 27, 53], // Comedy, Horror, Thriller
+        emoji: '⏰',
+      },
+      {
+        text: 'Long epic (2+ hours)',
+        genres: [12, 18, 36, 10752], // Adventure, Drama, History, War
+        emoji: '🎬',
+      },
+      {
+        text: 'Series to binge',
+        genres: [18, 80, 9648], // Drama, Crime, Mystery
+        emoji: '📺',
+      },
+    ],
+  },
+  {
+    id: 'energy_level',
+    question: "What's your energy level?",
+    options: [
+      {
+        text: 'High energy, bring the action!',
+        genres: [28, 12, 53], // Action, Adventure, Thriller
+        emoji: '⚡',
+      },
+      {
+        text: 'Moderate, something engaging',
+        genres: [80, 9648, 18], // Crime, Mystery, Drama
+        emoji: '🎯',
+      },
+      {
+        text: 'Low energy, easy watching',
+        genres: [35, 10749, 10751], // Comedy, Romance, Family
+        emoji: '😌',
+      },
+    ],
+  },
+];
+
 const STORAGE_KEYS = {
   USER_PREFERENCES: '@theater_user_preferences',
   USER_FEEDBACK: '@theater_user_feedback',
@@ -76,38 +172,65 @@ const STORAGE_KEYS = {
 };
 
 export const MyNextWatch: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
-  const [currentRecommendation, setCurrentRecommendation] = useState<ContentItem | null>(null);
+  const [currentRecommendation, setCurrentRecommendation] =
+    useState<ContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [userFeedback, setUserFeedback] = useState<UserFeedback[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('mood');
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
+  const {isTablet} = useResponsive();
 
   // Initialize component
   useEffect(() => {
     initializeComponent();
   }, []);
 
+  // Prevent unnecessary API calls during hot reloads
+  const [hasInitialRecommendation, setHasInitialRecommendation] =
+    useState(false);
+
   const initializeComponent = async () => {
     try {
-      const [onboardingStatus, savedFeedback] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE),
-        AsyncStorage.getItem(STORAGE_KEYS.USER_FEEDBACK),
-      ]);
+      const [onboardingStatus, savedFeedback, savedPreferences] =
+        await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE),
+          AsyncStorage.getItem(STORAGE_KEYS.USER_FEEDBACK),
+          AsyncStorage.getItem(STORAGE_KEYS.USER_PREFERENCES),
+        ]);
 
       setIsOnboardingComplete(onboardingStatus === 'true');
-      
+
       if (savedFeedback) {
         const feedback = JSON.parse(savedFeedback);
         setUserFeedback(feedback);
       }
 
+      // Load saved mood answers if available
+      if (savedPreferences) {
+        const preferences = JSON.parse(savedPreferences);
+        if (preferences.moodAnswers) {
+          setMoodAnswers(preferences.moodAnswers);
+        }
+      }
+
       setIsInitialized(true);
 
-      // If onboarding is complete, get first recommendation
-      if (onboardingStatus === 'true') {
-        await getNextRecommendation(savedFeedback ? JSON.parse(savedFeedback) : []);
+      // If onboarding is complete and we don't have a recommendation yet, get first recommendation
+      if (
+        onboardingStatus === 'true' &&
+        !hasInitialRecommendation &&
+        !currentRecommendation
+      ) {
+        setHasInitialRecommendation(true);
+        await getNextRecommendation(
+          savedFeedback ? JSON.parse(savedFeedback) : [],
+        );
       }
     } catch (error) {
       console.error('Error initializing MyNextWatch:', error);
@@ -116,33 +239,92 @@ export const MyNextWatch: React.FC = () => {
   };
 
   const handleGenreToggle = (genreId: number) => {
-    setSelectedGenres(prev => 
-      prev.includes(genreId) 
+    setSelectedGenres(prev =>
+      prev.includes(genreId)
         ? prev.filter(id => id !== genreId)
-        : [...prev, genreId]
+        : [...prev, genreId],
     );
+  };
+
+  const handleMoodAnswer = async (
+    optionText: string,
+    selectedGenres: number[],
+  ) => {
+    const currentQuestion = MOOD_QUESTIONS[currentQuestionIndex];
+    const updatedAnswers = {
+      ...moodAnswers,
+      [currentQuestion.id]: optionText,
+    };
+    setMoodAnswers(updatedAnswers);
+
+    if (currentQuestionIndex < MOOD_QUESTIONS.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      // All mood questions completed - save preferences and get recommendations
+      try {
+        setIsLoading(true);
+
+        // Save preferences with mood answers (no genres needed)
+        const preferences = {
+          moodAnswers: updatedAnswers,
+          timestamp: Date.now(),
+        };
+
+        await AsyncStorage.setItem(
+          STORAGE_KEYS.USER_PREFERENCES,
+          JSON.stringify(preferences),
+        );
+        await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, 'true');
+
+        setIsOnboardingComplete(true);
+
+        // Get first recommendation using mood answers
+        await getNextRecommendation([]);
+      } catch (error) {
+        console.error('Error completing onboarding:', error);
+        Alert.alert('Error', 'Failed to save preferences. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleBackToMood = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    } else {
+      setOnboardingStep('mood');
+      setCurrentQuestionIndex(0);
+    }
   };
 
   const handleGetStarted = async () => {
     if (selectedGenres.length === 0) {
-      Alert.alert('Select Genres', 'Please select at least one genre to get started.');
+      Alert.alert(
+        'Select Genres',
+        'Please select at least one genre to get started.',
+      );
       return;
     }
 
     try {
       setIsLoading(true);
-      
-      // Save preferences
+
+      // Save preferences including mood answers
       const preferences = {
         genres: selectedGenres,
+        moodAnswers: moodAnswers,
         timestamp: Date.now(),
       };
-      
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(preferences));
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.USER_PREFERENCES,
+        JSON.stringify(preferences),
+      );
       await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, 'true');
-      
+
       setIsOnboardingComplete(true);
-      
+
       // Get first recommendation
       await getNextRecommendation([]);
     } catch (error) {
@@ -153,27 +335,59 @@ export const MyNextWatch: React.FC = () => {
     }
   };
 
-  const getNextRecommendation = async (feedbackHistory: UserFeedback[] = userFeedback) => {
+  const getNextRecommendation = async (
+    feedbackHistory: UserFeedback[] = userFeedback,
+  ) => {
     try {
       setIsLoading(true);
-      
-      const preferences = await AsyncStorage.getItem(STORAGE_KEYS.USER_PREFERENCES);
+
+      const preferences = await AsyncStorage.getItem(
+        STORAGE_KEYS.USER_PREFERENCES,
+      );
       if (!preferences) return;
 
       const userPrefs = JSON.parse(preferences);
-      const selectedGenreNames = GENRES
-        .filter(genre => userPrefs.genres.includes(genre.id))
-        .map(genre => genre.name);
+      // Use mood answers if available, otherwise fall back to genres
+      let recommendation;
+      if (Object.keys(moodAnswers).length > 0) {
+        recommendation = await getPersonalizedRecommendation(
+          moodAnswers,
+          feedbackHistory,
+        );
+      } else if (
+        userPrefs.moodAnswers &&
+        Object.keys(userPrefs.moodAnswers).length > 0
+      ) {
+        recommendation = await getPersonalizedRecommendation(
+          userPrefs.moodAnswers,
+          feedbackHistory,
+        );
+      } else if (userPrefs.genres && userPrefs.genres.length > 0) {
+        const selectedGenreNames = GENRES.filter(genre =>
+          userPrefs.genres.includes(genre.id),
+        ).map(genre => genre.name);
 
-      const recommendation = await getPersonalizedRecommendation(
-        selectedGenreNames,
-        feedbackHistory
-      );
+        // Convert genre names to mood format for consistency
+        const genreMoodAnswers = {
+          favorite_genres: selectedGenreNames.join(', '),
+        };
+
+        recommendation = await getPersonalizedRecommendation(
+          genreMoodAnswers,
+          feedbackHistory,
+        );
+      } else {
+        Alert.alert('No Preferences', 'Please complete the onboarding first.');
+        return;
+      }
 
       if (recommendation) {
         setCurrentRecommendation(recommendation);
       } else {
-        Alert.alert('No Recommendations', 'Unable to get recommendations at the moment. Please try again later.');
+        Alert.alert(
+          'No Recommendations',
+          'Unable to get recommendations at the moment. Please try again later.',
+        );
       }
     } catch (error) {
       console.error('Error getting recommendation:', error);
@@ -187,9 +401,9 @@ export const MyNextWatch: React.FC = () => {
     if (!currentRecommendation) return;
 
     try {
-      const genreNames = GENRES
-        .filter(genre => currentRecommendation.genre_ids.includes(genre.id))
-        .map(genre => genre.name);
+      const genreNames = GENRES.filter(genre =>
+        currentRecommendation.genre_ids.includes(genre.id),
+      ).map(genre => genre.name);
 
       const feedback: UserFeedback = {
         contentId: currentRecommendation.id,
@@ -203,7 +417,10 @@ export const MyNextWatch: React.FC = () => {
       setUserFeedback(updatedFeedback);
 
       // Save to storage
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_FEEDBACK, JSON.stringify(updatedFeedback));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.USER_FEEDBACK,
+        JSON.stringify(updatedFeedback),
+      );
 
       // Get next recommendation
       await getNextRecommendation(updatedFeedback);
@@ -230,7 +447,7 @@ export const MyNextWatch: React.FC = () => {
         STORAGE_KEYS.USER_FEEDBACK,
         STORAGE_KEYS.ONBOARDING_COMPLETE,
       ]);
-      
+
       setIsOnboardingComplete(false);
       setSelectedGenres([]);
       setCurrentRecommendation(null);
@@ -249,58 +466,113 @@ export const MyNextWatch: React.FC = () => {
   }
 
   if (!isOnboardingComplete) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Ionicons name="sparkles" size={24} color={colors.accent} />
-          <Text style={styles.title}>Find My Next Watch</Text>
-        </View>
-        
-        <Text style={styles.subtitle}>
-          Select your favorite genres to get personalized recommendations
-        </Text>
+    if (onboardingStep === 'mood') {
+      const currentQuestion = MOOD_QUESTIONS[currentQuestionIndex];
 
-        <ScrollView style={styles.genresContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.genresGrid}>
-            {GENRES.map(genre => (
-              <TouchableOpacity
-                key={genre.id}
-                style={[
-                  styles.genreChip,
-                  selectedGenres.includes(genre.id) && styles.genreChipSelected,
-                ]}
-                onPress={() => handleGenreToggle(genre.id)}
-                activeOpacity={0.7}>
-                <Text
-                  style={[
-                    styles.genreText,
-                    selectedGenres.includes(genre.id) && styles.genreTextSelected,
-                  ]}>
-                  {genre.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+      return (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Image
+              source={require('../assets/theaterai.png')}
+              width={25}
+              height={15}
+            />
+            <Text style={styles.title}>Find My Next Watch</Text>
           </View>
-        </ScrollView>
 
-        <View style={styles.buttonContainer}>
-          <GradientButton
-            title={isLoading ? 'Setting up...' : 'Get Started'}
-            onPress={handleGetStarted}
-            disabled={isLoading || selectedGenres.length === 0}
-            style={styles.getStartedButton}
-          />
+          <View style={styles.questionContainer}>
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressText}>
+                {currentQuestionIndex + 1} of {MOOD_QUESTIONS.length}
+              </Text>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${
+                        ((currentQuestionIndex + 1) / MOOD_QUESTIONS.length) *
+                        100
+                      }%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            <Text style={styles.questionTitle}>{currentQuestion.question}</Text>
+
+            <ScrollView
+              style={styles.optionsContainer}
+              showsVerticalScrollIndicator={false}>
+              {currentQuestion.options.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.moodOption}
+                  onPress={() => handleMoodAnswer(option.text, option.genres)}
+                  activeOpacity={0.7}>
+                  <Text style={styles.moodEmoji}>{option.emoji}</Text>
+                  <Text style={styles.moodText}>{option.text}</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={colors.text.tertiary}
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {currentQuestionIndex > 0 && (
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handleBackToMood}
+                activeOpacity={0.7}>
+                <Ionicons
+                  name="chevron-back"
+                  size={20}
+                  color={colors.text.secondary}
+                />
+                <Text style={styles.backText}>Back</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
-    );
+      );
+    }
+
+    // This should never be reached since we skip genre step
+    return null;
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Ionicons name="sparkles" size={20} color={colors.accent} />
-          <Text style={styles.titleSmall}>My Next Watch</Text>
+      <LinearGradient
+        colors={[
+          'transparent',
+          colors.background.primary,
+          colors.background.primary,
+        ]}
+        pointerEvents="none"
+        style={styles.backgroundGradient}
+        start={{x: 0, y: 0}}
+        end={{x: 0, y: 1}}
+      />
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}>
+        <View style={styles.header}>
+          <Image
+            source={require('../assets/theaterai.png')}
+            width={25}
+            height={15}
+            style={{width: 25, height: 15, resizeMode: 'contain'}}
+          />
+          <Text style={styles.headerTitle}>My Next Watch</Text>
         </View>
         <TouchableOpacity onPress={resetPreferences} style={styles.resetButton}>
           <Ionicons name="refresh" size={16} color={colors.text.secondary} />
@@ -335,7 +607,9 @@ export const MyNextWatch: React.FC = () => {
                     </Text>
                   </View>
                   <Text style={styles.mediaType}>
-                    {currentRecommendation.media_type === 'movie' ? 'Movie' : 'TV Show'}
+                    {currentRecommendation.media_type === 'movie'
+                      ? 'Movie'
+                      : 'TV Show'}
                   </Text>
                 </View>
                 <Text style={styles.overview} numberOfLines={3}>
@@ -346,7 +620,9 @@ export const MyNextWatch: React.FC = () => {
           </TouchableOpacity>
 
           <View style={styles.feedbackContainer}>
-            <Text style={styles.feedbackTitle}>Is this something you'd watch?</Text>
+            <Text style={styles.feedbackTitle}>
+              Is this something you'd watch?
+            </Text>
             <View style={styles.feedbackButtons}>
               <TouchableOpacity
                 style={[styles.feedbackButton, styles.notOkButton]}
@@ -367,9 +643,15 @@ export const MyNextWatch: React.FC = () => {
         </View>
       ) : (
         <View style={styles.emptyState}>
-          <Ionicons name="film-outline" size={48} color={colors.text.secondary} />
+          <Ionicons
+            name="film-outline"
+            size={48}
+            color={colors.text.secondary}
+          />
           <Text style={styles.emptyText}>No recommendations available</Text>
-          <TouchableOpacity onPress={() => getNextRecommendation()} style={styles.retryButton}>
+          <TouchableOpacity
+            onPress={() => getNextRecommendation()}
+            style={styles.retryButton}>
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -380,28 +662,48 @@ export const MyNextWatch: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.background.secondary,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.border,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    margin: spacing.md,
+    position: 'relative',
+    height: 300,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
+    overflow: 'visible',
+  },
+  backgroundGradient: {
+    width: '270%',
+    height: '200%',
+    position: 'absolute',
+    bottom: -75,
+    left: -50,
+    zIndex: 0,
+    transform: [{rotate: '-30deg'}],
+    pointerEvents: 'none',
   },
   loadingContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    margin: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
+    height: 200,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
+    gap: 10,
   },
+  headerTitle: {
+    color: colors.text.primary,
+    ...typography.h3,
+  },
+  content: {},
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
   },
   title: {
     fontSize: typography.h3.fontSize,
@@ -456,9 +758,7 @@ const styles = StyleSheet.create({
   getStartedButton: {
     width: '100%',
   },
-  resetButton: {
-    padding: spacing.xs,
-  },
+  resetButton: {},
   loadingRecommendation: {
     alignItems: 'center',
     paddingVertical: spacing.xl,
@@ -522,9 +822,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   feedbackTitle: {
-    fontSize: typography.body1.fontSize,
+    fontSize: 12,
     color: colors.text.primary,
-    fontWeight: '500',
   },
   feedbackButtons: {
     flexDirection: 'row',
@@ -533,20 +832,21 @@ const styles = StyleSheet.create({
   feedbackButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     gap: spacing.xs,
+    zIndex: 2,
   },
   okButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.modal.active,
   },
   notOkButton: {
-    backgroundColor: '#F44336',
+    backgroundColor: colors.modal.blur,
   },
   feedbackButtonText: {
-    fontSize: typography.body2.fontSize,
-    color: '#fff',
+    fontSize: 12,
+    color: colors.text.primary,
     fontWeight: '600',
   },
   emptyState: {
@@ -568,5 +868,98 @@ const styles = StyleSheet.create({
     fontSize: typography.body2.fontSize,
     color: '#fff',
     fontWeight: '600',
+  },
+  // New mood onboarding styles
+  questionContainer: {
+    flex: 1,
+    gap: spacing.lg,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  progressText: {
+    fontSize: typography.caption.fontSize,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  progressBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: colors.background.primary,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.accent,
+    borderRadius: 2,
+  },
+  questionTitle: {
+    fontSize: typography.h3.fontSize,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginVertical: spacing.md,
+  },
+  optionsContainer: {
+    flex: 1,
+    marginVertical: spacing.md,
+  },
+  moodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.primary,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.md,
+    gap: spacing.md,
+  },
+  moodEmoji: {
+    fontSize: 24,
+  },
+  moodText: {
+    flex: 1,
+    fontSize: typography.body1.fontSize,
+    color: colors.text.primary,
+    fontWeight: '500',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  backText: {
+    fontSize: typography.body2.fontSize,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  backHeaderButton: {
+    padding: spacing.sm,
+  },
+  placeholder: {
+    width: 32,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  updateMoodButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.sm,
+    gap: spacing.xs,
+  },
+  updateMoodText: {
+    fontSize: typography.caption.fontSize,
+    color: colors.accent,
+    fontWeight: '500',
   },
 });

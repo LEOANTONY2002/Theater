@@ -963,15 +963,18 @@ const styles = StyleSheet.create({
     marginVertical: spacing.md,
   },
   tabButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    padding: spacing.sm,
     borderRadius: borderRadius.sm,
+    marginHorizontal: spacing.xs,
     alignItems: 'center',
+    backgroundColor: colors.modal.blur,
+    borderWidth: 1,
+    borderColor: colors.modal.content,
   },
   activeTabButton: {
-    backgroundColor: colors.modal.active,
+    backgroundColor: colors.modal.border,
     borderWidth: 1,
-    borderColor: colors.modal.activeBorder,
+    borderColor: colors.modal.active,
   },
   tabText: {
     color: colors.text.secondary,
@@ -980,7 +983,6 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: colors.text.primary,
-    fontWeight: '700',
   },
   tabContent: {
     padding: spacing.md,

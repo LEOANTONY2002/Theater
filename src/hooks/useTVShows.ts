@@ -10,10 +10,13 @@ import {
   getSeasonDetails,
   getTop10TVShowsTodayByRegion,
   getContentByGenre,
+  fetchContentFromAI,
 } from '../services/tmdb';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
 import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
+import {getSimilarByStory} from '../services/gemini';
+import {Genre} from '../types/movie';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 30; // 30 minutes
@@ -155,5 +158,42 @@ export const useTop10ShowsTodayByRegion = () => {
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
+  });
+};
+
+export const useAISimilarTVShows = (
+  tvShowId: number,
+  title?: string,
+  overview?: string,
+  genres?: Genre[],
+) => {
+  return useQuery({
+    queryKey: ['ai_similar_tvshows', tvShowId, title, overview],
+    queryFn: async () => {
+      if (!title || !overview) return [];
+      
+      try {
+        const aiResponse = await getSimilarByStory({
+          title,
+          overview,
+          genres: genres?.map((g: Genre) => g?.name).join(', ') || '',
+          type: 'tv',
+        });
+        
+        if (Array.isArray(aiResponse) && aiResponse.length > 0) {
+          const shows = await fetchContentFromAI(aiResponse, 'tv');
+          return shows;
+        }
+        return [];
+      } catch (error) {
+        console.error('Error fetching AI similar TV shows:', error);
+        return [];
+      }
+    },
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+    enabled: !!title && !!overview,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 };

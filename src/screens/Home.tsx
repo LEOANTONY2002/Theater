@@ -1,5 +1,13 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {View, FlatList, StyleSheet, Dimensions, Text} from 'react-native';
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  Dimensions,
+  Text,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
 import {
   useLatestMoviesByRegion,
   useMoviesList,
@@ -15,7 +23,7 @@ import {
   TVShowCategoryType,
   ContentType,
 } from '../types/navigation';
-import {colors, spacing} from '../styles/theme';
+import {colors, spacing, borderRadius} from '../styles/theme';
 import {
   BannerHomeSkeleton,
   HeadingSkeleton,
@@ -34,6 +42,10 @@ import {SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 import {MyNextWatch} from '../components/MyNextWatch';
 import {BecauseYouWatched} from '../components/BecauseYouWatched';
+import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import FastImage from 'react-native-fast-image';
+import {BlurView} from '@react-native-community/blur';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -43,6 +55,11 @@ export const HomeScreen = React.memo(() => {
   >([]);
   const [renderPhase, setRenderPhase] = useState(2);
   const [showMoreContent, setShowMoreContent] = useState(true);
+  const [moodAnswers, setMoodAnswers] = useState<{
+    [key: string]: string;
+  } | null>(null);
+  const [showMoodModal, setShowMoodModal] = useState(false);
+  const [moodLoaded, setMoodLoaded] = useState(false);
   const queryClient = useQueryClient();
 
   const {
@@ -295,6 +312,37 @@ export const HomeScreen = React.memo(() => {
   const WIDTH = Dimensions.get('window').width;
   const {isTablet} = useResponsive();
 
+  // Load mood answers on component mount
+  useEffect(() => {
+    const loadMoodAnswers = async () => {
+      try {
+        const preferences = await AsyncStorage.getItem(
+          '@theater_user_preferences',
+        );
+        if (preferences) {
+          const parsed = JSON.parse(preferences);
+          if (parsed.moodAnswers) {
+            setMoodAnswers(parsed.moodAnswers);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading mood answers:', error);
+      } finally {
+        setMoodLoaded(true);
+      }
+    };
+    loadMoodAnswers();
+  }, []);
+
+  const handleMoodComplete = (answers: {[key: string]: string}) => {
+    setMoodAnswers(answers);
+    setShowMoodModal(false);
+  };
+
+  const handleMoodCancel = () => {
+    setShowMoodModal(false);
+  };
+
   const sections = useMemo(() => {
     const sectionsList = [];
 
@@ -319,12 +367,22 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
-    // My Next Watch section
-    sectionsList.push({
-      id: 'myNextWatch',
-      type: 'myNextWatch',
-      data: [],
-    });
+    // Mood setup or My Next Watch section - always first if available
+    if (moodLoaded) {
+      if (!moodAnswers) {
+        // Show mood setup prompt
+        sectionsList.push({
+          id: 'moodSetup',
+          type: 'moodSetup',
+        });
+      } else {
+        // Show My Next Watch
+        sectionsList.push({
+          id: 'myNextWatch',
+          type: 'myNextWatch',
+        });
+      }
+    }
 
     // Because You Watched section
     sectionsList.push({
@@ -569,6 +627,8 @@ export const HomeScreen = React.memo(() => {
     fetchNextTopRatedTV,
     fetchNextUpcomingMovies,
     handleSeeAllPress,
+    moodLoaded,
+    moodAnswers,
   ]);
 
   // Render all sections without batching
@@ -582,11 +642,112 @@ export const HomeScreen = React.memo(() => {
         case 'featuredSkeleton':
           return <BannerHomeSkeleton />;
 
-        // case 'myNextWatch':
-        //   return <MyNextWatch key={item.id} />;
+        case 'myNextWatch':
+          return <MyNextWatch />;
+
+        case 'moodSetup':
+          return (
+            <View
+              style={{
+                marginHorizontal: spacing.lg,
+                marginTop: spacing.xl,
+                marginBottom: spacing.lg,
+                flex: isTablet ? 1 : 0,
+              }}>
+              <View
+                style={{
+                  padding: spacing.md,
+                  borderWidth: 1,
+                  borderBottomWidth: 0,
+                  borderColor: colors.modal.border,
+                  borderRadius: borderRadius.lg,
+                  maxWidth: 600,
+                  alignSelf: 'center',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 20,
+                  flex: 1,
+                  width: '100%',
+                }}>
+                <LinearGradient
+                  colors={[
+                    'transparent',
+                    colors.background.primary,
+                    colors.background.primary,
+                  ]}
+                  pointerEvents="none"
+                  style={{
+                    width: '250%',
+                    height: '160%',
+                    position: 'absolute',
+                    bottom: isTablet ? -5 : -25,
+                    left: -250,
+                    zIndex: 0,
+                    transform: [{rotate: isTablet ? '-5deg' : '-10deg'}],
+                  }}
+                  start={{x: 0, y: 0}}
+                  end={{x: 0, y: 1}}
+                />
+                <View
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  <FastImage
+                    source={require('../assets/theater.png')}
+                    style={{width: 60, height: 60}}
+                  />
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 400,
+                        color: 'rgb(255, 240, 253)',
+                      }}>
+                      My Next Watch
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 400,
+                        color: 'rgba(198, 150, 215, 0.87)',
+                      }}>
+                      How are you feeling today?
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setShowMoodModal(true)}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={{
+                      padding: 10,
+                      paddingHorizontal: 25,
+                      borderRadius: 50,
+                      marginTop: 15,
+                      alignItems: 'center',
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: colors.text.primary,
+                      }}>
+                      Get Started
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
 
         case 'becauseYouWatched':
-          return <BecauseYouWatched key={item.id} />;
+          return <BecauseYouWatched />;
 
         case 'horizontalList':
           return (
@@ -677,6 +838,61 @@ export const HomeScreen = React.memo(() => {
     },
   });
 
+  const moodSetupStyles = StyleSheet.create({
+    container: {
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.xl,
+      marginBottom: spacing.lg,
+    },
+    content: {
+      backgroundColor: colors.background.secondary,
+      borderRadius: 20,
+      padding: spacing.lg,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    icon: {
+      width: 60,
+      height: 60,
+      marginRight: spacing.md,
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: '400',
+      color: 'rgb(255, 240, 253)',
+      marginBottom: 4,
+    },
+    subtitle: {
+      fontSize: 12,
+      fontWeight: '400',
+      color: 'rgba(198, 150, 215, 0.87)',
+      flexShrink: 1,
+    },
+    buttonContainer: {
+      alignSelf: 'flex-end',
+    },
+    button: {
+      padding: 10,
+      paddingHorizontal: 25,
+      borderRadius: 50,
+      alignItems: 'center',
+    },
+    buttonText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+  });
+
+  const modalStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+  });
+
   useEffect(() => {
     const handleSettingsChange = () => {
       queryClient.invalidateQueries({queryKey: ['movies']});
@@ -728,6 +944,39 @@ export const HomeScreen = React.memo(() => {
         contentContainerStyle={{paddingBottom: 100}}
         removeClippedSubviews={false}
       />
+
+      {/* Mood Questionnaire Modal */}
+      <Modal
+        visible={showMoodModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        navigationBarTranslucent={true}
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={handleMoodCancel}>
+        <BlurView
+          style={{
+            flex: 1,
+            marginTop: 80,
+          }}
+          blurType="dark"
+          blurAmount={10}>
+          <View
+            style={[
+              modalStyles.container,
+              {
+                backgroundColor: colors.modal.blurDark,
+                borderTopStartRadius: borderRadius.xl,
+                borderTopEndRadius: borderRadius.xl,
+              },
+            ]}>
+            <MoodQuestionnaire
+              onComplete={handleMoodComplete}
+              onCancel={handleMoodCancel}
+            />
+          </View>
+        </BlurView>
+      </Modal>
     </View>
   );
 });

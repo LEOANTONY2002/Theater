@@ -40,6 +40,8 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import packageJson from '../../package.json';
 import {AISettingsManager} from '../store/aiSettings';
 import {useResponsive} from '../hooks/useResponsive';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -57,6 +59,9 @@ export const MySpaceScreen = React.memo(() => {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showMoodModal, setShowMoodModal] = useState(false);
+  const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
+  const [lastMoodUpdate, setLastMoodUpdate] = useState<string>('');
   const {isTablet} = useResponsive();
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
@@ -94,11 +99,17 @@ export const MySpaceScreen = React.memo(() => {
     refetchOnReconnect: true,
   });
 
+  // Load mood answers on component mount
+  useEffect(() => {
+    loadMoodAnswers();
+  }, []);
+
   // Add focus effect to refresh filters
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
       queryClient.invalidateQueries({queryKey: ['watchlists']});
+      loadMoodAnswers(); // Refresh mood answers when screen comes into focus
     });
 
     return unsubscribe;
@@ -157,6 +168,47 @@ export const MySpaceScreen = React.memo(() => {
     } catch (error) {
       console.error('Error setting region:', error);
     }
+  };
+
+  const loadMoodAnswers = async () => {
+    try {
+      const preferences = await AsyncStorage.getItem(
+        '@theater_user_preferences',
+      );
+      if (preferences) {
+        const parsed = JSON.parse(preferences);
+        if (parsed.moodAnswers) {
+          setMoodAnswers(parsed.moodAnswers);
+          if (parsed.timestamp) {
+            const date = new Date(parsed.timestamp);
+            setLastMoodUpdate(date.toLocaleDateString());
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading mood answers:', error);
+    }
+  };
+
+  const getMoodSummary = () => {
+    const answers = Object.values(moodAnswers);
+    if (answers.length === 0) return 'Not set';
+    return answers.join(' • ');
+  };
+
+  const handleUpdateMood = () => {
+    setShowMoodModal(true);
+  };
+
+  const handleMoodComplete = (newMoodAnswers: {[key: string]: string}) => {
+    setMoodAnswers(newMoodAnswers);
+    const date = new Date();
+    setLastMoodUpdate(date.toLocaleDateString());
+    setShowMoodModal(false);
+  };
+
+  const handleMoodCancel = () => {
+    setShowMoodModal(false);
   };
 
   const styles = StyleSheet.create({
@@ -360,7 +412,7 @@ export const MySpaceScreen = React.memo(() => {
   });
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
       <View style={{padding: spacing.md}}>
         <Text
           style={{
@@ -475,6 +527,26 @@ export const MySpaceScreen = React.memo(() => {
             color={colors.text.primary}
           />
         </View>
+      </TouchableOpacity>
+
+      {/* Mood Settings Section */}
+      <TouchableOpacity
+        style={styles.headerContainer}
+        activeOpacity={0.9}
+        onPress={handleUpdateMood}
+        testID="moodSettingsButton">
+        <View style={{flex: 1}}>
+          <Text style={styles.sectionTitle}>My Mood & Preferences</Text>
+          <Text style={[styles.regionText, {marginTop: 2}]} numberOfLines={2}>
+            {getMoodSummary()}
+          </Text>
+          {lastMoodUpdate && (
+            <Text style={[styles.regionText, {fontSize: 11, opacity: 0.7}]}>
+              Updated {lastMoodUpdate}
+            </Text>
+          )}
+        </View>
+        <Ionicons name="refresh" size={16} color={colors.accent} />
       </TouchableOpacity>
 
       {/* Ask AI Section */}
@@ -711,6 +783,30 @@ export const MySpaceScreen = React.memo(() => {
                 </Text>
               </Text>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Mood Settings Modal */}
+      <Modal
+        visible={showMoodModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={handleMoodCancel}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blur}
+            />
+            <MoodQuestionnaire
+              onComplete={handleMoodComplete}
+              onCancel={handleMoodCancel}
+              initialAnswers={moodAnswers}
+            />
           </View>
         </View>
       </Modal>

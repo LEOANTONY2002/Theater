@@ -32,6 +32,7 @@ import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
 import {LanguageSettings} from './LanguageSettings';
 import {SettingsManager, Language as SettingsLanguage} from '../store/settings';
+import {useResponsive} from '../hooks/useResponsive';
 
 interface Language {
   iso_639_1: string;
@@ -98,6 +99,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   >([]);
   const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
   const [isLoadingWatchProviders, setIsLoadingWatchProviders] = useState(false);
+  const {isTablet} = useResponsive();
 
   useEffect(() => {
     if (visible) {
@@ -473,14 +475,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <BlurView
-            style={styles.blurView}
-            blurType="dark"
-            blurAmount={30}
-            overlayColor={colors.modal.blur}
-            reducedTransparencyFallbackColor={colors.modal.blur}
-          />
+        <BlurView
+          style={styles.modalContent}
+          blurType="dark"
+          blurAmount={10}
+          pointerEvents="none">
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {editingFilter ? 'Edit Filter' : 'New Filter'}
@@ -867,68 +866,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
           )}
 
-          {/* Language Modal */}
-          <Modal
-            visible={showLanguageModal}
-            animationType="slide"
-            statusBarTranslucent={true}
-            transparent={true}
-            onRequestClose={async () => {
-              setShowLanguageModal(false);
-              // Use local temp selection; do not persist globally
-              setSelectedLanguages(tempLanguageSelection);
-              setFilters(prev => ({
-                ...prev,
-                with_original_language:
-                  tempLanguageSelection[0]?.iso_639_1 || undefined,
-              }));
-            }}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <BlurView
-                  style={StyleSheet.absoluteFill}
-                  blurType="dark"
-                  blurAmount={10}
-                  overlayColor={colors.modal.blur}
-                />
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Language Settings</Text>
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={async () => {
-                      setShowLanguageModal(false);
-                      setSelectedLanguages(tempLanguageSelection);
-                      setFilters(prev => ({
-                        ...prev,
-                        with_original_language:
-                          tempLanguageSelection[0]?.iso_639_1 || undefined,
-                      }));
-                    }}>
-                    <Ionicons
-                      name="close"
-                      size={24}
-                      color={colors.text.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.scrollContent}>
-                  <LanguageSettings
-                    singleSelect
-                    disablePersistence
-                    initialSelectedIso={
-                      filters.with_original_language
-                        ? [filters.with_original_language]
-                        : []
-                    }
-                    onChangeSelected={langs =>
-                      setTempLanguageSelection(langs as SettingsLanguage[])
-                    }
-                  />
-                </View>
-              </View>
-            </View>
-          </Modal>
-
           {/* Date Pickers */}
           {showFromDate && (
             <DateTimePicker
@@ -998,8 +935,65 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </BlurView>
       </View>
+      {/* Language Modal */}
+      <Modal
+        visible={showLanguageModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={async () => {
+          setShowLanguageModal(false);
+          // Use local temp selection; do not persist globally
+          setSelectedLanguages(tempLanguageSelection);
+          setFilters(prev => ({
+            ...prev,
+            with_original_language:
+              tempLanguageSelection[0]?.iso_639_1 || undefined,
+          }));
+        }}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blur}
+            />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Language Settings</Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={async () => {
+                  setShowLanguageModal(false);
+                  setSelectedLanguages(tempLanguageSelection);
+                  setFilters(prev => ({
+                    ...prev,
+                    with_original_language:
+                      tempLanguageSelection[0]?.iso_639_1 || undefined,
+                  }));
+                }}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.scrollContent}>
+              <LanguageSettings
+                singleSelect
+                disablePersistence
+                initialSelectedIso={
+                  filters.with_original_language
+                    ? [filters.with_original_language]
+                    : []
+                }
+                onChangeSelected={langs =>
+                  setTempLanguageSelection(langs as SettingsLanguage[])
+                }
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };

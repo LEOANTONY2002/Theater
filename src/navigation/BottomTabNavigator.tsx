@@ -85,10 +85,10 @@ const TabBarBackground = () => {
         },
       ]}>
       <BlurView
-        style={styles.blurContainer}
         blurType="dark"
         blurAmount={10}
         blurRadius={7}
+        style={styles.blurContainer}
         overlayColor={colors.modal.blur}
       />
     </View>
@@ -128,6 +128,8 @@ export const BottomTabNavigator = () => {
       <Tab.Navigator
         screenOptions={{
           tabBarStyle: {
+            elevation: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.5)',
             backgroundColor: 'transparent',
             borderTopWidth: 0,
             height: isTablet ? 90 : 70,
