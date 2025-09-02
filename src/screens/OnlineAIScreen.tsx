@@ -19,7 +19,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Markdown from 'react-native-markdown-display';
 import {BlurView} from '@react-native-community/blur';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {AISettingsManager} from '../store/aiSettings';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
@@ -134,6 +134,7 @@ const ParallaxCard: React.FC<ParallaxCardProps> = ({
 
 export const OnlineAIScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -515,7 +516,10 @@ export const OnlineAIScreen: React.FC = () => {
             borderColor: colors.modal.border,
             borderWidth: 1,
           }}
-          onPress={() => navigation.goBack()}>
+          onPress={() => {
+            // Always navigate to MySpace screen instead of going back
+            (navigation as any).navigate('MySpaceScreen');
+          }}>
           <BlurView
             blurType="dark"
             blurAmount={5}
@@ -739,7 +743,7 @@ export const OnlineAIScreen: React.FC = () => {
                     ...typography.h3,
                     fontSize: 18,
                   }}>
-                  Start chatting with our AI assistant!
+                  Start chatting with Theater AI
                 </Text>
                 <Text
                   style={{
@@ -747,7 +751,7 @@ export const OnlineAIScreen: React.FC = () => {
                     ...typography.body2,
                     fontSize: 14,
                   }}>
-                  Ask me anything about movies, TV shows, and more!
+                  Ask anything about movies, TV shows, and more!
                 </Text>
                 {isDefaultKey && (
                   <View style={{marginTop: spacing.lg, alignItems: 'center'}}>

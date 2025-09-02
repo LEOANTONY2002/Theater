@@ -139,6 +139,7 @@ export const FeaturedBannerHomePoster: React.FC<
     cardContainer: {
       width: isTablet ? 400 : 300,
       height: isTablet ? 650 : 500,
+      backgroundColor: 'rgba(14, 0, 26, 0.99)',
       alignSelf: 'center',
       borderRadius: 50,
       overflow: 'hidden',

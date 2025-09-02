@@ -219,6 +219,15 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="MySpace"
           component={MySpaceStackNavigator}
+          listeners={({navigation}) => ({
+            tabPress: (e) => {
+              // Reset the MySpace stack to initial screen when tab is pressed
+              navigation.reset({
+                index: 0,
+                routes: [{name: 'MySpace'}],
+              });
+            },
+          })}
           options={{
             title: 'Profile',
             tabBarIcon: ({focused, color}) => (
