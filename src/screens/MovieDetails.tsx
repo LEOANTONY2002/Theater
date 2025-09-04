@@ -67,6 +67,7 @@ import {useIMDBRating} from '../hooks/useScrap';
 import {ImageBackground} from 'react-native';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
 import TheaterAIIcon from '../assets/theaterai.png';
+import {useAIEnabled} from '../hooks/useAIEnabled';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -91,6 +92,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 }) => {
   const navigation = useNavigation<MovieDetailsScreenNavigationProp>();
   const {movie} = route.params;
+  const {isAIEnabled} = useAIEnabled();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
@@ -698,7 +700,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           {type: 'content', id: 'content'},
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
-          {type: 'trivia', id: 'trivia'},
+          ...(isAIEnabled ? [{type: 'trivia', id: 'trivia'}] : []),
           {type: 'similar', id: 'similar'},
           {type: 'recommendations', id: 'recommendations'},
         ]}
@@ -1075,47 +1077,51 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       },
                     ],
                   }}>
-                  {isLoadingAiSimilar ? (
-                    <View
-                      style={{
-                        marginVertical: isTablet ? 150 : 50,
-                        alignItems: 'center',
-                        alignSelf: 'center',
-                      }}>
-                      <GradientSpinner
-                        size={30}
-                        thickness={3}
-                        style={{
-                          alignItems: 'center',
-                          alignSelf: 'center',
-                        }}
-                        colors={[
-                          colors.primary,
-                          colors.secondary,
-                          colors.transparent,
-                          colors.transparentDim,
-                        ]}
-                      />
-                      <Text
-                        style={{
-                          fontStyle: 'italic',
-                          color: colors.text.primary,
-                          marginTop: spacing.md,
-                        }}>
-                        Theater AI is curating similar movies...
-                      </Text>
-                    </View>
-                  ) : (
+                  {isAIEnabled && (
                     <>
-                      {Array.isArray(aiSimilarMovies) &&
-                        aiSimilarMovies.length > 0 && (
-                          <HorizontalList
-                            title="Similar movies by Theater AI"
-                            data={aiSimilarMovies}
-                            onItemPress={handleItemPress}
-                            isSeeAll={false}
+                      {isLoadingAiSimilar ? (
+                        <View
+                          style={{
+                            marginVertical: isTablet ? 150 : 50,
+                            alignItems: 'center',
+                            alignSelf: 'center',
+                          }}>
+                          <GradientSpinner
+                            size={30}
+                            thickness={3}
+                            style={{
+                              alignItems: 'center',
+                              alignSelf: 'center',
+                            }}
+                            colors={[
+                              colors.primary,
+                              colors.secondary,
+                              colors.transparent,
+                              colors.transparentDim,
+                            ]}
                           />
-                        )}
+                          <Text
+                            style={{
+                              fontStyle: 'italic',
+                              color: colors.text.primary,
+                              marginTop: spacing.md,
+                            }}>
+                            Theater AI is curating similar movies...
+                          </Text>
+                        </View>
+                      ) : (
+                        <>
+                          {Array.isArray(aiSimilarMovies) &&
+                            aiSimilarMovies.length > 0 && (
+                              <HorizontalList
+                                title="Similar movies by Theater AI"
+                                data={aiSimilarMovies}
+                                onItemPress={handleItemPress}
+                                isSeeAll={false}
+                              />
+                            )}
+                        </>
+                      )}
                     </>
                   )}
                   {similarMoviesData.length > 0 ? (

@@ -5,11 +5,11 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   Keyboard,
   Clipboard,
   Modal,
   Linking,
+  useWindowDimensions,
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
@@ -17,14 +17,10 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {AISettingsManager} from '../store/aiSettings';
 import {GradientSpinner} from '../components/GradientSpinner';
-import {FlashList} from '@shopify/flash-list';
 import {useQueryClient} from '@tanstack/react-query';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useResponsive} from '../hooks/useResponsive';
-import {GradientButton} from '../components/GradientButton';
 
 const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
-const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
 
 interface GeminiModel {
   id: string;
@@ -141,13 +137,30 @@ const OnboardingAISettings: React.FC<{
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
+  // Skip confirmation modal state
+  const [skipConfirmVisible, setSkipConfirmVisible] = useState(false);
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
+  const width = useWindowDimensions().width;
 
   const showAlert = (title: string, message: string) => {
     setModalTitle(title);
     setModalMessage(message);
     setModalVisible(true);
+  };
+
+  const handleSkipPress = () => {
+    setSkipConfirmVisible(true);
+  };
+
+  const handleSkipAnyway = () => {
+    setSkipConfirmVisible(false);
+    onSkip();
+  };
+
+  const handleSetApiKey = () => {
+    setSkipConfirmVisible(false);
+    setShowApiKeyInput(true);
   };
 
   useEffect(() => {
@@ -309,7 +322,7 @@ const OnboardingAISettings: React.FC<{
   const handlePasteFromClipboard = async () => {
     try {
       const content = await Clipboard.getString();
-      if (content && content !== DEFAULT_API_KEY) {
+      if (content) {
         setApiKey(content);
         setIsApiKeyCopied(true);
         setTimeout(() => setIsApiKeyCopied(false), 2000);
@@ -383,13 +396,103 @@ const OnboardingAISettings: React.FC<{
           </View>
         </View>
       </Modal>
+
+      {/* Skip confirmation modal */}
+      <Modal
+        visible={skipConfirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSkipConfirmVisible(false)}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.14)',
+          }}>
+          <View style={styles.modalOverlay}>
+            <BlurView
+              blurAmount={10}
+              blurRadius={5}
+              blurType="light"
+              overlayColor={colors.modal.blur}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 50,
+              }}
+            />
+            <View style={styles.modalCard}>
+              <View style={styles.skipModalHeader}>
+                {/* <Icon
+                  name="warning-outline"
+                  size={24}
+                  color={colors.secondary}
+                  style={styles.skipModalIcon}
+                /> */}
+                <Text style={styles.modalTitle}>AI Features Disabled</Text>
+              </View>
+              <Text style={styles.modalMessage}>
+                No AI features can be used if API key is not set. You'll miss
+                out on:
+                {'\n'}• Cinema chat assistant
+                {'\n'}• Movie/Show level chat assistant
+                {'\n'}• AI-powered movie recommendations
+                {'\n'}• My Next Watch - Personalized content discovery
+                {'\n'}• Trivia & Facts
+              </Text>
+              <View style={styles.skipModalButtons}>
+                <TouchableOpacity
+                  style={styles.skipModalSecondaryButton}
+                  activeOpacity={0.9}
+                  onPress={handleSkipAnyway}>
+                  <Text style={styles.skipModalSecondaryButtonText}>
+                    Skip Anyway
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={{flex: 1}}
+                  onPress={handleSetApiKey}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={{
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      borderRadius: borderRadius.md,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                    <Text style={styles.skipModalPrimaryButtonText}>
+                      Set API Key
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>AI Assistant Setup</Text>
         <View />
       </View>
 
       {/* API Key Section */}
-      <View style={styles.section}>
+      <View
+        style={[
+          styles.section,
+          {
+            width: isTablet ? '50%' : '100%',
+            alignSelf: 'center',
+            marginTop: spacing.xxl,
+          },
+        ]}>
         <Text style={styles.sectionTitle}>API Key</Text>
         <Text style={styles.sectionDescription}>
           {apiKey
@@ -402,15 +505,13 @@ const OnboardingAISettings: React.FC<{
             <View style={styles.inputContainer}>
               <TextInput
                 style={[styles.input, {paddingRight: 40}]}
-                value={apiKey === DEFAULT_API_KEY ? '' : apiKey}
+                value={apiKey}
                 onChangeText={setApiKey}
                 placeholder="Enter your Gemini API key..."
                 placeholderTextColor={colors.text.tertiary}
-                secureTextEntry={apiKey === DEFAULT_API_KEY}
                 multiline={false}
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoFocus={true}
               />
               <TouchableOpacity
                 style={styles.clipboardButton}
@@ -457,7 +558,7 @@ const OnboardingAISettings: React.FC<{
               style={styles.apiKeyButtonIcon}
             />
             <Text style={styles.apiKeyButtonText}>
-              {apiKey !== DEFAULT_API_KEY ? 'Edit API Key' : 'Add API Key'}
+              {apiKey ? 'Edit API Key' : 'Add API Key'}
             </Text>
           </TouchableOpacity>
         )}
@@ -469,8 +570,10 @@ const OnboardingAISettings: React.FC<{
           marginBottom: spacing.md,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          // alignItems: 'center',
           justifyContent: 'center',
+          width: isTablet ? '50%' : '100%',
+          alignSelf: 'center',
         }}>
         <TouchableOpacity
           onPress={() =>
@@ -482,14 +585,12 @@ const OnboardingAISettings: React.FC<{
             style={{
               color: colors.background.primary,
               fontWeight: 'bold',
-              paddingVertical: spacing.md,
+              paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
               borderRadius: borderRadius.md,
-              borderWidth: 3,
-              borderColor: colors.modal.activeBorder,
+              borderWidth: 1,
+              borderColor: colors.modal.blur,
               backgroundColor: colors.text.primary,
-              width: 200,
-              alignSelf: 'center',
               textAlign: 'center',
             }}>
             Get your API key
@@ -508,35 +609,63 @@ const OnboardingAISettings: React.FC<{
           4. Paste the API key above
         </Text>
       </View>
-      {isValidating ? (
-        <GradientSpinner
-          size={30}
-          thickness={2}
-          colors={[
-            colors.primary,
-            colors.secondary,
-            'transparent',
-            colors.transparentDim,
-          ]}
-          style={{alignSelf: 'center', marginVertical: 30}}
-        />
-      ) : (
-        <GradientButton
-          title="Enter Theater"
-          onPress={saveSettings}
-          disabled={!hasChanges() || isValidating}
-          isIcon={false}
-          style={{
-            borderRadius: borderRadius.round,
-            width: '60%',
-            alignSelf: 'center',
-            marginVertical: 30,
-          }}
-        />
-      )}
-      <TouchableOpacity onPress={onDone}>
-        <Text>Skip</Text>
-      </TouchableOpacity>
+
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          left: 0,
+          right: 0,
+          zIndex: 2,
+          flex: 1,
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+        }}>
+        {isValidating ? (
+          <GradientSpinner
+            size={30}
+            thickness={2}
+            colors={[
+              colors.primary,
+              colors.secondary,
+              'transparent',
+              colors.transparentDim,
+            ]}
+            style={{alignSelf: 'center', marginVertical: 30}}
+          />
+        ) : (
+          <View
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: spacing.md,
+              alignSelf: 'center',
+            }}>
+            <TouchableOpacity activeOpacity={0.9} onPress={handleSkipPress}>
+              <Text style={{color: colors.text.muted}}>Skip</Text>
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.9} onPress={saveSettings}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={{
+                  borderRadius: borderRadius.md,
+                  padding: spacing.md,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: isTablet ? 200 : width * 0.5,
+                }}>
+                <Text style={{color: colors.text.primary, fontWeight: 'bold'}}>
+                  Enter Theater
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </View>
   );
 };
@@ -792,6 +921,47 @@ const styles = StyleSheet.create({
     ...typography.body1,
     color: colors.text.tertiary,
     textDecorationLine: 'underline',
+  },
+  // Skip confirmation modal styles
+  skipModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  skipModalIcon: {
+    marginRight: spacing.sm,
+  },
+  skipModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  skipModalSecondaryButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipModalSecondaryButtonText: {
+    ...typography.button,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  skipModalPrimaryButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipModalPrimaryButtonText: {
+    ...typography.button,
+    fontWeight: '600',
+    color: colors.text.primary,
   },
 });
 

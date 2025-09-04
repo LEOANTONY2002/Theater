@@ -12,6 +12,10 @@ import {
 } from 'react-native';
 import {useMovieSearch} from '../hooks/useMovies';
 import {useTVShowSearch} from '../hooks/useTVShows';
+import {
+  useEnhancedMovieSearch,
+  useEnhancedTVSearch,
+} from '../hooks/useEnhancedSearch';
 import {MovieList, ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
@@ -37,6 +41,8 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {FiltersManager} from '../store/filters';
 import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
 import {HomeFilterRow} from '../components/HomeFilterRow';
+import {useAIEnabled} from '../hooks/useAIEnabled';
+import CreateButton from '../components/createButton';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -82,6 +88,7 @@ type TabType = 'trending' | 'filters' | 'watchlists';
 
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
+  const {isAIEnabled} = useAIEnabled();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [recentItems, setRecentItems] = useState<ContentItem[]>([]);
@@ -100,7 +107,7 @@ export const SearchScreen = React.memo(() => {
   // Get real watchlists data
   const {data: watchlists = []} = useWatchlists();
 
-  // Search or discover based on query
+  // Search or discover based on query - use enhanced search for better filtering
   const {
     data: movieData,
     fetchNextPage: fetchNextMoviePage,
@@ -109,7 +116,7 @@ export const SearchScreen = React.memo(() => {
     refetch: refetchMovies,
     isLoading: isLoadingMovies,
     isError: isMovieError,
-  } = useMovieSearch(debouncedQuery, activeFilters);
+  } = useEnhancedMovieSearch(debouncedQuery, activeFilters);
 
   const {
     data: tvData,
@@ -119,16 +126,10 @@ export const SearchScreen = React.memo(() => {
     refetch: refetchTV,
     isLoading: isLoadingTV,
     isError: isTVError,
-  } = useTVShowSearch(debouncedQuery, activeFilters);
+  } = useEnhancedTVSearch(debouncedQuery, activeFilters);
 
-  const movies =
-    movieData?.pages.flatMap(page =>
-      page.results.map((movie: Movie) => ({...movie, type: 'movie' as const})),
-    ) || [];
-  const tvShows =
-    tvData?.pages.flatMap(page =>
-      page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
-    ) || [];
+  const movies = movieData?.pages.flatMap(page => page.results) || [];
+  const tvShows = tvData?.pages.flatMap(page => page.results) || [];
 
   const navigation = useNavigation();
 
@@ -254,93 +255,6 @@ export const SearchScreen = React.memo(() => {
     [contentType, query],
   );
 
-  const applySearchFilters = useCallback(
-    (content: ContentItem[]) => {
-      return content.filter(item => {
-        if (query) {
-          // Filter by title
-          let title =
-            (item?.hasOwnProperty('title') && item?.title) ||
-            (item?.hasOwnProperty('name') && item?.name) ||
-            item?.id;
-
-          console.log('TITLEEEEE', title);
-
-          if (title) {
-            if (!title?.toLowerCase().includes(query.toLowerCase())) {
-              return false;
-            }
-          }
-
-          if (!activeFilters['vote_average.gte']) {
-            if (item.vote_average < 5) {
-              return false;
-            }
-          }
-
-          // if (!activeFilters['sort_by']) {
-          //   if (item.popularity < 10) {
-          //     return false;
-          //   }
-          // }
-        }
-
-        // Filter by rating
-        if (activeFilters['vote_average.gte'] !== undefined) {
-          if (item.vote_average < activeFilters['vote_average.gte']) {
-            return false;
-          }
-        }
-
-        // Filter by date
-        if (item.type === 'movie') {
-          if (activeFilters['primary_release_date.gte'] && item.release_date) {
-            if (item.release_date < activeFilters['primary_release_date.gte']) {
-              return false;
-            }
-          }
-          if (activeFilters['primary_release_date.lte'] && item.release_date) {
-            if (item.release_date > activeFilters['primary_release_date.lte']) {
-              return false;
-            }
-          }
-        } else {
-          if (activeFilters['first_air_date.gte'] && item.first_air_date) {
-            if (item.first_air_date < activeFilters['first_air_date.gte']) {
-              return false;
-            }
-          }
-          if (activeFilters['first_air_date.lte'] && item.first_air_date) {
-            if (item.first_air_date > activeFilters['first_air_date.lte']) {
-              return false;
-            }
-          }
-        }
-
-        // Filter by language
-        if (activeFilters.with_original_language && item.original_language) {
-          if (item.original_language !== activeFilters.with_original_language) {
-            return false;
-          }
-        }
-
-        // Filter by genre
-        if (activeFilters.with_genres && item.genre_ids) {
-          if (
-            !item.genre_ids.some(genreId =>
-              activeFilters.with_genres?.includes(genreId.toString()),
-            )
-          ) {
-            return false;
-          }
-        }
-
-        return true;
-      });
-    },
-    [activeFilters, query],
-  );
-
   const applySorting = useCallback(
     (content: ContentItem[]) => {
       // If query has value and activeFilters is empty, sort by popularity desc
@@ -391,15 +305,10 @@ export const SearchScreen = React.memo(() => {
   }, [movies, tvShows]);
 
   const displayedContent = useMemo(() => {
+    // Enhanced search hooks already handle filtering, so we just need content type filtering and sorting
     let filteredContent = applyContentTypeFilter(combinedContent);
-    filteredContent = applySearchFilters(filteredContent);
     return applySorting(filteredContent);
-  }, [
-    combinedContent,
-    applyContentTypeFilter,
-    applySearchFilters,
-    applySorting,
-  ]);
+  }, [combinedContent, applyContentTypeFilter, applySorting]);
 
   console.log('displayedContent', displayedContent);
 
@@ -439,9 +348,31 @@ export const SearchScreen = React.memo(() => {
   const renderFiltersContent = () => {
     return (
       <View>
-        {savedFilters.map((filter: SavedFilter) => (
-          <HomeFilterRow key={filter.id} savedFilter={filter} />
-        ))}
+        {savedFilters.length > 0 ? (
+          savedFilters.map((filter: SavedFilter) => (
+            <HomeFilterRow key={filter.id} savedFilter={filter} />
+          ))
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingTop: 100,
+            }}>
+            <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Create your first filter to apply on the search
+            </Text>
+            <CreateButton
+              onPress={() =>
+                navigation.navigate('MySpace', {screen: 'MyFiltersScreen'})
+              }
+              title="Go to My Filter"
+              icon={null}
+            />
+          </View>
+        )}
       </View>
     );
   };
@@ -449,14 +380,26 @@ export const SearchScreen = React.memo(() => {
   const renderWatchlistsContent = () => {
     return (
       <View>
-        {watchlists.map(watchlist => (
-          <WatchlistRow
-            key={watchlist.id}
-            watchlist={watchlist}
-            onItemPress={handleItemPress}
-            navigation={navigation}
-          />
-        ))}
+        {watchlists?.length > 0 ? (
+          watchlists.map(watchlist => (
+            <WatchlistRow
+              key={watchlist.id}
+              watchlist={watchlist}
+              onItemPress={handleItemPress}
+              navigation={navigation}
+            />
+          ))
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingTop: 100,
+            }}>
+            <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -546,8 +489,6 @@ export const SearchScreen = React.memo(() => {
           style={styles.blurView}
           blurType="dark"
           blurAmount={10}
-          overlayColor={colors.modal.blur}
-          reducedTransparencyFallbackColor={colors.modal.blur}
           pointerEvents="none"
         />
         <View style={styles.searchContainer}>
@@ -675,12 +616,19 @@ export const SearchScreen = React.memo(() => {
                   </View>
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() =>
-                      navigation.navigate('Main', {
-                        screen: 'MySpace',
-                        params: {screen: 'OnlineAIScreen'},
-                      })
-                    }>
+                    onPress={() => {
+                      if (isAIEnabled) {
+                        navigation.navigate('Main', {
+                          screen: 'MySpace',
+                          params: {screen: 'OnlineAIScreen'},
+                        });
+                      } else {
+                        navigation.navigate('Main', {
+                          screen: 'MySpace',
+                          params: {screen: 'AISettingsScreen'},
+                        });
+                      }
+                    }}>
                     <LinearGradient
                       colors={[colors.primary, colors.secondary]}
                       start={{x: 0, y: 0}}
@@ -726,7 +674,6 @@ export const SearchScreen = React.memo(() => {
                   size={30}
                   thickness={3}
                   style={{
-                    marginVertical: 50,
                     alignItems: 'center',
                     alignSelf: 'center',
                   }}
@@ -869,7 +816,8 @@ const styles = StyleSheet.create({
   },
   filterButtonActive: {
     borderWidth: 1,
-    borderColor: colors.modal.activeBorder,
+    borderColor: colors.modal.border,
+    backgroundColor: colors.modal.active,
   },
   recentItemsContainer: {
     paddingTop: spacing.sm,
@@ -898,7 +846,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: colors.text.muted,
     ...typography.body1,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   errorContainer: {
     flex: 1,

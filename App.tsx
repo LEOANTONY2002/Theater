@@ -20,10 +20,13 @@ import {checkInternet} from './src/services/connectivity';
 import {NoInternet} from './src/screens/NoInternet';
 import Onboarding from './src/screens/Onboarding';
 import {OnboardingManager} from './src/store/onboarding';
+import {tmdbWithCache} from './src/services/tmdbWithCache';
+import {offlineCache} from './src/services/offlineCache';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const [hasCache, setHasCache] = useState(false);
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [showDNSModal, setShowDNSModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -47,6 +50,11 @@ const App = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Initialize offline cache and preload essential content
+        await tmdbWithCache.preloadEssentialContent();
+        const hasCacheData = await offlineCache.hasCachedContent();
+        setHasCache(hasCacheData);
+
         // Load onboarding state first
         const ob = await OnboardingManager.getState();
         setIsOnboarded(!!ob.isOnboarded);
@@ -56,12 +64,12 @@ const App = () => {
           return;
         }
         // If already onboarded, then check connectivity
-        // const ok = await checkInternet();
-        // setIsOnline(ok);
-        // if (!ok) {
-        //   setIsLoading(false);
-        //   return;
-        // }
+        const ok = await checkInternet();
+        setIsOnline(ok);
+        if (!ok && !hasCacheData) {
+          setIsLoading(false);
+          return;
+        }
         // Detect and set region
         // var region = await SettingsManager.getRegion();
         // if (!region) {
@@ -127,7 +135,7 @@ const App = () => {
   // Show onboarding if required
 
   // After onboarding is completed, if offline, show NoInternet
-  if (!isOnline) {
+  if (!isOnline && !hasCache) {
     return (
       <QueryClientProvider client={queryClient}>
         <StatusBar barStyle="dark-content" backgroundColor="#000007" />
@@ -149,7 +157,7 @@ const App = () => {
             setIsOnline(ok);
           }}
         />
-      ) : !isOnline ? (
+      ) : !isOnline && !hasCache ? (
         <NoInternet onRetry={handleTryAgain} isRetrying={retrying} />
       ) : (
         <>
@@ -161,7 +169,7 @@ const App = () => {
             return null;
           })()}
           <DNSInstructionsModal
-            visible={showDNSModal}
+            visible={showDNSModal && isOnline}
             onClose={() => setShowDNSModal(false)}
             onTryAgain={handleTryAgain}
           />

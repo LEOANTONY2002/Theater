@@ -1,12 +1,11 @@
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {
-  discoverContent,
   discoverMovies,
   discoverTVShows,
   getTrending,
   searchFilterContent,
-} from '../services/tmdb';
+} from '../services/tmdbWithCache';
 import {SavedFilter} from '../types/filters';
 import {useDiscoverMovies, useMoviesList} from './useMovies';
 import {useDiscoverTVShows, useTVShowsList} from './useTVShows';

@@ -10,7 +10,7 @@ import {
   getTop10MoviesTodayByRegion,
   getContentByGenre,
   fetchContentFromAI,
-} from '../services/tmdb';
+} from '../services/tmdbWithCache';
 import {Movie, MovieDetails, MoviesResponse} from '../types/movie';
 import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';

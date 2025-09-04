@@ -45,7 +45,8 @@ type ContentItem = {
 type UserFeedback = {
   contentId: number;
   title: string;
-  liked: boolean;
+  liked: boolean | null; // null for already watched
+  alreadyWatched?: boolean;
   genres: string[];
   timestamp: number;
 };
@@ -384,14 +385,14 @@ export const MyNextWatch: React.FC = () => {
       if (recommendation) {
         setCurrentRecommendation(recommendation);
       } else {
-        Alert.alert(
-          'No Recommendations',
-          'Unable to get recommendations at the moment. Please try again later.',
-        );
+        // Alert.alert(
+        //   'No Recommendations',
+        //   'Unable to get recommendations at the moment. Please try again later.',
+        // );
       }
     } catch (error) {
       console.error('Error getting recommendation:', error);
-      Alert.alert('Error', 'Failed to get recommendation. Please try again.');
+      // Alert.alert('Error', 'Failed to get recommendation. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -426,6 +427,40 @@ export const MyNextWatch: React.FC = () => {
       await getNextRecommendation(updatedFeedback);
     } catch (error) {
       console.error('Error saving feedback:', error);
+      Alert.alert('Error', 'Failed to save feedback. Please try again.');
+    }
+  };
+
+  const handleAlreadyWatched = async () => {
+    if (!currentRecommendation) return;
+
+    try {
+      const genreNames = GENRES.filter(genre =>
+        currentRecommendation.genre_ids.includes(genre.id),
+      ).map(genre => genre.name);
+
+      const feedback: UserFeedback = {
+        contentId: currentRecommendation.id,
+        title: currentRecommendation.title || currentRecommendation.name || '',
+        liked: null,
+        alreadyWatched: true,
+        genres: genreNames,
+        timestamp: Date.now(),
+      };
+
+      const updatedFeedback = [...userFeedback, feedback];
+      setUserFeedback(updatedFeedback);
+
+      // Save to storage
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.USER_FEEDBACK,
+        JSON.stringify(updatedFeedback),
+      );
+
+      // Get next recommendation
+      await getNextRecommendation(updatedFeedback);
+    } catch (error) {
+      console.error('Error saving already watched feedback:', error);
       Alert.alert('Error', 'Failed to save feedback. Please try again.');
     }
   };
@@ -648,6 +683,24 @@ export const MyNextWatch: React.FC = () => {
                 <Text style={styles.feedbackButtonText}>Looks good!</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+              }}
+              onPress={() => handleAlreadyWatched()}
+              activeOpacity={0.7}>
+              <Ionicons name="eye" size={20} color="#fff" />
+              <Text
+                style={[
+                  styles.feedbackButtonText,
+                  {textDecorationLine: 'underline'},
+                ]}>
+                Already Watched
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       ) : (
@@ -677,10 +730,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     position: 'relative',
-    height: 300,
+    height: 320,
     marginHorizontal: spacing.lg,
     marginTop: spacing.xl,
-    marginBottom: spacing.xl,
+    marginBottom: 80,
     overflow: 'visible',
   },
   backgroundGradient: {
@@ -770,7 +823,7 @@ const styles = StyleSheet.create({
   resetButton: {},
   loadingRecommendation: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingTop: 100,
   },
   loadingText: {
     fontSize: typography.body2.fontSize,
@@ -852,6 +905,9 @@ const styles = StyleSheet.create({
   },
   notOkButton: {
     backgroundColor: colors.modal.blur,
+  },
+  alreadyWatchedButton: {
+    backgroundColor: '#6B7280', // Gray color for "already watched"
   },
   feedbackButtonText: {
     fontSize: 12,

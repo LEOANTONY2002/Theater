@@ -23,7 +23,6 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {FlashList} from '@shopify/flash-list';
 import {useQueryClient} from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useResponsive} from '../hooks/useResponsive';
 
 const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
 const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
@@ -63,11 +62,14 @@ const FALLBACK_MODELS: GeminiModel[] = [
 // Function to fetch available Gemini models from the API
 const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
   try {
+    console.log('fetchGeminiModels called with API key:', apiKey ? 'Present' : 'Missing');
+    
     if (!apiKey || apiKey.trim() === '') {
       console.log('No API key provided, using fallback models');
       return FALLBACK_MODELS;
     }
 
+    console.log('Making API call to fetch Gemini models...');
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
       {
@@ -78,6 +80,8 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
       },
     );
 
+    console.log('API response status:', response.status, response.statusText);
+    
     if (!response.ok) {
       console.error('Failed to fetch models:', response.statusText);
       return FALLBACK_MODELS;
@@ -126,7 +130,7 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
 const AISettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [availableModels, setAvailableModels] =
     useState<GeminiModel[]>(FALLBACK_MODELS);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -134,7 +138,7 @@ const AISettingsScreen: React.FC = () => {
   const [isApiKeyCopied, setIsApiKeyCopied] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [initialSettings, setInitialSettings] = useState<{
-    apiKey: string;
+    apiKey: string | null;
     model: string;
   } | null>(null);
   // In-screen modal state for replacing Alert.alert
@@ -142,7 +146,6 @@ const AISettingsScreen: React.FC = () => {
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
   const queryClient = useQueryClient();
-  const {isTablet} = useResponsive();
 
   const showAlert = (title: string, message: string) => {
     setModalTitle(title);
@@ -154,14 +157,22 @@ const AISettingsScreen: React.FC = () => {
     loadSettings();
   }, []);
 
+  // Load models when API key changes
+  useEffect(() => {
+    if (apiKey && apiKey.trim() !== '') {
+      console.log('API key changed, loading models:', apiKey);
+      loadAvailableModels(apiKey);
+    }
+  }, [apiKey]);
+
   const loadSettings = async () => {
     try {
       const settings = await AISettingsManager.getSettings();
       if (settings) {
-        setApiKey(settings.apiKey || '');
+        setApiKey(settings.apiKey || null);
         setSelectedModel(settings.model || DEFAULT_MODEL);
         setInitialSettings({
-          apiKey: settings.apiKey || '',
+          apiKey: settings.apiKey || null,
           model: settings.model || DEFAULT_MODEL,
         });
 
@@ -171,14 +182,14 @@ const AISettingsScreen: React.FC = () => {
         }
       } else {
         setInitialSettings({
-          apiKey: '',
+          apiKey: null,
           model: DEFAULT_MODEL,
         });
       }
     } catch (error) {
       console.error('Error loading AI settings:', error);
       setInitialSettings({
-        apiKey: '',
+        apiKey: null,
         model: DEFAULT_MODEL,
       });
     }
@@ -251,7 +262,7 @@ const AISettingsScreen: React.FC = () => {
   const saveSettings = async () => {
     if (!hasChanges()) return;
 
-    const trimmedApiKey = apiKey.trim();
+    const trimmedApiKey = apiKey?.trim() || null;
     console.log('trimmedApiKey', trimmedApiKey);
     console.log('initialSettings', initialSettings);
     if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
@@ -293,6 +304,13 @@ const AISettingsScreen: React.FC = () => {
 
       setShowApiKeyInput(false);
       Keyboard.dismiss();
+      
+      // Load available models if API key was added/changed
+      if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
+        console.log('Loading models with new API key:', trimmedApiKey);
+        await loadAvailableModels(trimmedApiKey);
+      }
+      
       showAlert('Success', 'AI settings saved successfully!');
     } catch (error) {
       console.error('Error saving AI settings:', error);
@@ -393,9 +411,83 @@ const AISettingsScreen: React.FC = () => {
           <Text style={styles.headerTitle}>AI Settings</Text>
           <View />
         </View>
-
-        {/* Model Selection Section */}
+        {/* API Key Section */}
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>API Key</Text>
+          <Text style={styles.sectionDescription}>
+            {apiKey
+              ? 'Your API key is saved securely'
+              : 'Add your Google Gemini API key to enable AI features'}
+          </Text>
+
+          {showApiKeyInput ? (
+            <View>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, {paddingRight: 40}]}
+                  value={apiKey || ''}
+                  onChangeText={setApiKey}
+                  placeholder="Enter your Gemini API key..."
+                  placeholderTextColor={colors.text.tertiary}
+                  secureTextEntry={apiKey === DEFAULT_API_KEY}
+                  multiline={false}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoFocus={true}
+                />
+                <TouchableOpacity
+                  style={styles.clipboardButton}
+                  onPress={handlePasteFromClipboard}
+                  activeOpacity={0.7}>
+                  <Icon
+                    name={isApiKeyCopied ? 'checkmark' : 'clipboard-outline'}
+                    size={20}
+                    color={
+                      isApiKeyCopied ? colors.primary : colors.text.secondary
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL('https://aistudio.google.com/app/apikey')
+                }
+                activeOpacity={0.8}>
+                <Text style={styles.inputHint}>
+                  Get your API key from Google AI Studio
+                </Text>
+                <Text
+                  style={{
+                    color: colors.text.tertiary,
+                    fontStyle: 'italic',
+                    textDecorationLine: 'underline',
+                    textDecorationColor: colors.text.primary,
+                    textDecorationStyle: 'solid',
+                  }}>
+                  https://aistudio.google.com/app/apikey
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.apiKeyButton}
+              onPress={toggleApiKeyInput}
+              activeOpacity={0.8}>
+              <Icon
+                name={apiKey ? 'key-outline' : 'add-circle-outline'}
+                size={20}
+                color={colors.text.primary}
+                style={styles.apiKeyButtonIcon}
+              />
+              <Text style={styles.apiKeyButtonText}>
+                {apiKey !== null ? 'Edit API Key' : 'Add API Key'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {/* Model Selection Section - Only show when API key is set */}
+        {apiKey && (
+          <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
               <Text style={[styles.sectionTitle, {marginBottom: -spacing.sm}]}>
@@ -403,7 +495,7 @@ const AISettingsScreen: React.FC = () => {
               </Text>
               <TouchableOpacity
                 style={styles.refreshButton}
-                onPress={() => loadAvailableModels(apiKey)}
+                onPress={() => loadAvailableModels(apiKey || '')}
                 disabled={isLoadingModels}>
                 <Icon
                   name="refresh"
@@ -495,121 +587,8 @@ const AISettingsScreen: React.FC = () => {
               />
             </View>
           )}
-        </View>
-
-        {/* API Key Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>API Key</Text>
-          <Text style={styles.sectionDescription}>
-            {apiKey
-              ? 'Your API key is saved securely'
-              : 'Add your Google Gemini API key to enable AI features'}
-          </Text>
-
-          {showApiKeyInput ? (
-            <View>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[styles.input, {paddingRight: 40}]}
-                  value={apiKey === DEFAULT_API_KEY ? '' : apiKey}
-                  onChangeText={setApiKey}
-                  placeholder="Enter your Gemini API key..."
-                  placeholderTextColor={colors.text.tertiary}
-                  secureTextEntry={apiKey === DEFAULT_API_KEY}
-                  multiline={false}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoFocus={true}
-                />
-                <TouchableOpacity
-                  style={styles.clipboardButton}
-                  onPress={handlePasteFromClipboard}
-                  activeOpacity={0.7}>
-                  <Icon
-                    name={isApiKeyCopied ? 'checkmark' : 'clipboard-outline'}
-                    size={20}
-                    color={
-                      isApiKeyCopied ? colors.primary : colors.text.secondary
-                    }
-                  />
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL('https://aistudio.google.com/app/apikey')
-                }
-                activeOpacity={0.8}>
-                <Text style={styles.inputHint}>
-                  Get your API key from Google AI Studio
-                </Text>
-                <Text
-                  style={{
-                    color: colors.text.tertiary,
-                    fontStyle: 'italic',
-                    textDecorationLine: 'underline',
-                    textDecorationColor: colors.text.primary,
-                    textDecorationStyle: 'solid',
-                  }}>
-                  https://aistudio.google.com/app/apikey
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.apiKeyButton}
-              onPress={toggleApiKeyInput}
-              activeOpacity={0.8}>
-              <Icon
-                name={apiKey ? 'key-outline' : 'add-circle-outline'}
-                size={20}
-                color={colors.text.primary}
-                style={styles.apiKeyButtonIcon}
-              />
-              <Text style={styles.apiKeyButtonText}>
-                {apiKey !== DEFAULT_API_KEY ? 'Edit API Key' : 'Add API Key'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Instructions to get Gemini API key */}
-        <View>
-          <Text style={[styles.sectionTitle, {marginBottom: spacing.md}]}>
-            Instructions to get Gemini API key
-          </Text>
-          <View>
-            <Text style={styles.sectionDescription}>
-              1. Go to Google AI Studio
-            </Text>
-            <TouchableOpacity
-              onPress={() =>
-                Linking.openURL('https://aistudio.google.com/app/apikey')
-              }
-              style={{marginBottom: spacing.md}}
-              activeOpacity={0.8}>
-              <Text style={styles.inputHint}>
-                Click here to get your API key from Google AI Studio
-              </Text>
-              <Text
-                style={{
-                  color: colors.text.tertiary,
-                  fontStyle: 'italic',
-                  textDecorationLine: 'underline',
-                  textDecorationColor: colors.text.primary,
-                  textDecorationStyle: 'solid',
-                }}>
-                https://aistudio.google.com/app/apikey
-              </Text>
-            </TouchableOpacity>
           </View>
-          <Text style={styles.sectionDescription}>
-            2. Click on "Create API key"
-          </Text>
-          <Text style={styles.sectionDescription}>3. Copy the API key</Text>
-          <Text style={styles.sectionDescription}>
-            4. Paste the API key above
-          </Text>
-        </View>
+        )}
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
@@ -617,7 +596,6 @@ const AISettingsScreen: React.FC = () => {
             style={[
               styles.saveButton,
               !hasChanges() || isValidating ? {opacity: 0.3} : null,
-              isTablet && {width: '60%', alignSelf: 'center'},
             ]}
             onPress={saveSettings}
             disabled={!hasChanges() || isValidating}
@@ -820,7 +798,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     height: 60,
     backgroundColor: colors.primary,
-    marginTop: spacing.md,
   },
   saveButtonGradient: {
     paddingVertical: spacing.md,

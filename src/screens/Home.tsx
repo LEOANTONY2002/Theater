@@ -46,10 +46,12 @@ import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FastImage from 'react-native-fast-image';
 import {BlurView} from '@react-native-community/blur';
+import {useAIEnabled} from '../hooks/useAIEnabled';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
   const {navigateWithLimit} = useNavigationState();
+  const {isAIEnabled} = useAIEnabled();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
@@ -367,8 +369,8 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
-    // Mood setup or My Next Watch section - always first if available
-    if (moodLoaded) {
+    // Mood setup or My Next Watch section - only if AI is enabled
+    if (moodLoaded && isAIEnabled) {
       if (!moodAnswers) {
         // Show mood setup prompt
         sectionsList.push({
@@ -629,6 +631,7 @@ export const HomeScreen = React.memo(() => {
     handleSeeAllPress,
     moodLoaded,
     moodAnswers,
+    isAIEnabled,
   ]);
 
   // Render all sections without batching

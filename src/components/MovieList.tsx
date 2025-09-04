@@ -16,7 +16,9 @@ import {Text} from 'react-native-gesture-handler';
 import {GradientSpinner} from './GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 
-export type ContentItem = (Movie & {type: 'movie'}) | (TVShow & {type: 'tv'});
+export type ContentItem =
+  | (Movie & {type: 'movie'})
+  | (TVShow & {type: 'tv'} & {adult?: boolean});
 
 type MovieListProps = {
   data: ContentItem[];
@@ -117,7 +119,7 @@ export const MovieList: React.FC<MovieListProps> = ({
 const styles = StyleSheet.create({
   container: {
     // padding: spacing.md,
-    paddingTop: 120,
+    paddingVertical: 120,
     width: '100%',
     display: 'flex',
   },

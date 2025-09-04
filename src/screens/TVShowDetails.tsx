@@ -62,6 +62,7 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
 import TheaterAIIcon from '../assets/theaterai.png';
+import {useAIEnabled} from '../hooks/useAIEnabled';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -80,6 +81,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const navigation = useNavigation<TVShowDetailsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const {show} = route.params;
+  const {isAIEnabled} = useAIEnabled();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
@@ -775,12 +777,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
-          {type: 'trivia', id: 'trivia'},
+          ...(isAIEnabled ? [{type: 'trivia', id: 'trivia'}] : []),
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
           {type: 'seasons', id: 'seasons'},
-          {type: 'aiSimilar', id: 'aiSimilar'},
           {type: 'similar', id: 'similar'},
+          {type: 'recommendations', id: 'recommendations'},
         ]}
         renderItem={({item}: {item: any}) => {
           switch (item.type) {

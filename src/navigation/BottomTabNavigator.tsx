@@ -220,7 +220,7 @@ export const BottomTabNavigator = () => {
           name="MySpace"
           component={MySpaceStackNavigator}
           listeners={({navigation}) => ({
-            tabPress: (e) => {
+            tabPress: e => {
               // Reset the MySpace stack to initial screen when tab is pressed
               navigation.reset({
                 index: 0,

@@ -353,7 +353,7 @@ export const searchMovies = async (
     params: params2,
   });
 
-  return searchResponse.data;
+  return filterTagalogContent(searchResponse.data);
 };
 
 export const searchTVShows = async (
@@ -398,7 +398,7 @@ export const searchTVShows = async (
     params: searchParams,
   });
 
-  return searchResponse.data;
+  return filterTagalogContent(searchResponse.data);
 };
 
 export const searchFilterContent = async (

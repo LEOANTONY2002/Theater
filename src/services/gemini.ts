@@ -1,17 +1,19 @@
 import {AISettingsManager} from '../store/aiSettings';
+import {cache, CACHE_KEYS} from '../utils/cache';
 
 // Default fallback values
 const DEFAULT_MODEL = 'gemini-2.5-flash';
-const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
+// const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
 
 // Dynamic function to get current settings
 const getGeminiConfig = async () => {
+  const settings = await AISettingsManager.getSettings();
+
   try {
-    const settings = await AISettingsManager.getSettings();
 
     return {
       model: settings.model || DEFAULT_MODEL,
-      apiKey: settings.apiKey || DEFAULT_API_KEY,
+      apiKey: settings.apiKey,
       apiUrl: `https://generativelanguage.googleapis.com/v1beta/models/${
         settings.model || DEFAULT_MODEL
       }:generateContent`,
@@ -20,7 +22,7 @@ const getGeminiConfig = async () => {
     console.error('Error getting AI settings, using defaults:', error);
     return {
       model: DEFAULT_MODEL,
-      apiKey: DEFAULT_API_KEY,
+      apiKey: settings.apiKey,
       apiUrl: `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`,
     };
   }
@@ -141,6 +143,14 @@ export async function getSimilarByStory({
   genres: string;
   type: 'movie' | 'tv';
 }) {
+  const cacheKey = `${type}:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  
+  // Try to get from cache first
+  const cachedResponse = await cache.get(CACHE_KEYS.AI_SIMILAR, cacheKey);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
   const system = {
     role: 'system' as const,
     content: `You are a movie/TV recommender called Theater AI. 
@@ -156,7 +166,12 @@ export async function getSimilarByStory({
 
   try {
     const result = await callGemini([system, user]);
-
+    
+    // Cache the response for 1 week
+    if (result) {
+      await cache.set(CACHE_KEYS.AI_SIMILAR, cacheKey, result, 7 * 24 * 60 * 60 * 1000);
+    }
+    
     // Try to extract JSON from the response
     const jsonMatch = result.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
@@ -177,6 +192,16 @@ export async function getSimilarByStory({
 export async function cinemaChat(
   messages: {role: 'user' | 'assistant'; content: string}[],
 ) {
+  // Don't cache the entire chat, but we can cache common queries
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage.role === 'user') {
+    const cacheKey = lastMessage.content.toLowerCase().trim();
+    const cachedResponse = await cache.get(CACHE_KEYS.AI_CHAT, cacheKey);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+  }
+
   const system = {
     role: 'system' as const,
     content: `You are an expert cinema assistant called Theater AI. 
@@ -189,21 +214,33 @@ export async function cinemaChat(
   };
 
   const geminiMessages = [system, ...messages];
-  const res = await callGemini(geminiMessages);
-  let arr = [];
+  try {
+    const response = await callGemini(geminiMessages);
+    
+    // Cache common queries for 1 day
+    if (lastMessage.role === 'user' && response) {
+      const cacheKey = lastMessage.content.toLowerCase().trim();
+      await cache.set(CACHE_KEYS.AI_CHAT, cacheKey, response, 24 * 60 * 60 * 1000);
+    }
+    
+    let arr = [];
 
-  // Try to extract JSON from the response
-  const jsonMatch = res.match(/\[.*?\]/s);
-  console.log('jsonMatch', jsonMatch);
+    // Try to extract JSON from the response
+    const jsonMatch = response.match(/\[.*?\]/s);
+    console.log('jsonMatch', jsonMatch);
 
-  if (jsonMatch) {
-    arr = JSON.parse(jsonMatch[0] || '[]');
+    if (jsonMatch) {
+      arr = JSON.parse(jsonMatch[0] || '[]');
+    }
+
+    // AI Response without JSON
+    const aiResponse = response.replace(/\[.*?\]/s, '');
+
+    return {aiResponse, arr};
+  } catch (error) {
+    console.error('Error in cinemaChat:', error);
+    throw error;
   }
-
-  // AI Response without JSON
-  const aiResponse = res.replace(/\[.*?\]/s, '');
-
-  return {aiResponse, arr};
 }
 
 // For Movie/TV Trivia & Facts
@@ -216,39 +253,98 @@ export async function getMovieTrivia({
   year?: string;
   type: 'movie' | 'tv';
 }) {
-  const system = {
-    role: 'system' as const,
-    content: `You are Theater AI, an expert in movie and TV trivia. 
-      Generate 3-4 interesting, lesser-known facts about the given ${type}.
-      Include behind-the-scenes information, production trivia, cast facts, or interesting details.
-      
-      Return ONLY a JSON array of fact objects:
-      [{"fact": "Interesting trivia fact here", "category": "Production" | "Cast" | "Behind the Scenes" | "Fun Fact"}]
-      
-      Do not include any explanation or extra text. Just return the JSON array.`,
-  };
+  // Generate a consistent cache key
+  const cacheKey = `trivia:${type}:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}${year ? `:${year}` : ''}`;
+  
+  // Try to get from cache first
+  try {
+    const cached = await cache.get<string>(CACHE_KEYS.AI_TRIVIA, cacheKey);
+    if (cached) {
+      // If we have a cached string, parse it
+      if (typeof cached === 'string') {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } 
+      // If it's already an array, return it
+      else if (Array.isArray(cached)) {
+        return cached;
+      }
+      console.warn('Invalid cached trivia format, fetching fresh data');
+    }
+  } catch (e) {
+    console.warn('Error reading from cache:', e);
+  }
 
-  const user = {
-    role: 'user' as const,
-    content: `${type === 'movie' ? 'Movie' : 'TV Show'}: ${title}${year ? ` (${year})` : ''}`,
-  };
+  const yearSuffix = year ? ` (${year})` : '';
+  const prompt = `Provide 5 interesting pieces of trivia about the ${type} "${title}${yearSuffix}". Format your response as a JSON array of strings. Only return the JSON array, no other text or markdown formatting.`;
 
   try {
-    const result = await callGemini([system, user]);
+    const response = await callGemini([
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ]);
+
+    let triviaItems: string[] = [];
     
-    // Try to extract JSON from the response
-    const jsonMatch = result.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return Array.isArray(parsed) ? parsed : [];
+    // First try to parse the response as JSON
+    try {
+      // Try to extract JSON array if it's wrapped in markdown or other text
+      const jsonMatch = response.match(/\[([\s\S]*?)\]/);
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[0];
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed)) {
+          triviaItems = parsed.filter((item: any) => typeof item === 'string');
+        }
+      } else {
+        // If no array found, try to parse the whole response
+        const parsed = JSON.parse(response);
+        if (Array.isArray(parsed)) {
+          triviaItems = parsed.filter((item: any) => typeof item === 'string');
+        } else if (typeof parsed === 'string') {
+          triviaItems = [parsed];
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse trivia as JSON, using as plain text');
+      // If all else fails, split by newlines and clean up
+      triviaItems = response
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.match(/^[\[\]{}]/)); // Remove any JSON artifacts
     }
 
-    // If no JSON array found, try to parse the entire response
-    const parsed = JSON.parse(result);
-    return Array.isArray(parsed) ? parsed : [];
+    // Ensure we have at least one valid trivia item
+    if (triviaItems.length === 0) {
+      triviaItems = [
+        `No trivia available for ${title}${yearSuffix}. Check back later!`,
+      ];
+    }
+
+    // Format as TriviaFact array
+    const triviaFacts = triviaItems.map(fact => ({
+      fact,
+      category: ['Production', 'Cast', 'Behind the Scenes', 'Fun Fact'][
+        Math.floor(Math.random() * 4)
+      ] as 'Production' | 'Cast' | 'Behind the Scenes' | 'Fun Fact',
+    }));
+
+    // Cache the formatted trivia
+    await cache.set(
+      CACHE_KEYS.AI_TRIVIA,
+      cacheKey,
+      JSON.stringify(triviaFacts),
+      30 * 24 * 60 * 60 * 1000, // 30 days
+    );
+
+    return triviaFacts;
   } catch (error) {
-    console.error('Error parsing trivia response:', error);
-    return [];
+    console.error('Error in getMovieTrivia:', error);
+    throw error;
   }
 }
 
@@ -258,13 +354,30 @@ export async function getPersonalizedRecommendation(
   feedbackHistory: Array<{
     contentId: number;
     title: string;
-    liked: boolean;
+    liked: boolean | null;
+    alreadyWatched?: boolean;
     genres: string[];
     timestamp: number;
   }>
 ): Promise<any> {
-  const likedContent = feedbackHistory.filter(f => f.liked);
-  const dislikedContent = feedbackHistory.filter(f => !f.liked);
+  // Create a cache key based on mood answers and recent feedback
+  const cacheKey = `mood:${JSON.stringify(moodAnswers)}:history:${feedbackHistory.length > 0 ? feedbackHistory[0].contentId : 'none'}`;
+  
+  // Try to get from cache first (shorter TTL since preferences might change)
+  const cachedResponse = await cache.get(CACHE_KEYS.AI_RECOMMENDATION, cacheKey);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const likedContent = feedbackHistory.filter(f => f.liked === true);
+  const dislikedContent = feedbackHistory.filter(f => f.liked === false);
+  const alreadyWatchedContent = feedbackHistory.filter(f => f.alreadyWatched === true);
+  
+  // Get all content IDs that should be excluded from recommendations
+  const excludedContentIds = [
+    ...alreadyWatchedContent.map(c => c.contentId),
+    ...dislikedContent.map(c => c.contentId)
+  ];
   
   const system = {
     role: 'system' as const,
@@ -302,7 +415,15 @@ export async function getPersonalizedRecommendation(
     userPrompt += `Content I didn't enjoy:\n${dislikedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
   }
   
-  userPrompt += 'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now.';
+  if (alreadyWatchedContent.length > 0) {
+    userPrompt += `Content I've already watched:\n${alreadyWatchedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+  }
+  
+  userPrompt += 'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now. ';
+  
+  if (excludedContentIds.length > 0) {
+    userPrompt += 'IMPORTANT: Do not recommend any content I have already watched or disliked.';
+  }
 
   const user = {
     role: 'user' as const,

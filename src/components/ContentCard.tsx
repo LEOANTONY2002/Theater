@@ -1,4 +1,4 @@
-import React, {useState, useCallback, memo} from 'react';
+import React, {useState, useCallback, memo, useEffect} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
@@ -6,6 +6,7 @@ import {getImageUrl} from '../services/tmdb';
 import {colors, spacing, borderRadius} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
 import {ContentCardSkeleton} from './LoadingSkeleton';
+import {checkInternet} from '../services/connectivity';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -16,6 +17,17 @@ interface ContentCardProps {
 export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
     const {isTablet} = useResponsive();
+    const [imageError, setImageError] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
+
+    useEffect(() => {
+      const checkConnectivity = async () => {
+        const offline = await checkInternet();
+        setIsOffline(!offline);
+      };
+      checkConnectivity();
+    }, []);
+
     const imgPath = v2 ? item.backdrop_path : item.poster_path;
     const imageUrl = imgPath
       ? getImageUrl(imgPath, isTablet ? 'w342' : 'w185')
@@ -47,13 +59,18 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
           delayPressOut={0}
           delayLongPress={0}>
           <FastImage
-            source={{
-              uri: imageUrl || 'https://via.placeholder.com/300x450',
-              priority: FastImage.priority.normal,
-              cache: FastImage.cacheControl.web,
-            }}
+            source={
+              imageError && isOffline
+                ? require('../assets/theater.png')
+                : {
+                    uri: imageUrl || 'https://via.placeholder.com/300x450',
+                    priority: FastImage.priority.normal,
+                    cache: FastImage.cacheControl.immutable,
+                  }
+            }
             style={styles.image}
             resizeMode={FastImage.resizeMode.cover}
+            onError={() => setImageError(true)}
           />
         </TouchableOpacity>
 

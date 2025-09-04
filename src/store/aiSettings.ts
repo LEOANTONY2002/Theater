@@ -4,20 +4,20 @@ const AI_SETTINGS_KEY = 'ai_settings';
 
 export interface AISettings {
   model: string;
-  apiKey: string;
+  apiKey: string | null;
   isDefault: boolean; // true if using the hardcoded default key
 }
 
 // Allow callers to omit isDefault; we compute it from apiKey
 export interface AISettingsInput {
   model: string;
-  apiKey: string;
+  apiKey: string | null;
   isDefault?: boolean;
 }
 
 const DEFAULT_SETTINGS: AISettings = {
   model: 'gemini-2.5-flash',
-  apiKey: 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8', // Default API key
+  apiKey: null,
   isDefault: true,
 };
 

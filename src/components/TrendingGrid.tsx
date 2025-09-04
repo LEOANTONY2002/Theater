@@ -123,11 +123,6 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
             />
           ) : null
         }
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={6}
-        windowSize={5}
-        initialNumToRender={6}
-        getItemLayout={undefined}
       />
     </View>
   );

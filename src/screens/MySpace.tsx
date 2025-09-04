@@ -42,6 +42,7 @@ import {AISettingsManager} from '../store/aiSettings';
 import {useResponsive} from '../hooks/useResponsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
+import {useAIEnabled} from '../hooks/useAIEnabled';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -55,11 +56,13 @@ interface Region {
 export const MySpaceScreen = React.memo(() => {
   const navigation = useNavigation<MySpaceScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
+  const {isAIEnabled} = useAIEnabled();
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showMoodModal, setShowMoodModal] = useState(false);
+  const [showAINotEnabledModal, setShowAINotEnabledModal] = useState(false);
   const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
   const [lastMoodUpdate, setLastMoodUpdate] = useState<string>('');
   const {isTablet} = useResponsive();
@@ -409,6 +412,88 @@ export const MySpaceScreen = React.memo(() => {
       marginTop: spacing.xs,
       fontFamily: 'Inter',
     },
+    closeButton: {
+      padding: spacing.xs,
+    },
+    modalText: {
+      color: colors.text.primary,
+      ...typography.body1,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    button: {
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
+    },
+    gradientButton: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      color: colors.text.primary,
+      ...typography.button,
+      fontWeight: '600',
+    },
+    // Dialog styles matching onboarding AI setup
+    dialogOverlay: {
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      marginHorizontal: spacing.md,
+    },
+    dialogCard: {
+      width: '100%',
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.modal.content,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      padding: spacing.lg,
+    },
+    dialogHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    dialogTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginBottom: spacing.xs,
+    },
+    dialogMessage: {
+      ...typography.body1,
+      color: colors.text.secondary,
+      marginBottom: spacing.lg,
+    },
+    dialogButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: spacing.md,
+      gap: spacing.sm,
+    },
+    dialogSecondaryButton: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dialogSecondaryButtonText: {
+      ...typography.button,
+      color: colors.text.secondary,
+      fontWeight: '500',
+    },
+    dialogPrimaryButtonText: {
+      ...typography.button,
+      fontWeight: '600',
+      color: colors.text.primary,
+    },
   });
 
   return (
@@ -580,7 +665,13 @@ export const MySpaceScreen = React.memo(() => {
               borderColor: colors.modal.blur,
             },
           ]}
-          onPress={() => navigateWithLimit('OnlineAIScreen')}
+          onPress={() => {
+            if (isAIEnabled) {
+              navigateWithLimit('OnlineAIScreen');
+            } else {
+              setShowAINotEnabledModal(true);
+            }
+          }}
           testID="askAIHeader">
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>
             Theater AI
@@ -807,6 +898,84 @@ export const MySpaceScreen = React.memo(() => {
               onCancel={handleMoodCancel}
               initialAnswers={moodAnswers}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* AI Not Enabled Dialog */}
+      <Modal
+        visible={showAINotEnabledModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAINotEnabledModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.14)',
+          }}>
+          <View style={styles.dialogOverlay}>
+            <BlurView
+              blurAmount={10}
+              blurRadius={5}
+              blurType="light"
+              overlayColor={colors.modal.blur}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 50,
+              }}
+            />
+            <View style={styles.dialogCard}>
+              <View style={styles.dialogHeader}>
+                <Text style={styles.dialogTitle}>
+                  Add API Key to enable AI Features
+                </Text>
+              </View>
+              <Text style={styles.dialogMessage}>
+                Set your API key to enjoy:
+                {'\n'}• Cinema chat assistant
+                {'\n'}• Movie/Show level chat assistant
+                {'\n'}• AI-powered movie recommendations
+                {'\n'}• My Next Watch - Personalized content discovery
+                {'\n'}• Trivia & Facts
+              </Text>
+              <View style={styles.dialogButtons}>
+                <TouchableOpacity
+                  style={styles.dialogSecondaryButton}
+                  activeOpacity={0.9}
+                  onPress={() => setShowAINotEnabledModal(false)}>
+                  <Text style={styles.dialogSecondaryButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={{flex: 1}}
+                  onPress={() => {
+                    setShowAINotEnabledModal(false);
+                    navigation.navigate('AISettingsScreen');
+                  }}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={{
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      borderRadius: borderRadius.md,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                    <Text style={styles.dialogPrimaryButtonText}>
+                      Set API Key
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>

@@ -11,7 +11,7 @@ import {
   getTop10TVShowsTodayByRegion,
   getContentByGenre,
   fetchContentFromAI,
-} from '../services/tmdb';
+} from '../services/tmdbWithCache';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
 import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
@@ -171,7 +171,7 @@ export const useAISimilarTVShows = (
     queryKey: ['ai_similar_tvshows', tvShowId, title, overview],
     queryFn: async () => {
       if (!title || !overview) return [];
-      
+
       try {
         const aiResponse = await getSimilarByStory({
           title,
@@ -179,7 +179,7 @@ export const useAISimilarTVShows = (
           genres: genres?.map((g: Genre) => g?.name).join(', ') || '',
           type: 'tv',
         });
-        
+
         if (Array.isArray(aiResponse) && aiResponse.length > 0) {
           const shows = await fetchContentFromAI(aiResponse, 'tv');
           return shows;
