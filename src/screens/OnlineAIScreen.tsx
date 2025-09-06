@@ -637,7 +637,7 @@ export const OnlineAIScreen: React.FC = () => {
                   }}>
                   <View style={{height: 250}} />
                   <Image
-                    source={require('../assets/theater.png')}
+                    source={require('../assets/theater.webp')}
                     style={{width: 100, height: 100}}
                   />
                   <Text
@@ -734,7 +734,7 @@ export const OnlineAIScreen: React.FC = () => {
                 }}>
                 <View style={{height: 250}} />
                 <Image
-                  source={require('../assets/theater.png')}
+                  source={require('../assets/theater.webp')}
                   style={{width: 100, height: 100}}
                 />
                 <Text

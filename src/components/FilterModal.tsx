@@ -97,6 +97,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [tempLanguageSelection, setTempLanguageSelection] = useState<
     SettingsLanguage[]
   >([]);
+  const [showAllGenresModal, setShowAllGenresModal] = useState(false);
+  const [showAllProvidersModal, setShowAllProvidersModal] = useState(false);
   const {isTablet} = useResponsive();
 
   useEffect(() => {
@@ -545,11 +547,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             </View>
 
             {/* Genres */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Genres</Text>
+            <View style={[styles.section, {paddingHorizontal: 0}]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Genres</Text>
+                <TouchableOpacity
+                  style={styles.showAllButton}
+                  onPress={() => setShowAllGenresModal(true)}>
+                  <Text style={styles.showAllText}>Show All</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.accent}
+                  />
+                </TouchableOpacity>
+              </View>
               <FlatList
                 data={getFilteredGenres()}
-                scrollEnabled={false}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
                 renderItem={({item: genre}) => (
                   <Chip
                     key={genre.id}
@@ -578,8 +595,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   />
                 )}
                 keyExtractor={genre => genre.id.toString()}
-                numColumns={3}
-                contentContainerStyle={styles.genresContainer}
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingRight: 32,
+                }}
+                ItemSeparatorComponent={() => <View style={{width: 8}} />}
               />
             </View>
 
@@ -693,16 +713,27 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             </View>
 
             {/* Watch Providers */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Watch Providers</Text>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                {watchProviders.map((provider, index) => {
+            <View style={[styles.section, {paddingHorizontal: 0}]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Watch Providers</Text>
+                <TouchableOpacity
+                  style={styles.showAllButton}
+                  onPress={() => setShowAllProvidersModal(true)}>
+                  <Text style={styles.showAllText}>Show All</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.accent}
+                  />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={watchProviders}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                renderItem={({item: provider, index}) => {
                   const selected = (() => {
                     if (!filters.with_watch_providers) return false;
                     return filters.with_watch_providers
@@ -718,8 +749,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       }
                       style={[
                         {
-                          borderRadius: 10,
-                          margin: 3,
+                          borderRadius: 16,
                           opacity: 0.7,
                         },
                         selected && {
@@ -729,20 +759,28 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       ]}>
                       <Image
                         source={{
-                          uri: `https://image.tmdb.org/t/p/w92${provider.logo_path}`,
+                          uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
                         }}
                         style={{
-                          width: 40,
-                          height: 40,
+                          width: 70,
+                          height: 70,
                           margin: 2,
-                          borderRadius: 8,
+                          borderRadius: 16,
                         }}
                         resizeMode="contain"
                       />
                     </TouchableOpacity>
                   );
-                })}
-              </View>
+                }}
+                keyExtractor={(provider, index) =>
+                  `provider-${provider.provider_id}-${index}`
+                }
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingRight: 32,
+                }}
+                ItemSeparatorComponent={() => <View style={{width: 8}} />}
+              />
             </View>
 
             <View style={{height: 150}} />
@@ -849,19 +887,19 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: colors.modal.blur,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
           }}>
           <View
             style={{
-              backgroundColor: colors.modal.active,
-              borderRadius: 16,
+              backgroundColor: colors.modal.content,
+              borderRadius: borderRadius.lg,
               padding: 24,
               width: 300,
               alignItems: 'center',
             }}>
             <Text
               style={{
-                color: 'rgba(50, 50, 50, 0.8)',
+                color: 'rgba(255, 255, 255, 0.8)',
                 fontSize: 18,
                 fontWeight: 800,
                 marginBottom: 16,
@@ -870,7 +908,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             </Text>
             <TextInput
               style={{
-                backgroundColor: colors.modal.active,
+                backgroundColor: colors.modal.blur,
                 color: '#fff',
                 borderRadius: 8,
                 padding: 10,
@@ -879,7 +917,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 marginBottom: 16,
               }}
               placeholder="Filter name"
-              placeholderTextColor="rgba(110, 110, 110, 0.27)"
+              placeholderTextColor="rgba(168, 168, 168, 0.8)"
               value={newFilterName}
               onChangeText={setNewFilterName}
               editable={!saving}
@@ -934,11 +972,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: colors.modal.blur,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
           }}>
           <View
             style={{
-              backgroundColor: colors.modal.active,
+              backgroundColor: colors.modal.blur,
               borderRadius: 16,
               padding: 24,
               width: 300,
@@ -946,14 +984,19 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             }}>
             <Text
               style={{
-                color: '#444',
+                color: '#fff',
                 fontSize: 18,
                 marginBottom: 6,
                 fontWeight: 800,
               }}>
               No Results
             </Text>
-            <Text style={{color: '#fff', marginBottom: 16, fontWeight: 400}}>
+            <Text
+              style={{
+                color: 'rgba(255, 255, 255, 0.5)',
+                marginBottom: 16,
+                fontWeight: 400,
+              }}>
               This filter has no content
             </Text>
             <TouchableOpacity
@@ -1018,6 +1061,129 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 }
               />
             </View>
+          </BlurView>
+        </View>
+      </Modal>
+
+      {/* All Genres Modal */}
+      <Modal
+        visible={showAllGenresModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={() => setShowAllGenresModal(false)}>
+        <View style={styles.modalContainer}>
+          <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>All Genres</Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowAllGenresModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.scrollContent}>
+              <View style={styles.allGenresGrid}>
+                {getFilteredGenres().map(genre => (
+                  <Chip
+                    key={genre.id}
+                    label={genre.name}
+                    selected={(() => {
+                      if (!filters.with_genres) return false;
+                      if (contentType !== 'all') {
+                        return filters.with_genres.includes(
+                          genre.id.toString(),
+                        );
+                      }
+                      const movieMatch = movieGenres.find(
+                        g => g.name === genre.name,
+                      );
+                      const tvMatch = tvGenres.find(g => g.name === genre.name);
+                      const ids = [movieMatch?.id, tvMatch?.id]
+                        .filter(Boolean)
+                        .map(String) as string[];
+                      if (ids.length === 0)
+                        return filters.with_genres.includes(
+                          genre.id.toString(),
+                        );
+                      return ids.some(id => filters.with_genres!.includes(id));
+                    })()}
+                    onPress={() => handleGenreToggle(genre.id, genre.name)}
+                  />
+                ))}
+              </View>
+              <View style={{height: 100}} />
+            </ScrollView>
+          </BlurView>
+        </View>
+      </Modal>
+
+      {/* All Watch Providers Modal */}
+      <Modal
+        visible={showAllProvidersModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={() => setShowAllProvidersModal(false)}>
+        <View style={styles.modalContainer}>
+          <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>All Watch Providers</Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowAllProvidersModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.scrollContent}>
+              <View style={styles.allProvidersGrid}>
+                {watchProviders.map((provider, index) => {
+                  const selected = (() => {
+                    if (!filters.with_watch_providers) return false;
+                    return filters.with_watch_providers
+                      .split('|')
+                      .includes(provider.provider_id.toString());
+                  })();
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      key={`modal-provider-${provider.provider_id}-${index}`}
+                      onPress={() =>
+                        handleWatchProviderToggle(provider.provider_id)
+                      }
+                      style={[
+                        {
+                          borderRadius: 16,
+                          margin: 3,
+                          opacity: 0.7,
+                          backgroundColor: colors.modal.blur,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        },
+                        selected && {
+                          backgroundColor: colors.modal.active,
+                          opacity: 1,
+                          borderWidth: 2,
+                          borderColor: colors.modal.activeBorder,
+                        },
+                      ]}>
+                      <Image
+                        source={{
+                          uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
+                        }}
+                        style={{
+                          width: 70,
+                          height: 70,
+                          borderRadius: 16,
+                        }}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={{height: 100}} />
+            </ScrollView>
           </BlurView>
         </View>
       </Modal>

@@ -27,9 +27,9 @@ export const createButton = ({
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      paddingVertical: icon ? spacing.sm : 0,
+      paddingVertical: 0,
       paddingHorizontal: spacing.md,
-      height: icon ? 60 : 40,
+      height: 40,
       borderRadius: borderRadius.round,
     },
     addButtonText: {
@@ -47,7 +47,7 @@ export const createButton = ({
         end={{x: 1, y: 1}}
         colors={colors.gradient.tertiary}
         style={styles.addButton}>
-        {icon && <Ionicons name={icon} size={25} color={colors.text.primary} />}
+        {icon && <Ionicons name={icon} size={20} color={colors.text.primary} />}
         <Text style={styles.addButtonText}>{title}</Text>
       </LinearGradient>
     </TouchableOpacity>

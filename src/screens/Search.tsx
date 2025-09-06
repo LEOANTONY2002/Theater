@@ -51,20 +51,8 @@ const MAX_RECENT_ITEMS = 10;
 
 const NoResults = ({query}: {query: string}) => (
   <View style={styles.noResultsContainer}>
-    <LinearGradient
-      style={{
-        position: 'absolute',
-        top: 53,
-        width: '60%',
-        height: 300,
-        zIndex: 1,
-        marginLeft: 30,
-        transform: [{rotateX: '50deg'}],
-      }}
-      colors={[colors.background.secondary, 'transparent']}
-    />
     <Image
-      source={require('../assets/cat.png')}
+      source={require('../assets/search.png')}
       style={{width: 220, opacity: 0.5, marginBottom: -30}}
       resizeMode="contain"
     />
@@ -592,7 +580,7 @@ export const SearchScreen = React.memo(() => {
                       alignItems: 'center',
                     }}>
                     <FastImage
-                      source={require('../assets/theater.png')}
+                      source={require('../assets/theater.webp')}
                       style={{width: 60, height: 60}}
                     />
                     <View>

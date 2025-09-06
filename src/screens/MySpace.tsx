@@ -655,7 +655,7 @@ export const MySpaceScreen = React.memo(() => {
           style={[
             styles.headerContainer,
             {
-              backgroundColor: 'rgba(19, 19, 25, 0.98)',
+              backgroundColor: 'rgba(19, 19, 25, 0.7)',
               borderRadius: borderRadius.md,
               padding: spacing.md,
               alignItems: 'center',
@@ -788,7 +788,7 @@ export const MySpaceScreen = React.memo(() => {
           accessibilityLabel="Visit TMDB website"
           style={styles.tmdbLogoWrapper}>
           <Image
-            source={require('../assets/tmdb.png')}
+            source={require('../assets/tmdb.webp')}
             style={styles.tmdbLogo}
             resizeMode="contain"
           />

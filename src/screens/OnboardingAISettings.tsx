@@ -646,7 +646,10 @@ const OnboardingAISettings: React.FC<{
             <TouchableOpacity activeOpacity={0.9} onPress={handleSkipPress}>
               <Text style={{color: colors.text.muted}}>Skip</Text>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.9} onPress={saveSettings}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              disabled={isValidating || apiKey === ''}
+              onPress={saveSettings}>
               <LinearGradient
                 colors={[colors.primary, colors.secondary]}
                 start={{x: 0, y: 0}}
@@ -657,6 +660,7 @@ const OnboardingAISettings: React.FC<{
                   alignItems: 'center',
                   justifyContent: 'center',
                   width: isTablet ? 200 : width * 0.5,
+                  opacity: isValidating || apiKey === '' ? 0.5 : 1,
                 }}>
                 <Text style={{color: colors.text.primary, fontWeight: 'bold'}}>
                   Enter Theater

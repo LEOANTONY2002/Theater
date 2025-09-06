@@ -538,11 +538,11 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
             ]}>
             <Image
               style={styles.laImage}
-              source={require('../assets/LA.png')}
+              source={require('../assets/LA.webp')}
             />
           </View>
           <Image
-            source={require('../assets/Onboard.png')}
+            source={require('../assets/Onboard.webp')}
             style={styles.backgroundImage}
           />
         </>
@@ -554,7 +554,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         <View style={styles.bottomControls}>
           <View style={styles.logoContainer}>
             <Image
-              source={require('../assets/symbol.png')}
+              source={require('../assets/symbol.webp')}
               style={styles.logoImage}
             />
             <TouchableOpacity
@@ -579,7 +579,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
               ) : (
                 <Image
                   style={styles.nextIcon}
-                  source={require('../assets/next.png')}
+                  source={require('../assets/next.webp')}
                 />
               )}
             </TouchableOpacity>

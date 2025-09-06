@@ -8,21 +8,74 @@ interface ChipProps {
   onPress: () => void;
   imageUrl?: string;
   imageOnly?: boolean;
+  width?: number;
+  height?: number;
 }
 
-export const Chip: React.FC<ChipProps> = ({label, selected, onPress, imageUrl, imageOnly = false}) => {
+export const Chip: React.FC<ChipProps> = ({
+  label,
+  selected,
+  onPress,
+  imageUrl,
+  imageOnly = false,
+  width = 120,
+  height = 100,
+}) => {
+  const styles = StyleSheet.create({
+    chip: {
+      backgroundColor: colors.modal.blur,
+      borderRadius: borderRadius.lg,
+      width: width,
+      height: height,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+      padding: spacing.md,
+    },
+    imageOnlyChip: {
+      padding: spacing.sm,
+      minWidth: 60,
+      minHeight: 60,
+    },
+    selectedChip: {
+      backgroundColor: colors.modal.active,
+      borderColor: colors.modal.activeBorder,
+    },
+    chipContent: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chipImage: {
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+    },
+    label: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      textAlign: 'center',
+      marginTop: spacing.xs,
+      zIndex: 2,
+    },
+    selectedLabel: {
+      color: colors.accent,
+    },
+  });
+
   return (
     <TouchableOpacity
+      activeOpacity={0.9}
       style={[
-        styles.chip, 
+        styles.chip,
         selected && styles.selectedChip,
-        imageOnly && styles.imageOnlyChip
+        imageOnly && styles.imageOnlyChip,
       ]}
       onPress={onPress}>
       {imageUrl ? (
         <View style={styles.chipContent}>
-          <Image 
-            source={{uri: `https://image.tmdb.org/t/p/w92${imageUrl}`}} 
+          <Image
+            source={{uri: `https://image.tmdb.org/t/p/w92${imageUrl}`}}
             style={styles.chipImage}
             resizeMode="contain"
           />
@@ -33,51 +86,23 @@ export const Chip: React.FC<ChipProps> = ({label, selected, onPress, imageUrl, i
           )}
         </View>
       ) : (
-        <Text style={[styles.label, selected && styles.selectedLabel]}>
-          {label}
-        </Text>
+        <>
+          <Text
+            style={{
+              position: 'absolute',
+              zIndex: 1,
+              color: colors.text.primary,
+              opacity: 0.08,
+              fontSize: 60,
+              fontWeight: '900',
+            }}>
+            {label?.slice(0, 2).toString()}
+          </Text>
+          <Text style={[styles.label, selected && styles.selectedLabel]}>
+            {label}
+          </Text>
+        </>
       )}
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  chip: {
-    padding: spacing.md,
-    borderRadius: 10,
-    backgroundColor: colors.modal.content,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-    margin: 2,
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imageOnlyChip: {
-    padding: spacing.sm,
-    minWidth: 60,
-    minHeight: 60,
-  },
-  selectedChip: {
-    backgroundColor: colors.modal.active,
-    borderColor: colors.modal.activeBorder,
-  },
-  chipContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-  },
-  label: {
-    color: colors.text.secondary,
-    ...typography.body2,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-  },
-  selectedLabel: {
-    color: colors.accent,
-  },
-});

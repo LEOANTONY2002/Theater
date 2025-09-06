@@ -15,7 +15,7 @@ export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Image source={require('../assets/cat.png')} style={styles.image} />
+        <Image source={require('../assets/cat.webp')} style={styles.image} />
         <View style={{position: 'relative'}}>
           <LinearGradient
             style={{

@@ -508,7 +508,7 @@ export const MyNextWatch: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.header}>
             <Image
-              source={require('../assets/theaterai.png')}
+              source={require('../assets/theaterai.webp')}
               width={25}
               height={15}
             />
@@ -602,7 +602,7 @@ export const MyNextWatch: React.FC = () => {
         }}>
         <View style={styles.header}>
           <Image
-            source={require('../assets/theaterai.png')}
+            source={require('../assets/theaterai.webp')}
             width={25}
             height={15}
             style={{width: 25, height: 15, resizeMode: 'contain'}}

@@ -61,7 +61,7 @@ import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
-import TheaterAIIcon from '../assets/theaterai.png';
+import TheaterAIIcon from '../assets/theaterai.webp';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 
 type TVShowDetailsScreenNavigationProp =
@@ -791,7 +791,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 <View>
                   <View style={styles.main}>
                     <ImageBackground
-                      source={require('../assets/curve.png')}
+                      source={require('../assets/curve.webp')}
                       style={{
                         width: width,
                         alignSelf: 'center',
@@ -805,7 +805,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       resizeMode="contain"></ImageBackground>
 
                     <ImageBackground
-                      source={require('../assets/curve.png')}
+                      source={require('../assets/curve.webp')}
                       style={{
                         width: width,
                         alignSelf: 'center',

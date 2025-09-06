@@ -4,7 +4,6 @@ import {borderRadius, colors, spacing, typography} from './theme';
 export const modalStyles = StyleSheet.create({
   modalContainer: {
     marginTop: 60,
-
     flex: 1,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
@@ -37,10 +36,11 @@ export const modalStyles = StyleSheet.create({
   },
   scrollContent: {
     flex: 1,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
   },
   section: {
     marginBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   sectionTitle: {
     color: colors.text.primary,
@@ -161,6 +161,44 @@ export const modalStyles = StyleSheet.create({
     gap: 4,
     alignSelf: 'center',
     width: '100%',
+  },
+  genresRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  showAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.modal.content,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginLeft: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.modal.border,
+    minWidth: 80,
+  },
+  showAllText: {
+    color: colors.accent,
+    ...typography.body2,
+    fontWeight: '600',
+    marginRight: spacing.xs,
+  },
+  allGenresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  allProvidersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',

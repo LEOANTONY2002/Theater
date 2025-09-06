@@ -7,6 +7,7 @@ import {
   Text,
   Modal,
   TouchableOpacity,
+  useWindowDimensions,
 } from 'react-native';
 import {
   useLatestMoviesByRegion,
@@ -311,7 +312,7 @@ export const HomeScreen = React.memo(() => {
     [navigateWithLimit],
   );
 
-  const WIDTH = Dimensions.get('window').width;
+  const WIDTH = useWindowDimensions().width;
   const {isTablet} = useResponsive();
 
   // Load mood answers on component mount
@@ -699,7 +700,7 @@ export const HomeScreen = React.memo(() => {
                     alignItems: 'center',
                   }}>
                   <FastImage
-                    source={require('../assets/theater.png')}
+                    source={require('../assets/theater.webp')}
                     style={{width: 60, height: 60}}
                   />
                   <View>

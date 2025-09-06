@@ -66,7 +66,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import {useIMDBRating} from '../hooks/useScrap';
 import {ImageBackground} from 'react-native';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
-import TheaterAIIcon from '../assets/theaterai.png';
+import TheaterAIIcon from '../assets/theaterai.webp';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 
 type MovieDetailsScreenNavigationProp =
@@ -718,7 +718,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
                   <View style={styles.main}>
                     <ImageBackground
-                      source={require('../assets/curve.png')}
+                      source={require('../assets/curve.webp')}
                       style={{
                         width: width,
                         alignSelf: 'center',
@@ -732,7 +732,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       resizeMode="contain"></ImageBackground>
 
                     <ImageBackground
-                      source={require('../assets/curve.png')}
+                      source={require('../assets/curve.webp')}
                       style={{
                         width: width,
                         alignSelf: 'center',
@@ -922,7 +922,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         paddingHorizontal: spacing.sm,
                       }}>
                       <Image
-                        source={require('../assets/imdb.png')}
+                        source={require('../assets/imdb.webp')}
                         style={{
                           width: 50,
                           height: 30,
@@ -952,7 +952,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         flexDirection: 'row',
                       }}>
                       <Image
-                        source={require('../assets/imdb.png')}
+                        source={require('../assets/imdb.webp')}
                         style={{
                           width: 50,
                           height: 30,

@@ -61,7 +61,7 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
           <FastImage
             source={
               imageError && isOffline
-                ? require('../assets/theater.png')
+                ? require('../assets/theater.webp')
                 : {
                     uri: imageUrl || 'https://via.placeholder.com/300x450',
                     priority: FastImage.priority.normal,
