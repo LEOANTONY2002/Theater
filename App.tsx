@@ -9,10 +9,6 @@ import React, {useEffect, useState} from 'react';
 import {LogBox, StatusBar, AppState, DevSettings} from 'react-native';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
-import {PerformanceMonitor} from './src/components/PerformanceMonitor';
-import {detectRegion} from './src/services/regionDetection';
-import {getRegions, checkTMDB} from './src/services/tmdb';
-import {SettingsManager} from './src/store/settings';
 import {queryClient} from './src/services/queryClient';
 import {enableScreens} from 'react-native-screens';
 import {DNSInstructionsModal} from './src/components/DNSInstructionsModal';
@@ -20,8 +16,8 @@ import {checkInternet} from './src/services/connectivity';
 import {NoInternet} from './src/screens/NoInternet';
 import Onboarding from './src/screens/Onboarding';
 import {OnboardingManager} from './src/store/onboarding';
-import {tmdbWithCache} from './src/services/tmdbWithCache';
 import {offlineCache} from './src/services/offlineCache';
+import {checkTMDB} from './src/services/tmdb';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -50,19 +46,20 @@ const App = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Initialize offline cache and preload essential content
-        await tmdbWithCache.preloadEssentialContent();
-        const hasCacheData = await offlineCache.hasCachedContent();
-        setHasCache(hasCacheData);
-
         // Load onboarding state first
         const ob = await OnboardingManager.getState();
         setIsOnboarded(!!ob.isOnboarded);
+
         if (!ob.isOnboarded) {
-          // Show onboarding immediately; defer connectivity/region until after onboarding
+          // Show onboarding immediately; no API calls needed
           setIsLoading(false);
           return;
         }
+
+        // Only preload content after onboarding is complete
+        const hasCacheData = await offlineCache.hasCachedContent();
+        setHasCache(hasCacheData);
+
         // If already onboarded, then check connectivity
         const ok = await checkInternet();
         setIsOnline(ok);
@@ -70,16 +67,7 @@ const App = () => {
           setIsLoading(false);
           return;
         }
-        // Detect and set region
-        // var region = await SettingsManager.getRegion();
-        // if (!region) {
-        //   await detectRegion();
-        //   await getRegions();
-        //   const regions = await SettingsManager.getRegions();
-        //   const regionData = regions.find((r: any) => r?.iso_3166_1 === region);
-        //   await SettingsManager.setRegion(regionData);
-        //   var region = await SettingsManager.getRegion();
-        // }
+
         setIsLoading(false);
       } catch (error) {
         setIsLoading(false);
@@ -112,6 +100,19 @@ const App = () => {
     };
   }, []);
 
+  // Periodic connectivity check
+  // useEffect(() => {
+  //   const checkConnectivity = async () => {
+  //     const ok = await checkInternet();
+  //     setIsOnline(ok);
+  //   };
+
+  //   // Check connectivity every 10 seconds
+  //   const interval = setInterval(checkConnectivity, 10000);
+
+  //   return () => clearInterval(interval);
+  // }, []);
+
   // if (isLoading) {
   //   return (
   //     <>
@@ -134,7 +135,12 @@ const App = () => {
 
   // Show onboarding if required
 
-  // After onboarding is completed, if offline, show NoInternet
+  // Priority logic for modals:
+  // 1. If no internet -> show NoInternet
+  // 2. If internet but DNS blocked -> show DNS modal
+  // 3. If both internet and DNS work -> show normal app
+
+  // After onboarding is completed, if offline and no cache, show NoInternet (highest priority)
   if (!isOnline && !hasCache) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -148,17 +154,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <StatusBar barStyle="dark-content" backgroundColor="#000007" />
       {!isOnboarded ? (
-        <Onboarding
-          onDone={async () => {
-            await OnboardingManager.setIsOnboarded(true);
-            setIsOnboarded(true);
-            // After onboarding completes, re-check connectivity so NoInternet can appear next if offline
-            const ok = await checkInternet();
-            setIsOnline(ok);
-          }}
-        />
-      ) : !isOnline && !hasCache ? (
-        <NoInternet onRetry={handleTryAgain} isRetrying={retrying} />
+        <Onboarding onDone={() => setIsOnboarded(true)} />
       ) : (
         <>
           <AppNavigator />
@@ -168,6 +164,7 @@ const App = () => {
             (global as any).queryClient = queryClient;
             return null;
           })()}
+          {/* Show DNS modal only if internet is on but DNS is blocked */}
           <DNSInstructionsModal
             visible={showDNSModal && isOnline}
             onClose={() => setShowDNSModal(false)}

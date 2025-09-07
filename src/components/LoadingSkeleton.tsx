@@ -235,7 +235,7 @@ export const GridSkeleton = () => {
 export const GridListSkeleton = () => {
   const {isTablet} = useResponsive();
   const columns = isTablet ? 5 : 3;
-  const cardWidth = SCREEN_WIDTH / columns - 8;
+  const cardWidth = SCREEN_WIDTH / columns - 9;
   const cardHeight = cardWidth * 1.5;
   const count = isTablet ? 20 : 12;
   return (
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 4,
     margin: 'auto',
     position: 'relative',
   },

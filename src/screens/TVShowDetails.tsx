@@ -53,16 +53,22 @@ import {
   useIsItemInAnyWatchlist,
   useWatchlistContainingItem,
   useRemoveFromWatchlist,
+  useAddToWatchlist,
 } from '../hooks/useWatchlists';
-import {FlashList} from '@shopify/flash-list';
+import {useFocusEffect} from '@react-navigation/native';
+import {useQueryClient} from '@tanstack/react-query';
 import Cinema from '../components/Cinema';
-import ServerModal from '../components/ServerModal';
+import {ServerModal} from '../components/ServerModal';
 import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
+import {useIMDBRating} from '../hooks/useScrap';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
-import TheaterAIIcon from '../assets/theaterai.webp';
 import {useAIEnabled} from '../hooks/useAIEnabled';
+import {FlashList} from '@shopify/flash-list';
+import {checkInternet} from '../services/connectivity';
+import {NoInternet} from './NoInternet';
+import {offlineCache} from '../services/offlineCache';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -85,10 +91,15 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
-  const {data: showDetails, isLoading} = useTVShowDetails(show.id);
+  const {
+    data: showDetails,
+    isLoading,
+    error: showDetailsError,
+  } = useTVShowDetails(show.id);
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
+  const queryClient = useQueryClient();
   const cinema = true;
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
@@ -96,8 +107,69 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [hasCache, setHasCache] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+
+  // Check connectivity and cache status for this specific TV show
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const online = await checkInternet();
+        const showCache = await offlineCache.getCachedTVShow(show.id);
+        setIsOnline(online);
+        setHasCache(!!showCache);
+      } catch (error) {
+        console.error('Error checking connectivity/cache status:', error);
+        setIsOnline(true); // Default to online if check fails
+        setHasCache(false);
+      }
+    };
+    checkStatus();
+  }, [show.id]);
+
+  const handleRetry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      const online = await checkInternet();
+      setIsOnline(online);
+
+      if (online) {
+        // If back online, invalidate and refetch all queries for this TV show
+        queryClient.invalidateQueries({
+          queryKey: ['tvshow', show.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['similarTVShows', show.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['tvRecommendations', show.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['watchProviders', show.id, 'tv'],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['isInWatchlist', show.id],
+        });
+
+        // Force refetch TV show details
+        queryClient.refetchQueries({
+          queryKey: ['tvshow', show.id],
+        });
+      }
+
+      // Re-check cache status after retry
+      const showCache = await offlineCache.getCachedTVShow(show.id);
+      setHasCache(!!showCache);
+    } catch (error) {
+      console.error('Error during retry:', error);
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   // Animation values for loading states and components (same as MovieDetails)
   const loadingPulseAnim = useRef(new Animated.Value(1)).current;
@@ -704,12 +776,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     },
   });
 
+  // Show NoInternet if offline and no cache for TV show details
+  // Only show if we have an actual error and are offline with no cache
+  if (!isOnline && !hasCache && showDetailsError && !isLoading) {
+    return <NoInternet onRetry={handleRetry} isRetrying={retrying} />;
+  }
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <Animated.View style={{transform: [{scale: loadingPulseAnim}]}}>
-          <DetailScreenSkeleton />
-        </Animated.View>
+        <DetailScreenSkeleton />
       </View>
     );
   }
@@ -770,7 +846,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             borderColor: 'rgba(255, 255, 255, 0.13)',
           }}
           activeOpacity={0.7}>
-          <Image source={TheaterAIIcon} style={{width: 30, height: 20}} />
+          <Image
+            source={require('../assets/theaterai.webp')}
+            style={{width: 30, height: 20}}
+          />
         </TouchableOpacity>
       </LinearGradient>
       <FlashList
@@ -1000,7 +1079,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       style={styles.aiButton}
                       activeOpacity={0.7}>
                       <Image
-                        source={TheaterAIIcon}
+                        source={require('../assets/theaterai.webp')}
                         style={{width: 18, height: 10}}
                       />
                       <Text style={styles.aiButtonText}>Ask Theater AI</Text>

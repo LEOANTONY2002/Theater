@@ -19,6 +19,8 @@ import {AISettingsManager} from '../store/aiSettings';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useQueryClient} from '@tanstack/react-query';
 import {useResponsive} from '../hooks/useResponsive';
+import {checkInternet} from '../services/connectivity';
+import {NoInternet} from './NoInternet';
 
 const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
 
@@ -139,6 +141,9 @@ const OnboardingAISettings: React.FC<{
   const [modalMessage, setModalMessage] = useState('');
   // Skip confirmation modal state
   const [skipConfirmVisible, setSkipConfirmVisible] = useState(false);
+  // Network connectivity state
+  const [showNoInternet, setShowNoInternet] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
   const width = useWindowDimensions().width;
@@ -161,6 +166,20 @@ const OnboardingAISettings: React.FC<{
   const handleSetApiKey = () => {
     setSkipConfirmVisible(false);
     setShowApiKeyInput(true);
+  };
+
+  const handleRetryConnection = async () => {
+    setIsCheckingConnection(true);
+    try {
+      const isOnline = await checkInternet();
+      if (isOnline) {
+        setShowNoInternet(false);
+      }
+    } catch (error) {
+      console.error('Error checking internet connection:', error);
+    } finally {
+      setIsCheckingConnection(false);
+    }
   };
 
   useEffect(() => {
@@ -224,6 +243,13 @@ const OnboardingAISettings: React.FC<{
 
   const validateApiKey = async (key: string): Promise<boolean> => {
     try {
+      // First check internet connectivity
+      const isOnline = await checkInternet();
+      if (!isOnline) {
+        setShowNoInternet(true);
+        return false;
+      }
+
       // Make a test call to the Gemini API to validate the key
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
@@ -261,6 +287,11 @@ const OnboardingAISettings: React.FC<{
       return false;
     } catch (error) {
       console.error('API key validation error:', error);
+      // Check if it's a network error
+      const isOnline = await checkInternet();
+      if (!isOnline) {
+        setShowNoInternet(true);
+      }
       return false;
     }
   };
@@ -350,6 +381,16 @@ const OnboardingAISettings: React.FC<{
           />
         </View>
       </View>
+    );
+  }
+
+  // Show NoInternet screen if no connectivity
+  if (showNoInternet) {
+    return (
+      <NoInternet 
+        onRetry={handleRetryConnection} 
+        isRetrying={isCheckingConnection} 
+      />
     );
   }
 

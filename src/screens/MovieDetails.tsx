@@ -66,8 +66,10 @@ import {useResponsive} from '../hooks/useResponsive';
 import {useIMDBRating} from '../hooks/useScrap';
 import {ImageBackground} from 'react-native';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
-import TheaterAIIcon from '../assets/theaterai.webp';
 import {useAIEnabled} from '../hooks/useAIEnabled';
+import {checkInternet} from '../services/connectivity';
+import {NoInternet} from './NoInternet';
+import {offlineCache} from '../services/offlineCache';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -105,8 +107,69 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [hasCache, setHasCache] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+
+  // Check connectivity and cache status for this specific movie
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const online = await checkInternet();
+        const movieCache = await offlineCache.getCachedMovie(movie.id);
+        setIsOnline(online);
+        setHasCache(!!movieCache);
+      } catch (error) {
+        console.error('Error checking connectivity/cache status:', error);
+        setIsOnline(true); // Default to online if check fails
+        setHasCache(false);
+      }
+    };
+    checkStatus();
+  }, [movie.id]);
+
+  const handleRetry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      const online = await checkInternet();
+      setIsOnline(online);
+
+      if (online) {
+        // If back online, invalidate and refetch all queries for this movie
+        queryClient.invalidateQueries({
+          queryKey: ['movie', movie.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['similarMovies', movie.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['recommendations', movie.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['watchProviders', movie.id, 'movie'],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['isInWatchlist', movie.id],
+        });
+
+        // Force refetch movie details
+        queryClient.refetchQueries({
+          queryKey: ['movie', movie.id],
+        });
+      }
+
+      // Re-check cache status after retry
+      const movieCache = await offlineCache.getCachedMovie(movie.id);
+      setHasCache(!!movieCache);
+    } catch (error) {
+      console.error('Error during retry:', error);
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   // Animation values for loading states and components
   const loadingPulseAnim = useRef(new Animated.Value(1)).current;
@@ -207,9 +270,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     }, [movie.id, queryClient]),
   );
 
-  const {data: movieDetails, isLoading: isLoadingDetails} = useMovieDetails(
-    movie.id,
-  );
+  const {
+    data: movieDetails,
+    isLoading: isLoadingDetails,
+    error: movieDetailsError,
+  } = useMovieDetails(movie.id);
 
   // Set loading to false when data is available
   useEffect(() => {
@@ -638,6 +703,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     },
   });
 
+  // Show NoInternet if offline and no cache for movie details
+  // Only show if we have an actual error and are offline with no cache
+  if (!isOnline && !hasCache && movieDetailsError && !isLoadingDetails) {
+    return <NoInternet onRetry={handleRetry} isRetrying={retrying} />;
+  }
+
   // Show loading state immediately to prevent FPS drop
   if (isInitialLoading) {
     return (
@@ -691,7 +762,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             borderColor: 'rgba(255, 255, 255, 0.13)',
           }}
           activeOpacity={0.7}>
-          <Image source={TheaterAIIcon} style={{width: 30, height: 20}} />
+          <Image
+            source={require('../assets/theaterai.webp')}
+            style={{width: 30, height: 20}}
+          />
         </TouchableOpacity>
       </LinearGradient>
       <FlashList
@@ -989,7 +1063,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       style={styles.aiButton}
                       activeOpacity={0.7}>
                       <Image
-                        source={TheaterAIIcon}
+                        source={require('../assets/theaterai.webp')}
                         style={{width: 18, height: 10}}
                       />
                       <Text style={styles.aiButtonText}>Ask Theater AI</Text>

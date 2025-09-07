@@ -39,7 +39,7 @@ const baseStyles = StyleSheet.create({
   },
 });
 
-export const MovieCard: React.FC<MovieCardProps> = ({
+export const MovieCard: React.FC<MovieCardProps> = React.memo(({
   item,
   onPress,
   size = 'normal',
@@ -51,6 +51,9 @@ export const MovieCard: React.FC<MovieCardProps> = ({
   const internalColumns = isTablet ? 5 : 3;
   const effectiveWidth = cardWidth ?? currentWidth / internalColumns - 8; // margin compensation
   const cardHeight = effectiveWidth * 1.5;
+
+  const handlePress = useCallback(() => onPress(item), [onPress, item]);
+
   return (
     <TouchableOpacity
       style={[
@@ -58,24 +61,22 @@ export const MovieCard: React.FC<MovieCardProps> = ({
         baseStyles.container,
         size === 'large' && baseStyles.containerLarge,
       ]}
-      onPress={() => onPress(item)}
+      onPress={handlePress}
       activeOpacity={0.8}>
-      <View>
-        <FastImage
-          source={{
-            uri: item?.poster_path
-              ? getImageUrl(item.poster_path, isTablet ? 'w342' : 'w154')
-              : 'https://via.placeholder.com/300x450',
-            priority: FastImage.priority.normal,
-            cache: FastImage.cacheControl.web,
-          }}
-          style={[
-            baseStyles.poster,
-            size === 'large' && baseStyles.posterLarge,
-          ]}
-          resizeMode={FastImage.resizeMode.cover}
-        />
-      </View>
+      <FastImage
+        source={{
+          uri: item?.poster_path
+            ? getImageUrl(item.poster_path, isTablet ? 'w342' : 'w154')
+            : 'https://via.placeholder.com/300x450',
+          priority: FastImage.priority.normal,
+          cache: FastImage.cacheControl.immutable,
+        }}
+        style={[
+          baseStyles.poster,
+          size === 'large' && baseStyles.posterLarge,
+        ]}
+        resizeMode={FastImage.resizeMode.cover}
+      />
     </TouchableOpacity>
   );
-};
+});

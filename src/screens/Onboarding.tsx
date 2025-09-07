@@ -19,6 +19,8 @@ import {OnboardingManager} from '../store/onboarding';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {GradientButton} from '../components/GradientButton';
 import OnboardingAISettings from './OnboardingAISettings';
+import {checkInternet} from '../services/connectivity';
+import {NoInternet} from './NoInternet';
 
 interface Region {
   iso_3166_1: string;
@@ -42,6 +44,8 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
   const [regions, setRegions] = useState<Region[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [showNoInternet, setShowNoInternet] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
 
@@ -59,10 +63,34 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
     loadRegions();
   }, []);
 
+  const handleRetryConnection = async () => {
+    setIsCheckingConnection(true);
+    try {
+      const isOnline = await checkInternet();
+      if (isOnline) {
+        setShowNoInternet(false);
+        // Retry region detection after connection is restored
+        await handleNextPress();
+      }
+    } catch (error) {
+      console.error('Error checking internet connection:', error);
+    } finally {
+      setIsCheckingConnection(false);
+    }
+  };
+
   const handleNextPress = async () => {
     if (currentStep === 'welcome') {
       setIsDetecting(true);
       try {
+        // Check internet connectivity before attempting region detection
+        const isOnline = await checkInternet();
+        if (!isOnline) {
+          setShowNoInternet(true);
+          setIsDetecting(false);
+          return;
+        }
+
         const regionCode = await detectRegion();
         console.log('regionCode', regionCode);
 
@@ -80,11 +108,17 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         setCurrentStep('region');
       } catch (err) {
         console.error('Error detecting region:', err);
-        setError(
-          'Failed to detect your location. Please select your region manually.',
-        );
-        setShowRegionSelect(true);
-        setCurrentStep('region');
+        // Check if it's a network error
+        const isOnline = await checkInternet();
+        if (!isOnline) {
+          setShowNoInternet(true);
+        } else {
+          setError(
+            'Failed to detect your location. Please select your region manually.',
+          );
+          setShowRegionSelect(true);
+          setCurrentStep('region');
+        }
       } finally {
         setIsDetecting(false);
       }
@@ -404,6 +438,16 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
       backgroundColor: colors.primary + '20',
     },
   });
+
+  // Show NoInternet screen if no connectivity during region detection
+  if (showNoInternet) {
+    return (
+      <NoInternet 
+        onRetry={handleRetryConnection} 
+        isRetrying={isCheckingConnection} 
+      />
+    );
+  }
 
   const renderStep = () => {
     switch (currentStep) {

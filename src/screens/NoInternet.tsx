@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {Image} from 'react-native';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {useResponsive} from '../hooks/useResponsive';
 
 interface Props {
   onRetry: () => void;
@@ -12,10 +13,62 @@ interface Props {
 }
 
 export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
+  const {isTablet} = useResponsive();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    card: {
+      width: '100%',
+      alignItems: 'center',
+      position: 'relative',
+    },
+    noResultsTitle: {
+      color: colors.text.muted,
+      fontSize: 60,
+      opacity: 0.5,
+      fontWeight: '900',
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    image: {
+      width: isTablet ? 300 : 200,
+      height: isTablet ? 300 : 200,
+      objectFit: 'contain',
+      marginBottom: spacing.xl,
+      opacity: 0.3,
+    },
+    subtitle: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      marginBottom: spacing.xl,
+    },
+    buttonWrap: {
+      width: isTablet ? '50%' : '100%',
+    },
+    button: {
+      height: 52,
+      borderRadius: borderRadius.round,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      ...typography.button,
+      color: colors.text.primary,
+      fontWeight: '600',
+    },
+  });
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Image source={require('../assets/cat.webp')} style={styles.image} />
+        <Image source={require('../assets/offline.png')} style={styles.image} />
         <View style={{position: 'relative'}}>
           <LinearGradient
             style={{
@@ -58,55 +111,5 @@ export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  card: {
-    width: '100%',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  noResultsTitle: {
-    color: colors.text.muted,
-    fontSize: 60,
-    opacity: 0.5,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  image: {
-    width: 200,
-    height: 200,
-    objectFit: 'contain',
-    marginBottom: spacing.xl,
-    opacity: 0.3,
-  },
-  subtitle: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  buttonWrap: {
-    width: '100%',
-  },
-  button: {
-    height: 52,
-    borderRadius: borderRadius.round,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    ...typography.button,
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-});
 
 export default NoInternet;
