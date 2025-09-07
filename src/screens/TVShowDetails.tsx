@@ -860,6 +860,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
           {type: 'seasons', id: 'seasons'},
+          ...(isAIEnabled ? [{type: 'aiSimilar', id: 'aiSimilar'}] : []),
           {type: 'similar', id: 'similar'},
           {type: 'recommendations', id: 'recommendations'},
         ]}
@@ -1196,19 +1197,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     <View style={styles.noEpisodesContainer}>
                       <View style={styles.noEpisodesContainer}>
                         <GradientSpinner
+                          mode="light"
                           size={30}
-                          thickness={3}
                           style={{
                             marginVertical: 50,
                             alignItems: 'center',
                             alignSelf: 'center',
                           }}
-                          colors={[
-                            colors.modal.activeBorder,
-                            colors.modal.activeBorder,
-                            colors.transparent,
-                            colors.transparentDim,
-                          ]}
+                          color={colors.modal.activeBorder}
                         />
                         <Text style={styles.noEpisodesText}>
                           Fetching episodes...
@@ -1301,18 +1297,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         {marginVertical: isTablet ? 150 : 50},
                       ]}>
                       <GradientSpinner
-                        size={30}
-                        thickness={3}
+                        mode="light"
+                        size={24}
                         style={{
                           alignItems: 'center',
                           alignSelf: 'center',
                         }}
-                        colors={[
-                          colors.primary,
-                          colors.secondary,
-                          colors.transparent,
-                          colors.transparentDim,
-                        ]}
+                        color={colors.primary}
                       />
                       <Text
                         style={[

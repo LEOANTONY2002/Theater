@@ -584,6 +584,7 @@ export const OnlineAIScreen: React.FC = () => {
                       alignSelf: 'center',
                       backgroundColor: 'transparent',
                     }}
+                    color={colors.primary}
                     colors={[
                       colors.primary,
                       colors.secondary,

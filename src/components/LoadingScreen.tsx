@@ -12,18 +12,12 @@ export const LoadingScreen = ({message}: LoadingScreenProps) => {
     <View style={styles.container}>
       <GradientSpinner
         size={30}
-        thickness={3}
         style={{
           marginVertical: 50,
           alignItems: 'center',
           alignSelf: 'center',
         }}
-        colors={[
-          colors.modal.activeBorder,
-          colors.modal.activeBorder,
-          colors.transparent,
-          colors.transparentDim,
-        ]}
+        color={colors.modal.activeBorder}
       />
       <Text style={styles.message}>{message}</Text>
     </View>

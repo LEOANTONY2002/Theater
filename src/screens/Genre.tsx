@@ -53,43 +53,58 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const {width} = useWindowDimensions();
 
   // Spacing and sizing - memoize calculations
-  const {horizontalPadding, perCardGap, minCardWidth} = useMemo(() => ({
-    horizontalPadding: (spacing?.sm ?? 8) * 2,
-    perCardGap: 6, // 3 * 2 (margin on both sides)
-    minCardWidth: isTablet ? 150 : 110,
-  }), [isTablet]);
+  const {horizontalPadding, perCardGap, minCardWidth} = useMemo(
+    () => ({
+      horizontalPadding: (spacing?.sm ?? 8) * 2,
+      perCardGap: 6, // 3 * 2 (margin on both sides)
+      minCardWidth: isTablet ? 150 : 110,
+    }),
+    [isTablet],
+  );
 
   const {columns, cardWidth, rowHeight} = useMemo(() => {
     const available = Math.max(0, width - horizontalPadding);
     const perCardTotal = minCardWidth + perCardGap;
     const rawCols = Math.max(1, Math.floor(available / perCardTotal));
-    const cols = !isTablet && orientation === 'portrait'
-      ? Math.max(3, rawCols)
-      : rawCols;
-      
-    const availableWidth = Math.max(0, width - horizontalPadding - cols * perCardGap);
+    const cols =
+      !isTablet && orientation === 'portrait' ? Math.max(3, rawCols) : rawCols;
+
+    const availableWidth = Math.max(
+      0,
+      width - horizontalPadding - cols * perCardGap,
+    );
     const cWidth = cols > 0 ? availableWidth / cols : availableWidth;
-    
+
     return {
       columns: cols,
       cardWidth: cWidth,
       rowHeight: cWidth * 1.5,
     };
-  }, [width, horizontalPadding, minCardWidth, perCardGap, isTablet, orientation]);
+  }, [
+    width,
+    horizontalPadding,
+    minCardWidth,
+    perCardGap,
+    isTablet,
+    orientation,
+  ]);
 
   // Animation refs
   const scrollY = useRef(new Animated.Value(0));
   const headerAnim = useRef(new Animated.Value(0));
-  const animationConfig = useMemo(() => ({
-    duration: 200,
-    easing: Easing.out(Easing.cubic),
-    useNativeDriver: false,
-  }), []);
+  const animationConfig = useMemo(
+    () => ({
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }),
+    [],
+  );
 
   // Create interpolated styles
   const headerInterpolation = useMemo(() => {
     const inputRange = [0, 40];
-    
+
     return {
       marginHorizontal: headerAnim.current.interpolate({
         inputRange,
@@ -109,14 +124,16 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     };
   }, [spacing.lg]);
 
-  const blurOpacity = useMemo(() => 
-    headerAnim.current.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, 1],
-      extrapolate: 'clamp',
-    })
-  , []);
-  
+  const blurOpacity = useMemo(
+    () =>
+      headerAnim.current.interpolate({
+        inputRange: [0, 40],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+    [],
+  );
+
   const animatedHeaderStyle = headerInterpolation;
 
   // Animate header on scroll
@@ -136,7 +153,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       setCanRenderContent(true);
       setIsInitialLoading(false);
     }, 50);
-    
+
     return () => {
       clearTimeout(timer);
       scrollY.current.removeAllListeners();
@@ -200,15 +217,17 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     };
   }, [queryClient]);
 
-  const handleItemPress = useCallback((item: ContentItem) => {
-    const params = item.type === 'movie' 
-      ? {movie: item as Movie}
-      : {show: item as TVShow};
-    navigateWithLimit(
-      item.type === 'movie' ? 'MovieDetails' : 'TVShowDetails',
-      params
-    );
-  }, [navigateWithLimit]);
+  const handleItemPress = useCallback(
+    (item: ContentItem) => {
+      const params =
+        item.type === 'movie' ? {movie: item as Movie} : {show: item as TVShow};
+      navigateWithLimit(
+        item.type === 'movie' ? 'MovieDetails' : 'TVShowDetails',
+        params,
+      );
+    },
+    [navigateWithLimit],
+  );
 
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -216,15 +235,18 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const renderItem = useCallback(({item}: {item: ContentItem}) => (
-    <View style={styles.itemContainer}>
-      <MovieCard
-        item={item}
-        onPress={handleItemPress}
-        cardWidth={cardWidth}
-      />
-    </View>
-  ), [handleItemPress, cardWidth]);
+  const renderItem = useCallback(
+    ({item}: {item: ContentItem}) => (
+      <View style={styles.itemContainer}>
+        <MovieCard
+          item={item}
+          onPress={handleItemPress}
+          cardWidth={cardWidth}
+        />
+      </View>
+    ),
+    [handleItemPress, cardWidth],
+  );
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -232,19 +254,13 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       <View style={styles.footerLoader}>
         <GradientSpinner
           size={30}
-          thickness={3}
           style={{
             marginVertical: 50,
             marginBottom: 100,
             alignItems: 'center',
             alignSelf: 'center',
           }}
-          colors={[
-            colors.modal.activeBorder,
-            colors.modal.activeBorder,
-            colors.transparent,
-            colors.transparentDim,
-          ]}
+          color={colors.modal.activeBorder}
         />
       </View>
     );
@@ -274,7 +290,10 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       );
     }
 
-    const getItemLayout = (data: ArrayLike<ContentItem> | null | undefined, index: number) => ({
+    const getItemLayout = (
+      data: ArrayLike<ContentItem> | null | undefined,
+      index: number,
+    ) => ({
       length: rowHeight,
       offset: rowHeight * Math.floor(index / columns),
       index,
@@ -311,8 +330,8 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
                 color={colors.text.muted}
               />
               <Text style={styles.emptyText}>
-                No {contentType === 'movie' ? 'movies' : 'TV shows'} found
-                in this genre
+                No {contentType === 'movie' ? 'movies' : 'TV shows'} found in
+                this genre
               </Text>
               <TouchableOpacity
                 style={styles.retryButton}
@@ -326,7 +345,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
         getItemLayout={getItemLayout}
         onScroll={Animated.event<{y: number}>(
           [{nativeEvent: {contentOffset: {y: scrollY.current}}}],
-          {useNativeDriver: true}
+          {useNativeDriver: true},
         )}
       />
     );
@@ -379,9 +398,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
           <Text style={styles.title}>{genreName}</Text>
         </View>
       </Animated.View>
-      <View style={styles.contentContainer}>
-        {renderContent}
-      </View>
+      <View style={styles.contentContainer}>{renderContent}</View>
       {(isInitialLoading || isNavigating) && (
         <View style={styles.loadingContainer}>
           <GridListSkeleton />

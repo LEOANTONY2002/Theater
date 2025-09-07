@@ -60,18 +60,12 @@ export const RegionModal: React.FC<RegionModalProps> = ({
             <View style={styles.loadingContainer}>
               <GradientSpinner
                 size={30}
-                thickness={3}
                 style={{
                   marginVertical: 50,
                   alignItems: 'center',
                   alignSelf: 'center',
                 }}
-                colors={[
-                  colors.modal.activeBorder,
-                  colors.modal.activeBorder,
-                  colors.transparent,
-                  colors.transparentDim,
-                ]}
+                color={colors.modal.activeBorder}
               />
             </View>
           ) : (

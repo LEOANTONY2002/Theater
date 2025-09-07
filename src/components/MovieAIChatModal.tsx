@@ -174,98 +174,107 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
     }
   }, [visible, movieTitle]);
 
-  const handleSend = useCallback(async () => {
-    if (!inputText.trim() || isLoading) return;
+  const handleSend = useCallback(
+    async (overrideText?: string) => {
+      const textToSend = (overrideText ?? inputText).trim();
+      if (!textToSend || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
-    // Add user message
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setInputText('');
-    setIsLoading(true);
-    setShowSuggestions(false); // Hide suggestions after first message
-
-    try {
-      // Add system context to restrict AI to only this movie/show
-      const systemContext = {
-        role: 'assistant' as const,
-        content: `I am an AI assistant specialized in discussing "${movieTitle}"${
-          movieYear ? ` (${movieYear})` : ''
-        }. ${
-          movieOverview
-            ? `This ${
-                contentType === 'tv' ? 'TV show' : 'movie'
-              } is about: ${movieOverview}`
-            : ''
-        } ${
-          movieGenres && movieGenres.length > 0
-            ? `Genres: ${movieGenres.join(', ')}.`
-            : ''
-        } I will only answer questions related to this specific ${
-          contentType === 'tv' ? 'TV show' : 'movie'
-        } and politely decline to discuss other topics.`,
-      };
-
-      // Prepare chat messages from the updated messages array
-      const conversationMessages = updatedMessages.filter(
-        msg => msg.id !== '1',
-      );
-      const chatMessages = [
-        systemContext,
-        ...conversationMessages.map(msg => ({
-          role:
-            msg.sender === 'ai' ? ('assistant' as const) : ('user' as const),
-          content: msg.text,
-        })),
-      ];
-      console.log('Sending chat messages:', chatMessages);
-
-      // Call the AI service with the conversation messages
-      const {aiResponse} = await cinemaChat(chatMessages);
-
-      // Add AI response
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: aiResponse,
-        sender: 'ai',
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        text: textToSend,
+        sender: 'user',
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
+      // Add user message
+      const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
+      // Clear input only when sending manual input; for suggestions we're not editing the box
+      if (!overrideText) setInputText('');
+      setIsLoading(true);
+      setShowSuggestions(false); // Hide suggestions after first message
 
-      // Recreate conversationMessages for error logging
-      const errorConversationMessages = updatedMessages.filter(
-        msg => msg.id !== '1',
-      );
-      console.error(
-        'Chat messages being sent:',
-        JSON.stringify(errorConversationMessages, null, 2),
-      );
+      try {
+        // Add context as a user message (do not send genres)
+        const contextMessage = {
+          role: 'user' as const,
+          content: `Context: You are chatting about "${movieTitle}"${
+            movieYear ? ` (${movieYear})` : ''
+          }. ${
+            movieOverview ? `Overview: ${movieOverview}` : ''
+          } Only answer questions related to this specific ${
+            contentType === 'tv' ? 'TV show' : 'movie'
+          } and politely decline unrelated topics.`,
+        };
 
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Sorry, I encountered an error. Please try again later.',
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [inputText, isLoading, movieTitle, movieOverview, movieGenres]);
+        // Prepare chat messages from the updated messages array
+        const conversationMessages = updatedMessages.filter(
+          msg => msg.id !== '1',
+        );
+        const chatMessages = [
+          contextMessage,
+          ...conversationMessages.map(msg => ({
+            role:
+              msg.sender === 'ai' ? ('assistant' as const) : ('user' as const),
+            content: msg.text,
+          })),
+        ];
+        console.log('Sending chat messages:', chatMessages);
 
-  const handleSuggestionPress = useCallback((question: string) => {
-    setInputText(question);
-  }, []);
+        // Call the AI service with the conversation messages
+        const {aiResponse} = await cinemaChat(chatMessages);
+
+        // Add AI response
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: aiResponse,
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+      } catch (error) {
+        console.error('Error getting AI response:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+
+        // Recreate conversationMessages for error logging
+        const errorConversationMessages = updatedMessages.filter(
+          msg => msg.id !== '1',
+        );
+        console.error(
+          'Chat messages being sent:',
+          JSON.stringify(errorConversationMessages, null, 2),
+        );
+
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: 'Sorry, I encountered an error. Please try again later.',
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      inputText,
+      isLoading,
+      movieTitle,
+      movieOverview,
+      movieGenres,
+      contentType,
+      messages,
+    ],
+  );
+
+  const handleSuggestionPress = useCallback(
+    (question: string) => {
+      // Send the suggestion immediately
+      handleSend(question);
+    },
+    [handleSend],
+  );
 
   const renderMessage = useCallback(({item}: {item: Message}) => {
     const isUser = item.sender === 'user';
@@ -422,12 +431,12 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                     }}>
                     <GradientSpinner
                       size={30}
-                      thickness={3}
                       style={{
                         alignItems: 'center',
                         alignSelf: 'center',
                         backgroundColor: 'transparent',
                       }}
+                      color={colors.primary}
                       colors={[
                         colors.primary,
                         colors.secondary,
@@ -516,7 +525,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                           50,
                         )
                       }
-                      onSubmitEditing={handleSend}
+                      onSubmitEditing={() => handleSend()}
                       returnKeyType="send"
                     />
                     <Animated.View>
@@ -527,7 +536,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                             opacity: isLoading || !inputText.trim() ? 0.5 : 1,
                           },
                         ]}
-                        onPress={handleSend}
+                        onPress={() => handleSend()}
                         disabled={isLoading || !inputText.trim()}>
                         <Icon
                           name={'send'}

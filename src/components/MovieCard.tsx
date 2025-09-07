@@ -1,5 +1,11 @@
 import React, {useState, useCallback} from 'react';
-import {View, TouchableOpacity, StyleSheet, Dimensions, useWindowDimensions} from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  useWindowDimensions,
+} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
@@ -39,7 +45,7 @@ const baseStyles = StyleSheet.create({
   },
 });
 
-export const MovieCard: React.FC<MovieCardProps> = React.memo(({
+export const MovieCard: React.FC<MovieCardProps> = ({
   item,
   onPress,
   size = 'normal',
@@ -51,9 +57,6 @@ export const MovieCard: React.FC<MovieCardProps> = React.memo(({
   const internalColumns = isTablet ? 5 : 3;
   const effectiveWidth = cardWidth ?? currentWidth / internalColumns - 8; // margin compensation
   const cardHeight = effectiveWidth * 1.5;
-
-  const handlePress = useCallback(() => onPress(item), [onPress, item]);
-
   return (
     <TouchableOpacity
       style={[
@@ -61,22 +64,24 @@ export const MovieCard: React.FC<MovieCardProps> = React.memo(({
         baseStyles.container,
         size === 'large' && baseStyles.containerLarge,
       ]}
-      onPress={handlePress}
+      onPress={() => onPress(item)}
       activeOpacity={0.8}>
-      <FastImage
-        source={{
-          uri: item?.poster_path
-            ? getImageUrl(item.poster_path, isTablet ? 'w342' : 'w154')
-            : 'https://via.placeholder.com/300x450',
-          priority: FastImage.priority.normal,
-          cache: FastImage.cacheControl.immutable,
-        }}
-        style={[
-          baseStyles.poster,
-          size === 'large' && baseStyles.posterLarge,
-        ]}
-        resizeMode={FastImage.resizeMode.cover}
-      />
+      <View>
+        <FastImage
+          source={{
+            uri: item?.poster_path
+              ? getImageUrl(item.poster_path, isTablet ? 'w342' : 'w154')
+              : 'https://via.placeholder.com/300x450',
+            priority: FastImage.priority.normal,
+            cache: FastImage.cacheControl.web,
+          }}
+          style={[
+            baseStyles.poster,
+            size === 'large' && baseStyles.posterLarge,
+          ]}
+          resizeMode={FastImage.resizeMode.cover}
+        />
+      </View>
     </TouchableOpacity>
   );
-});
+};

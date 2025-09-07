@@ -203,11 +203,51 @@ export const MySpaceScreen = React.memo(() => {
     setShowMoodModal(true);
   };
 
-  const handleMoodComplete = (newMoodAnswers: {[key: string]: string}) => {
-    setMoodAnswers(newMoodAnswers);
-    const date = new Date();
-    setLastMoodUpdate(date.toLocaleDateString());
-    setShowMoodModal(false);
+  const handleMoodComplete = async (newMoodAnswers: {
+    [key: string]: string;
+  }) => {
+    try {
+      // Clear old data first
+      await AsyncStorage.multiRemove([
+        '@theater_user_preferences',
+        '@theater_user_feedback',
+        '@theater_next_watch_onboarding',
+      ]);
+
+      // Save fresh mood data
+      const preferences = {
+        moodAnswers: newMoodAnswers,
+        timestamp: Date.now(),
+      };
+
+      await AsyncStorage.setItem(
+        '@theater_user_preferences',
+        JSON.stringify(preferences),
+      );
+      await AsyncStorage.setItem('@theater_next_watch_onboarding', 'true');
+
+      // Update local state
+      setMoodAnswers(newMoodAnswers);
+      const date = new Date();
+      setLastMoodUpdate(date.toLocaleDateString());
+
+      // Invalidate all mood-related queries to force fresh data
+      queryClient.invalidateQueries({queryKey: ['mood']});
+      queryClient.invalidateQueries({queryKey: ['recommendations']});
+      queryClient.invalidateQueries({queryKey: ['userPreferences']});
+
+      // Force refresh of all screens that depend on mood data
+      queryClient.refetchQueries({queryKey: ['mood']});
+      queryClient.refetchQueries({queryKey: ['recommendations']});
+      queryClient.refetchQueries({queryKey: ['userPreferences']});
+
+      setShowMoodModal(false);
+
+      // Store a flag to indicate mood was updated
+      await AsyncStorage.setItem('@theater_mood_updated', 'true');
+    } catch (error) {
+      console.error('Error updating mood preferences:', error);
+    }
   };
 
   const handleMoodCancel = () => {

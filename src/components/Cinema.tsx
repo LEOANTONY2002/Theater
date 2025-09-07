@@ -116,18 +116,12 @@ const Cinema = ({
           <View style={styles.loadingContainer}>
             <GradientSpinner
               size={30}
-              thickness={3}
               style={{
                 marginVertical: 50,
                 alignItems: 'center',
                 alignSelf: 'center',
               }}
-              colors={[
-                colors.modal.activeBorder,
-                colors.modal.activeBorder,
-                'transparent',
-                'transparent',
-              ]}
+              color={colors.modal.activeBorder}
             />
             <Text style={styles.loadingText}>{loadingText}</Text>
           </View>

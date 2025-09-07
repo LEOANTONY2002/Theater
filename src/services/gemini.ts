@@ -1,5 +1,6 @@
 import {AISettingsManager} from '../store/aiSettings';
 import {cache, CACHE_KEYS} from '../utils/cache';
+import {searchMovies, searchTVShows} from './tmdb';
 
 // Default fallback values
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -190,17 +191,9 @@ export async function getSimilarByStory({
 
 // For Online AI Chat (cinema only)
 export async function cinemaChat(
-  messages: {role: 'user' | 'assistant'; content: string}[],
-) {
-  // Don't cache the entire chat, but we can cache common queries
-  const lastMessage = messages[messages.length - 1];
-  if (lastMessage.role === 'user') {
-    const cacheKey = lastMessage.content.toLowerCase().trim();
-    const cachedResponse = await cache.get(CACHE_KEYS.AI_CHAT, cacheKey);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-  }
+  messages: {role: 'user' | 'assistant' | 'system'; content: string}[],
+): Promise<{aiResponse: string; arr: any[]}> {
+  // No caching: always compute fresh response for detail screen chats
 
   const system = {
     role: 'system' as const,
@@ -216,12 +209,6 @@ export async function cinemaChat(
   const geminiMessages = [system, ...messages];
   try {
     const response = await callGemini(geminiMessages);
-    
-    // Cache common queries for 1 day
-    if (lastMessage.role === 'user' && response) {
-      const cacheKey = lastMessage.content.toLowerCase().trim();
-      await cache.set(CACHE_KEYS.AI_CHAT, cacheKey, response, 24 * 60 * 60 * 1000);
-    }
     
     let arr = [];
 
@@ -356,7 +343,6 @@ export async function getPersonalizedRecommendation(
     title: string;
     liked: boolean | null;
     alreadyWatched?: boolean;
-    genres: string[];
     timestamp: number;
   }>
 ): Promise<any> {
@@ -408,15 +394,15 @@ export async function getPersonalizedRecommendation(
   }
   
   if (likedContent.length > 0) {
-    userPrompt += `Content I previously enjoyed:\n${likedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+    userPrompt += `Content I previously enjoyed:\n${likedContent.map(c => `- ${c.title}`).join('\n')}\n\n`;
   }
   
   if (dislikedContent.length > 0) {
-    userPrompt += `Content I didn't enjoy:\n${dislikedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+    userPrompt += `Content I didn't enjoy:\n${dislikedContent.map(c => `- ${c.title}`).join('\n')}\n\n`;
   }
   
   if (alreadyWatchedContent.length > 0) {
-    userPrompt += `Content I've already watched:\n${alreadyWatchedContent.map(c => `- ${c.title} (${c.genres.join(', ')})`).join('\n')}\n\n`;
+    userPrompt += `Content I've already watched:\n${alreadyWatchedContent.map(c => `- ${c.title}`).join('\n')}\n\n`;
   }
   
   userPrompt += 'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now. ';
@@ -441,21 +427,15 @@ export async function getPersonalizedRecommendation(
       // Now search TMDB for the actual content data
       let tmdbData = null;
       if (aiRecommendation.type === 'movie') {
-        const res = await fetch(
-          `https://api.themoviedb.org/3/search/movie?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
-            aiRecommendation.title,
-          )}&year=${aiRecommendation.year}`,
-        );
-        const data = await res.json();
-        tmdbData = data.results && data.results.length > 0 ? data.results[0] : null;
+        const data = await searchMovies(aiRecommendation.title, 1, {
+          year: aiRecommendation.year,
+        } as any);
+        tmdbData = data?.results && data.results.length > 0 ? data.results[0] : null;
       } else if (aiRecommendation.type === 'tv') {
-        const res = await fetch(
-          `https://api.themoviedb.org/3/search/tv?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
-            aiRecommendation.title,
-          )}&first_air_date_year=${aiRecommendation.year}`,
-        );
-        const data = await res.json();
-        tmdbData = data.results && data.results.length > 0 ? data.results[0] : null;
+        const data = await searchTVShows(aiRecommendation.title, 1, {
+          first_air_date_year: aiRecommendation.year,
+        } as any);
+        tmdbData = data?.results && data.results.length > 0 ? data.results[0] : null;
       }
       
       if (tmdbData) {

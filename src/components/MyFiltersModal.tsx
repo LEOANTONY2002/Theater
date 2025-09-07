@@ -946,17 +946,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 <View style={styles.saveButtonLoading}>
                   <GradientSpinner
                     size={20}
-                    thickness={3}
                     style={{
                       alignItems: 'center',
                       alignSelf: 'center',
                     }}
-                    colors={[
-                      colors.modal.activeBorder,
-                      colors.modal.activeBorder,
-                      colors.transparent,
-                      colors.transparentDim,
-                    ]}
+                    color={colors.modal.activeBorder}
                   />
                 </View>
               ) : (

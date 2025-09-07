@@ -374,11 +374,7 @@ const OnboardingAISettings: React.FC<{
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <GradientSpinner
-            colors={[colors.primary, colors.secondary]}
-            size={24}
-            thickness={2}
-          />
+          <GradientSpinner color={colors.primary} size={24} />
         </View>
       </View>
     );
@@ -387,9 +383,9 @@ const OnboardingAISettings: React.FC<{
   // Show NoInternet screen if no connectivity
   if (showNoInternet) {
     return (
-      <NoInternet 
-        onRetry={handleRetryConnection} 
-        isRetrying={isCheckingConnection} 
+      <NoInternet
+        onRetry={handleRetryConnection}
+        isRetrying={isCheckingConnection}
       />
     );
   }
@@ -663,17 +659,7 @@ const OnboardingAISettings: React.FC<{
           alignItems: 'center',
         }}>
         {isValidating ? (
-          <GradientSpinner
-            size={30}
-            thickness={2}
-            colors={[
-              colors.primary,
-              colors.secondary,
-              'transparent',
-              colors.transparentDim,
-            ]}
-            style={{alignSelf: 'center', marginVertical: 30}}
-          />
+          <GradientSpinner color={colors.primary} size={24} />
         ) : (
           <View
             style={{

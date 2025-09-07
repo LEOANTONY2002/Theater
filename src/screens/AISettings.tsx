@@ -62,8 +62,11 @@ const FALLBACK_MODELS: GeminiModel[] = [
 // Function to fetch available Gemini models from the API
 const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
   try {
-    console.log('fetchGeminiModels called with API key:', apiKey ? 'Present' : 'Missing');
-    
+    console.log(
+      'fetchGeminiModels called with API key:',
+      apiKey ? 'Present' : 'Missing',
+    );
+
     if (!apiKey || apiKey.trim() === '') {
       console.log('No API key provided, using fallback models');
       return FALLBACK_MODELS;
@@ -81,7 +84,7 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
     );
 
     console.log('API response status:', response.status, response.statusText);
-    
+
     if (!response.ok) {
       console.error('Failed to fetch models:', response.statusText);
       return FALLBACK_MODELS;
@@ -304,13 +307,13 @@ const AISettingsScreen: React.FC = () => {
 
       setShowApiKeyInput(false);
       Keyboard.dismiss();
-      
+
       // Load available models if API key was added/changed
       if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
         console.log('Loading models with new API key:', trimmedApiKey);
         await loadAvailableModels(trimmedApiKey);
       }
-      
+
       showAlert('Success', 'AI settings saved successfully!');
     } catch (error) {
       console.error('Error saving AI settings:', error);
@@ -344,11 +347,7 @@ const AISettingsScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <GradientSpinner
-            colors={[colors.primary, colors.secondary]}
-            size={24}
-            thickness={2}
-          />
+          <GradientSpinner color={colors.primary} size={24} />
         </View>
       </View>
     );
@@ -488,105 +487,102 @@ const AISettingsScreen: React.FC = () => {
         {/* Model Selection Section - Only show when API key is set */}
         {apiKey && (
           <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
-              <Text style={[styles.sectionTitle, {marginBottom: -spacing.sm}]}>
-                Gemini Model
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <Text
+                  style={[styles.sectionTitle, {marginBottom: -spacing.sm}]}>
+                  Gemini Model
+                </Text>
+                <TouchableOpacity
+                  style={styles.refreshButton}
+                  onPress={() => loadAvailableModels(apiKey || '')}
+                  disabled={isLoadingModels}>
+                  <Icon
+                    name="refresh"
+                    size={16}
+                    color={
+                      isLoadingModels
+                        ? colors.text.tertiary
+                        : colors.text.secondary
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.sectionDescription}>
+                Choose the AI model for chat and recommendations
+                {isLoadingModels && ' (Loading latest models...)'}
               </Text>
-              <TouchableOpacity
-                style={styles.refreshButton}
-                onPress={() => loadAvailableModels(apiKey || '')}
-                disabled={isLoadingModels}>
-                <Icon
-                  name="refresh"
-                  size={16}
-                  color={
-                    isLoadingModels
-                      ? colors.text.tertiary
-                      : colors.text.secondary
-                  }
-                />
-              </TouchableOpacity>
             </View>
-            <Text style={styles.sectionDescription}>
-              Choose the AI model for chat and recommendations
-              {isLoadingModels && ' (Loading latest models...)'}
-            </Text>
-          </View>
 
-          {isLoadingModels ? (
-            <View style={styles.modelsLoadingContainer}>
-              <GradientSpinner
-                size={24}
-                thickness={2}
-                colors={[colors.primary, colors.secondary]}
-              />
-              <Text style={styles.modelsLoadingText}>
-                Fetching available models...
-              </Text>
-            </View>
-          ) : (
-            <View style={{height: 400, position: 'relative'}}>
-              <LinearGradient
-                pointerEvents="none"
-                colors={[colors.background.primary, 'transparent']}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 80,
-                  zIndex: 1,
-                }}
-              />
-              <FlashList
-                keyExtractor={item => item.id}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled={true}
-                contentContainerStyle={{
-                  paddingVertical: spacing.md,
-                }}
-                data={availableModels}
-                renderItem={({item}) => (
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    key={item.id}
-                    style={[
-                      styles.modelOption,
-                      selectedModel === item.id && styles.selectedModelOption,
-                    ]}
-                    onPress={() => {
-                      setSelectedModel(item.id);
-                    }}>
-                    <View style={styles.modelInfo}>
-                      <Text style={styles.modelName}>{item.name}</Text>
-                      <Text style={styles.modelDescription}>
-                        {item.description}
-                      </Text>
-                    </View>
-                    <View style={styles.radioButton}>
-                      {selectedModel === item.id && (
-                        <View style={styles.radioButtonSelected} />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                )}
-                extraData={selectedModel}
-              />
-              <LinearGradient
-                pointerEvents="none"
-                colors={['transparent', colors.background.primary]}
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 80,
-                  zIndex: 1,
-                }}
-              />
-            </View>
-          )}
+            {isLoadingModels ? (
+              <View style={styles.modelsLoadingContainer}>
+                <GradientSpinner color={colors.primary} size={24} />
+                <Text style={styles.modelsLoadingText}>
+                  Fetching available models...
+                </Text>
+              </View>
+            ) : (
+              <View style={{height: 400, position: 'relative'}}>
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[colors.background.primary, 'transparent']}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 80,
+                    zIndex: 1,
+                  }}
+                />
+                <FlashList
+                  keyExtractor={item => item.id}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled={true}
+                  contentContainerStyle={{
+                    paddingVertical: spacing.md,
+                  }}
+                  data={availableModels}
+                  renderItem={({item}) => (
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      key={item.id}
+                      style={[
+                        styles.modelOption,
+                        selectedModel === item.id && styles.selectedModelOption,
+                      ]}
+                      onPress={() => {
+                        setSelectedModel(item.id);
+                      }}>
+                      <View style={styles.modelInfo}>
+                        <Text style={styles.modelName}>{item.name}</Text>
+                        <Text style={styles.modelDescription}>
+                          {item.description}
+                        </Text>
+                      </View>
+                      <View style={styles.radioButton}>
+                        {selectedModel === item.id && (
+                          <View style={styles.radioButtonSelected} />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  extraData={selectedModel}
+                />
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={['transparent', colors.background.primary]}
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 80,
+                    zIndex: 1,
+                  }}
+                />
+              </View>
+            )}
           </View>
         )}
 
@@ -606,11 +602,7 @@ const AISettingsScreen: React.FC = () => {
               colors={[colors.primary, colors.secondary]}
               style={styles.saveButtonGradient}>
               {isValidating ? (
-                <GradientSpinner
-                  colors={[colors.text.primary, colors.modal.blur]}
-                  size={24}
-                  thickness={2}
-                />
+                <GradientSpinner color={colors.primary} size={24} />
               ) : (
                 <Text style={styles.saveButtonText}>Save Settings</Text>
               )}

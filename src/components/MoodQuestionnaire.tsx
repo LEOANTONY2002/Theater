@@ -17,7 +17,6 @@ type MoodQuestion = {
   question: string;
   options: {
     text: string;
-    genres: number[];
     emoji: string;
   }[];
 };
@@ -29,33 +28,35 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
     options: [
       {
         text: 'Need some laughs',
-        genres: [35, 10751], // Comedy, Family
         emoji: '😄',
       },
       {
         text: 'Want an adventure',
-        genres: [12, 28, 878], // Adventure, Action, Sci-Fi
         emoji: '🚀',
       },
       {
         text: 'In the mood for romance',
-        genres: [10749, 18], // Romance, Drama
         emoji: '💕',
       },
       {
         text: 'Want to be scared',
-        genres: [27, 53], // Horror, Thriller
         emoji: '😱',
       },
       {
         text: 'Need something deep',
-        genres: [18, 36, 99], // Drama, History, Documentary
         emoji: '🤔',
       },
       {
         text: 'Want to escape reality',
-        genres: [14, 16, 878], // Fantasy, Animation, Sci-Fi
         emoji: '✨',
+      },
+      {
+        text: 'Feeling nostalgic',
+        emoji: '🌅',
+      },
+      {
+        text: 'Need motivation',
+        emoji: '💪',
       },
     ],
   },
@@ -65,18 +66,19 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
     options: [
       {
         text: 'Quick watch (90-120 min)',
-        genres: [35, 27, 53], // Comedy, Horror, Thriller
         emoji: '⏰',
       },
       {
         text: 'Long epic (2+ hours)',
-        genres: [12, 18, 36, 10752], // Adventure, Drama, History, War
         emoji: '🎬',
       },
       {
         text: 'Series to binge',
-        genres: [18, 80, 9648], // Drama, Crime, Mystery
         emoji: '📺',
+      },
+      {
+        text: 'Short episodes (20-30 min)',
+        emoji: '⚡',
       },
     ],
   },
@@ -86,18 +88,89 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
     options: [
       {
         text: 'High energy, bring the action!',
-        genres: [28, 12, 53], // Action, Adventure, Thriller
         emoji: '⚡',
       },
       {
         text: 'Moderate, something engaging',
-        genres: [80, 9648, 18], // Crime, Mystery, Drama
         emoji: '🎯',
       },
       {
         text: 'Low energy, easy watching',
-        genres: [35, 10749, 10751], // Comedy, Romance, Family
         emoji: '😌',
+      },
+      {
+        text: 'Tired, need background noise',
+        emoji: '😴',
+      },
+    ],
+  },
+  {
+    id: 'social_setting',
+    question: 'Who are you watching with?',
+    options: [
+      {
+        text: 'Solo viewing',
+        emoji: '🧘',
+      },
+      {
+        text: 'With friends',
+        emoji: '👥',
+      },
+      {
+        text: 'Family time',
+        emoji: '👨‍👩‍👧‍👦',
+      },
+      {
+        text: 'Date night',
+        emoji: '💑',
+      },
+    ],
+  },
+  {
+    id: 'content_preference',
+    question: 'What type of story appeals to you today?',
+    options: [
+      {
+        text: 'Real-life stories',
+        emoji: '📖',
+      },
+      {
+        text: 'Mind-bending plots',
+        emoji: '🧠',
+      },
+      {
+        text: 'Feel-good stories',
+        emoji: '🌈',
+      },
+      {
+        text: 'Dark and gritty',
+        emoji: '🌑',
+      },
+      {
+        text: 'Epic adventures',
+        emoji: '⚔️',
+      },
+    ],
+  },
+  {
+    id: 'discovery_mood',
+    question: 'Are you in the mood to discover something new?',
+    options: [
+      {
+        text: 'Yes, surprise me!',
+        emoji: '🎲',
+      },
+      {
+        text: 'Something familiar and comforting',
+        emoji: '🏠',
+      },
+      {
+        text: 'Hidden gems and indie films',
+        emoji: '💎',
+      },
+      {
+        text: 'Popular and trending',
+        emoji: '🔥',
       },
     ],
   },

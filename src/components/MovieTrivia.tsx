@@ -227,14 +227,8 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <GradientSpinner
-              colors={[
-                colors.primary,
-                colors.secondary,
-                'transparent',
-                'transparent',
-              ]}
+              color={colors.primary}
               size={30}
-              thickness={2}
               style={{zIndex: 2}}
             />
           </View>

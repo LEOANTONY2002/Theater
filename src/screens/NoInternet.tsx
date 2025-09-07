@@ -97,11 +97,7 @@ export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
             end={{x: 1, y: 1}}
             style={styles.button}>
             {isRetrying ? (
-              <GradientSpinner
-                colors={[colors.text.primary, colors.modal.blur]}
-                size={24}
-                thickness={2}
-              />
+              <GradientSpinner color={colors.text.primary} size={24} />
             ) : (
               <Text style={styles.buttonText}>Try Again</Text>
             )}

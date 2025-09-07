@@ -442,9 +442,9 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
   // Show NoInternet screen if no connectivity during region detection
   if (showNoInternet) {
     return (
-      <NoInternet 
-        onRetry={handleRetryConnection} 
-        isRetrying={isCheckingConnection} 
+      <NoInternet
+        onRetry={handleRetryConnection}
+        isRetrying={isCheckingConnection}
       />
     );
   }
@@ -496,11 +496,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
 
                 {isDetecting ? (
                   <View style={styles.loadingContainer}>
-                    <GradientSpinner
-                      size={40}
-                      thickness={3}
-                      colors={[colors.primary, colors.secondary]}
-                    />
+                    <GradientSpinner size={40} color={colors.primary} />
                     <Text style={styles.loadingText}>
                       Detecting your region...
                     </Text>
@@ -610,16 +606,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
                 isDetecting && {backgroundColor: 'rgba(0,0,0,0.3)'},
               ]}>
               {isDetecting ? (
-                <GradientSpinner
-                  size={isTablet ? 40 : 30}
-                  thickness={2}
-                  colors={[
-                    colors.primary,
-                    colors.secondary,
-                    'transparent',
-                    'transparent',
-                  ]}
-                />
+                <GradientSpinner color={colors.primary} size={24} />
               ) : (
                 <Image
                   style={styles.nextIcon}

@@ -9,11 +9,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
-import {
-  useLatestMoviesByRegion,
-  useMoviesList,
-  useTop10MoviesTodayByRegion,
-} from '../hooks/useMovies';
+import {useMoviesList, useTop10MoviesTodayByRegion} from '../hooks/useMovies';
 import {useTop10ShowsTodayByRegion, useTVShowsList} from '../hooks/useTVShows';
 import {ContentItem} from '../components/MovieList';
 import {HorizontalList} from '../components/HorizontalList';
@@ -37,6 +33,7 @@ import {FiltersManager} from '../store/filters';
 import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
 import {HomeFilterRow} from '../components/HomeFilterRow';
+import {useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
@@ -48,10 +45,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import FastImage from 'react-native-fast-image';
 import {BlurView} from '@react-native-community/blur';
 import {useAIEnabled} from '../hooks/useAIEnabled';
+import {cache, CACHE_KEYS} from '../utils/cache';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
+  const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
+  const [showMoodQuestionnaire, setShowMoodQuestionnaire] = useState(false);
   const {isAIEnabled} = useAIEnabled();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
@@ -63,6 +63,7 @@ export const HomeScreen = React.memo(() => {
   } | null>(null);
   const [showMoodModal, setShowMoodModal] = useState(false);
   const [moodLoaded, setMoodLoaded] = useState(false);
+  const [moodRefreshKey, setMoodRefreshKey] = useState(0);
   const queryClient = useQueryClient();
 
   const {
@@ -180,7 +181,7 @@ export const HomeScreen = React.memo(() => {
 
     // Get unique movies for each category
     const latestMovie = getUniqueMovie(
-      recentMovies?.pages?.[0]?.results,
+      recentMovies?.pages?.[0]?.results || [],
       'Latest',
     );
     if (latestMovie) {
@@ -192,7 +193,7 @@ export const HomeScreen = React.memo(() => {
     }
 
     const popularMovie = getUniqueMovie(
-      popularMovies?.pages?.[0]?.results,
+      popularMovies?.pages?.[0]?.results || [],
       'Popular',
     );
     if (popularMovie) {
@@ -204,7 +205,7 @@ export const HomeScreen = React.memo(() => {
     }
 
     const topRatedMovie = getUniqueMovie(
-      topRatedMovies?.pages?.[0]?.results,
+      topRatedMovies?.pages?.[0]?.results || [],
       'Top',
     );
     if (topRatedMovie) {
@@ -315,31 +316,85 @@ export const HomeScreen = React.memo(() => {
   const WIDTH = useWindowDimensions().width;
   const {isTablet} = useResponsive();
 
-  // Load mood answers on component mount
-  useEffect(() => {
-    const loadMoodAnswers = async () => {
-      try {
-        const preferences = await AsyncStorage.getItem(
-          '@theater_user_preferences',
-        );
-        if (preferences) {
-          const parsed = JSON.parse(preferences);
-          if (parsed.moodAnswers) {
-            setMoodAnswers(parsed.moodAnswers);
-          }
+  // Load mood answers on component mount and when screen comes into focus
+  const loadMoodAnswers = useCallback(async () => {
+    try {
+      const preferences = await AsyncStorage.getItem(
+        '@theater_user_preferences',
+      );
+      if (preferences) {
+        const parsed = JSON.parse(preferences);
+        if (parsed.moodAnswers) {
+          setMoodAnswers(parsed.moodAnswers);
+        } else {
+          setMoodAnswers(null);
         }
-      } catch (error) {
-        console.error('Error loading mood answers:', error);
-      } finally {
-        setMoodLoaded(true);
+      } else {
+        setMoodAnswers(null);
       }
-    };
-    loadMoodAnswers();
+    } catch (error) {
+      console.error('Error loading mood answers:', error);
+    } finally {
+      setMoodLoaded(true);
+    }
   }, []);
 
-  const handleMoodComplete = (answers: {[key: string]: string}) => {
-    setMoodAnswers(answers);
-    setShowMoodModal(false);
+  useEffect(() => {
+    loadMoodAnswers();
+  }, [loadMoodAnswers]);
+
+  // Add focus listener to refresh mood data when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadMoodAnswers();
+      setMoodRefreshKey(prev => prev + 1); // Force MyNextWatch to re-render
+    });
+
+    return unsubscribe;
+  }, [navigation, loadMoodAnswers]);
+
+  const handleMoodComplete = async (answers: {[key: string]: string}) => {
+    try {
+      // Clear old data first
+      await AsyncStorage.multiRemove([
+        '@theater_user_preferences',
+        '@theater_user_feedback',
+        '@theater_next_watch_onboarding',
+      ]);
+
+      // Save fresh mood data
+      const preferences = {
+        moodAnswers: answers,
+        timestamp: Date.now(),
+      };
+
+      await AsyncStorage.setItem(
+        '@theater_user_preferences',
+        JSON.stringify(preferences),
+      );
+      await AsyncStorage.setItem('@theater_next_watch_onboarding', 'true');
+
+      // Update local state
+      setMoodAnswers(answers);
+
+      // Clear AI recommendation cache so next fetch uses new mood
+      await cache.clear(CACHE_KEYS.AI_RECOMMENDATION);
+
+      // Reload mood answers from storage to ensure consistency
+      await loadMoodAnswers();
+
+      // Invalidate all mood-related queries to force fresh data
+      queryClient.invalidateQueries({queryKey: ['mood']});
+      queryClient.invalidateQueries({queryKey: ['recommendations']});
+      queryClient.invalidateQueries({queryKey: ['userPreferences']});
+
+      // Force refresh of MyNextWatch component
+      setMoodRefreshKey(prev => prev + 1);
+
+      setShowMoodModal(false);
+    } catch (error) {
+      console.error('Error updating mood preferences:', error);
+    }
   };
 
   const handleMoodCancel = () => {
@@ -379,9 +434,9 @@ export const HomeScreen = React.memo(() => {
           type: 'moodSetup',
         });
       } else {
-        // Show My Next Watch
+        // Show My Next Watch; vary id with moodRefreshKey to force FlatList remount
         sectionsList.push({
-          id: 'myNextWatch',
+          id: `myNextWatch_${moodRefreshKey}`,
           type: 'myNextWatch',
         });
       }
@@ -633,9 +688,12 @@ export const HomeScreen = React.memo(() => {
     moodLoaded,
     moodAnswers,
     isAIEnabled,
+    moodRefreshKey,
   ]);
 
   // Render all sections without batching
+
+  const onUpdateMoodCb = useCallback(() => setShowMoodModal(true), []);
 
   const renderSection = useCallback(
     ({item}: {item: any}) => {
@@ -647,12 +705,21 @@ export const HomeScreen = React.memo(() => {
           return <BannerHomeSkeleton />;
 
         case 'myNextWatch':
-          return <MyNextWatch />;
+          return <MyNextWatch onUpdateMood={onUpdateMoodCb} />;
 
         case 'moodSetup':
           return (
             <View
               style={{
+                padding: spacing.md,
+                borderRadius: borderRadius.lg,
+                maxWidth: 600,
+                alignSelf: 'center',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 20,
+                width: '100%',
                 marginHorizontal: spacing.lg,
                 marginTop: spacing.xl,
                 marginBottom: spacing.lg,
@@ -683,12 +750,12 @@ export const HomeScreen = React.memo(() => {
                   pointerEvents="none"
                   style={{
                     width: '250%',
-                    height: '160%',
+                    height: '170%',
                     position: 'absolute',
-                    bottom: isTablet ? -5 : -25,
+                    bottom: isTablet ? -5 : -30,
                     left: -250,
                     zIndex: 0,
-                    transform: [{rotate: isTablet ? '-5deg' : '-10deg'}],
+                    transform: [{rotate: '-5deg'}],
                   }}
                   start={{x: 0, y: 0}}
                   end={{x: 0, y: 1}}
@@ -800,7 +867,7 @@ export const HomeScreen = React.memo(() => {
           return null;
       }
     },
-    [handleItemPress],
+    [handleItemPress, onUpdateMoodCb],
   );
 
   const keyExtractor = useCallback((item: any) => item.id, []);
@@ -946,7 +1013,10 @@ export const HomeScreen = React.memo(() => {
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
-        removeClippedSubviews={false}
+        removeClippedSubviews={true}
+        windowSize={7}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
       />
 
       {/* Mood Questionnaire Modal */}
@@ -957,7 +1027,7 @@ export const HomeScreen = React.memo(() => {
         navigationBarTranslucent={true}
         statusBarTranslucent={true}
         transparent={true}
-        onRequestClose={handleMoodCancel}>
+        onRequestClose={() => setShowMoodModal(false)}>
         <BlurView
           style={{
             flex: 1,
@@ -975,8 +1045,12 @@ export const HomeScreen = React.memo(() => {
               },
             ]}>
             <MoodQuestionnaire
-              onComplete={handleMoodComplete}
-              onCancel={handleMoodCancel}
+              onComplete={answers => {
+                // Use the centralized handler that persists, invalidates queries,
+                // refreshes MyNextWatch and closes the modal.
+                handleMoodComplete(answers);
+              }}
+              onCancel={() => setShowMoodModal(false)}
             />
           </View>
         </BlurView>

@@ -346,7 +346,7 @@ export const SearchScreen = React.memo(() => {
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
-              paddingTop: 100,
+              paddingVertical: 50,
             }}>
             <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
             <Text style={styles.emptyStateText}>
@@ -383,7 +383,7 @@ export const SearchScreen = React.memo(() => {
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
-              paddingTop: 100,
+              paddingVertical: 100,
             }}>
             <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
           </View>
@@ -563,12 +563,12 @@ export const SearchScreen = React.memo(() => {
                     pointerEvents="none"
                     style={{
                       width: '180%',
-                      height: '130%',
+                      height: '170%',
                       position: 'absolute',
                       bottom: -25,
                       left: -50,
                       zIndex: 0,
-                      transform: [{rotate: '-15deg'}],
+                      transform: [{rotate: '-10deg'}],
                     }}
                     start={{x: 0, y: 0}}
                     end={{x: 0, y: 1}}
@@ -660,17 +660,11 @@ export const SearchScreen = React.memo(() => {
               <View style={styles.loadingContainer}>
                 <GradientSpinner
                   size={30}
-                  thickness={3}
                   style={{
                     alignItems: 'center',
                     alignSelf: 'center',
                   }}
-                  colors={[
-                    colors.modal.activeBorder,
-                    colors.modal.activeBorder,
-                    colors.transparent,
-                    colors.transparentDim,
-                  ]}
+                  color={colors.modal.activeBorder}
                 />
                 <Text style={styles.loadingText}>
                   {debouncedQuery ? 'Searching...' : 'Applying filters...'}

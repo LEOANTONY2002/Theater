@@ -65,6 +65,7 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {useIMDBRating} from '../hooks/useScrap';
 import {ImageBackground} from 'react-native';
+import FastImage from 'react-native-fast-image';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {checkInternet} from '../services/connectivity';
@@ -823,7 +824,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     {isPosterLoading && !isPlaying && <BannerSkeleton />}
                     {!isPlaying ? (
                       <Animated.View style={{opacity: posterFadeAnim}}>
-                        <Image
+                        <FastImage
                           source={{
                             uri: getImageUrl(
                               movie.backdrop_path || '',
@@ -835,7 +836,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             setIsPosterLoading(false);
                             setIsImageLoaded(true);
                           }}
-                          resizeMode="cover"
+                          resizeMode={FastImage.resizeMode.cover}
                         />
                       </Animated.View>
                     ) : (
@@ -1161,18 +1162,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             alignSelf: 'center',
                           }}>
                           <GradientSpinner
-                            size={30}
-                            thickness={3}
+                            size={24}
                             style={{
                               alignItems: 'center',
                               alignSelf: 'center',
                             }}
-                            colors={[
-                              colors.primary,
-                              colors.secondary,
-                              colors.transparent,
-                              colors.transparentDim,
-                            ]}
+                            color={colors.primary}
                           />
                           <Text
                             style={{
@@ -1215,6 +1210,22 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           }
         }}
         keyExtractor={(item: any) => item.id}
+        removeClippedSubviews={true}
+        getItemType={(item: any) => item.type}
+        overrideItemLayout={(layout, item) => {
+          // Provide rough heights to avoid layout thrash
+          const map: Record<string, number> = {
+            header: 600,
+            content: 500,
+            cast: 260,
+            providers: 200,
+            similar: 500,
+            recommendations: 500,
+            trivia: 400,
+          };
+          const h = map[item.type] || 400;
+          layout.size = h;
+        }}
         showsVerticalScrollIndicator={false}
         estimatedItemSize={500}
         contentContainerStyle={{paddingBottom: 120}}
