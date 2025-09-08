@@ -711,8 +711,13 @@ export const OnlineAIScreen: React.FC = () => {
               backgroundColor: 'rgba(0,0,0,0.35)',
               marginRight: 8,
             }}>
-            <Text style={{color: colors.text.primary, ...typography.caption}}>
-              {threads.find(t => t.id === currentThreadId)?.title || 'Threads'}
+            <Text style={{color: colors.text.primary, ...typography.caption}} numberOfLines={1}>
+              {(() => {
+                const t = threads.find(th => th.id === currentThreadId);
+                const raw = (t?.title && t.title.trim().length > 0) ? t.title.trim() : '(New chat)';
+                const words = raw.split(/\s+/);
+                return words.length > 3 ? words.slice(0, 3).join(' ') + '…' : raw;
+              })()}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -740,7 +745,7 @@ export const OnlineAIScreen: React.FC = () => {
               borderColor: colors.modal.border,
               backgroundColor: 'rgba(0,0,0,0.35)',
             }}>
-            <Text style={{color: colors.text.primary, ...typography.caption}}>Clear</Text>
+            <Icon name="trash" size={18} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
         <LinearGradient
