@@ -69,6 +69,7 @@ import {FlashList} from '@shopify/flash-list';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {offlineCache} from '../services/offlineCache';
+import {HistoryManager} from '../store/history';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -112,6 +113,28 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+
+  // Record to history when user starts watching
+  const addToHistory = useCallback(() => {
+    const item = {
+      id: show?.id,
+      title: show?.name,
+      name: show?.name,
+      overview: show?.overview,
+      poster_path: show?.poster_path,
+      backdrop_path: show?.backdrop_path,
+      vote_average: (showDetails as any).vote_average ?? 0,
+      release_date: (showDetails as any).release_date,
+      first_air_date: undefined,
+      genre_ids: (showDetails as any).genre_ids ?? [],
+      type: 'tv' as const,
+    };
+    HistoryManager.add(item as any);
+  }, [showDetails]);
+
+  useEffect(() => {
+    addToHistory();
+  }, []);
 
   // Check connectivity and cache status for this specific TV show
   useEffect(() => {

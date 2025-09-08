@@ -372,7 +372,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
             {
               opacity: blurOpacity,
               zIndex: 0,
-              backgroundColor: colors.modal?.active,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
             },
           ]}
         />

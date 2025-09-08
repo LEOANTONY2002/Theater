@@ -63,7 +63,10 @@ export const HomeScreen = React.memo(() => {
   } | null>(null);
   const [showMoodModal, setShowMoodModal] = useState(false);
   const [moodLoaded, setMoodLoaded] = useState(false);
-  const [moodRefreshKey, setMoodRefreshKey] = useState(0);
+  // Increment only when mood is updated to signal MyNextWatch to refresh
+  const [moodVersion, setMoodVersion] = useState(0);
+  // We no longer force-remount MyNextWatch on Home focus; it can refresh itself via its own UI
+  // const [moodRefreshKey, setMoodRefreshKey] = useState(0);
   const queryClient = useQueryClient();
 
   const {
@@ -347,7 +350,7 @@ export const HomeScreen = React.memo(() => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       loadMoodAnswers();
-      setMoodRefreshKey(prev => prev + 1); // Force MyNextWatch to re-render
+      // No forced remount of MyNextWatch here; it manages its own refresh
     });
 
     return unsubscribe;
@@ -388,8 +391,8 @@ export const HomeScreen = React.memo(() => {
       queryClient.invalidateQueries({queryKey: ['recommendations']});
       queryClient.invalidateQueries({queryKey: ['userPreferences']});
 
-      // Force refresh of MyNextWatch component
-      setMoodRefreshKey(prev => prev + 1);
+      // Signal MyNextWatch to refresh due to mood change without remounting
+      setMoodVersion(v => v + 1);
 
       setShowMoodModal(false);
     } catch (error) {
@@ -434,10 +437,11 @@ export const HomeScreen = React.memo(() => {
           type: 'moodSetup',
         });
       } else {
-        // Show My Next Watch; vary id with moodRefreshKey to force FlatList remount
+        // Show My Next Watch with a stable id so it does not remount on every visit
         sectionsList.push({
-          id: `myNextWatch_${moodRefreshKey}`,
+          id: 'myNextWatch',
           type: 'myNextWatch',
+          refreshSignal: moodVersion,
         });
       }
     }
@@ -688,7 +692,7 @@ export const HomeScreen = React.memo(() => {
     moodLoaded,
     moodAnswers,
     isAIEnabled,
-    moodRefreshKey,
+    moodVersion,
   ]);
 
   // Render all sections without batching
@@ -705,7 +709,12 @@ export const HomeScreen = React.memo(() => {
           return <BannerHomeSkeleton />;
 
         case 'myNextWatch':
-          return <MyNextWatch onUpdateMood={onUpdateMoodCb} />;
+          return (
+            <MyNextWatch
+              onUpdateMood={onUpdateMoodCb}
+              refreshSignal={item.refreshSignal}
+            />
+          );
 
         case 'moodSetup':
           return (

@@ -43,6 +43,7 @@ import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
 import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import CreateButton from '../components/createButton';
+import {HistoryManager, HistoryItem} from '../store/history';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -72,7 +73,7 @@ const NoResults = ({query}: {query: string}) => (
   </View>
 );
 
-type TabType = 'trending' | 'filters' | 'watchlists';
+type TabType = 'trending' | 'filters' | 'watchlists' | 'history';
 
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
@@ -84,6 +85,7 @@ export const SearchScreen = React.memo(() => {
   const [activeFilters, setActiveFilters] = useState<FilterParams>({});
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
   const [activeTab, setActiveTab] = useState<TabType>('trending');
+  const [historyItems, setHistoryItems] = useState<ContentItem[]>([]);
   const queryClient = useQueryClient();
 
   // Get real saved filters data
@@ -144,6 +146,64 @@ export const SearchScreen = React.memo(() => {
     };
     loadRecentItems();
   }, []);
+
+  // Load view history on mount and when returning to tab
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const items = await HistoryManager.getAll();
+        setHistoryItems(items as unknown as ContentItem[]);
+      } catch (e) {
+        console.error('Error loading history items:', e);
+      }
+    };
+    loadHistory();
+    const unsubscribe = navigation.addListener('focus', loadHistory);
+    return unsubscribe;
+  }, [navigation]);
+
+  const renderHistoryContent = () => {
+    return (
+      <View>
+        {historyItems.length > 0 ? (
+          <>
+            <View
+              style={[styles.recentItemsHeader, {marginBottom: spacing.md}]}>
+              <Text style={styles.sectionTitle}>History</Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  await HistoryManager.clear();
+                  setHistoryItems([]);
+                }}>
+                <Text style={styles.clearAllText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
+            <TrendingGrid
+              data={historyItems}
+              onItemPress={handleItemPress}
+              isLoading={false}
+              fetchNextPage={() => {}}
+              hasNextPage={false}
+              isFetchingNextPage={false}
+            />
+          </>
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 100,
+            }}>
+            <Text style={styles.emptyStateTitle}>No History Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Start watching to see your history here
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   // Save recent item
   const saveRecentItem = async (item: ContentItem) => {
@@ -354,7 +414,10 @@ export const SearchScreen = React.memo(() => {
             </Text>
             <CreateButton
               onPress={() =>
-                navigation.navigate('MySpace', {screen: 'MyFiltersScreen'})
+                navigation.navigate('Main', {
+                  screen: 'MySpace',
+                  params: {screen: 'MyFiltersScreen'},
+                })
               }
               title="Go to My Filter"
               icon={null}
@@ -452,6 +515,8 @@ export const SearchScreen = React.memo(() => {
         return renderFiltersContent();
       case 'watchlists':
         return renderWatchlistsContent();
+      case 'history':
+        return renderHistoryContent();
       default:
         return renderTrendingContent();
     }
@@ -645,6 +710,7 @@ export const SearchScreen = React.memo(() => {
                   {renderTabButton('trending', 'Trending')}
                   {renderTabButton('filters', 'My Filters')}
                   {renderTabButton('watchlists', 'My Watchlists')}
+                  {renderTabButton('history', 'History')}
                 </View>
 
                 {/* Tab Content */}

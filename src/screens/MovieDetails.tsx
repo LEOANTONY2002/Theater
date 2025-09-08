@@ -71,6 +71,7 @@ import {useAIEnabled} from '../hooks/useAIEnabled';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {offlineCache} from '../services/offlineCache';
+import {HistoryManager} from '../store/history';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -113,6 +114,28 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+
+  // Record to history when user starts watching
+  const addToHistory = useCallback(() => {
+    const item = {
+      id: movie.id,
+      title: movie.title,
+      name: movie.title,
+      overview: movie.overview,
+      poster_path: movie.poster_path,
+      backdrop_path: movie.backdrop_path,
+      vote_average: (movie as any).vote_average ?? 0,
+      release_date: (movie as any).release_date,
+      first_air_date: undefined,
+      genre_ids: (movie as any).genre_ids ?? [],
+      type: 'movie' as const,
+    };
+    HistoryManager.add(item as any);
+  }, [movie]);
+
+  useEffect(() => {
+    addToHistory();
+  }, []);
 
   // Check connectivity and cache status for this specific movie
   useEffect(() => {
@@ -775,7 +798,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           {type: 'content', id: 'content'},
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
-          ...(isAIEnabled ? [{type: 'trivia', id: 'trivia'}] : []),
+          {type: 'trivia', id: 'trivia'},
           {type: 'similar', id: 'similar'},
           {type: 'recommendations', id: 'recommendations'},
         ]}
@@ -955,6 +978,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         title="Watch Now"
                         onPress={() => {
                           setIsPlaying(true);
+                          addToHistory();
                         }}
                         style={{
                           ...styles.watchButton,

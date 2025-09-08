@@ -655,7 +655,7 @@ export const MySpaceScreen = React.memo(() => {
       </TouchableOpacity>
 
       {/* Mood Settings Section */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.headerContainer}
         activeOpacity={0.9}
         onPress={handleUpdateMood}
@@ -672,7 +672,7 @@ export const MySpaceScreen = React.memo(() => {
           )}
         </View>
         <Ionicons name="refresh" size={16} color={colors.accent} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Ask AI Section */}
       <View style={{position: 'relative', overflow: 'hidden'}}>

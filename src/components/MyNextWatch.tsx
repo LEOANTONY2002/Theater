@@ -176,9 +176,13 @@ const STORAGE_KEYS = {
 
 type MyNextWatchProps = {
   onUpdateMood?: () => void;
+  refreshSignal?: number; // increments when mood is updated to trigger refresh without remount
 };
 
-const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({onUpdateMood}) => {
+const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
+  onUpdateMood,
+  refreshSignal,
+}) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
@@ -345,6 +349,13 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({onUpdateMood}) => {
     },
     [userFeedback, moodAnswers, startTransition],
   );
+
+  // Refresh recommendation when parent signals mood change, without remounting
+  useEffect(() => {
+    if (!isInitialized || !isOnboardingComplete) return;
+    // Use stored feedback to steer the next pick
+    getNextRecommendation(userFeedback);
+  }, [refreshSignal]);
 
   const handleFeedback = useCallback(
     async (liked: boolean) => {

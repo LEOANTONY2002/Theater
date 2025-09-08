@@ -221,24 +221,18 @@ export const CategoryScreen = () => {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.header, animatedHeaderStyle]}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              opacity: blurOpacity,
-              zIndex: 0,
-              backgroundColor: colors.modal?.active,
-            },
-          ]}
-        />
         <View
           style={{
             display: 'flex',
             gap: 20,
             flexDirection: 'row',
             alignItems: 'center',
+            paddingHorizontal: spacing.md,
             width: '100%',
+            height: 60,
+            borderRadius: borderRadius.lg,
           }}>
+          <View style={styles.blurView} />
           <TouchableOpacity
             onPress={() => {
               navigation.goBack();
@@ -320,10 +314,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
     marginTop: spacing.xxl,
-    height: 60,
-    backgroundColor: colors.modal.background,
     overflow: 'hidden',
     position: 'absolute',
     top: 0,
@@ -334,6 +325,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     overflow: 'hidden',
+    height: 60,
   },
   blurView: {
     position: 'absolute',
@@ -341,6 +333,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    height: 60,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   titleIconContainer: {
     width: 36,
