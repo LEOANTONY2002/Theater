@@ -6,6 +6,7 @@ import {TVShowDetailsScreen} from '../screens/TVShowDetails';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {SearchStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
+import {CategoryScreen} from '../screens/CategoryScreen';
 
 const Stack = createNativeStackNavigator<SearchStackParamList>();
 
@@ -23,6 +24,7 @@ export const SearchNavigator = () => {
       <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} options={{animation: 'slide_from_bottom'}} />
       <Stack.Screen name="TVShowDetails" component={TVShowDetailsScreen} options={{animation: 'slide_from_bottom'}} />
       <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} options={{animation: 'slide_from_bottom'}} />
+      <Stack.Screen name="Category" component={CategoryScreen} options={{animation: 'slide_from_bottom'}} />
     </Stack.Navigator>
   );
 };

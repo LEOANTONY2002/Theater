@@ -862,7 +862,7 @@ export const MySpaceScreen = React.memo(() => {
               style={StyleSheet.absoluteFill}
               blurType="dark"
               blurAmount={10}
-              overlayColor={colors.modal.blur}
+              overlayColor={colors.modal.blurDark}
             />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Privacy Policy</Text>

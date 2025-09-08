@@ -133,6 +133,14 @@ export const SearchStackNavigator = () => (
         ...modalScreenOptions,
       }}
     />
+    <SearchStack.Screen
+      name="Category"
+      component={CategoryScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
   </SearchStack.Navigator>
 );
 

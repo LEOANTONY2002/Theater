@@ -14,7 +14,11 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {MoviesStackParamList, TVShowsStackParamList} from '../types/navigation';
+import {
+  MoviesStackParamList,
+  TVShowsStackParamList,
+  SearchStackParamList,
+} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {useDynamicContentSource} from '../hooks/useApp';
@@ -31,19 +35,20 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
-  MoviesStackParamList | TVShowsStackParamList,
+  MoviesStackParamList | TVShowsStackParamList | SearchStackParamList,
   'Category'
 >;
 
 type CategoryScreenRouteProp = RouteProp<
-  MoviesStackParamList | TVShowsStackParamList,
+  MoviesStackParamList | TVShowsStackParamList | SearchStackParamList,
   'Category'
 >;
 
 export const CategoryScreen = () => {
   const navigation = useNavigation<CategoryScreenNavigationProp>();
   const route = useRoute<CategoryScreenRouteProp>();
-  const {title, categoryType, contentType, filter} = route.params;
+  const {title, categoryType, contentType, filter, fromSearch} =
+    (route.params as any) || {};
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {isTablet, orientation} = useResponsive();
@@ -90,6 +95,40 @@ export const CategoryScreen = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Ensure system back/gesture also returns to Search when opened from Search
+  useEffect(() => {
+    if (!fromSearch) return;
+    // Disable swipe-back gesture for this screen to avoid popping to Movies/TV root
+    (navigation as any).setOptions?.({gestureEnabled: false});
+
+    const goToSearchTab = () => {
+      // Try switching the bottom tab to 'Search' using parent navigators
+      const parent1 = (navigation as any).getParent?.();
+      const parent2 = parent1?.getParent?.();
+      if (parent1 && typeof parent1.navigate === 'function') {
+        try {
+          parent1.navigate('Search');
+          return;
+        } catch {}
+      }
+      if (parent2 && typeof parent2.navigate === 'function') {
+        try {
+          parent2.navigate('Search');
+          return;
+        } catch {}
+      }
+      // Fallback
+      (navigation as any).navigate('Main', {screen: 'Search'});
+    };
+
+    const unsubscribe = (navigation as any).addListener('beforeRemove', (e: any) => {
+      // This will catch back gesture and hardware back
+      e.preventDefault();
+      goToSearchTab();
+    });
+    return unsubscribe;
+  }, [navigation, fromSearch]);
 
   useEffect(() => {
     // Set loading to false after a short delay to allow smooth transition
@@ -235,7 +274,11 @@ export const CategoryScreen = () => {
           <View style={styles.blurView} />
           <TouchableOpacity
             onPress={() => {
-              navigation.goBack();
+              if (fromSearch) {
+                (navigation as any).navigate('Main', {screen: 'Search'});
+              } else {
+                navigation.goBack();
+              }
             }}
             style={{
               width: 30,

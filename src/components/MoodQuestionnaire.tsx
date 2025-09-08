@@ -61,24 +61,20 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
     ],
   },
   {
-    id: 'time_preference',
-    question: 'How much time do you have?',
+    id: 'content_type',
+    question: 'What do you want to watch?',
     options: [
       {
-        text: 'Quick watch (90-120 min)',
-        emoji: '⏰',
-      },
-      {
-        text: 'Long epic (2+ hours)',
+        text: 'Movie',
         emoji: '🎬',
       },
       {
-        text: 'Series to binge',
+        text: 'Series',
         emoji: '📺',
       },
       {
-        text: 'Short episodes (20-30 min)',
-        emoji: '⚡',
+        text: 'Any',
+        emoji: '🎲',
       },
     ],
   },
@@ -101,28 +97,6 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
       {
         text: 'Tired, need background noise',
         emoji: '😴',
-      },
-    ],
-  },
-  {
-    id: 'social_setting',
-    question: 'Who are you watching with?',
-    options: [
-      {
-        text: 'Solo viewing',
-        emoji: '🧘',
-      },
-      {
-        text: 'With friends',
-        emoji: '👥',
-      },
-      {
-        text: 'Family time',
-        emoji: '👨‍👩‍👧‍👦',
-      },
-      {
-        text: 'Date night',
-        emoji: '💑',
       },
     ],
   },
@@ -192,9 +166,56 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
     initialAnswers,
   );
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Dynamically filter options based on prior answers to avoid contradictory tones
+  const getEffectiveOptions = (
+    question: MoodQuestion,
+    answers: {[key: string]: string},
+  ) => {
+    if (question.id !== 'content_preference') return question.options;
+
+    const mood = (answers['current_mood'] || '').toLowerCase();
+    const base = question.options;
+
+    if (mood.includes('laugh')) {
+      return base.filter(opt =>
+        ['Feel-good stories', 'Real-life stories', 'Epic adventures'].includes(
+          opt.text,
+        ),
+      );
+    }
+
+    if (mood.includes('scared')) {
+      return base.filter(opt =>
+        ['Dark and gritty', 'Mind-bending plots', 'Epic adventures'].includes(
+          opt.text,
+        ),
+      );
+    }
+
+    if (mood.includes('deep') || mood.includes('motivation') || mood.includes('real')) {
+      return base.filter(opt =>
+        ['Real-life stories', 'Mind-bending plots', 'Dark and gritty'].includes(
+          opt.text,
+        ),
+      );
+    }
+
+    if (mood.includes('escape')) {
+      return base.filter(opt =>
+        ['Epic adventures', 'Mind-bending plots', 'Feel-good stories'].includes(
+          opt.text,
+        ),
+      );
+    }
+
+    return base;
+  };
+
+  const currentQuestion = MOOD_QUESTIONS[currentQuestionIndex];
+  const displayedOptions = getEffectiveOptions(currentQuestion, moodAnswers);
 
   const handleMoodAnswer = async (optionText: string) => {
-    const currentQuestion = MOOD_QUESTIONS[currentQuestionIndex];
     const updatedAnswers = {
       ...moodAnswers,
       [currentQuestion.id]: optionText,
@@ -238,8 +259,6 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
     }
   };
 
-  const currentQuestion = MOOD_QUESTIONS[currentQuestionIndex];
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -275,7 +294,7 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
       <ScrollView
         style={styles.optionsContainer}
         showsVerticalScrollIndicator={false}>
-        {currentQuestion.options.map((option, index) => (
+        {displayedOptions.map((option: {text: string; emoji: string}, index: number) => (
           <TouchableOpacity
             key={index}
             style={styles.moodOption}

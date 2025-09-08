@@ -48,8 +48,7 @@ type ContentItem = {
 type UserFeedback = {
   contentId: number;
   title: string;
-  liked: boolean | null; // null for already watched
-  alreadyWatched?: boolean;
+  liked: boolean; // true for like, false for dislike
   timestamp: number;
 };
 
@@ -125,23 +124,23 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
     ],
   },
   {
-    id: 'time_preference',
-    question: 'How much time do you have?',
+    id: 'content_type',
+    question: 'What do you want to watch?',
     options: [
       {
-        text: 'Quick watch (90-120 min)',
-        genres: [35, 27, 53], // Comedy, Horror, Thriller
-        emoji: '⏰',
-      },
-      {
-        text: 'Long epic (2+ hours)',
-        genres: [12, 18, 36, 10752], // Adventure, Drama, History, War
+        text: 'Movie',
+        genres: [],
         emoji: '🎬',
       },
       {
-        text: 'Series to binge',
-        genres: [18, 80, 9648], // Drama, Crime, Mystery
+        text: 'Series',
+        genres: [],
         emoji: '📺',
+      },
+      {
+        text: 'Any',
+        genres: [],
+        emoji: '🎲',
       },
     ],
   },
@@ -336,6 +335,8 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
             startTransition(() => {
               setCurrentRecommendation(recommendation);
             });
+          } else {
+            startTransition(() => setCurrentRecommendation(null));
           }
         } catch (error) {
           console.error('Error getting recommendation:', error);
@@ -370,7 +371,11 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
           timestamp: Date.now(),
         };
 
-        const updatedFeedback = [...userFeedback, feedback];
+        // Deduplicate by contentId: latest feedback wins
+        const filtered = userFeedback.filter(
+          f => f.contentId !== feedback.contentId,
+        );
+        const updatedFeedback = [...filtered, feedback];
         setUserFeedback(updatedFeedback);
 
         // Save to storage
@@ -388,35 +393,6 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
     },
     [currentRecommendation, userFeedback, getNextRecommendation],
   );
-
-  const handleAlreadyWatched = useCallback(async () => {
-    if (!currentRecommendation) return;
-
-    try {
-      const feedback: UserFeedback = {
-        contentId: currentRecommendation.id,
-        title: currentRecommendation.title || currentRecommendation.name || '',
-        liked: null,
-        alreadyWatched: true,
-        timestamp: Date.now(),
-      };
-
-      const updatedFeedback = [...userFeedback, feedback];
-      setUserFeedback(updatedFeedback);
-
-      // Save to storage
-      await AsyncStorage.setItem(
-        STORAGE_KEYS.USER_FEEDBACK,
-        JSON.stringify(updatedFeedback),
-      );
-
-      // Get next recommendation
-      await getNextRecommendation(updatedFeedback);
-    } catch (error) {
-      console.error('Error saving already watched feedback:', error);
-      Alert.alert('Error', 'Failed to save feedback. Please try again.');
-    }
-  }, [currentRecommendation, userFeedback, getNextRecommendation]);
 
   const handleContentPress = useCallback(() => {
     if (!currentRecommendation) return;
@@ -573,24 +549,6 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
                 <Text style={styles.feedbackButtonText}>Looks good!</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-              }}
-              onPress={() => handleAlreadyWatched()}
-              activeOpacity={0.7}>
-              <Ionicons name="eye" size={20} color="#fff" />
-              <Text
-                style={[
-                  styles.feedbackButtonText,
-                  {textDecorationLine: 'underline'},
-                ]}>
-                Already Watched
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
       ) : (

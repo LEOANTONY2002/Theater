@@ -398,7 +398,27 @@ export const SearchScreen = React.memo(() => {
       <View>
         {savedFilters.length > 0 ? (
           savedFilters.map((filter: SavedFilter) => (
-            <HomeFilterRow key={filter.id} savedFilter={filter} />
+            <HomeFilterRow
+              key={filter.id}
+              savedFilter={filter}
+              onSeeAllPress={() => {
+                // Navigate within Search stack to keep back gesture returning to Search
+                if (filter.type === 'tv') {
+                  (navigation as any).navigate('Category', {
+                    title: filter.name,
+                    contentType: 'tv',
+                    filter: filter.params, // plain params for tv
+                  });
+                } else {
+                  // 'movie' or 'all': pass SavedFilter; hook will handle 'all'
+                  (navigation as any).navigate('Category', {
+                    title: filter.name,
+                    contentType: 'movie',
+                    filter: filter,
+                  });
+                }
+              }}
+            />
           ))
         ) : (
           <View

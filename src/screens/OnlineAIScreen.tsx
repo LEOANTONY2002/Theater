@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
+  Modal,
 } from 'react-native';
 import {cinemaChat} from '../services/gemini';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
@@ -24,6 +25,7 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {AISettingsManager} from '../store/aiSettings';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import {useResponsive} from '../hooks/useResponsive';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -35,6 +37,12 @@ interface Message {
     title: string;
     year: number;
   }>;
+}
+
+interface ChatThread {
+  id: string;
+  title: string;
+  messages: Message[];
 }
 
 interface ParallaxCardProps {
@@ -146,6 +154,46 @@ export const OnlineAIScreen: React.FC = () => {
   const androidInset = useAndroidKeyboardInset(10);
   const {isTablet} = useResponsive();
   const [isRateLimitExceeded, setIsRateLimitExceeded] = useState(false);
+  // Legacy single-history key (for migration)
+  const HISTORY_KEY = '@theater_online_ai_history';
+  // New multi-thread storage
+  const THREADS_KEY = '@theater_online_ai_threads';
+  const CURRENT_THREAD_KEY = '@theater_online_ai_current_thread';
+
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [currentThreadId, setCurrentThreadId] = useState<string>('');
+  const [showThreadPicker, setShowThreadPicker] = useState(false);
+
+  // Helpers to work with threads
+  const cap20 = (msgs: Message[]) => msgs.slice(-20);
+
+  const persistThreads = async (all: ChatThread[], currentId: string) => {
+    try {
+      await AsyncStorage.multiSet([
+        [THREADS_KEY, JSON.stringify(all)],
+        [CURRENT_THREAD_KEY, currentId],
+      ]);
+    } catch (e) {
+      console.log('Persist threads failed', e);
+    }
+  };
+
+  const findCurrentIndex = (all: ChatThread[], id: string) =>
+    Math.max(0, all.findIndex(t => t.id === id));
+
+  const setAndPersistMessages = async (msgs: Message[]) => {
+    const capped = cap20(msgs);
+    setMessages(capped);
+    // Update into threads and persist
+    setThreads(prev => {
+      const idx = findCurrentIndex(prev, currentThreadId);
+      if (idx === -1) return prev;
+      const updated: ChatThread = {...prev[idx], messages: capped};
+      const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
+      persistThreads(next, currentThreadId);
+      return next;
+    });
+  };
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -186,6 +234,78 @@ export const OnlineAIScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
+  }, []);
+
+  // Load threads (with migration from legacy single-history)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [threadsRaw, currentIdRaw, legacyRaw] = await AsyncStorage.multiGet([
+          THREADS_KEY,
+          CURRENT_THREAD_KEY,
+          HISTORY_KEY,
+        ]).then(entries => entries.map(([, v]) => v));
+
+        let loadedThreads: ChatThread[] = [];
+        let loadedCurrentId = '';
+
+        if (threadsRaw) {
+          loadedThreads = JSON.parse(threadsRaw) || [];
+        }
+        if (currentIdRaw) {
+          loadedCurrentId = currentIdRaw;
+        }
+
+        // Migrate legacy single-history into first thread if no threads exist
+        if ((!loadedThreads || loadedThreads.length === 0) && legacyRaw) {
+          const parsed: Message[] = JSON.parse(legacyRaw) || [];
+          const initialThread: ChatThread = {
+            id: String(Date.now()),
+            title: 'Chat 1',
+            messages: cap20(parsed),
+          };
+          loadedThreads = [initialThread];
+          loadedCurrentId = initialThread.id;
+          // Clear legacy storage
+          await AsyncStorage.removeItem(HISTORY_KEY);
+        }
+
+        // Normalize titles: replace default 'Chat N' with first user message preview if available
+        loadedThreads = (loadedThreads || []).map((t, idx) => {
+          const looksDefault = !t.title || /^Chat\s\d+$/i.test(t.title);
+          if (looksDefault) {
+            const firstUserMsg = (t.messages || []).find(m => m.role === 'user');
+            if (firstUserMsg?.content) {
+              const preview = firstUserMsg.content.split(/\s+/).slice(0, 6).join(' ');
+              return {...t, title: preview};
+            }
+          }
+          return t;
+        });
+
+        // If still empty, create a default thread
+        if (!loadedThreads || loadedThreads.length === 0) {
+          const initial: ChatThread = {id: String(Date.now()), title: '', messages: []};
+          loadedThreads = [initial];
+          loadedCurrentId = initial.id;
+        }
+
+        if (mounted) {
+          setThreads(loadedThreads);
+          setCurrentThreadId(loadedCurrentId || loadedThreads[0].id);
+          const current = loadedThreads.find(t => t.id === (loadedCurrentId || loadedThreads[0].id));
+          setMessages(cap20(current?.messages || []));
+        }
+        // Persist normalized structure
+        await persistThreads(loadedThreads, loadedCurrentId || loadedThreads[0].id);
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Android keyboard inset handled via hook
@@ -253,7 +373,22 @@ export const OnlineAIScreen: React.FC = () => {
     if (!input.trim()) return;
     const userMessage: Message = {role: 'user', content: input};
     const newMessages: Message[] = [...messages, userMessage];
-    setMessages(newMessages);
+    await setAndPersistMessages(newMessages);
+    // If thread has no title beyond default, set it from first user message
+    setThreads(prev => {
+      const idx = findCurrentIndex(prev, currentThreadId);
+      if (idx === -1) return prev;
+      const t = prev[idx];
+      const isDefault = !t.title || /^Chat\s\d+$/i.test(t.title);
+      if (isDefault && userMessage.content) {
+        const firstWords = userMessage.content.split(/\s+/).slice(0, 6).join(' ');
+        const updated: ChatThread = {...t, title: firstWords || t.title};
+        const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
+        persistThreads(next, currentThreadId);
+        return next;
+      }
+      return prev;
+    });
     setInput('');
     setLoading(true);
     setAnimating(false);
@@ -337,7 +472,7 @@ export const OnlineAIScreen: React.FC = () => {
               setTimeout(animate, 1);
             } else {
               setAnimating(false);
-              setMessages([
+              setAndPersistMessages([
                 ...newMessages,
                 {role: 'assistant', content: text, tmdbResults} as Message,
               ]);
@@ -360,7 +495,7 @@ export const OnlineAIScreen: React.FC = () => {
           setTimeout(animate, 1);
         } else {
           setAnimating(false);
-          setMessages([
+          setAndPersistMessages([
             ...newMessages,
             {role: 'assistant', content: text, tmdbResults} as Message,
           ]);
@@ -379,12 +514,46 @@ export const OnlineAIScreen: React.FC = () => {
           ? 'Sorry, you cannot continue. Please change your API key in the settings.'
           : 'Sorry, there was an error.',
       };
-      setMessages([...newMessages, errorMessage]);
+      await setAndPersistMessages([...newMessages, errorMessage]);
       setAnimating(false);
       setAnimatedContent('');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Thread actions
+  const handleNewThread = async () => {
+    const newThread: ChatThread = {
+      id: String(Date.now()),
+      title: '',
+      messages: [],
+    };
+    const nextThreads = [...threads, newThread];
+    setThreads(nextThreads);
+    setCurrentThreadId(newThread.id);
+    setMessages([]);
+    await persistThreads(nextThreads, newThread.id);
+  };
+
+  const handleClearCurrent = async () => {
+    setMessages([]);
+    setThreads(prev => {
+      const idx = findCurrentIndex(prev, currentThreadId);
+      if (idx === -1) return prev;
+      const updated: ChatThread = {...prev[idx], messages: []};
+      const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
+      persistThreads(next, currentThreadId);
+      return next;
+    });
+  };
+
+  const switchThread = async (id: string) => {
+    setCurrentThreadId(id);
+    const t = threads.find(th => th.id === id);
+    setMessages(cap20(t?.messages || []));
+    await persistThreads(threads, id);
+    setShowThreadPicker(false);
   };
 
   const renderItem = ({item, index}: {item: Message; index: number}) => {
@@ -528,6 +697,52 @@ export const OnlineAIScreen: React.FC = () => {
           />
           <Icon name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
+        {/* Thread controls */}
+        <View style={{position: 'absolute', top: 50, right: 20, flexDirection: 'row', gap: 8, zIndex: 2}}>
+          <TouchableOpacity
+            onPress={() => setShowThreadPicker(true)}
+            activeOpacity={0.9}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: colors.modal.border,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              marginRight: 8,
+            }}>
+            <Text style={{color: colors.text.primary, ...typography.caption}}>
+              {threads.find(t => t.id === currentThreadId)?.title || 'Threads'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleNewThread}
+            activeOpacity={0.9}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: colors.modal.border,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              marginRight: 8,
+            }}>
+            <Icon name="add" size={18} color={colors.text.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleClearCurrent}
+            activeOpacity={0.9}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: colors.modal.border,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+            }}>
+            <Text style={{color: colors.text.primary, ...typography.caption}}>Clear</Text>
+          </TouchableOpacity>
+        </View>
         <LinearGradient
           colors={[
             'rgb(209, 8, 112)',
@@ -900,6 +1115,23 @@ export const OnlineAIScreen: React.FC = () => {
           </View>
         </View>
       </Animated.View>
+      {/* Thread Picker Modal */}
+      <Modal visible={showThreadPicker} transparent animationType="fade" onRequestClose={() => setShowThreadPicker(false)}>
+        <TouchableOpacity style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)'}} activeOpacity={1} onPress={() => setShowThreadPicker(false)}>
+          <View style={{position: 'absolute', top: 110, right: 20, left: 20, backgroundColor: 'rgb(18,0,22)', borderRadius: 12, borderWidth: 1, borderColor: colors.modal.border, padding: 12}}>
+            {threads.map(th => {
+              const label = th.title && th.title.trim().length > 0 ? th.title : '(New chat)';
+              return (
+                <TouchableOpacity key={th.id} onPress={() => switchThread(th.id)} style={{paddingVertical: 10}}>
+                  <Text style={{color: th.id === currentThreadId ? colors.accent : colors.text.primary}} numberOfLines={1}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };

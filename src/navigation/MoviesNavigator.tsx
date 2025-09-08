@@ -21,7 +21,13 @@ export const MoviesNavigator = () => {
       }}>
       <Stack.Screen name="MoviesScreen" component={MoviesScreen} />
       <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} />
-      <Stack.Screen name="Category" component={CategoryScreen} />
+      <Stack.Screen
+        name="Category"
+        component={CategoryScreen}
+        options={({route}: any) => ({
+          gestureEnabled: route?.params?.fromSearch ? false : true,
+        })}
+      />
       <Stack.Screen name="Genre" component={GenreScreen} />
       <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} />
     </Stack.Navigator>

@@ -341,8 +341,7 @@ export async function getPersonalizedRecommendation(
   feedbackHistory: Array<{
     contentId: number;
     title: string;
-    liked: boolean | null;
-    alreadyWatched?: boolean;
+    liked: boolean;
     timestamp: number;
   }>
 ): Promise<any> {
@@ -357,13 +356,6 @@ export async function getPersonalizedRecommendation(
 
   const likedContent = feedbackHistory.filter(f => f.liked === true);
   const dislikedContent = feedbackHistory.filter(f => f.liked === false);
-  const alreadyWatchedContent = feedbackHistory.filter(f => f.alreadyWatched === true);
-  
-  // Get all content IDs that should be excluded from recommendations
-  const excludedContentIds = [
-    ...alreadyWatchedContent.map(c => c.contentId),
-    ...dislikedContent.map(c => c.contentId)
-  ];
   
   const system = {
     role: 'system' as const,
@@ -385,12 +377,22 @@ export async function getPersonalizedRecommendation(
     Object.entries(moodAnswers).forEach(([questionId, answer]) => {
       const questionMap: {[key: string]: string} = {
         'current_mood': 'How I\'m feeling right now',
-        'time_preference': 'How much time I have',
-        'energy_level': 'My current energy level'
+        'content_type': 'Preferred content type',
+        'energy_level': 'My current energy level',
+        'content_preference': 'Preferred story tone/style',
+        'discovery_mood': 'Discovery preference'
       };
       userPrompt += `- ${questionMap[questionId] || questionId}: ${answer}\n`;
     });
     userPrompt += '\n';
+  }
+
+  // Enforce content type if provided (Movie -> movie, Series -> tv)
+  let desiredType: 'movie' | 'tv' | null = null;
+  if (moodAnswers && typeof moodAnswers['content_type'] === 'string') {
+    const val = (moodAnswers['content_type'] as string).toLowerCase();
+    if (val === 'movie') desiredType = 'movie';
+    else if (val === 'series') desiredType = 'tv';
   }
   
   if (likedContent.length > 0) {
@@ -401,15 +403,12 @@ export async function getPersonalizedRecommendation(
     userPrompt += `Content I didn't enjoy:\n${dislikedContent.map(c => `- ${c.title}`).join('\n')}\n\n`;
   }
   
-  if (alreadyWatchedContent.length > 0) {
-    userPrompt += `Content I've already watched:\n${alreadyWatchedContent.map(c => `- ${c.title}`).join('\n')}\n\n`;
-  }
-  
   userPrompt += 'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now. ';
-  
-  if (excludedContentIds.length > 0) {
-    userPrompt += 'IMPORTANT: Do not recommend any content I have already watched or disliked.';
+  userPrompt += 'Align the suggestion\'s tone with my selected story preference and overall mood (avoid contradictions, e.g., do not suggest dark & gritty for a lighthearted/\"laughs\" mood). ';
+  if (desiredType) {
+    userPrompt += `STRICT: Recommend only a ${desiredType === 'movie' ? 'movie' : 'TV series'} and set \"type\": \"${desiredType}\" in the JSON.`;
   }
+  userPrompt += 'IMPORTANT: Do NOT recommend any title that appears in the liked or disliked lists above (avoid repeats).';
 
   const user = {
     role: 'user' as const,

@@ -8,7 +8,13 @@ import {useSavedFilterContent} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
 import {useNavigationState} from '../hooks/useNavigationState';
 
-export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
+export const HomeFilterRow = ({
+  savedFilter,
+  onSeeAllPress,
+}: {
+  savedFilter: SavedFilter;
+  onSeeAllPress?: () => void;
+}) => {
   const {navigateWithLimit} = useNavigationState();
 
   const handleItemPress = useCallback(
@@ -51,7 +57,7 @@ export const HomeFilterRow = ({savedFilter}: {savedFilter: SavedFilter}) => {
           isLoading={isFetchingNextFilterPage}
           onItemPress={handleItemPress}
           onEndReached={hasNextFilterPage ? fetchNextFilterPage : undefined}
-          onSeeAllPress={handleSeeAllPress}
+          onSeeAllPress={onSeeAllPress ?? handleSeeAllPress}
         />
       )}
     </View>

@@ -65,6 +65,8 @@ export const HomeScreen = React.memo(() => {
   const [moodLoaded, setMoodLoaded] = useState(false);
   // Increment only when mood is updated to signal MyNextWatch to refresh
   const [moodVersion, setMoodVersion] = useState(0);
+  // Seed for remounting BecauseYouWatched when recent searches changed
+  const [becauseSeed, setBecauseSeed] = useState(0);
   // We no longer force-remount MyNextWatch on Home focus; it can refresh itself via its own UI
   // const [moodRefreshKey, setMoodRefreshKey] = useState(0);
   const queryClient = useQueryClient();
@@ -351,10 +353,46 @@ export const HomeScreen = React.memo(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       loadMoodAnswers();
       // No forced remount of MyNextWatch here; it manages its own refresh
+      checkRecentSearchUpdateForAI();
     });
 
     return unsubscribe;
   }, [navigation, loadMoodAnswers]);
+
+  // Compare recent searches (top 3 titles) with cached AI source; remount AI only when changed
+  const checkRecentSearchUpdateForAI = useCallback(async () => {
+    try {
+      const RECENT_KEY = '@recent_search_items';
+      const AI_CACHE_KEY = '@because_you_watched_cache';
+      const recentRaw = await AsyncStorage.getItem(RECENT_KEY);
+      const recent: any[] = recentRaw ? JSON.parse(recentRaw) : [];
+      const topTitles = recent
+        .slice(0, 3)
+        .map(i => (i?.title || i?.name || '').toString())
+        .filter(Boolean);
+
+      const cacheRaw = await AsyncStorage.getItem(AI_CACHE_KEY);
+      let cachedBasedOn: string[] = [];
+      if (cacheRaw) {
+        const parsed = JSON.parse(cacheRaw);
+        cachedBasedOn = Array.isArray(parsed?.basedOnItems)
+          ? parsed.basedOnItems
+          : [];
+      }
+
+      const currentKey = topTitles.join('|');
+      const cachedKey = cachedBasedOn.join('|');
+
+      if (currentKey && currentKey !== cachedKey) {
+        // Invalidate cache and bump seed to remount AI component
+        await AsyncStorage.removeItem(AI_CACHE_KEY);
+        setBecauseSeed(s => s + 1);
+      }
+    } catch (e) {
+      // Non-fatal; keep UI stable
+      console.log('checkRecentSearchUpdateForAI error', e);
+    }
+  }, []);
 
   const handleMoodComplete = async (answers: {[key: string]: string}) => {
     try {
@@ -448,7 +486,7 @@ export const HomeScreen = React.memo(() => {
 
     // Because You Watched section
     sectionsList.push({
-      id: 'becauseYouWatched',
+      id: `becauseYouWatched:${becauseSeed}`,
       type: 'becauseYouWatched',
       data: [],
     });
@@ -907,12 +945,12 @@ export const HomeScreen = React.memo(() => {
       zIndex: 0,
     },
     headingText: {
-      fontSize: WIDTH / 6,
+      fontSize: WIDTH / 8,
       fontWeight: '900',
       color: colors.text.tertiary,
       marginVertical: spacing.md,
       textAlign: 'center',
-      opacity: 0.3,
+      opacity: 0.5,
       zIndex: -1,
       fontFamily: 'Inter 28pt Black',
     },

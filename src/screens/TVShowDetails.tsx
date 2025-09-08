@@ -116,6 +116,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   // Record to history when user starts watching
   const addToHistory = useCallback(() => {
+    const voteAvg = (showDetails && (showDetails as any).vote_average) ?? (show as any).vote_average ?? 0;
+    const firstAir = (showDetails && (showDetails as any).first_air_date) ?? (show as any).first_air_date ?? '';
+    const genres = (showDetails && (showDetails as any).genres
+      ? (showDetails as any).genres.map((g: any) => g.id)
+      : (show as any).genre_ids) ?? [];
+
     const item = {
       id: show?.id,
       title: show?.name,
@@ -123,14 +129,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       overview: show?.overview,
       poster_path: show?.poster_path,
       backdrop_path: show?.backdrop_path,
-      vote_average: (showDetails as any).vote_average ?? 0,
-      release_date: (showDetails as any).release_date,
-      first_air_date: undefined,
-      genre_ids: (showDetails as any).genre_ids ?? [],
+      vote_average: voteAvg,
+      release_date: undefined,
+      first_air_date: firstAir,
+      genre_ids: genres,
       type: 'tv' as const,
     };
     HistoryManager.add(item as any);
-  }, [showDetails]);
+  }, [show, showDetails]);
 
   useEffect(() => {
     addToHistory();

@@ -36,11 +36,14 @@ const Cinema = ({
       ? `https://vidsrc.xyz/embed/movie?tmdb=${id}`
       : `https://vidsrc.xyz/embed/tv?tmdb=${id}?season=${season}&episode=${episode}`,
     type === 'movie'
-      ? `https://111movies.com/movie/${id}`
-      : `https://111movies.com/tv/${id}/${season}/${episode}`,
-    type === 'movie'
       ? `https://player.videasy.net/movie/${id}`
       : `https://player.videasy.net/tv/${id}/${season}/${episode}`,
+    type === 'movie'
+      ? `https://vidfast.pro/movie/${id}`
+      : `https://vidfast.pro/tv/${id}/${season}/${episode}`,
+    type === 'movie'
+      ? `https://111movies.com/movie/${id}`
+      : `https://111movies.com/tv/${id}/${season}/${episode}`,
   ];
 
   const initialUrl = servers[currentServer - 1];

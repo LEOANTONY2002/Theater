@@ -46,6 +46,13 @@ export type SearchStackParamList = {
     personName: string;
     contentType: ContentType;
   };
+  Category: {
+    title: string;
+    categoryType?: MovieCategoryType | TVShowCategoryType;
+    // Use a concrete content type; when using SavedFilter, the hook ignores this
+    contentType: 'movie' | 'tv';
+    filter?: SavedFilter | FilterParams;
+  };
 };
 
 export type MoviesStackParamList = {
@@ -56,6 +63,7 @@ export type MoviesStackParamList = {
     categoryType?: MovieCategoryType;
     contentType: 'movie';
     filter?: SavedFilter;
+    fromSearch?: boolean;
   };
   Genre: {
     genreId: number;
@@ -77,6 +85,7 @@ export type TVShowsStackParamList = {
     categoryType?: TVShowCategoryType;
     contentType: 'tv';
     filter?: FilterParams;
+    fromSearch?: boolean;
   };
   Genre: {
     genreId: number;
