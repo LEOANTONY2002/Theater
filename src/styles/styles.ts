@@ -29,7 +29,7 @@ export const modalStyles = StyleSheet.create({
   },
   modalTitle: {
     color: colors.text.primary,
-    ...typography.h2,
+    ...typography.h3,
   },
   closeButton: {
     padding: spacing.sm,

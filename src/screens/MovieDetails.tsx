@@ -436,7 +436,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           ? 500
           : isTablet && orientation === 'landscape'
           ? height * 0.7
-          : 250,
+          : 200,
       margin: 16,
       borderRadius: isTablet ? 40 : 20,
       alignSelf: 'center',
@@ -748,8 +748,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         visible={isAIChatModalOpen}
         onClose={() => setIsAIChatModalOpen(false)}
         movieTitle={movie.title}
-        movieYear={new Date(movie.release_date).getFullYear()}
-        movieOverview={movie.overview}
+        movieYear={new Date(
+          (movie as any).release_date ||
+            (movieDetails as any)?.release_date ||
+            new Date().toISOString(),
+        ).getFullYear()}
+        movieOverview={
+          (movie as any).overview || (movieDetails as any)?.overview || ''
+        }
         movieGenres={movieDetails?.genres?.map((g: any) => g.name) || []}
       />
       <LinearGradient
@@ -850,7 +856,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         <FastImage
                           source={{
                             uri: getImageUrl(
-                              movie.backdrop_path || '',
+                              movie.backdrop_path ||
+                                movieDetails?.backdrop_path ||
+                                movie.poster_path ||
+                                movieDetails?.poster_path ||
+                                '',
                               'original',
                             ),
                           }}
@@ -913,7 +923,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   <View style={styles.infoContainer}>
                     <View style={styles.infoRow}>
                       <Text style={styles.info}>
-                        {new Date(movie.release_date).getFullYear()}
+                        {new Date(
+                          (movie as any).release_date ||
+                            (movieDetails as any)?.release_date ||
+                            new Date().toISOString(),
+                        ).getFullYear()}
                       </Text>
                       {movieDetails?.runtime && (
                         <>
@@ -1077,7 +1091,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       </Text>
                     </View>
                   ) : null}
-                  <Text style={styles.overview}>{movie.overview}</Text>
+                  <Text style={styles.overview}>
+                    {(movie as any).overview ||
+                      (movieDetails as any)?.overview ||
+                      ''}
+                  </Text>
                   <LinearGradient
                     colors={[colors.primary, colors.secondary]}
                     start={{x: 0, y: 0}}

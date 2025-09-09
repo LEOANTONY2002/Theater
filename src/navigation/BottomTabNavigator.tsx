@@ -135,6 +135,7 @@ export const BottomTabNavigator = () => {
             height: isTablet ? 90 : 70,
             position: 'absolute',
             bottom: isTablet ? 30 : 16,
+            shadowOpacity: 0,
             marginHorizontal:
               isTablet && orientation === 'portrait'
                 ? '20%'

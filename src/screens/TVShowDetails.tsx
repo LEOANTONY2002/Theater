@@ -116,11 +116,18 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   // Record to history when user starts watching
   const addToHistory = useCallback(() => {
-    const voteAvg = (showDetails && (showDetails as any).vote_average) ?? (show as any).vote_average ?? 0;
-    const firstAir = (showDetails && (showDetails as any).first_air_date) ?? (show as any).first_air_date ?? '';
-    const genres = (showDetails && (showDetails as any).genres
-      ? (showDetails as any).genres.map((g: any) => g.id)
-      : (show as any).genre_ids) ?? [];
+    const voteAvg =
+      (showDetails && (showDetails as any).vote_average) ??
+      (show as any).vote_average ??
+      0;
+    const firstAir =
+      (showDetails && (showDetails as any).first_air_date) ??
+      (show as any).first_air_date ??
+      '';
+    const genres =
+      (showDetails && (showDetails as any).genres
+        ? (showDetails as any).genres.map((g: any) => g.id)
+        : (show as any).genre_ids) ?? [];
 
     const item = {
       id: show?.id,
@@ -465,7 +472,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           ? 500
           : isTablet && orientation === 'landscape'
           ? height * 0.7
-          : 250,
+          : 200,
       margin: 16,
       borderRadius: isTablet ? 40 : 20,
       alignSelf: 'center',

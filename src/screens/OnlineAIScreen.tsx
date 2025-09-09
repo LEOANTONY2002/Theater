@@ -13,9 +13,12 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Modal,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import {cinemaChat} from '../services/gemini';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
+import {modalStyles} from '../styles/styles';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Markdown from 'react-native-markdown-display';
@@ -23,9 +26,9 @@ import {BlurView} from '@react-native-community/blur';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {AISettingsManager} from '../store/aiSettings';
-import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import {useResponsive} from '../hooks/useResponsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -34,8 +37,12 @@ interface Message {
     id: number;
     type: string;
     poster_path?: string;
+    backdrop_path?: string;
+    overview?: string;
     title: string;
     year: number;
+    release_date?: string;
+    first_air_date?: string;
   }>;
 }
 
@@ -50,8 +57,12 @@ interface ParallaxCardProps {
     id: number;
     type: string;
     poster_path?: string;
+    backdrop_path?: string;
+    overview?: string;
     title: string;
     year: number;
+    release_date?: string;
+    first_air_date?: string;
   };
   index: number;
   navigation: any;
@@ -103,6 +114,9 @@ const ParallaxCard: React.FC<ParallaxCardProps> = ({
                 id: media.id,
                 title: media.title,
                 poster_path: media.poster_path,
+                backdrop_path: media.backdrop_path,
+                overview: media.overview,
+                release_date: media.release_date,
               },
             });
           } else if (media.type === 'tv') {
@@ -111,6 +125,9 @@ const ParallaxCard: React.FC<ParallaxCardProps> = ({
                 id: media.id,
                 name: media.title,
                 poster_path: media.poster_path,
+                backdrop_path: media.backdrop_path,
+                overview: media.overview,
+                first_air_date: media.first_air_date,
               },
             });
           }
@@ -151,9 +168,10 @@ export const OnlineAIScreen: React.FC = () => {
   const flatListRef = useRef<FlatList>(null);
   const [isDefaultKey, setIsDefaultKey] = useState<boolean>(false);
   const inputRef = useRef<TextInput>(null);
-  const androidInset = useAndroidKeyboardInset(10);
   const {isTablet} = useResponsive();
+  const [showMenu, setShowMenu] = useState(false);
   const [isRateLimitExceeded, setIsRateLimitExceeded] = useState(false);
+  const androidInset = useAndroidKeyboardInset(10);
   // Legacy single-history key (for migration)
   const HISTORY_KEY = '@theater_online_ai_history';
   // New multi-thread storage
@@ -179,7 +197,10 @@ export const OnlineAIScreen: React.FC = () => {
   };
 
   const findCurrentIndex = (all: ChatThread[], id: string) =>
-    Math.max(0, all.findIndex(t => t.id === id));
+    Math.max(
+      0,
+      all.findIndex(t => t.id === id),
+    );
 
   const setAndPersistMessages = async (msgs: Message[]) => {
     const capped = cap20(msgs);
@@ -241,11 +262,12 @@ export const OnlineAIScreen: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const [threadsRaw, currentIdRaw, legacyRaw] = await AsyncStorage.multiGet([
-          THREADS_KEY,
-          CURRENT_THREAD_KEY,
-          HISTORY_KEY,
-        ]).then(entries => entries.map(([, v]) => v));
+        const [threadsRaw, currentIdRaw, legacyRaw] =
+          await AsyncStorage.multiGet([
+            THREADS_KEY,
+            CURRENT_THREAD_KEY,
+            HISTORY_KEY,
+          ]).then(entries => entries.map(([, v]) => v));
 
         let loadedThreads: ChatThread[] = [];
         let loadedCurrentId = '';
@@ -275,9 +297,14 @@ export const OnlineAIScreen: React.FC = () => {
         loadedThreads = (loadedThreads || []).map((t, idx) => {
           const looksDefault = !t.title || /^Chat\s\d+$/i.test(t.title);
           if (looksDefault) {
-            const firstUserMsg = (t.messages || []).find(m => m.role === 'user');
+            const firstUserMsg = (t.messages || []).find(
+              m => m.role === 'user',
+            );
             if (firstUserMsg?.content) {
-              const preview = firstUserMsg.content.split(/\s+/).slice(0, 6).join(' ');
+              const preview = firstUserMsg.content
+                .split(/\s+/)
+                .slice(0, 6)
+                .join(' ');
               return {...t, title: preview};
             }
           }
@@ -286,7 +313,11 @@ export const OnlineAIScreen: React.FC = () => {
 
         // If still empty, create a default thread
         if (!loadedThreads || loadedThreads.length === 0) {
-          const initial: ChatThread = {id: String(Date.now()), title: '', messages: []};
+          const initial: ChatThread = {
+            id: String(Date.now()),
+            title: '',
+            messages: [],
+          };
           loadedThreads = [initial];
           loadedCurrentId = initial.id;
         }
@@ -294,11 +325,16 @@ export const OnlineAIScreen: React.FC = () => {
         if (mounted) {
           setThreads(loadedThreads);
           setCurrentThreadId(loadedCurrentId || loadedThreads[0].id);
-          const current = loadedThreads.find(t => t.id === (loadedCurrentId || loadedThreads[0].id));
+          const current = loadedThreads.find(
+            t => t.id === (loadedCurrentId || loadedThreads[0].id),
+          );
           setMessages(cap20(current?.messages || []));
         }
         // Persist normalized structure
-        await persistThreads(loadedThreads, loadedCurrentId || loadedThreads[0].id);
+        await persistThreads(
+          loadedThreads,
+          loadedCurrentId || loadedThreads[0].id,
+        );
       } catch (e) {
         // ignore
       }
@@ -381,7 +417,10 @@ export const OnlineAIScreen: React.FC = () => {
       const t = prev[idx];
       const isDefault = !t.title || /^Chat\s\d+$/i.test(t.title);
       if (isDefault && userMessage.content) {
-        const firstWords = userMessage.content.split(/\s+/).slice(0, 6).join(' ');
+        const firstWords = userMessage.content
+          .split(/\s+/)
+          .slice(0, 6)
+          .join(' ');
         const updated: ChatThread = {...t, title: firstWords || t.title};
         const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
         persistThreads(next, currentThreadId);
@@ -401,7 +440,17 @@ export const OnlineAIScreen: React.FC = () => {
       const response = await cinemaChat(groqMessages);
       console.log('AI response:', response);
       let tmdbResults:
-        | Array<{id: number; type: string; poster_path?: string}>
+        | Array<{
+            id: number;
+            type: string;
+            poster_path?: string;
+            backdrop_path?: string;
+            overview?: string;
+            title: string;
+            year: number;
+            release_date?: string;
+            first_air_date?: string;
+          }>
         | undefined = undefined;
       let text = response.aiResponse;
       // Extract all TMDB_CONTENT_RESULTS arrays in the response
@@ -414,8 +463,12 @@ export const OnlineAIScreen: React.FC = () => {
             id: number;
             type: string;
             poster_path?: string;
+            backdrop_path?: string;
+            overview?: string;
             title: string;
             year: number;
+            release_date?: string;
+            first_air_date?: string;
           }> = [];
           for (const item of arr) {
             let found = null;
@@ -447,16 +500,24 @@ export const OnlineAIScreen: React.FC = () => {
                 id: found.id,
                 type: item.type,
                 poster_path: found.poster_path,
+                backdrop_path: found.backdrop_path,
+                overview: found.overview,
                 title: found.title || found.name || item.title,
                 year: item.year,
+                release_date: found.release_date,
+                first_air_date: found.first_air_date,
               });
             } else {
               tmdbResults.push({
                 id: 0,
                 type: item.type,
                 poster_path: undefined,
+                backdrop_path: undefined,
+                overview: undefined,
                 title: item.title,
                 year: item.year,
+                release_date: undefined,
+                first_air_date: undefined,
               });
             }
           }
@@ -536,16 +597,34 @@ export const OnlineAIScreen: React.FC = () => {
     await persistThreads(nextThreads, newThread.id);
   };
 
-  const handleClearCurrent = async () => {
-    setMessages([]);
-    setThreads(prev => {
-      const idx = findCurrentIndex(prev, currentThreadId);
-      if (idx === -1) return prev;
-      const updated: ChatThread = {...prev[idx], messages: []};
-      const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
-      persistThreads(next, currentThreadId);
-      return next;
-    });
+  const handleClearCurrent = () => {
+    Alert.alert(
+      'Clear chat?',
+      'This will delete all messages in this conversation.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setMessages([]);
+            setThreads(prev => {
+              const idx = findCurrentIndex(prev, currentThreadId);
+              if (idx === -1) return prev;
+              const updated: ChatThread = {...prev[idx], messages: []};
+              const next = [
+                ...prev.slice(0, idx),
+                updated,
+                ...prev.slice(idx + 1),
+              ];
+              persistThreads(next, currentThreadId);
+              return next;
+            });
+          },
+        },
+      ],
+      {cancelable: true},
+    );
   };
 
   const switchThread = async (id: string) => {
@@ -554,6 +633,38 @@ export const OnlineAIScreen: React.FC = () => {
     setMessages(cap20(t?.messages || []));
     await persistThreads(threads, id);
     setShowThreadPicker(false);
+  };
+
+  const deleteThread = async (id: string) => {
+    setThreads(prev => {
+      const remaining = prev.filter(t => t.id !== id);
+      // If deleting current thread, choose a new current
+      if (id === currentThreadId) {
+        if (remaining.length > 0) {
+          const nextId = remaining[0].id;
+          setCurrentThreadId(nextId);
+          const nextThread = remaining.find(t => t.id === nextId);
+          setMessages(cap20(nextThread?.messages || []));
+          persistThreads(remaining, nextId);
+          return remaining;
+        } else {
+          // No threads left: create a new empty thread
+          const newThread: ChatThread = {
+            id: String(Date.now()),
+            title: '',
+            messages: [],
+          };
+          setCurrentThreadId(newThread.id);
+          setMessages([]);
+          const list = [newThread];
+          persistThreads(list, newThread.id);
+          return list;
+        }
+      }
+      // If deleting a non-current thread
+      persistThreads(remaining, currentThreadId);
+      return remaining;
+    });
   };
 
   const renderItem = ({item, index}: {item: Message; index: number}) => {
@@ -667,21 +778,22 @@ export const OnlineAIScreen: React.FC = () => {
             opacity: fadeAnim,
             transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
           },
-        ]}>
+        ]}
+        pointerEvents="box-none">
         <TouchableOpacity
           activeOpacity={0.9}
           style={{
             position: 'absolute',
             top: 50,
             left: 20,
-            zIndex: 1,
+            zIndex: 100,
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: borderRadius.round,
-            height: 50,
-            width: 50,
+            height: 40,
+            width: 40,
             borderColor: colors.modal.border,
             borderWidth: 1,
           }}
@@ -693,61 +805,36 @@ export const OnlineAIScreen: React.FC = () => {
             blurType="dark"
             blurAmount={5}
             style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
-            overlayColor={colors.modal.blur}
+            overlayColor={colors.modal.blurDark}
           />
-          <Icon name="chevron-back" size={24} color="white" />
+          <Icon name="chevron-back" size={20} color="white" />
         </TouchableOpacity>
-        {/* Thread controls */}
-        <View style={{position: 'absolute', top: 50, right: 20, flexDirection: 'row', gap: 8, zIndex: 2}}>
-          <TouchableOpacity
-            onPress={() => setShowThreadPicker(true)}
-            activeOpacity={0.9}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: colors.modal.border,
-              backgroundColor: 'rgba(0,0,0,0.35)',
-              marginRight: 8,
-            }}>
-            <Text style={{color: colors.text.primary, ...typography.caption}} numberOfLines={1}>
-              {(() => {
-                const t = threads.find(th => th.id === currentThreadId);
-                const raw = (t?.title && t.title.trim().length > 0) ? t.title.trim() : '(New chat)';
-                const words = raw.split(/\s+/);
-                return words.length > 3 ? words.slice(0, 3).join(' ') + '…' : raw;
-              })()}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleNewThread}
-            activeOpacity={0.9}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: colors.modal.border,
-              backgroundColor: 'rgba(0,0,0,0.35)',
-              marginRight: 8,
-            }}>
-            <Icon name="add" size={18} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleClearCurrent}
-            activeOpacity={0.9}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: colors.modal.border,
-              backgroundColor: 'rgba(0,0,0,0.35)',
-            }}>
-            <Icon name="trash" size={18} color={colors.text.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 50,
+            right: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: borderRadius.round,
+            height: 40,
+            width: 40,
+            borderColor: colors.modal.border,
+            borderWidth: 1,
+            zIndex: 100,
+            overflow: 'hidden',
+          }}
+          onPress={() => setShowMenu(true)}>
+          <BlurView
+            blurType="dark"
+            blurAmount={5}
+            style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
+            overlayColor={colors.modal.blurDark}
+          />
+          <Icon name="ellipsis-vertical" size={20} color="white" />
+        </TouchableOpacity>
+
         <LinearGradient
           colors={[
             'rgb(209, 8, 112)',
@@ -783,7 +870,13 @@ export const OnlineAIScreen: React.FC = () => {
             data={displayMessages}
             renderItem={renderItem}
             keyExtractor={(_, idx) => idx.toString()}
-            contentContainerStyle={[styles.chat]}
+            contentContainerStyle={[
+              styles.chat,
+              {
+                paddingBottom:
+                  Platform.OS === 'android' ? androidInset + 60 : 84,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -1036,106 +1129,255 @@ export const OnlineAIScreen: React.FC = () => {
               </View>
             }
           />
-          <LinearGradient
-            colors={['transparent', 'rgb(31, 2, 53)']}
+        </View>
+      </Animated.View>
+      {/* Floating input bar (outside Animated.View to avoid transform shifting) */}
+      <LinearGradient
+        colors={['transparent', 'rgb(31, 2, 53)']}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 90,
+          marginHorizontal: 2,
+          zIndex: 0,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: Platform.OS === 'android' ? androidInset : 20,
+          marginHorizontal: isTablet ? 100 : spacing.lg,
+          borderRadius: 50,
+          zIndex: 100,
+        }}>
+        <View style={{marginBottom: 40, overflow: 'hidden', borderRadius: 50}}>
+          <BlurView
+            blurAmount={10}
+            blurRadius={5}
+            blurType="light"
+            overlayColor={colors.modal.blur}
+            pointerEvents="none"
             style={{
               position: 'absolute',
+              top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              height: 150,
-              marginHorizontal: 2,
-              zIndex: 0,
+              borderRadius: 50,
             }}
           />
+          <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
+            <View style={styles.inputRow}>
+              <TextInput
+                ref={inputRef}
+                style={styles.input}
+                value={input}
+                onChangeText={setInput}
+                placeholder="Ask about movies, TV, actors..."
+                placeholderTextColor={colors.text.tertiary}
+                editable={true}
+                onFocus={() =>
+                  setTimeout(
+                    () => flatListRef.current?.scrollToEnd({animated: true}),
+                    50,
+                  )
+                }
+                onSubmitEditing={sendMessage}
+                returnKeyType="send"
+              />
+              <Animated.View>
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    {
+                      opacity: loading || !input.trim() ? 0.5 : 1,
+                    },
+                  ]}
+                  onPress={sendMessage}
+                  disabled={loading || !input.trim()}>
+                  <Icon
+                    name={'send'}
+                    size={24}
+                    color={
+                      loading || !input.trim()
+                        ? colors.modal.active
+                        : colors.text.primary
+                    }
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </View>
+      {/* Menu Modal: uses shared modalStyles for consistent UI */}
+      <Modal
+        visible={showMenu}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={() => setShowMenu(false)}>
+        <View
+          style={[
+            modalStyles.modalContainer,
+            {justifyContent: 'flex-end', marginTop: 0},
+          ]}>
+          {/* Backdrop to close on outside press */}
+          <TouchableOpacity
+            style={{backgroundColor: 'rgba(0, 0, 0, 0.7)', paddingTop: 100}}
+            activeOpacity={1}
+            onPress={() => setShowMenu(false)}
+          />
           <View
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: Platform.OS === 'android' ? androidInset : 30,
-              marginHorizontal: isTablet ? 100 : spacing.lg,
-              borderRadius: 50,
-              overflow: 'hidden',
-              zIndex: 1,
-              marginBottom: spacing.lg,
-            }}>
+            style={[
+              modalStyles.modalContent,
+              {
+                overflow: 'hidden',
+                borderTopLeftRadius: borderRadius.xl,
+                borderTopRightRadius: borderRadius.xl,
+              },
+            ]}
+            pointerEvents="box-none">
             <BlurView
-              blurAmount={10}
-              blurRadius={5}
-              blurType="light"
-              overlayColor={colors.modal.blur}
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderRadius: 50,
-              }}
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  borderTopLeftRadius: borderRadius.xl,
+                  borderTopRightRadius: borderRadius.xl,
+                },
+              ]}
+              blurType="dark"
+              blurAmount={20}
+              overlayColor={colors.modal.blurDark}
             />
-            <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
-              <View style={styles.inputRow}>
-                <TextInput
-                  ref={inputRef}
-                  style={styles.input}
-                  value={input}
-                  onChangeText={setInput}
-                  placeholder="Ask about movies, TV, actors..."
-                  placeholderTextColor={colors.text.tertiary}
-                  editable={true}
-                  onFocus={() =>
-                    setTimeout(
-                      () => flatListRef.current?.scrollToEnd({animated: true}),
-                      50,
-                    )
-                  }
-                  onSubmitEditing={sendMessage}
-                  returnKeyType="send"
-                />
-                <Animated.View>
-                  <TouchableOpacity
-                    style={[
-                      styles.sendButton,
-                      {
-                        opacity: loading || !input.trim() ? 0.5 : 1,
-                      },
-                    ]}
-                    onPress={sendMessage}
-                    disabled={loading || !input.trim()}>
-                    <Icon
-                      name={'send'}
-                      size={24}
-                      color={
-                        loading || !input.trim()
-                          ? colors.modal.active
-                          : colors.text.primary
-                      }
-                    />
-                  </TouchableOpacity>
-                </Animated.View>
-              </View>
-            </TouchableWithoutFeedback>
+            {/* Header */}
+            <View
+              style={[
+                modalStyles.modalHeader,
+                {
+                  borderTopLeftRadius: borderRadius.xl,
+                  borderTopRightRadius: borderRadius.xl,
+                },
+              ]}>
+              <Text style={modalStyles.modalTitle}>Theater AI</Text>
+              <TouchableOpacity onPress={() => setShowMenu(false)}>
+                <Icon name="close" size={20} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            {/* Body */}
+            <View style={{padding: spacing.md, paddingTop: spacing.sm}}>
+              {/* New chat */}
+              <TouchableOpacity
+                onPress={async () => {
+                  setShowMenu(false);
+                  await handleNewThread();
+                }}
+                activeOpacity={0.9}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 24,
+                  borderWidth: 1,
+                  borderColor: colors.modal.border,
+                  backgroundColor: colors.modal.content,
+                  paddingVertical: 12,
+                  marginBottom: spacing.md,
+                }}>
+                <Icon name="add" size={18} color={colors.text.primary} />
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    ...typography.button,
+                    marginLeft: 8,
+                  }}>
+                  New chat
+                </Text>
+              </TouchableOpacity>
+
+              {/* Recent */}
+              <Text
+                style={{
+                  color: colors.text.secondary,
+                  ...typography.body2,
+                  marginBottom: spacing.xs,
+                  marginTop: 2,
+                }}>
+                Recent
+              </Text>
+              <View
+                style={{
+                  borderTopColor: colors.modal.border,
+                  borderTopWidth: 1,
+                  marginBottom: spacing.xs,
+                  opacity: 0.6,
+                }}
+              />
+              {threads.length === 0 ? (
+                <Text style={{color: colors.text.tertiary}}>No chats yet</Text>
+              ) : (
+                <ScrollView
+                  contentContainerStyle={{paddingBottom: 200}}
+                  showsVerticalScrollIndicator={false}>
+                  {threads.map(th => {
+                    const label =
+                      th.title && th.title.trim().length > 0
+                        ? th.title
+                        : '(New chat)';
+                    return (
+                      <TouchableOpacity
+                        key={th.id}
+                        onPress={async () => {
+                          setShowMenu(false);
+                          await switchThread(th.id);
+                        }}
+                        style={{
+                          paddingVertical: 10,
+                          paddingHorizontal: 10,
+                          borderRadius: 8,
+                          backgroundColor:
+                            th.id === currentThreadId
+                              ? colors.modal.blur
+                              : 'transparent',
+                          borderWidth: 1,
+                          borderColor:
+                            th.id === currentThreadId
+                              ? colors.modal.content
+                              : 'transparent',
+                          marginBottom: 6,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}>
+                        <Text
+                          style={{
+                            color: colors.text.primary,
+                          }}
+                          numberOfLines={1}>
+                          {label}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => deleteThread(th.id)}
+                          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                          style={{paddingHorizontal: 2, paddingVertical: 2}}>
+                          <Icon
+                            name="close"
+                            size={18}
+                            color={colors.text.tertiary}
+                          />
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
           </View>
         </View>
-      </Animated.View>
-      {/* Thread Picker Modal */}
-      <Modal visible={showThreadPicker} transparent animationType="fade" onRequestClose={() => setShowThreadPicker(false)}>
-        <TouchableOpacity style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)'}} activeOpacity={1} onPress={() => setShowThreadPicker(false)}>
-          <View style={{position: 'absolute', top: 110, right: 20, left: 20, backgroundColor: 'rgb(18,0,22)', borderRadius: 12, borderWidth: 1, borderColor: colors.modal.border, padding: 12}}>
-            {threads.map(th => {
-              const label = th.title && th.title.trim().length > 0 ? th.title : '(New chat)';
-              return (
-                <TouchableOpacity key={th.id} onPress={() => switchThread(th.id)} style={{paddingVertical: 10}}>
-                  <Text style={{color: th.id === currentThreadId ? colors.accent : colors.text.primary}} numberOfLines={1}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </TouchableOpacity>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -1148,7 +1390,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgb(18, 0, 22)',
     elevation: 12,
     marginHorizontal: 2,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   chat: {
     paddingVertical: spacing.md,
