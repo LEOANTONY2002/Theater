@@ -484,11 +484,11 @@ export const HomeScreen = React.memo(() => {
     }
 
     // Because You Watched section
-    sectionsList.push({
-      id: `becauseYouWatched:${becauseSeed}`,
-      type: 'becauseYouWatched',
-      data: [],
-    });
+    // sectionsList.push({
+    //   id: `becauseYouWatched:${becauseSeed}`,
+    //   type: 'becauseYouWatched',
+    //   data: [],
+    // });
 
     // Recent Movies section
     if (recentMovies?.pages?.[0]?.results?.length) {

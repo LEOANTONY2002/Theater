@@ -12,6 +12,7 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getMovieTrivia} from '../services/gemini';
 import {GradientSpinner} from './GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
+import {HorizontalListSkeleton} from './LoadingSkeleton';
 
 type TriviaFact = {
   fact: string;
@@ -123,6 +124,8 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       height: 200,
+      zIndex: 10,
+      marginTop: spacing.sm,
     },
     listContainer: {
       position: 'relative',
@@ -224,11 +227,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <GradientSpinner
-              color={colors.primary}
-              size={30}
-              style={{zIndex: 2}}
-            />
+            <HorizontalListSkeleton ai={true} />
           </View>
         ) : (
           <View style={styles.listContainer}>

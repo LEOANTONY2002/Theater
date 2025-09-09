@@ -18,6 +18,7 @@ interface HorizontalListProps {
   isTop10?: boolean;
   isFilter?: boolean;
   isHeadingSkeleton?: boolean;
+  ai?: boolean;
 }
 
 // Ensure ContentCard is memoized
@@ -35,6 +36,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     isTop10 = false,
     isFilter = false,
     isHeadingSkeleton = true,
+    ai = false,
   }) => {
     // Remove data limit for infinite scroll
     // const limitedData = data.slice(0, 12);
@@ -142,7 +144,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             }
           }>
           {isHeadingSkeleton && <HeadingSkeleton />}
-          <HorizontalListSkeleton />
+          <HorizontalListSkeleton ai={ai} />
         </View>
       );
     }
@@ -194,7 +196,9 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReached={onEndReached}
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
-            ListFooterComponent={isLoading ? <HorizontalListSkeleton /> : null}
+            ListFooterComponent={
+              isLoading ? <HorizontalListSkeleton ai={ai} /> : null
+            }
           />
         </View>
       </View>

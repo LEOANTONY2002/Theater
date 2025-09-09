@@ -149,7 +149,24 @@ export async function getSimilarByStory({
   // Try to get from cache first
   const cachedResponse = await cache.get(CACHE_KEYS.AI_SIMILAR, cacheKey);
   if (cachedResponse) {
-    return cachedResponse;
+    try {
+      // If cache stored an array already
+      if (Array.isArray(cachedResponse)) {
+        return cachedResponse;
+      }
+      // If cache stored a string, try to extract/parse JSON array
+      if (typeof cachedResponse === 'string') {
+        const match = cachedResponse.match(/\[[\s\S]*\]/);
+        if (match) {
+          const parsed = JSON.parse(match[0]);
+          return Array.isArray(parsed) ? parsed : [];
+        }
+        const parsed = JSON.parse(cachedResponse);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (e) {
+      // Fall through to fetch fresh if cache is malformed
+    }
   }
 
   const system = {
@@ -167,22 +184,26 @@ export async function getSimilarByStory({
 
   try {
     const result = await callGemini([system, user]);
-    
-    // Cache the response for 1 week
-    if (result) {
-      await cache.set(CACHE_KEYS.AI_SIMILAR, cacheKey, result, 7 * 24 * 60 * 60 * 1000);
-    }
-    
-    // Try to extract JSON from the response
+
+    // Normalize to an array
+    let parsedArray: any[] = [];
     const jsonMatch = result.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return Array.isArray(parsed) ? parsed : [];
+      parsedArray = JSON.parse(jsonMatch[0]);
+    } else {
+      const parsed = JSON.parse(result);
+      parsedArray = Array.isArray(parsed) ? parsed : [];
     }
 
-    // If no JSON array found, try to parse the entire response
-    const parsed = JSON.parse(result);
-    return Array.isArray(parsed) ? parsed : [];
+    // Cache the parsed array for 1 week to avoid type mismatch later
+    await cache.set(
+      CACHE_KEYS.AI_SIMILAR,
+      cacheKey,
+      Array.isArray(parsedArray) ? parsedArray : [],
+      7 * 24 * 60 * 60 * 1000,
+    );
+
+    return Array.isArray(parsedArray) ? parsedArray : [];
   } catch (error) {
     console.error('Error parsing Gemini similar response:', error);
     return [];

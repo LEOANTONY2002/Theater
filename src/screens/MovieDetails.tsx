@@ -44,7 +44,6 @@ import {
   useIsItemInAnyWatchlist,
   useWatchlistContainingItem,
   useRemoveFromWatchlist,
-  useAddToWatchlist,
 } from '../hooks/useWatchlists';
 import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
@@ -95,7 +94,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
-  const cinema = true;
+  const cinema = false;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -304,10 +303,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
     movie.id,
   );
-  const {data: recommendations, isLoading: isLoadingRecommendations} =
-    useMovieRecommendations(movie.id);
   const {data: isInWatchlist} = useIsItemInAnyWatchlist(movie.id);
-  const addToWatchlistMutation = useAddToWatchlist();
 
   const {data: watchlistContainingItem} = useWatchlistContainingItem(movie.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();

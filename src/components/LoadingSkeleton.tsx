@@ -12,6 +12,8 @@ const shimmerColors = [
   'rgb(12, 12, 19)',
 ];
 
+const shimmerColors2 = ['rgba(49, 2, 106, 0.12)', 'rgba(69, 1, 61, 0.11)'];
+
 const AnimatedShimmer = ({
   width,
   height,
@@ -54,6 +56,55 @@ const AnimatedShimmer = ({
           height: '100%',
           borderRadius: radius,
           backgroundColor: shimmerColors[1],
+          transform: [{translateX: shimmerTranslate}],
+        }}
+      />
+    </View>
+  );
+};
+
+const AnimatedShimmerAI = ({
+  width,
+  height,
+  radius = 8,
+}: {
+  width: number;
+  height: number;
+  radius?: number;
+}) => {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      }),
+    ).start();
+  }, [shimmerAnim]);
+
+  const shimmerTranslate = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-width, width * 2],
+  });
+
+  return (
+    <View
+      style={{
+        width,
+        height,
+        backgroundColor: shimmerColors2[0],
+        borderRadius: radius,
+        overflow: 'hidden',
+      }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: width * 0.4,
+          height: '100%',
+          borderRadius: radius,
+          backgroundColor: shimmerColors2[1],
           transform: [{translateX: shimmerTranslate}],
         }}
       />
@@ -156,7 +207,7 @@ export const GenreListSkeleton = () => (
   </ScrollView>
 );
 
-export const HorizontalListSkeleton = () => {
+export const HorizontalListSkeleton = ({ai = false}: {ai?: boolean}) => {
   const {isTablet} = useResponsive();
   const itemWidth = isTablet ? 170 : 120;
   const itemHeight = isTablet ? 255 : 180;
@@ -168,7 +219,19 @@ export const HorizontalListSkeleton = () => {
       style={{marginBottom: spacing.md, position: 'relative'}}>
       {[...Array(5)].map((_, i) => (
         <View key={i} style={styles.horizontalCardContainer}>
-          <AnimatedShimmer width={itemWidth} height={itemHeight} radius={16} />
+          {ai ? (
+            <AnimatedShimmerAI
+              width={itemWidth}
+              height={itemHeight}
+              radius={16}
+            />
+          ) : (
+            <AnimatedShimmer
+              width={itemWidth}
+              height={itemHeight}
+              radius={16}
+            />
+          )}
         </View>
       ))}
       <LinearGradient
