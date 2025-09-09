@@ -126,7 +126,11 @@ const App = () => {
   if (isLoading || isOnboarded === null) {
     return (
       <>
-        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
+        <StatusBar
+          barStyle="dark-content"
+          translucent
+          backgroundColor="#000007"
+        />
       </>
     );
   }
