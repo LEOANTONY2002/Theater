@@ -796,17 +796,12 @@ export const OnlineAIScreen: React.FC = () => {
             width: 40,
             borderColor: colors.modal.border,
             borderWidth: 1,
+            backgroundColor: colors.modal.blurDark,
           }}
           onPress={() => {
             // Always navigate to MySpace screen instead of going back
             (navigation as any).navigate('MySpaceScreen');
           }}>
-          <BlurView
-            blurType="dark"
-            blurAmount={5}
-            style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
-            overlayColor={colors.modal.blurDark}
-          />
           <Icon name="chevron-back" size={20} color="white" />
         </TouchableOpacity>
         <TouchableOpacity
@@ -824,15 +819,10 @@ export const OnlineAIScreen: React.FC = () => {
             borderWidth: 1,
             zIndex: 100,
             overflow: 'hidden',
+            backgroundColor: colors.modal.blurDark,
           }}
           onPress={() => setShowMenu(true)}>
-          <BlurView
-            blurType="dark"
-            blurAmount={5}
-            style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
-            overlayColor={colors.modal.blurDark}
-          />
-          <Icon name="ellipsis-vertical" size={20} color="white" />
+          <Icon name="menu" size={20} color="white" />
         </TouchableOpacity>
 
         <LinearGradient
