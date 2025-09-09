@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  StyleSheet,
-  ViewStyle,
-  ActivityIndicator,
-  Animated,
-} from 'react-native';
+import {ViewStyle, ActivityIndicator} from 'react-native';
 
 interface GradientSpinnerProps {
   size?: number;

@@ -4,9 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   ScrollView,
-  FlatList,
   ListRenderItem,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';

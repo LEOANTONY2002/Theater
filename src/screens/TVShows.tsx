@@ -1,6 +1,5 @@
 import React, {useCallback, useMemo, useEffect, useState} from 'react';
 import {View, StyleSheet} from 'react-native';
-import {FlashList} from '@shopify/flash-list';
 import {
   useTop10ShowsTodayByRegion,
   useTrendingTVShows,
@@ -12,11 +11,7 @@ import {useNavigation} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
-import {
-  RootStackParamList,
-  TVShowsStackParamList,
-  TVShowCategoryType,
-} from '../types/navigation';
+import {TVShowsStackParamList, TVShowCategoryType} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography} from '../styles/theme';
 import {GestureHandlerRootView as RNGestureHandlerRootView} from 'react-native-gesture-handler';
@@ -39,7 +34,6 @@ type TVShowsScreenNavigationProp =
 
 export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
-  const navigation = useNavigation<TVShowsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
@@ -75,15 +69,6 @@ export const TVShowsScreen = React.memo(() => {
     refetch: refetchPopular,
   } = useTVShowsList('popular');
 
-  // Trending TV Shows
-  const {
-    data: trendingShows,
-    fetchNextPage: fetchNextTrending,
-    hasNextPage: hasNextTrending,
-    isFetchingNextPage: isFetchingTrending,
-    refetch: refetchTrending,
-  } = useTrendingTVShows('day');
-
   // Latest Shows
   const {
     data: latestShows,
@@ -100,12 +85,6 @@ export const TVShowsScreen = React.memo(() => {
     const randomIndex = Math.floor(Math.random() * Math.min(shows.length, 5));
     return shows[randomIndex];
   }, [latestShows]);
-
-  const handleFeaturedPress = useCallback(() => {
-    if (featuredShow) {
-      navigateWithLimit('TVShowDetails', {show: featuredShow});
-    }
-  }, [navigateWithLimit, featuredShow]);
 
   // Top Rated TV Shows
   const {

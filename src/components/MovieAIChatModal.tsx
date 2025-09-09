@@ -5,13 +5,10 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
   FlatList,
-  SafeAreaView,
   Animated,
   Easing,
-  Keyboard,
   ScrollView,
   TouchableWithoutFeedback,
 } from 'react-native';
@@ -143,16 +140,6 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
       return () => pulseAnimation.stop();
     }
   }, [isLoading]);
-
-  // Prepare messages in the format expected by the Gemini service
-  const prepareChatMessages = () => {
-    // Filter out the initial welcome message and convert to chat format
-    const conversationMessages = messages.filter(msg => msg.id !== '1');
-    return conversationMessages.map(msg => ({
-      role: msg.sender === 'ai' ? ('assistant' as const) : ('user' as const),
-      content: msg.text,
-    }));
-  };
 
   // Add initial welcome message
   useEffect(() => {

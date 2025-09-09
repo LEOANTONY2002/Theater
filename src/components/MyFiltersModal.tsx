@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   TextInput,
   Alert,
   FlatList,
@@ -31,7 +30,7 @@ import {queryClient} from '../services/queryClient';
 import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
 import {LanguageSettings} from './LanguageSettings';
-import {SettingsManager, Language as SettingsLanguage} from '../store/settings';
+import {Language as SettingsLanguage} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 
 interface Language {
@@ -223,10 +222,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     setFilters(prev => ({...prev, sort_by: value}));
   };
 
-  const handleLanguageChange = (value: string) => {
-    setFilters(prev => ({...prev, with_original_language: value}));
-  };
-
   const handleRatingChange = (value: number) => {
     setFilters(prev => ({...prev, 'vote_average.gte': value}));
   };
@@ -255,10 +250,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
           : 'first_air_date.lte']: dateString,
       }));
     }
-  };
-
-  const handleRuntimeChange = (value: number) => {
-    setFilters(prev => ({...prev, with_runtime_gte: value}));
   };
 
   const validateFilter = async () => {

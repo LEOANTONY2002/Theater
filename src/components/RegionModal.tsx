@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';

@@ -6,13 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Clipboard,
   Linking,
 } from 'react-native';
-import {colors, spacing, borderRadius, typography} from '../styles/theme';
+import {colors, spacing, borderRadius} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {GradientSpinner} from './GradientSpinner';
 import {FlashList} from '@shopify/flash-list';
 
 interface GeminiModel {

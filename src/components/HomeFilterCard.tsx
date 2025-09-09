@@ -1,12 +1,5 @@
 import React, {useState, useMemo, useCallback} from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  Dimensions,
-  TouchableOpacity,
-} from 'react-native';
+import {View, Image, Dimensions, TouchableOpacity} from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 import Animated, {
   interpolate,

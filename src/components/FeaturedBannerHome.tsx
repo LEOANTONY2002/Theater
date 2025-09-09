@@ -1,9 +1,13 @@
-import React, {useCallback, useState} from 'react';
-import {View, StyleSheet, TouchableOpacity, useWindowDimensions} from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing, borderRadius} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
-import {BannerHomeSkeleton} from './LoadingSkeleton';
 import {FeaturedBannerHomePoster} from './FeaturedBannerHomePoster';
 import Carousel from 'react-native-reanimated-carousel';
 import Animated, {
@@ -26,7 +30,6 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
 }) => {
   const {isTablet} = useResponsive();
   const {width: windowWidth} = useWindowDimensions();
-  const [currentIndex, setCurrentIndex] = useState(0);
   const progressValue = useSharedValue(0);
 
   // Dynamic dimensions for tablet vs phone
@@ -135,11 +138,10 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
         style={{width: windowWidth, alignSelf: 'center'}}
         loop={false}
         pagingEnabled
-        onSnapToItem={setCurrentIndex}
         onProgressChange={(_, absoluteProgress) => {
           progressValue.value = absoluteProgress;
         }}
-        renderItem={({item, index, animationValue}) => {
+        renderItem={({item, animationValue}) => {
           const animatedStyle = useAnimatedStyle(() => {
             const scale = interpolate(
               animationValue.value,

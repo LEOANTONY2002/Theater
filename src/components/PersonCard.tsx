@@ -1,15 +1,13 @@
 import React, {useState, useCallback, useEffect, useRef} from 'react';
-import {View, StyleSheet, Animated, Easing, Dimensions} from 'react-native';
+import {View, StyleSheet, Animated, Easing} from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { colors } from '../styles/theme';
+import {colors} from '../styles/theme';
 
 interface PersonCardProps {
   item: string;
   onPress: (item: string) => void;
   size?: 'normal' | 'large';
 }
-
-const {width: screenWidth} = Dimensions.get('window');
 
 export const PersonCard: React.FC<PersonCardProps> = ({item}) => {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -30,11 +28,6 @@ export const PersonCard: React.FC<PersonCardProps> = ({item}) => {
     ).start();
   }, [shimmerAnim]);
 
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-100, 200],
-  });
-
   return (
     <View style={styles.container}>
       <FastImage
@@ -43,10 +36,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({item}) => {
         resizeMode={FastImage.resizeMode.cover}
         onLoad={handleImageFinish}
         onError={handleImageFinish}
-        priority={FastImage.priority.normal}
-        cache={FastImage.cacheControl.cacheOnly}
       />
-      
     </View>
   );
 };

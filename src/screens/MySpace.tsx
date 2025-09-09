@@ -4,30 +4,20 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
   Modal,
   ScrollView,
-  Pressable,
   Image,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MySpaceStackParamList} from '../types/navigation';
-import {ContentItem} from '../components/MovieList';
-import {Movie} from '../types/movie';
-import {TVShow} from '../types/tvshow';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
 import {LanguageSettings} from '../components/LanguageSettings';
-import {SettingsManager, Language} from '../store/settings';
+import {SettingsManager} from '../store/settings';
 import {useQueryClient, useQuery} from '@tanstack/react-query';
 import {BlurView} from '@react-native-community/blur';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {
-  HorizontalListSkeleton,
-  LanguageSkeleton,
-} from '../components/LoadingSkeleton';
-import {ContentCard} from '../components/ContentCard';
+import {LanguageSkeleton} from '../components/LoadingSkeleton';
 import {SavedFilter} from '../types/filters';
 import {FiltersManager} from '../store/filters';
 import {RegionModal} from '../components/RegionModal';
@@ -80,8 +70,6 @@ export const MySpaceScreen = React.memo(() => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
-
-  console.log('savedFilters', savedFilters);
 
   const {data: currentRegion} = useQuery<Region>({
     queryKey: ['region'],

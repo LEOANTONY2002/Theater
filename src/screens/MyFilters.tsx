@@ -1,12 +1,5 @@
 import React, {useState, useCallback, useEffect} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {SavedFilter} from '../types/filters';
 import {FiltersManager} from '../store/filters';

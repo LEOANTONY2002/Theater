@@ -5,13 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  ActivityIndicator,
   FlatList,
   Image,
-  ScrollView,
 } from 'react-native';
-import {useMovieSearch} from '../hooks/useMovies';
-import {useTVShowSearch} from '../hooks/useTVShows';
 import {
   useEnhancedMovieSearch,
   useEnhancedTVSearch,
@@ -36,16 +32,13 @@ import {SettingsManager} from '../store/settings';
 import {BlurView} from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
 import FastImage from 'react-native-fast-image';
-import {GradientButton} from '../components/GradientButton';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {FiltersManager} from '../store/filters';
 import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
 import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import CreateButton from '../components/createButton';
-import {HistoryManager, HistoryItem} from '../store/history';
-
-type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+import {HistoryManager} from '../store/history';
 
 const RECENT_ITEMS_KEY = '@recent_search_items';
 const MAX_RECENT_ITEMS = 10;

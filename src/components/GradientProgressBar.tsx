@@ -1,7 +1,7 @@
 import React, {useState, useRef} from 'react';
 import {View, Text, TouchableOpacity, PanResponder} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {colors, spacing, borderRadius, typography} from '../styles/theme';
+import {colors, spacing} from '../styles/theme';
 
 interface GradientProgressBarProps {
   value: number;
@@ -35,31 +35,39 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
+    onStartShouldSetPanResponderCapture: () => true,
+    onMoveShouldSetPanResponder: (_evt, gestureState) => Math.abs(gestureState.dx) > 2,
+    onMoveShouldSetPanResponderCapture: () => true,
+    onPanResponderGrant: evt => {
       setIsDragging(true);
-    },
-    onPanResponderMove: (evt, gestureState) => {
+      // Update immediately at touch-down
       if (containerWidth > 0) {
-        const touchX = gestureState.moveX;
-        const containerX = evt.target.measure((x, y, width, height, pageX) => {
-          const relativeX = touchX - pageX;
-          const newPercentage = Math.max(
-            0,
-            Math.min(100, (relativeX / width) * 100),
-          );
-          const newValue =
-            minValue + (newPercentage / 100) * (maxValue - minValue);
-          const steppedValue = Math.round(newValue / step) * step;
-          const clampedValue = Math.max(
-            minValue,
-            Math.min(maxValue, steppedValue),
-          );
-          onValueChange(clampedValue);
-        });
+        const {locationX} = evt.nativeEvent;
+        const clampedX = Math.max(0, Math.min(containerWidth, locationX));
+        const newPercentage = (clampedX / containerWidth) * 100;
+        const newValue = minValue + (newPercentage / 100) * (maxValue - minValue);
+        const steppedValue = Math.round(newValue / step) * step;
+        const clampedValue = Math.max(minValue, Math.min(maxValue, steppedValue));
+        onValueChange(clampedValue);
       }
     },
+    onPanResponderMove: evt => {
+      if (containerWidth > 0) {
+        const {locationX} = evt.nativeEvent;
+        // Constrain within the track bounds
+        const clampedX = Math.max(0, Math.min(containerWidth, locationX));
+        const newPercentage = (clampedX / containerWidth) * 100;
+        const newValue = minValue + (newPercentage / 100) * (maxValue - minValue);
+        const steppedValue = Math.round(newValue / step) * step;
+        const clampedValue = Math.max(minValue, Math.min(maxValue, steppedValue));
+        onValueChange(clampedValue);
+      }
+    },
+    onPanResponderTerminationRequest: () => false,
     onPanResponderRelease: () => {
+      setIsDragging(false);
+    },
+    onPanResponderTerminate: () => {
       setIsDragging(false);
     },
   });
@@ -92,12 +100,10 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
         </View>
       )}
 
-      <TouchableOpacity
+      <View
         ref={containerRef}
         style={[styles.container, {height}]}
         onLayout={handleContainerLayout}
-        onPress={handlePress}
-        activeOpacity={1}
         {...panResponder.panHandlers}>
         {/* Background track */}
         <View style={[styles.track, {height}]}>
@@ -122,7 +128,7 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
             style={[styles.progressGradient, {height}]}
           />
         </View>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 };

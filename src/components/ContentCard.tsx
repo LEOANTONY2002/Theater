@@ -5,7 +5,6 @@ import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
 import {colors, spacing, borderRadius} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
-import {ContentCardSkeleton} from './LoadingSkeleton';
 import {checkInternet} from '../services/connectivity';
 
 interface ContentCardProps {

@@ -1,19 +1,9 @@
-import React, {useMemo, useCallback, useState, useEffect} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-  ScrollView,
-} from 'react-native';
+import React, {useMemo, useCallback, useState} from 'react';
+import {View, Text, StyleSheet, FlatList, Image} from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList, HomeStackParamList} from '../types/navigation';
+import {HomeStackParamList} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
-import {GradientBackground} from '../components/GradientBackground';
 import {colors, spacing, typography} from '../styles/theme';
 import {
   usePersonMovieCredits,
@@ -39,22 +29,11 @@ type PersonCreditsScreenRouteProp = RouteProp<
 >;
 
 export const PersonCreditsScreen = () => {
-  const navigation = useNavigation<PersonCreditsScreenNavigationProp>();
   const route = useRoute<PersonCreditsScreenRouteProp>();
   const {personId, personName} = route.params;
   const {navigateWithLimit} = useNavigationState();
   const {isTablet} = useResponsive();
   const columns = isTablet ? 5 : 3;
-  const [renderPhase, setRenderPhase] = useState(0);
-  const [showMoreContent, setShowMoreContent] = useState(false);
-  const {
-    handleScroll,
-    handleScrollBeginDrag,
-    handleScrollEndDrag,
-    handleMomentumScrollEnd,
-  } = useScrollOptimization();
-
-  // Ultra-aggressive staggered loading to prevent FPS drops
 
   // Get person details
   const {data: personDetails, isLoading: isLoadingDetails} =
@@ -128,11 +107,6 @@ export const PersonCreditsScreen = () => {
     if (tvCredits.hasNextPage && !tvCredits.isFetchingNextPage) {
       tvCredits.fetchNextPage();
     }
-  };
-
-  const handleRefresh = () => {
-    movieCredits.refetch();
-    tvCredits.refetch();
   };
 
   const styles = StyleSheet.create({

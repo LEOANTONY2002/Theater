@@ -4,7 +4,6 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  Dimensions,
   FlatList,
   StyleSheet,
   Animated,
@@ -27,8 +26,6 @@ interface Region {
   english_name: string;
   native_name: string;
 }
-
-const {width} = Dimensions.get('window');
 
 type OnboardingStep = 'welcome' | 'region' | 'ai';
 

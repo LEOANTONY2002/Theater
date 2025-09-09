@@ -1,6 +1,5 @@
 import React, {useCallback, useMemo, useEffect, useState, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import {FlashList} from '@shopify/flash-list';
+import {View, StyleSheet} from 'react-native';
 import {
   useMoviesList,
   useTop10MoviesTodayByRegion,
@@ -26,7 +25,7 @@ import {useRegion} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
 import {HorizontalGenreList} from '../components/HorizontalGenreList';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {FlatList, GestureHandlerRootView} from 'react-native-gesture-handler';
+import {FlatList} from 'react-native-gesture-handler';
 import {GestureHandlerRootView as RNGestureHandlerRootView} from 'react-native-gesture-handler';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;

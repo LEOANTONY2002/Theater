@@ -488,17 +488,15 @@ export const FeaturedBanner = memo(
           }
         };
         const onWatchlistPress = async () => {
+          // Ensure actions target this slide by making it current, then reuse shared handler
+          setActiveIndex(index);
           try {
-            if (checkInWatchlist((slide as any).id)) {
-              await removeFromWatchlistMutation.mutateAsync({
-                watchlistId: watchlistContainingItem || '',
-                itemId: (slide as any).id,
-              });
-            } else {
-              addToWatchlist(slide as any, type);
-            }
+            // Defer to next tick so hooks rebind to the new current item
+            setTimeout(() => {
+              handleWatchlistPress();
+            }, 0);
           } catch (e) {
-            // Silent fail, UX stays smooth
+            // Silent fail, keep UX smooth
           }
         };
         return (
@@ -572,11 +570,13 @@ export const FeaturedBanner = memo(
                   disabled={removeFromWatchlistMutation.isPending}>
                   <Ionicons
                     name={
-                      checkInWatchlist((slide as any).id) ? 'checkmark' : 'add'
+                      (isActive ? isInAnyWatchlist : checkInWatchlist((slide as any).id))
+                        ? 'checkmark'
+                        : 'add'
                     }
                     size={24}
                     color={
-                      checkInWatchlist((slide as any).id)
+                      (isActive ? isInAnyWatchlist : checkInWatchlist((slide as any).id))
                         ? colors.accent
                         : '#fff'
                     }

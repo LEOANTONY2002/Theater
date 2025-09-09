@@ -4,18 +4,14 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   Image,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import {InteractionManager} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {useResponsive} from '../hooks/useResponsive';
 import LinearGradient from 'react-native-linear-gradient';
-import {GradientButton} from './GradientButton';
 import {GradientSpinner} from './GradientSpinner';
 import {getImageUrl} from '../services/tmdb';
 import {getPersonalizedRecommendation} from '../services/gemini';
@@ -28,8 +24,6 @@ type RootStackParamList = {
   TVShowDetails: {show: any};
   MySpaceScreen: undefined;
 };
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 type ContentItem = {
   id: number;
@@ -62,8 +56,6 @@ type MoodQuestion = {
   }[];
 };
 
-type OnboardingStep = 'mood' | 'genres' | 'complete';
-
 const GENRES = [
   {id: 28, name: 'Action'},
   {id: 12, name: 'Adventure'},
@@ -84,87 +76,6 @@ const GENRES = [
   {id: 53, name: 'Thriller'},
   {id: 10752, name: 'War'},
   {id: 37, name: 'Western'},
-];
-
-const MOOD_QUESTIONS: MoodQuestion[] = [
-  {
-    id: 'current_mood',
-    question: 'How are you feeling right now?',
-    options: [
-      {
-        text: 'Need some laughs',
-        genres: [35, 10751], // Comedy, Family
-        emoji: '😄',
-      },
-      {
-        text: 'Want an adventure',
-        genres: [12, 28, 878], // Adventure, Action, Sci-Fi
-        emoji: '🚀',
-      },
-      {
-        text: 'In the mood for romance',
-        genres: [10749, 18], // Romance, Drama
-        emoji: '💕',
-      },
-      {
-        text: 'Want to be scared',
-        genres: [27, 53], // Horror, Thriller
-        emoji: '😱',
-      },
-      {
-        text: 'Need something deep',
-        genres: [18, 36, 99], // Drama, History, Documentary
-        emoji: '🤔',
-      },
-      {
-        text: 'Want to escape reality',
-        genres: [14, 16, 878], // Fantasy, Animation, Sci-Fi
-        emoji: '✨',
-      },
-    ],
-  },
-  {
-    id: 'content_type',
-    question: 'What do you want to watch?',
-    options: [
-      {
-        text: 'Movie',
-        genres: [],
-        emoji: '🎬',
-      },
-      {
-        text: 'Series',
-        genres: [],
-        emoji: '📺',
-      },
-      {
-        text: 'Any',
-        genres: [],
-        emoji: '🎲',
-      },
-    ],
-  },
-  {
-    id: 'energy_level',
-    question: "What's your energy level?",
-    options: [
-      {
-        text: 'High energy, bring the action!',
-        genres: [28, 12, 53], // Action, Adventure, Thriller
-        emoji: '⚡',
-      },
-      {
-        text: 'Moderate, something engaging',
-        genres: [80, 9648, 18], // Crime, Mystery, Drama
-        emoji: '🎯',
-      },
-      {
-        text: 'Low energy, easy watching',
-        genres: [35, 10749, 10751], // Comedy, Romance, Family
-        emoji: '😌',
-      },
-    ],
-  },
 ];
 
 const STORAGE_KEYS = {
@@ -194,7 +105,6 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
   // Onboarding UI is handled in Home via MoodQuestionnaire modal.
   // Keep mood answers for recommendation logic only.
   const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
-  const {isTablet} = useResponsive();
   const [isPending, startTransition] = useTransition();
 
   // Initialize component

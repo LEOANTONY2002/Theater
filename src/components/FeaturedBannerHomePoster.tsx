@@ -88,12 +88,6 @@ export const FeaturedBannerHomePoster: React.FC<
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
-  const {
-    isItemInContent: checkInWatchlist,
-    addItem: addToWatchlist,
-    removeItem: removeFromWatchlist,
-  } = useUserContent('WATCHLIST');
-  const navigation = useNavigation<NavigationProp>();
   const {navigateWithLimit} = useNavigationState();
 
   const handlePress = useCallback(() => {

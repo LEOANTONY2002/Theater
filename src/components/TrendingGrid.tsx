@@ -1,12 +1,5 @@
 import React, {useCallback, useMemo} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  useWindowDimensions,
-} from 'react-native';
+import {View, StyleSheet, FlatList, useWindowDimensions} from 'react-native';
 import {MovieCard} from './MovieCard';
 import {ContentItem} from './MovieList';
 import {colors, spacing, typography} from '../styles/theme';

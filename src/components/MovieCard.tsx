@@ -1,15 +1,13 @@
-import React, {useState, useCallback} from 'react';
+import React from 'react';
 import {
   View,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   useWindowDimensions,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {ContentItem} from './MovieList';
 import {getImageUrl} from '../services/tmdb';
-import {MoivieCardSkeleton} from './LoadingSkeleton';
 import {colors} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
 
@@ -19,8 +17,6 @@ interface MovieCardProps {
   size?: 'normal' | 'large';
   cardWidth?: number; // optional external width to allow perfect grid fit
 }
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const baseStyles = StyleSheet.create({
   container: {

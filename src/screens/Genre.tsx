@@ -8,14 +8,8 @@ import {
   Animated,
   Easing,
   Platform,
-  ListRenderItemInfo,
 } from 'react-native';
-import {
-  useRoute,
-  RouteProp,
-  useNavigation,
-  useFocusEffect,
-} from '@react-navigation/native';
+import {RouteProp, useNavigation} from '@react-navigation/native';
 import {HomeStackParamList} from '../types/navigation';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import {getContentByGenre} from '../services/tmdb';
@@ -26,11 +20,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {MovieCard} from '../components/MovieCard';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {ContentItem} from '../components/MovieList';
-import {GridListSkeleton, GridSkeleton} from '../components/LoadingSkeleton';
-import {getImageUrl} from '../services/tmdb';
+import {GridListSkeleton} from '../components/LoadingSkeleton';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useResponsive} from '../hooks/useResponsive';
-import {BlurView} from '@react-native-community/blur';
 import {SettingsManager} from '../store/settings';
 import {GradientSpinner} from '../components/GradientSpinner';
 
@@ -47,8 +39,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const {genreId, genreName, contentType} = route.params;
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const {isNavigating, handleNavigation, navigateWithLimit} =
-    useNavigationState();
+  const {isNavigating, navigateWithLimit} = useNavigationState();
   const {isTablet, orientation} = useResponsive();
   const {width} = useWindowDimensions();
 

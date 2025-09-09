@@ -3,14 +3,10 @@ import {
   View,
   Text,
   Image,
-  ScrollView,
   StyleSheet,
   useWindowDimensions,
   TouchableOpacity,
-  ActivityIndicator,
-  Modal,
   Alert,
-  InteractionManager,
   Animated,
   Easing,
 } from 'react-native';
@@ -22,25 +18,22 @@ import {
   useMovieRecommendations,
   useAISimilarMovies,
 } from '../hooks/useMovies';
-import {fetchContentFromAI, getImageUrl} from '../services/tmdb';
+import {getImageUrl} from '../services/tmdb';
 import {Movie, MovieDetails as MovieDetailsType} from '../types/movie';
 import {Video, Genre, Cast} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {MovieTrivia} from '../components/MovieTrivia';
-import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {useNavigation, RouteProp} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 import {MySpaceStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
   DetailScreenSkeleton,
-  BannerHomeSkeleton,
   BannerSkeleton,
-  HeadingSkeleton,
   IMDBSkeleton,
 } from '../components/LoadingSkeleton';
-import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
 import {LinearGradient} from 'react-native-linear-gradient';
@@ -56,11 +49,9 @@ import {
 import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import languageData from '../utils/language.json';
-import {useDeepNavigationProtection} from '../hooks/useDeepNavigationProtection';
 import {useQueryClient} from '@tanstack/react-query';
 import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
-import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {useIMDBRating} from '../hooks/useScrap';

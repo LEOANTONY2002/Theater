@@ -21,7 +21,7 @@ import {
   useSeasonDetails,
   useAISimilarTVShows,
 } from '../hooks/useTVShows';
-import {fetchContentFromAI, getImageUrl, getLanguage} from '../services/tmdb';
+import {getImageUrl, getLanguage} from '../services/tmdb';
 import {
   TVShow,
   TVShowDetails as TVShowDetailsType,
@@ -39,7 +39,6 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
   DetailScreenSkeleton,
-  BannerHomeSkeleton,
   BannerSkeleton,
 } from '../components/LoadingSkeleton';
 import {BlurView} from '@react-native-community/blur';
@@ -53,16 +52,12 @@ import {
   useIsItemInAnyWatchlist,
   useWatchlistContainingItem,
   useRemoveFromWatchlist,
-  useAddToWatchlist,
 } from '../hooks/useWatchlists';
-import {useFocusEffect} from '@react-navigation/native';
 import {useQueryClient} from '@tanstack/react-query';
 import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
-import {getSimilarByStory} from '../services/gemini';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
-import {useIMDBRating} from '../hooks/useScrap';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {FlashList} from '@shopify/flash-list';

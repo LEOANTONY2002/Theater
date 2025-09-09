@@ -2,7 +2,6 @@ import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
   ScrollView,
@@ -62,7 +61,6 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
 }) => {
   const [trivia, setTrivia] = useState<TriviaFact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const {width} = useWindowDimensions();
   const {isTablet} = useResponsive();

@@ -10,7 +10,6 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {GradientButton} from './GradientButton';
 
 type MoodQuestion = {
   id: string;
@@ -166,7 +165,7 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
     initialAnswers,
   );
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Dynamically filter options based on prior answers to avoid contradictory tones
   const getEffectiveOptions = (
     question: MoodQuestion,
@@ -193,7 +192,11 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
       );
     }
 
-    if (mood.includes('deep') || mood.includes('motivation') || mood.includes('real')) {
+    if (
+      mood.includes('deep') ||
+      mood.includes('motivation') ||
+      mood.includes('real')
+    ) {
       return base.filter(opt =>
         ['Real-life stories', 'Mind-bending plots', 'Dark and gritty'].includes(
           opt.text,
@@ -294,22 +297,24 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
       <ScrollView
         style={styles.optionsContainer}
         showsVerticalScrollIndicator={false}>
-        {displayedOptions.map((option: {text: string; emoji: string}, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.moodOption}
-            onPress={() => handleMoodAnswer(option.text)}
-            activeOpacity={0.7}
-            disabled={isLoading}>
-            <Text style={styles.moodEmoji}>{option.emoji}</Text>
-            <Text style={styles.moodText}>{option.text}</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.text.tertiary}
-            />
-          </TouchableOpacity>
-        ))}
+        {displayedOptions.map(
+          (option: {text: string; emoji: string}, index: number) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.moodOption}
+              onPress={() => handleMoodAnswer(option.text)}
+              activeOpacity={0.7}
+              disabled={isLoading}>
+              <Text style={styles.moodEmoji}>{option.emoji}</Text>
+              <Text style={styles.moodText}>{option.text}</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.text.tertiary}
+              />
+            </TouchableOpacity>
+          ),
+        )}
       </ScrollView>
     </View>
   );

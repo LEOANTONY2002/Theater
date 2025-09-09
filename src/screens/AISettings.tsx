@@ -7,13 +7,11 @@ import {
   TouchableOpacity,
   ScrollView,
   Keyboard,
-  Alert,
-  ActivityIndicator,
   Clipboard,
   Modal,
   Linking,
 } from 'react-native';
-import {Link, useNavigation} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';

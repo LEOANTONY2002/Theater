@@ -1,20 +1,10 @@
 import React, {useCallback, memo} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  RefreshControl,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
-import {FlashList} from '@shopify/flash-list';
+import {View, Text, StyleSheet, TouchableOpacity, FlatList} from 'react-native';
 import {ContentItem} from './MovieList';
 import {ContentCard} from './ContentCard';
 import {colors, spacing, typography} from '../styles/theme';
 import {HeadingSkeleton, HorizontalListSkeleton} from './LoadingSkeleton';
 import Ionicon from 'react-native-vector-icons/Ionicons';
-import LinearGradient from 'react-native-linear-gradient';
 import {useScrollOptimization} from '../hooks/useScrollOptimization';
 
 interface HorizontalListProps {
@@ -105,12 +95,6 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
         flex: 1,
       },
     });
-    const {
-      handleScroll,
-      handleScrollBeginDrag,
-      handleScrollEndDrag,
-      handleMomentumScrollEnd,
-    } = useScrollOptimization();
 
     // Memoize renderItem
     const renderItem = useCallback(

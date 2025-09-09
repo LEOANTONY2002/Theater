@@ -1,13 +1,6 @@
 import React, {useCallback} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {View, Text, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MySpaceStackParamList} from '../types/navigation';
 import {colors, spacing, typography} from '../styles/theme';

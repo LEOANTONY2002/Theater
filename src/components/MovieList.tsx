@@ -1,8 +1,7 @@
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {
   View,
   FlatList,
-  ActivityIndicator,
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
@@ -12,7 +11,6 @@ import {TVShow} from '../types/tvshow';
 import {MovieCard} from './MovieCard';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, spacing} from '../styles/theme';
-import {Text} from 'react-native-gesture-handler';
 import {GradientSpinner} from './GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 
@@ -43,7 +41,6 @@ export const MovieList: React.FC<MovieListProps> = ({
   emptyText,
   emptySubtext,
 }) => {
-  console.log('isLoading:', isLoading);
   const {isTablet} = useResponsive();
   const columns = isTablet ? 5 : 3;
 

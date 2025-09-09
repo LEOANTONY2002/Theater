@@ -3,13 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
   TouchableOpacity,
   Animated,
-  Dimensions,
   useWindowDimensions,
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
@@ -26,8 +21,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {MovieCard} from '../components/MovieCard';
-import {useNavigationState} from '../hooks/useNavigationState';
-import {BlurView} from '@react-native-community/blur';
 import {GridListSkeleton} from '../components/LoadingSkeleton';
 import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
@@ -82,11 +75,6 @@ export const CategoryScreen = () => {
       extrapolate: 'clamp',
     }),
   };
-  const blurOpacity = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
 
   // Defer heavy rendering to prevent FPS drops
   useEffect(() => {
@@ -122,11 +110,14 @@ export const CategoryScreen = () => {
       (navigation as any).navigate('Main', {screen: 'Search'});
     };
 
-    const unsubscribe = (navigation as any).addListener('beforeRemove', (e: any) => {
-      // This will catch back gesture and hardware back
-      e.preventDefault();
-      goToSearchTab();
-    });
+    const unsubscribe = (navigation as any).addListener(
+      'beforeRemove',
+      (e: any) => {
+        // This will catch back gesture and hardware back
+        e.preventDefault();
+        goToSearchTab();
+      },
+    );
     return unsubscribe;
   }, [navigation, fromSearch]);
 

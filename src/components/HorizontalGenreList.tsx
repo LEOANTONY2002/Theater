@@ -1,7 +1,5 @@
 import React, {memo, useCallback} from 'react';
 import {View, Text, FlatList, StyleSheet, TouchableOpacity} from 'react-native';
-import {ContentItem} from './MovieList';
-import {ContentCard} from './ContentCard';
 import {
   borderRadius,
   colors,
@@ -9,15 +7,9 @@ import {
   tagGradientColors,
   typography,
 } from '../styles/theme';
-import {
-  HeadingSkeleton,
-  HorizontalListSkeleton,
-  LanguageSkeleton,
-} from './LoadingSkeleton';
-import Ionicon from 'react-native-vector-icons/Ionicons';
+import {HeadingSkeleton, LanguageSkeleton} from './LoadingSkeleton';
 import LinearGradient from 'react-native-linear-gradient';
 import {Genre} from '../types/movie';
-import {BlurView} from '@react-native-community/blur';
 
 interface HorizontalGenreListProps {
   title: string;
@@ -55,8 +47,6 @@ export const HorizontalGenreList: React.FC<HorizontalGenreListProps> = memo(
         <Text style={styles.title}>{title}</Text>
         <LinearGradient
           colors={['transparent', colors.background.primary]}
-          // start={{x: 0, y: 0}}
-          // end={{x: 1, y: 1}}
           style={styles.tagGradient}
           pointerEvents="none"
         />

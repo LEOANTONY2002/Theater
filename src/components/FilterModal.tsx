@@ -3,14 +3,10 @@ import {
   View,
   Modal,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   TextInput,
-  Switch,
   FlatList,
-  Alert,
   Modal as RNModal,
   Image,
 } from 'react-native';
@@ -19,7 +15,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {GradientProgressBar} from './GradientProgressBar';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
-import {colors, spacing, borderRadius, typography} from '../styles/theme';
+import {colors, spacing, borderRadius} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS} from '../types/filters';
 import {
   getLanguages,
@@ -33,7 +29,7 @@ import type {SavedFilter} from '../types/filters';
 import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
 import {LanguageSettings} from './LanguageSettings';
-import {SettingsManager, Language as SettingsLanguage} from '../store/settings';
+import {Language as SettingsLanguage} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 
 interface Language {
@@ -304,26 +300,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         result,
       });
       return result;
-    });
-  };
-
-  const handleSortOrderToggle = () => {
-    setSortOrder(prev => {
-      const newOrder = prev === 'asc' ? 'desc' : 'asc';
-      if (filters.sort_by) {
-        const [field] = filters.sort_by.split('.');
-        // Find the matching sort option with the new order
-        const newSortBy = SORT_OPTIONS.find(
-          option => option.value === `${field}.${newOrder}`,
-        )?.value;
-        if (newSortBy) {
-          setFilters(prevFilters => ({
-            ...prevFilters,
-            sort_by: newSortBy,
-          }));
-        }
-      }
-      return newOrder;
     });
   };
 
