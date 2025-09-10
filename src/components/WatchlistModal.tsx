@@ -173,7 +173,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                       modalStyles.footer,
                       {
                         marginBottom: 20,
-                        marginHorizontal: isTablet ? '25%' : '0%',
+                        marginHorizontal: isTablet ? '25%' : spacing.md,
                       },
                     ]}>
                     <TouchableOpacity

@@ -1,10 +1,17 @@
 import React, {useMemo, useCallback, useState} from 'react';
-import {View, Text, StyleSheet, FlatList, Image} from 'react-native';
-import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
+import {useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {HomeStackParamList} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
-import {colors, spacing, typography} from '../styles/theme';
+import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
   usePersonMovieCredits,
   usePersonTVCredits,
@@ -16,13 +23,11 @@ import {MovieCard} from '../components/MovieCard';
 import {getImageUrl} from '../services/tmdb';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useScrollOptimization} from '../hooks/useScrollOptimization';
 import {GridListSkeleton, HeadingSkeleton} from '../components/LoadingSkeleton';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
+import {PersonAIChatModal} from '../components/PersonAIChatModal';
 
-type PersonCreditsScreenNavigationProp =
-  NativeStackNavigationProp<HomeStackParamList>;
 type PersonCreditsScreenRouteProp = RouteProp<
   HomeStackParamList,
   'PersonCredits'
@@ -34,6 +39,7 @@ export const PersonCreditsScreen = () => {
   const {navigateWithLimit} = useNavigationState();
   const {isTablet} = useResponsive();
   const columns = isTablet ? 5 : 3;
+  const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
 
   // Get person details
   const {data: personDetails, isLoading: isLoadingDetails} =
@@ -108,6 +114,8 @@ export const PersonCreditsScreen = () => {
       tvCredits.fetchNextPage();
     }
   };
+
+  console.log('personDetails', personDetails);
 
   const styles = StyleSheet.create({
     container: {
@@ -253,6 +261,56 @@ export const PersonCreditsScreen = () => {
 
   return (
     <View style={styles.container}>
+      <PersonAIChatModal
+        visible={isAIChatModalOpen}
+        onClose={() => setIsAIChatModalOpen(false)}
+        personName={personName}
+        biography={personDetails?.biography}
+        knownForDepartment={(personDetails as any)?.known_for_department}
+        birthDate={(personDetails as any)?.birthday}
+        birthPlace={(personDetails as any)?.place_of_birth}
+        alsoKnownAs={(personDetails as any)?.also_known_as}
+      />
+      <LinearGradient
+        colors={['rgba(142, 4, 255, 0.46)', 'rgba(255, 4, 125, 0.65)']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
+        style={{
+          position: 'absolute',
+          bottom: isTablet ? 60 : 100,
+          right: 36,
+          width: 60,
+          height: 60,
+          zIndex: 5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: borderRadius.round,
+          overflow: 'hidden',
+          elevation: 5,
+          shadowColor: 'rgba(46, 1, 39, 0.48)',
+          shadowOffset: {width: 0, height: 0},
+          shadowRadius: 10,
+        }}>
+        <TouchableOpacity
+          onPress={() => setIsAIChatModalOpen(true)}
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: borderRadius.round,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(15, 15, 15, 0.84)',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255, 255, 255, 0.13)',
+          }}
+          activeOpacity={0.7}>
+          <Image
+            source={require('../assets/theaterai.webp')}
+            style={{width: 30, height: 20}}
+          />
+        </TouchableOpacity>
+      </LinearGradient>
       <View style={styles.profileContainer}>
         <Image
           source={{

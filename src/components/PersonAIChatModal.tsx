@@ -23,6 +23,7 @@ import {BlurView} from '@react-native-community/blur';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import Markdown from 'react-native-markdown-display';
 
+// Types
 type Message = {
   id: string;
   text: string;
@@ -30,63 +31,52 @@ type Message = {
   timestamp: Date;
 };
 
-type MovieAIChatModalProps = {
+type PersonAIChatModalProps = {
   visible: boolean;
   onClose: () => void;
-  movieTitle: string;
-  movieYear: number;
-  movieOverview: string;
-  movieGenres: string[];
-  contentType?: 'movie' | 'tv';
+  personName: string;
+  biography?: string;
+  knownForDepartment?: string;
+  birthDate?: string;
+  birthPlace?: string;
+  alsoKnownAs?: string[];
 };
 
-const DEFAULT_MOVIE_QUESTIONS = [
-  'Who is the director?',
-  'What are viewers saying about this movie?',
-  'Can you explain the plot?',
-  'Who are the main actors?',
-  "What's the movie's rating?",
-  'Is this movie worth watching?',
-  'What genre is this movie?',
-  'When was this movie released?',
+const DEFAULT_PERSON_QUESTIONS = [
+  'What is their most acclaimed role?',
+  'List some notable movies/TV shows featuring them.',
+  'Have they won any major awards?',
+  'What are some interesting facts about their career?',
+  'What genres do they often work in?',
+  'Who have they frequently collaborated with?',
+  'What are their most popular works?',
+  'What should I watch to get started with their filmography?',
 ];
 
-const DEFAULT_TV_QUESTIONS = [
-  'Who created this show?',
-  'What are viewers saying about this series?',
-  'Can you explain the plot?',
-  'Who are the main actors?',
-  "What's the show's rating?",
-  'Is this series worth watching?',
-  'What genre is this show?',
-  'When did this series first air?',
-];
-
-export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
+export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
   visible,
   onClose,
-  movieTitle,
-  movieYear,
-  movieOverview,
-  movieGenres,
-  contentType = 'movie',
+  personName,
+  biography,
+  knownForDepartment,
+  birthDate,
+  birthPlace,
+  alsoKnownAs,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
   const androidInset = useAndroidKeyboardInset(10);
 
-  // Animation values (matching OnlineAI screen)
+  // Animations (mirroring MovieAIChatModal)
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideUpAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
-  // Initialize entrance animations (matching OnlineAI screen)
   useEffect(() => {
     if (visible) {
       Animated.parallel([
@@ -110,17 +100,15 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
         }),
       ]).start();
     } else {
-      // Reset animations when modal closes
       fadeAnim.setValue(0);
       slideUpAnim.setValue(50);
       scaleAnim.setValue(0.95);
     }
   }, [visible]);
 
-  // Pulse animation for loading states (matching OnlineAI screen)
   useEffect(() => {
     if (isLoading) {
-      const pulseAnimation = Animated.loop(
+      const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.2,
@@ -136,30 +124,43 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           }),
         ]),
       );
-      pulseAnimation.start();
-      return () => pulseAnimation.stop();
+      loop.start();
+      return () => loop.stop();
     }
   }, [isLoading]);
 
-  // Add initial welcome message
+  // Initial welcome/reset
   useEffect(() => {
     if (visible) {
       setMessages([
         {
           id: '1',
-          text: `Hi! I'm your AI assistant for "${movieTitle}". Ask me anything about this movie, its plot, cast, or get recommendations for similar movies!`,
+          text: `Hi! I'm your AI assistant for ${personName}. Ask me anything about their career, filmography, awards, and more. I will only answer questions related to this person.`,
           sender: 'ai',
           timestamp: new Date(),
         },
       ]);
       setInputText('');
-      setShowSuggestions(true);
     } else {
-      // Reset messages when modal is closed
       setMessages([]);
-      setShowSuggestions(true);
     }
-  }, [visible, movieTitle]);
+  }, [visible, personName]);
+
+  const buildContext = () => {
+    const parts: string[] = [];
+    parts.push(`Context: You are chatting about the person ${personName}.`);
+    if (knownForDepartment) parts.push(`Department: ${knownForDepartment}.`);
+    if (birthDate) parts.push(`Born: ${birthDate}.`);
+    if (birthPlace) parts.push(`Place of birth: ${birthPlace}.`);
+    if (alsoKnownAs && alsoKnownAs.length > 0)
+      parts.push(`Also known as: ${alsoKnownAs.join(', ')}.`);
+    if (biography) parts.push(`Biography: ${biography}`);
+
+    parts.push(
+      'Answer ONLY questions related to this person. If asked unrelated or overly speculative questions, politely decline and steer back to this person. Avoid spoilers unless asked.',
+    );
+    return parts.join(' ');
+  };
 
   const handleSend = useCallback(
     async (overrideText?: string) => {
@@ -173,73 +174,44 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
         timestamp: new Date(),
       };
 
-      // Add user message
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
-      // Clear input only when sending manual input; for suggestions we're not editing the box
       if (!overrideText) setInputText('');
       setIsLoading(true);
-      setShowSuggestions(false); // Hide suggestions after first message
 
       try {
-        // Add context as a user message (do not send genres)
         const contextMessage = {
           role: 'user' as const,
-          content: `Context: You are chatting about "${movieTitle}"${
-            movieYear ? ` (${movieYear})` : ''
-          }. ${
-            movieOverview ? `Overview: ${movieOverview}` : ''
-          } Only answer questions related to this specific ${
-            contentType === 'tv' ? 'TV show' : 'movie'
-          } and politely decline unrelated topics.`,
+          content: buildContext(),
         };
 
-        // Prepare chat messages from the updated messages array
-        const conversationMessages = updatedMessages.filter(
-          msg => msg.id !== '1',
-        );
+        const conversationMessages = updatedMessages.filter(m => m.id !== '1');
         const chatMessages = [
           contextMessage,
-          ...conversationMessages.map(msg => ({
+          ...conversationMessages.map(m => ({
             role:
-              msg.sender === 'ai' ? ('assistant' as const) : ('user' as const),
-            content: msg.text,
+              m.sender === 'ai' ? ('assistant' as const) : ('user' as const),
+            content: m.text,
           })),
         ];
-        console.log('Sending chat messages:', chatMessages);
 
-        // Call the AI service with the conversation messages
         const {aiResponse} = await cinemaChat(chatMessages);
-
-        // Add AI response
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
           text: aiResponse,
           sender: 'ai',
           timestamp: new Date(),
         };
-
         setMessages(prev => [...prev, aiMessage]);
       } catch (error) {
         console.error('Error getting AI response:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-
-        // Recreate conversationMessages for error logging
-        const errorConversationMessages = updatedMessages.filter(
-          msg => msg.id !== '1',
-        );
-        console.error(
-          'Chat messages being sent:',
-          JSON.stringify(errorConversationMessages, null, 2),
-        );
-
-        const errorMessage: Message = {
+        const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
           text: 'Sorry, I encountered an error. Please try again later.',
           sender: 'ai',
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, errorMessage]);
+        setMessages(prev => [...prev, aiMessage]);
       } finally {
         setIsLoading(false);
       }
@@ -247,25 +219,18 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
     [
       inputText,
       isLoading,
-      movieTitle,
-      movieOverview,
-      movieGenres,
-      contentType,
       messages,
+      personName,
+      biography,
+      knownForDepartment,
+      birthDate,
+      birthPlace,
+      alsoKnownAs,
     ],
-  );
-
-  const handleSuggestionPress = useCallback(
-    (question: string) => {
-      // Send the suggestion immediately
-      handleSend(question);
-    },
-    [handleSend],
   );
 
   const renderMessage = useCallback(({item}: {item: Message}) => {
     const isUser = item.sender === 'user';
-
     return isUser ? (
       <View style={[styles.message, styles.user]}>
         <Text style={styles.userText}>{item.text}</Text>
@@ -280,33 +245,6 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
       </LinearGradient>
     );
   }, []);
-
-  const renderSuggestions = () => {
-    // if (!showSuggestions || messages.length > 1) return null;
-
-    return (
-      <View style={styles.suggestionsContainer}>
-        <Text style={styles.suggestionsTitle}>Try asking:</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.suggestionsScrollContent}>
-          {(contentType === 'tv'
-            ? DEFAULT_TV_QUESTIONS
-            : DEFAULT_MOVIE_QUESTIONS
-          ).map((question: string, index: number) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.suggestionChip}
-              onPress={() => handleSuggestionPress(question)}
-              activeOpacity={0.7}>
-              <Text style={styles.suggestionText}>{question}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
 
   return (
     <Modal
@@ -333,13 +271,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           <BlurView
             blurType="dark"
             blurAmount={5}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}
+            style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
             overlayColor={colors.modal.blur}
           />
           <TouchableOpacity
@@ -412,10 +344,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
               ListFooterComponent={
                 isLoading ? (
                   <Animated.View
-                    style={{
-                      marginHorizontal: spacing.lg,
-                      marginBottom: 150,
-                    }}>
+                    style={{marginHorizontal: spacing.lg, marginBottom: 150}}>
                     <GradientSpinner
                       size={30}
                       style={{
@@ -424,32 +353,6 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                         backgroundColor: 'transparent',
                       }}
                       color={colors.primary}
-                      colors={[
-                        colors.primary,
-                        colors.secondary,
-                        'rgba(239, 0, 184, 0.06)',
-                        'rgba(67, 2, 75, 0.06)',
-                        'rgba(211, 0, 239, 0.06)',
-                        'rgba(39, 1, 44, 0.06)',
-                        'rgba(211, 0, 239, 0.06)',
-                        'rgba(183, 0, 239, 0.34)',
-                        'rgba(213, 146, 249, 0.06)',
-                        'rgba(128, 0, 239, 0.06)',
-                        'rgba(0, 96, 239, 0.06)',
-                        'rgba(72, 0, 239, 0.06)',
-                        'rgba(44, 0, 239, 0.06)',
-                        'rgba(18, 0, 239, 0.06)',
-                        'rgba(0, 0, 239, 0.06)',
-                        'rgba(0, 123, 211, 0.06)',
-                        'rgba(0, 117, 184, 0.06)',
-                        'rgba(0, 0, 156, 0.06)',
-                        'rgba(0, 92, 128, 0.06)',
-                        'rgba(0, 0, 100, 0.06)',
-                        'rgba(0, 0, 72, 0.06)',
-                        'rgba(35, 0, 44, 0.06)',
-                        'rgba(18, 0, 15, 0.06)',
-                        'rgba(0, 0, 0, 0.06)',
-                      ]}
                     />
                     <Animated.Text
                       style={[
@@ -460,9 +363,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                           marginTop: 4,
                           fontStyle: 'italic',
                         },
-                        {
-                          opacity: pulseAnim,
-                        },
+                        {opacity: pulseAnim},
                       ]}>
                       Theater AI is thinking...
                     </Animated.Text>
@@ -482,7 +383,29 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
               }}
             />
             <View style={{zIndex: 1, backgroundColor: colors.modal.blur}}>
-              {renderSuggestions()}
+              <View
+                style={{
+                  paddingVertical: spacing.sm,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.background.secondary,
+                  zIndex: 1,
+                }}>
+                <Text style={styles.suggestionsTitle}>Try asking:</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.suggestionsScrollContent}>
+                  {DEFAULT_PERSON_QUESTIONS.map((question, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.suggestionChip}
+                      onPress={() => handleSend(question)}
+                      activeOpacity={0.7}>
+                      <Text style={styles.suggestionText}>{question}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
               <View
                 style={{
                   marginHorizontal: isTablet ? 100 : spacing.lg,
@@ -499,9 +422,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                       style={styles.input}
                       value={inputText}
                       onChangeText={setInputText}
-                      placeholder={`Ask about ${
-                        contentType === 'tv' ? 'this show' : 'this movie'
-                      }...`}
+                      placeholder={`Ask about ${personName}...`}
                       placeholderTextColor={colors.text.tertiary}
                       editable={true}
                       onFocus={() =>
@@ -518,9 +439,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                       <TouchableOpacity
                         style={[
                           styles.sendButton,
-                          {
-                            opacity: isLoading || !inputText.trim() ? 0.5 : 1,
-                          },
+                          {opacity: isLoading || !inputText.trim() ? 0.5 : 1},
                         ]}
                         onPress={() => handleSend()}
                         disabled={isLoading || !inputText.trim()}>
@@ -547,16 +466,8 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    marginHorizontal: 2,
-    overflow: 'hidden',
-  },
-  chat: {
-    paddingVertical: spacing.md,
-    paddingTop: 70,
-    gap: spacing.md,
-  },
+  container: {flex: 1, marginHorizontal: 2, overflow: 'hidden'},
+  chat: {paddingVertical: spacing.md, paddingTop: 70, gap: spacing.md},
   message: {
     marginBottom: spacing.sm,
     marginHorizontal: spacing.md,
@@ -569,19 +480,13 @@ const styles = StyleSheet.create({
     color: colors.background.primary,
     borderRadius: borderRadius.xl,
   },
-  assistant: {
-    alignSelf: 'flex-start',
-    borderRadius: borderRadius.xl,
-  },
+  assistant: {alignSelf: 'flex-start', borderRadius: borderRadius.xl},
   userText: {
     color: colors.text.primary,
     ...typography.body2,
     fontWeight: '500',
   },
-  messageText: {
-    color: colors.text.primary,
-    ...typography.body2,
-  },
+  messageText: {color: colors.text.primary, ...typography.body2},
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -609,12 +514,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.round,
     paddingHorizontal: spacing.md,
   },
-  suggestionsContainer: {
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.background.secondary,
-    zIndex: 1,
-  },
   suggestionsTitle: {
     ...typography.body2,
     color: colors.text.muted,
@@ -622,9 +521,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     fontWeight: '500',
   },
-  suggestionsScrollContent: {
-    paddingHorizontal: spacing.md,
-  },
+  suggestionsScrollContent: {paddingHorizontal: spacing.md},
   suggestionChip: {
     backgroundColor: colors.background.secondary,
     paddingHorizontal: spacing.md,

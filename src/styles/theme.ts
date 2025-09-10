@@ -55,13 +55,13 @@ export const colors = {
     // activeText: 'rgba(255, 255, 255, 0.87)',
 
     background: 'rgba(1, 19, 46, 0.1)',
-    blur: 'rgba(255, 255, 255, 0.1)',
+    blur: 'rgba(255, 255, 255, 0.08)',
     blurDark: 'rgba(28, 28, 28, 0.35)',
     header: 'rgba(147, 146, 146, 0.24)',
     content: 'rgba(255, 255, 255, 0.1)',
     border: 'rgba(171, 170, 170, 0.29)',
-    active: 'rgba(236, 236, 236, 0.45)',
-    activeBorder: 'rgba(255, 255, 255, 0.62)',
+    active: 'rgba(236, 236, 236, 0.32)',
+    activeBorder: 'rgba(255, 255, 255, 0.49)',
     activeText: 'rgba(255, 255, 255, 0.87)',
   },
 };
@@ -86,13 +86,13 @@ export const borderRadius = {
 
 export const typography = {
   h1: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '700' as const,
     letterSpacing: 0.3,
     fontFamily: 'Inter',
   },
   h2: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600' as const,
     letterSpacing: 0.2,
     fontFamily: 'Inter',
@@ -104,12 +104,12 @@ export const typography = {
     fontFamily: 'Inter',
   },
   body1: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400' as const,
     letterSpacing: 0.1,
   },
   body2: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '400' as const,
     letterSpacing: 0.1,
     fontFamily: 'Inter',
@@ -121,13 +121,13 @@ export const typography = {
     fontFamily: 'Inter',
   },
   button: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600' as const,
     letterSpacing: 0.5,
     fontFamily: 'Inter',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500' as const,
     letterSpacing: 0.15,
     fontFamily: 'Inter',

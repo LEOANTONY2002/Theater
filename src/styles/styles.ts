@@ -44,11 +44,13 @@ export const modalStyles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text.primary,
-    ...typography.h3,
+    ...typography.body1,
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.blurDark,
+    borderColor: colors.modal.content,
+    borderWidth: 1,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: colors.text.primary,
@@ -67,8 +69,6 @@ export const modalStyles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.modal.content,
     borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
   },
   activeButton: {
     borderColor: colors.modal.activeBorder,

@@ -46,7 +46,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
             style={StyleSheet.absoluteFill}
             blurType="dark"
             blurAmount={20}
-            overlayColor={colors.modal.blur}
+            overlayColor={colors.modal.blurDark}
           />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Region</Text>
@@ -118,6 +118,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   modalContent: {
     flex: 1,

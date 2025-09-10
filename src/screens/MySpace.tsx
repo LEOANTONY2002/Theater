@@ -276,7 +276,6 @@ export const MySpaceScreen = React.memo(() => {
     modalContainer: {
       flex: 1,
       justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0, 1, 3, 0.28)',
     },
     modalContent: {
       borderTopLeftRadius: borderRadius.xl,
@@ -769,6 +768,7 @@ export const MySpaceScreen = React.memo(() => {
       <Modal
         visible={showLanguageModal}
         animationType="slide"
+        hardwareAccelerated
         statusBarTranslucent={true}
         transparent={true}
         onRequestClose={() => setShowLanguageModal(false)}>
@@ -778,7 +778,7 @@ export const MySpaceScreen = React.memo(() => {
               style={StyleSheet.absoluteFill}
               blurType="dark"
               blurAmount={10}
-              overlayColor={colors.modal.blur}
+              overlayColor={colors.modal.blurDark}
             />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Language Settings</Text>

@@ -30,7 +30,7 @@ import {queryClient} from '../services/queryClient';
 import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
 import {LanguageSettings} from './LanguageSettings';
-import {Language as SettingsLanguage} from '../store/settings';
+import {Language as SettingsLanguage, SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 
 interface Language {
@@ -123,15 +123,26 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   }, [visible, editingFilter]);
 
   useEffect(() => {
-    const fetchLanguages = async () => {
+    const loadLanguages = async () => {
       try {
         setIsLoadingLanguages(true);
+        // Try cache first
+        const cached = await SettingsManager.getCachedLanguages();
+        if (cached && cached.length > 0) {
+          const sorted = [...cached].sort((a: Language, b: Language) =>
+            a.english_name.localeCompare(b.english_name),
+          );
+          setLanguages(sorted);
+          setIsLoadingLanguages(false);
+          return;
+        }
+        // Fallback to API and then cache result
         const languagesData = await getLanguages();
-        // Sort languages by English name
         const sortedLanguages = languagesData.sort((a: Language, b: Language) =>
           a.english_name.localeCompare(b.english_name),
         );
         setLanguages(sortedLanguages);
+        await SettingsManager.setCachedLanguages(sortedLanguages as any);
       } catch (error) {
         console.error('Error loading languages:', error);
       } finally {
@@ -140,7 +151,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     };
 
     if (visible && languages.length === 0) {
-      fetchLanguages();
+      loadLanguages();
     }
   }, [visible, languages.length]);
 
@@ -482,7 +493,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollContent}>
+          <ScrollView
+            style={styles.scrollContent}
+            showsVerticalScrollIndicator={false}>
             {/* Filter Name */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Filter Name</Text>
@@ -594,10 +607,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             <View style={[styles.section, {paddingHorizontal: 0}]}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Genres</Text>
-                <TouchableOpacity
-                  style={styles.showAllButton}
-                  onPress={() => setShowAllGenresModal(true)}>
-                  <Text style={styles.showAllText}>Show All</Text>
+                <TouchableOpacity onPress={() => setShowAllGenresModal(true)}>
                   <Ionicons
                     name="chevron-forward"
                     size={16}
@@ -922,7 +932,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
           <View
             style={[
               styles.footer,
-              {marginHorizontal: isTablet ? '25%' : '0%'},
+              {marginHorizontal: isTablet ? '25%' : spacing.md},
             ]}>
             <TouchableOpacity
               style={[styles.footerButton, styles.resetButton]}
@@ -986,7 +996,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               style={StyleSheet.absoluteFill}
               blurType="dark"
               blurAmount={10}
-              overlayColor={colors.modal.blur}
+              overlayColor={colors.modal.blurDark}
             />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Language Settings</Text>
@@ -1039,7 +1049,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.scrollContent}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.scrollContent}>
               <View style={styles.allGenresGrid}>
                 {getFilteredGenres().map(genre => (
                   <Chip
@@ -1092,7 +1104,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.scrollContent}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.scrollContent}>
               <View style={styles.allProvidersGrid}>
                 {watchProviders.map((provider, index) => {
                   const selected = (() => {

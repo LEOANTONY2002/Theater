@@ -15,7 +15,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {GradientProgressBar} from './GradientProgressBar';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
-import {colors, spacing, borderRadius} from '../styles/theme';
+import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS} from '../types/filters';
 import {
   getLanguages,
@@ -29,7 +29,7 @@ import type {SavedFilter} from '../types/filters';
 import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
 import {LanguageSettings} from './LanguageSettings';
-import {Language as SettingsLanguage} from '../store/settings';
+import {Language as SettingsLanguage, SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 
 interface Language {
@@ -117,15 +117,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-    const fetchLanguages = async () => {
+    const loadLanguages = async () => {
       try {
         setIsLoadingLanguages(true);
+        // Try cache first
+        const cached = await SettingsManager.getCachedLanguages();
+        if (cached && cached.length > 0) {
+          const sorted = [...cached].sort((a: Language, b: Language) =>
+            a.english_name.localeCompare(b.english_name),
+          );
+          setLanguages(sorted);
+          setIsLoadingLanguages(false);
+          return;
+        }
+        // Fallback to API and cache
         const languagesData = await getLanguages();
-        // Sort languages by English name
         const sortedLanguages = languagesData.sort((a: Language, b: Language) =>
           a.english_name.localeCompare(b.english_name),
         );
         setLanguages(sortedLanguages);
+        await SettingsManager.setCachedLanguages(sortedLanguages as any);
       } catch (error) {
         console.error('Error loading languages:', error);
       } finally {
@@ -134,7 +145,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     };
 
     if (visible && languages.length === 0) {
-      fetchLanguages();
+      loadLanguages();
     }
   }, [visible, languages.length]);
 
@@ -526,10 +537,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             <View style={[styles.section, {paddingHorizontal: 0}]}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Genres</Text>
-                <TouchableOpacity
-                  style={styles.showAllButton}
-                  onPress={() => setShowAllGenresModal(true)}>
-                  <Text style={styles.showAllText}>Show All</Text>
+                <TouchableOpacity onPress={() => setShowAllGenresModal(true)}>
                   <Ionicons
                     name="chevron-forward"
                     size={16}
@@ -791,7 +799,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               styles.footer,
               {
                 alignItems: 'center',
-                marginHorizontal: isTablet ? '25%' : spacing.xl,
+                marginHorizontal: isTablet ? '25%' : spacing.md,
               },
             ]}>
             <TouchableOpacity
@@ -857,11 +865,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
           }}>
           <View
             style={{
-              backgroundColor: colors.modal.content,
+              backgroundColor: colors.modal.blur,
               borderRadius: borderRadius.lg,
               padding: 24,
               width: 300,
@@ -871,23 +879,24 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               style={{
                 color: 'rgba(255, 255, 255, 0.8)',
                 fontSize: 18,
-                fontWeight: 800,
                 marginBottom: 16,
               }}>
               Save Filter
             </Text>
             <TextInput
               style={{
-                backgroundColor: colors.modal.blur,
-                color: '#fff',
-                borderRadius: 8,
-                padding: 10,
+                backgroundColor: colors.modal.blurDark,
+                borderColor: colors.modal.content,
+                borderWidth: 1,
+                borderRadius: borderRadius.md,
+                padding: spacing.md,
+                color: colors.text.primary,
+                ...typography.body1,
                 width: '100%',
-                height: 50,
-                marginBottom: 16,
+                marginBottom: spacing.md,
               }}
               placeholder="Filter name"
-              placeholderTextColor="rgba(168, 168, 168, 0.8)"
+              placeholderTextColor="rgba(168, 168, 168, 0.3)"
               value={newFilterName}
               onChangeText={setNewFilterName}
               editable={!saving}
@@ -924,7 +933,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 }}
                 onPress={handleConfirmSaveFilter}
                 disabled={!newFilterName.trim() || saving}>
-                <Text style={{color: '#444', fontWeight: 600}}>Save</Text>
+                <Text style={{color: '#000', fontWeight: 600}}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1052,7 +1061,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.scrollContent}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.scrollContent}>
               <View style={styles.allGenresGrid}>
                 {getFilteredGenres().map(genre => (
                   <Chip

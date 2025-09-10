@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ListRenderItem,
+  FlatList,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getLanguages} from '../services/tmdb';
@@ -178,7 +179,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
     return (
       <TouchableOpacity
         style={[styles.languageItem, isSelected && styles.selectedItem]}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
         onPress={() => toggleLanguage(item)}>
         <View style={styles.languageInfo}>
           <Text style={styles.languageName}>{item.english_name}</Text>
@@ -200,7 +201,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
           <GradientSpinner
             size={30}
             style={{
-              marginVertical: 50,
+              marginTop: 150,
               alignItems: 'center',
               alignSelf: 'center',
             }}
@@ -212,39 +213,35 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
           <Text style={styles.sectionTitle}>
             Choose your preferred content languages
           </Text>
-          {/* Suggested languages (small set) */}
+          {/* Suggested languages (virtualized) */}
           <View style={styles.suggestedSection}>
-            {suggestedLanguages.map(language => (
-              <View key={language.iso_639_1}>
-                {renderLanguageItem({
-                  item: language,
-                  index: 0,
-                  separators: {
-                    highlight() {},
-                    unhighlight() {},
-                    updateProps() {},
-                  },
-                } as any)}
-              </View>
-            ))}
+            <ScrollView>
+              <FlatList
+                data={suggestedLanguages}
+                keyExtractor={item => item.iso_639_1}
+                renderItem={renderLanguageItem}
+                removeClippedSubviews
+                initialNumToRender={10}
+                windowSize={10}
+                scrollEnabled={false}
+              />
+            </ScrollView>
           </View>
 
-          {/* All other languages */}
+          {/* All other languages (virtualized) */}
           <View style={styles.moreLanguagesSection}>
             <Text style={styles.description}>More Languages</Text>
-            {otherLanguages.map(language => (
-              <View key={language.iso_639_1}>
-                {renderLanguageItem({
-                  item: language,
-                  index: 0,
-                  separators: {
-                    highlight() {},
-                    unhighlight() {},
-                    updateProps() {},
-                  },
-                } as any)}
-              </View>
-            ))}
+            <FlatList
+              data={otherLanguages}
+              keyExtractor={item => item.iso_639_1}
+              renderItem={renderLanguageItem}
+              removeClippedSubviews
+              initialNumToRender={20}
+              windowSize={12}
+              maxToRenderPerBatch={20}
+              updateCellsBatchingPeriod={50}
+              showsVerticalScrollIndicator={false}
+            />
           </View>
         </>
       )}
@@ -290,13 +287,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.blur,
     marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.modal.blur,
   },
   selectedItem: {
     borderColor: colors.modal.active,
-    backgroundColor: colors.modal.active,
+    backgroundColor: colors.modal.border,
     borderWidth: 1,
   },
   languageInfo: {

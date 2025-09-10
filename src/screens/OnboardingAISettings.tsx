@@ -252,7 +252,7 @@ const OnboardingAISettings: React.FC<{
 
       // Make a test call to the Gemini API to validate the key
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
         {
           method: 'POST',
           headers: {
@@ -281,6 +281,34 @@ const OnboardingAISettings: React.FC<{
       // Any other error is treated as a network/connection issue
       if (response.status === 200) return true;
       if (response.status === 400) return false;
+      if (response.status === 503) {
+        // Make a test call to the Gemini API to validate the key
+        const retryResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': key,
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [
+                    {
+                      text: 'Test connection',
+                    },
+                  ],
+                },
+              ],
+            }),
+          },
+        );
+
+        if (retryResponse.status === 200) return true;
+        if (retryResponse.status === 400) return false;
+      }
 
       const errorData = await response.json();
       console.error('API key validation error:', errorData);
@@ -307,8 +335,8 @@ const OnboardingAISettings: React.FC<{
         const isValid = await validateApiKey(trimmedApiKey);
         if (!isValid) {
           showAlert(
-            'Invalid API Key',
-            'The provided API key is invalid. Please check and try again.',
+            'Server Not Reachable',
+            'Please check your API key or try again.',
           );
           setIsValidating(false);
           return;
