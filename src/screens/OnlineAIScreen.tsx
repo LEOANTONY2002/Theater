@@ -30,6 +30,7 @@ import {AISettingsManager} from '../store/aiSettings';
 import {useResponsive} from '../hooks/useResponsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
+import {AIReportFlag} from '../components/AIReportFlag';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -673,21 +674,37 @@ export const OnlineAIScreen: React.FC = () => {
     // Check if this is the last message and from AI
     const isLast =
       index === displayMessages.length - 1 && item.role === 'assistant';
+    // Find previous user message text
+    const getPrevUserText = (i: number) => {
+      for (let j = i - 1; j >= 0; j--) {
+        const m = displayMessages[j];
+        if (m?.role === 'user') return m.content;
+      }
+      return undefined;
+    };
+    const prevUserText = getPrevUserText(index);
     return (
       <View style={isLast && {paddingBottom: 120}}>
-        <View
-          style={[
-            styles.message,
-            item.role === 'user' ? styles.user : styles.assistant,
-          ]}>
-          {item.role === 'user' ? (
+        {item.role === 'user' ? (
+          <View style={[styles.message, styles.user]}>
             <Text style={styles.userText}>{item?.content}</Text>
-          ) : (
-            <Markdown style={{body: styles.messageText}}>
-              {item?.content}
-            </Markdown>
-          )}
-        </View>
+          </View>
+        ) : (
+          <View>
+            <View style={[styles.message, styles.assistant]}>
+              <Markdown style={{body: styles.messageText}}>
+                {item?.content}
+              </Markdown>
+            </View>
+            <AIReportFlag
+              aiText={item?.content}
+              userText={prevUserText}
+              context="OnlineAIScreen"
+              threadId={currentThreadId}
+              timestamp={Date.now()}
+            />
+          </View>
+        )}
         {item.tmdbResults && item.tmdbResults.length > 0 && (
           <View style={styles.contentCarousel}>
             <View
@@ -1146,12 +1163,12 @@ export const OnlineAIScreen: React.FC = () => {
           borderRadius: 50,
           zIndex: 100,
         }}>
-        <View style={{marginBottom: 40, overflow: 'hidden', borderRadius: 50}}>
+        <View style={{overflow: 'hidden', borderRadius: 50}}>
           <BlurView
             blurAmount={10}
             blurRadius={5}
-            blurType="light"
-            overlayColor={colors.modal.blur}
+            blurType="dark"
+            overlayColor={'rgba(0, 0, 0, 0.1)'}
             pointerEvents="none"
             style={{
               position: 'absolute',
@@ -1204,6 +1221,21 @@ export const OnlineAIScreen: React.FC = () => {
               </Animated.View>
             </View>
           </TouchableWithoutFeedback>
+        </View>
+        <View
+          style={{
+            marginVertical: spacing.md,
+            marginHorizontal: spacing.sm,
+          }}>
+          <Text
+            style={{
+              textAlign: 'center',
+              ...typography.caption,
+              fontSize: 10,
+              color: colors.text.tertiary,
+            }}>
+            Responses are AI generated and for entertainment purposes only.
+          </Text>
         </View>
       </View>
       {/* Menu Modal: uses shared modalStyles for consistent UI */}
@@ -1421,7 +1453,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {
     flex: 1,

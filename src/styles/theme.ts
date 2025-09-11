@@ -1,3 +1,5 @@
+import {Platform, TextStyle} from 'react-native';
+
 export const colors = {
   primary: '#AA4EFF',
   secondary: '#FF5E87',
@@ -84,53 +86,62 @@ export const borderRadius = {
   round: 9999,
 };
 
+const isAndroid = Platform.OS === 'android';
+const fw = (
+  ios: NonNullable<TextStyle['fontWeight']>,
+  android: NonNullable<TextStyle['fontWeight']>,
+): NonNullable<TextStyle['fontWeight']> => (isAndroid ? android : ios);
+
 export const typography = {
   h1: {
     fontSize: 30,
-    fontWeight: '700' as const,
     letterSpacing: 0.3,
-    fontFamily: 'Inter',
+    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter',
+    fontWeight: fw('700', 'normal'),
   },
   h2: {
     fontSize: 18,
-    fontWeight: '600' as const,
     letterSpacing: 0.2,
-    fontFamily: 'Inter',
+    // Inter doesn't ship a 600 file in our bundle; use Bold on Android
+    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter',
+    fontWeight: fw('600', 'normal'),
   },
   h3: {
     fontSize: 16,
-    fontWeight: '500' as const,
     letterSpacing: 0.5,
-    fontFamily: 'Inter',
+    // No Medium in our bundle; fallback to Regular on Android
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontWeight: fw('500', 'normal'),
   },
   body1: {
     fontSize: 14,
-    fontWeight: '400' as const,
     letterSpacing: 0.1,
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontWeight: fw('400', 'normal'),
   },
   body2: {
     fontSize: 13,
-    fontWeight: '400' as const,
     letterSpacing: 0.1,
-    fontFamily: 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontWeight: fw('400', 'normal'),
   },
   caption: {
     fontSize: 12,
-    fontWeight: '400' as const,
     letterSpacing: 0.2,
-    fontFamily: 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontWeight: fw('400', 'normal'),
   },
   button: {
     fontSize: 13,
-    fontWeight: '600' as const,
     letterSpacing: 0.5,
-    fontFamily: 'Inter',
+    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter',
+    fontWeight: fw('600', 'normal'),
   },
   subtitle: {
     fontSize: 16,
-    fontWeight: '500' as const,
     letterSpacing: 0.15,
-    fontFamily: 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontWeight: fw('500', 'normal'),
   },
 };
 

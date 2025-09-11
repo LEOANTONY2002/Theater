@@ -118,6 +118,7 @@ export type MySpaceStackParamList = {
   };
   OnlineAIScreen: undefined;
   AISettingsScreen: undefined;
+  AboutLegalScreen: undefined;
 };
 
 export type TabParamList = {

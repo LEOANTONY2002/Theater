@@ -50,7 +50,8 @@ export const MySpaceScreen = React.memo(() => {
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  // Footer-related modals moved to About & Legal screen
+
   const [showMoodModal, setShowMoodModal] = useState(false);
   const [showAINotEnabledModal, setShowAINotEnabledModal] = useState(false);
   const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
@@ -276,6 +277,7 @@ export const MySpaceScreen = React.memo(() => {
     modalContainer: {
       flex: 1,
       justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
     },
     modalContent: {
       borderTopLeftRadius: borderRadius.xl,
@@ -641,26 +643,6 @@ export const MySpaceScreen = React.memo(() => {
         </View>
       </TouchableOpacity>
 
-      {/* Mood Settings Section */}
-      {/* <TouchableOpacity
-        style={styles.headerContainer}
-        activeOpacity={0.9}
-        onPress={handleUpdateMood}
-        testID="moodSettingsButton">
-        <View style={{flex: 1}}>
-          <Text style={styles.sectionTitle}>My Mood & Preferences</Text>
-          <Text style={[styles.regionText, {marginTop: 2}]} numberOfLines={2}>
-            {getMoodSummary()}
-          </Text>
-          {lastMoodUpdate && (
-            <Text style={[styles.regionText, {fontSize: 11, opacity: 0.7}]}>
-              Updated {lastMoodUpdate}
-            </Text>
-          )}
-        </View>
-        <Ionicons name="refresh" size={16} color={colors.accent} />
-      </TouchableOpacity> */}
-
       {/* Ask AI Section */}
       <View style={{position: 'relative', overflow: 'hidden'}}>
         <LinearGradient
@@ -765,6 +747,22 @@ export const MySpaceScreen = React.memo(() => {
         ) : null}
       </View>
 
+      {/* About & Legal screen */}
+      <View style={{}}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigateWithLimit('AboutLegalScreen')}
+          style={styles.headerContainer}
+          testID="aboutLegalButton">
+          <Text style={styles.sectionTitle}>About & Legal</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={14}
+            color={colors.text.primary}
+          />
+        </TouchableOpacity>
+      </View>
+
       <Modal
         visible={showLanguageModal}
         animationType="slide"
@@ -802,109 +800,6 @@ export const MySpaceScreen = React.memo(() => {
         selectedRegion={currentRegion?.iso_3166_1}
         onSelectRegion={handleRegionSelect}
       />
-
-      {/* Footer: TMDB Attribution & Privacy Policy */}
-      <View style={styles.footerContainer}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => {
-            // Open TMDB website
-            const url = 'https://www.themoviedb.org/';
-            const Linking = require('react-native').Linking;
-            Linking.openURL(url);
-          }}
-          accessibilityLabel="Visit TMDB website"
-          style={styles.tmdbLogoWrapper}>
-          <Image
-            source={require('../assets/tmdb.webp')}
-            style={styles.tmdbLogo}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-        <Text style={styles.footerText}>
-          This app uses the TMDB API but is not endorsed or certified by TMDB.
-        </Text>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => {
-            setShowPrivacyModal(true);
-          }}
-          style={styles.privacyLink}>
-          <Text style={styles.privacyText}>Privacy Policy</Text>
-        </TouchableOpacity>
-        <Text style={styles.versionText}>
-          App Version {packageJson.version}
-        </Text>
-      </View>
-
-      {/* Privacy Policy Modal */}
-      <Modal
-        visible={showPrivacyModal}
-        animationType="slide"
-        statusBarTranslucent={true}
-        transparent={true}
-        onRequestClose={() => setShowPrivacyModal(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-            />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Privacy Policy</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setShowPrivacyModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalBody}>
-              <Text style={styles.privacyContent}>
-                <Text style={styles.privacySectionTitle}>
-                  Privacy Policy for Theater App{'\n\n'}
-                </Text>
-
-                <Text style={styles.privacySectionTitle}>
-                  Information We Collect{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  Theater does not collect, store, or transmit any personal
-                  information from users. We do not track your browsing history,
-                  personal preferences, or any other identifiable data.{'\n\n'}
-                </Text>
-
-                <Text style={styles.privacySectionTitle}>Data Usage{'\n'}</Text>
-                <Text style={styles.privacyText}>
-                  The app displays movie and TV show information sourced from
-                  The Movie Database (TMDB) API. All content is provided by TMDB
-                  and we do not store or cache any user-specific data.{'\n\n'}
-                </Text>
-
-                <Text style={styles.privacySectionTitle}>
-                  Third-Party Services{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  This app uses the TMDB API to provide movie and TV show
-                  information. Please refer to TMDB's privacy policy for
-                  information about how they handle data.{'\n\n'}
-                </Text>
-
-                <Text style={styles.privacySectionTitle}>Contact{'\n'}</Text>
-                <Text style={styles.privacyText}>
-                  If you have any questions about this privacy policy, please
-                  contact us through the app store.{'\n\n'}
-                </Text>
-
-                <Text style={styles.privacyText}>
-                  Last updated: {new Date().toLocaleDateString()}
-                </Text>
-              </Text>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
 
       {/* Mood Settings Modal */}
       <Modal

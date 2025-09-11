@@ -10,6 +10,7 @@ import {MySpaceStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 import {OnlineAIScreen} from '../screens/OnlineAIScreen';
 import AISettingsScreen from '../screens/AISettings';
+import AboutLegalScreen from '../screens/AboutLegal';
 
 const Stack = createNativeStackNavigator<MySpaceStackParamList>();
 
@@ -81,6 +82,14 @@ export const MySpaceNavigator = () => {
         options={{
           headerShown: false,
           title: 'AI Settings',
+        }}
+      />
+      <Stack.Screen
+        name="AboutLegalScreen"
+        component={AboutLegalScreen}
+        options={{
+          headerShown: false,
+          title: 'About & Legal',
         }}
       />
     </Stack.Navigator>

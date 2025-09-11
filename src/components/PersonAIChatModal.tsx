@@ -22,6 +22,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {BlurView} from '@react-native-community/blur';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import Markdown from 'react-native-markdown-display';
+import {AIReportFlag} from './AIReportFlag';
 
 // Types
 type Message = {
@@ -236,13 +237,21 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
         <Text style={styles.userText}>{item.text}</Text>
       </View>
     ) : (
-      <LinearGradient
-        colors={['rgba(19, 1, 45, 0.51)', 'rgba(91, 2, 62, 0.51)']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={[styles.message, styles.assistant]}>
-        <Markdown style={{body: styles.messageText}}>{item.text}</Markdown>
-      </LinearGradient>
+      <View>
+        <LinearGradient
+          colors={['rgba(19, 1, 45, 0.51)', 'rgba(91, 2, 62, 0.51)']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={[styles.message, styles.assistant]}>
+          <Markdown style={{body: styles.messageText}}>{item.text}</Markdown>
+        </LinearGradient>
+        <AIReportFlag
+          aiText={item.text}
+          userText={undefined}
+          context="PersonAIChatModal"
+          timestamp={Date.now()}
+        />
+      </View>
     );
   }, []);
 
@@ -412,7 +421,6 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                   borderRadius: 50,
                   overflow: 'hidden',
                   zIndex: 3,
-                  marginBottom: spacing.lg,
                 }}>
                 <TouchableWithoutFeedback
                   onPress={() => inputRef.current?.focus()}>
@@ -456,6 +464,22 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                     </Animated.View>
                   </View>
                 </TouchableWithoutFeedback>
+              </View>
+              <View
+                style={{
+                  marginVertical: spacing.md,
+                  marginHorizontal: spacing.sm,
+                }}>
+                <Text
+                  style={{
+                    textAlign: 'center',
+                    ...typography.caption,
+                    fontSize: 10,
+                    color: colors.text.tertiary,
+                  }}>
+                  Responses are AI generated and for entertainment purposes
+                  only.
+                </Text>
               </View>
             </View>
           </View>

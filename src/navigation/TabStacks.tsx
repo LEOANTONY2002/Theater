@@ -21,6 +21,7 @@ import {MyFiltersScreen} from '../screens/MyFilters';
 import {WatchlistsScreen} from '../screens/Watchlists';
 import {OnlineAIScreen} from '../screens/OnlineAIScreen';
 import AISettingsScreen from '../screens/AISettings';
+import AboutLegalScreen from '../screens/AboutLegal';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -293,6 +294,11 @@ export const MySpaceStackNavigator = () => (
     <MySpaceStack.Screen
       name="AISettingsScreen"
       component={AISettingsScreen}
+      options={{headerShown: false}}
+    />
+    <MySpaceStack.Screen
+      name="AboutLegalScreen"
+      component={AboutLegalScreen}
       options={{headerShown: false}}
     />
   </MySpaceStack.Navigator>

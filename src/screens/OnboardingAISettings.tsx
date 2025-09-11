@@ -686,6 +686,17 @@ const OnboardingAISettings: React.FC<{
           justifyContent: 'flex-end',
           alignItems: 'center',
         }}>
+        <Text
+          style={{
+            color: colors.text.muted,
+            marginVertical: spacing.md,
+            textAlign: 'center',
+            fontSize: 10,
+            marginHorizontal: spacing.md,
+          }}>
+          By using your own key, you agree to Google's Generative AI terms of
+          service.
+        </Text>
         {isValidating ? (
           <GradientSpinner color={colors.primary} size={24} />
         ) : (

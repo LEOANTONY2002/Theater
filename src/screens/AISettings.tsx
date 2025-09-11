@@ -586,6 +586,17 @@ const AISettingsScreen: React.FC = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
+          <Text
+            style={{color: colors.text.secondary, marginBottom: spacing.xs}}>
+            Important Warning:
+          </Text>
+          <Text style={{color: colors.text.muted, marginBottom: spacing.md}}>
+            • Your API key is like a password. Do not share it with anyone.
+            {'\n'}• You are responsible for any usage and associated costs with
+            your key.
+            {'\n'}• By using your own key, you agree to Google's Generative AI
+            terms of service.
+          </Text>
           <TouchableOpacity
             style={[
               styles.saveButton,
