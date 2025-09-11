@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Fontisto from 'react-native-vector-icons/Fontisto';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 
 type MoodQuestion = {
@@ -17,6 +19,8 @@ type MoodQuestion = {
   options: {
     text: string;
     emoji: string;
+    icon: string;
+    iconType: string;
   }[];
 };
 
@@ -28,34 +32,50 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
       {
         text: 'Need some laughs',
         emoji: '😄',
+        icon: 'happy-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'Want an adventure',
         emoji: '🚀',
+        icon: 'rocket-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'In the mood for romance',
         emoji: '💕',
+        icon: 'heart-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'Want to be scared',
         emoji: '😱',
+        icon: 'ghost-outline',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Need something deep',
         emoji: '🤔',
+        icon: 'brain',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Want to escape reality',
         emoji: '✨',
+        icon: 'star-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'Feeling nostalgic',
         emoji: '🌅',
+        icon: 'account-child-outline',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Need motivation',
         emoji: '💪',
+        icon: 'arm-flex-outline',
+        iconType: 'MaterialCommunityIcons',
       },
     ],
   },
@@ -66,14 +86,20 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
       {
         text: 'Movie',
         emoji: '🎬',
+        icon: 'movie-open-outline',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Series',
         emoji: '📺',
+        icon: 'tv-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'Any',
         emoji: '🎲',
+        icon: 'gamepad-outline',
+        iconType: 'MaterialCommunityIcons',
       },
     ],
   },
@@ -84,18 +110,26 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
       {
         text: 'High energy, bring the action!',
         emoji: '⚡',
+        icon: 'lightning-bolt-outline',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Moderate, something engaging',
         emoji: '🎯',
+        icon: 'target',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Low energy, easy watching',
         emoji: '😌',
+        icon: 'flower-tulip-outline',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Tired, need background noise',
         emoji: '😴',
+        icon: 'sleep',
+        iconType: 'MaterialCommunityIcons',
       },
     ],
   },
@@ -106,22 +140,32 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
       {
         text: 'Real-life stories',
         emoji: '📖',
+        icon: 'book-open-outline',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Mind-bending plots',
         emoji: '🧠',
+        icon: 'brain',
+        iconType: 'MaterialCommunityIcons',
       },
       {
         text: 'Feel-good stories',
         emoji: '🌈',
+        icon: 'rainbow',
+        iconType: 'Fontisto',
       },
       {
         text: 'Dark and gritty',
         emoji: '🌑',
+        icon: 'moon-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'Epic adventures',
         emoji: '⚔️',
+        icon: 'sword',
+        iconType: 'MaterialCommunityIcons',
       },
     ],
   },
@@ -132,18 +176,26 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
       {
         text: 'Yes, surprise me!',
         emoji: '🎲',
+        icon: 'surprised',
+        iconType: 'Fontisto',
       },
       {
         text: 'Something familiar and comforting',
         emoji: '🏠',
+        icon: 'home-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'Hidden gems and indie films',
         emoji: '💎',
+        icon: 'diamond-outline',
+        iconType: 'Ionicons',
       },
       {
         text: 'Popular and trending',
         emoji: '🔥',
+        icon: 'fire',
+        iconType: 'MaterialCommunityIcons',
       },
     ],
   },
@@ -298,14 +350,46 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
         style={styles.optionsContainer}
         showsVerticalScrollIndicator={false}>
         {displayedOptions.map(
-          (option: {text: string; emoji: string}, index: number) => (
+          (
+            option: {
+              text: string;
+              emoji: string;
+              icon: string;
+              iconType: string;
+            },
+            index: number,
+          ) => (
             <TouchableOpacity
               key={index}
               style={styles.moodOption}
               onPress={() => handleMoodAnswer(option.text)}
               activeOpacity={0.7}
               disabled={isLoading}>
-              <Text style={styles.moodEmoji}>{option.emoji}</Text>
+              {option.iconType === 'Ionicons' ? (
+                <Ionicons
+                  name={option.icon}
+                  size={20}
+                  color={colors.text.tertiary}
+                />
+              ) : option.iconType === 'Fontisto' ? (
+                <Fontisto
+                  name={option.icon}
+                  size={20}
+                  color={colors.text.tertiary}
+                />
+              ) : option.iconType === 'MaterialCommunityIcons' ? (
+                <MaterialCommunityIcons
+                  name={option.icon}
+                  size={20}
+                  color={colors.text.tertiary}
+                />
+              ) : (
+                <Ionicons
+                  name={option.icon}
+                  size={20}
+                  color={colors.text.tertiary}
+                />
+              )}
               <Text style={styles.moodText}>{option.text}</Text>
               <Ionicons
                 name="chevron-forward"

@@ -138,9 +138,9 @@ export const BottomTabNavigator = () => {
             shadowOpacity: 0,
             marginHorizontal:
               isTablet && orientation === 'portrait'
-                ? '20%'
+                ? '18%'
                 : isTablet && orientation === 'landscape'
-                ? '30%'
+                ? '27%'
                 : 24,
             borderRadius: borderRadius.round,
             alignItems: 'center',

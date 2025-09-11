@@ -510,9 +510,9 @@ export const FeaturedBanner = memo(
             <Animated.Image
               onLoadEnd={() => setLoading(false)}
               source={{
-                uri: `https://image.tmdb.org/t/p/${
-                  isTablet ? 'original' : 'w500'
-                }${(slide as any)?.backdrop_path}`,
+                uri: `https://image.tmdb.org/t/p/original${
+                  (slide as any)?.backdrop_path
+                }`,
               }}
               style={[StyleSheet.absoluteFillObject, {opacity: imageOpacity}]}
               resizeMode="cover"
@@ -532,7 +532,11 @@ export const FeaturedBanner = memo(
                   gap: spacing.sm,
                   alignItems: 'center',
                 }}>
-                <Animated.Text style={[styles.title, {opacity: imageOpacity}]}>
+                <Animated.Text
+                  style={[
+                    styles.title,
+                    {opacity: imageOpacity, textAlign: 'center'},
+                  ]}>
                   {type === 'movie'
                     ? (slide as Movie).title
                     : (slide as TVShow).name}
@@ -570,13 +574,21 @@ export const FeaturedBanner = memo(
                   disabled={removeFromWatchlistMutation.isPending}>
                   <Ionicons
                     name={
-                      (isActive ? isInAnyWatchlist : checkInWatchlist((slide as any).id))
+                      (
+                        isActive
+                          ? isInAnyWatchlist
+                          : checkInWatchlist((slide as any).id)
+                      )
                         ? 'checkmark'
                         : 'add'
                     }
                     size={24}
                     color={
-                      (isActive ? isInAnyWatchlist : checkInWatchlist((slide as any).id))
+                      (
+                        isActive
+                          ? isInAnyWatchlist
+                          : checkInWatchlist((slide as any).id)
+                      )
                         ? colors.accent
                         : '#fff'
                     }

@@ -248,6 +248,40 @@ export const HorizontalListSkeleton = ({ai = false}: {ai?: boolean}) => {
   );
 };
 
+export const TriviaListSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const itemWidth = isTablet ? 300 : 250;
+  const itemHeight = isTablet ? 200 : 150;
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.horizontalListContent}
+      style={{
+        marginBottom: spacing.md,
+        position: 'absolute',
+        paddingLeft: spacing.md,
+        zIndex: 10,
+      }}>
+      {[...Array(5)].map((_, i) => (
+        <View key={i} style={styles.horizontalCardContainer}>
+          <AnimatedShimmer width={itemWidth} height={itemHeight} radius={16} />
+        </View>
+      ))}
+      <LinearGradient
+        colors={['transparent', colors.background.primary]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          opacity: 0.7,
+          height: isTablet ? 120 : 80,
+        }}
+      />
+    </ScrollView>
+  );
+};
+
 export const RecentListSkeleton = () => (
   <View style={styles.row}>
     {[...Array(3)].map((_, i) => (

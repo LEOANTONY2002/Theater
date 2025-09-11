@@ -46,16 +46,6 @@ type UserFeedback = {
   timestamp: number;
 };
 
-type MoodQuestion = {
-  id: string;
-  question: string;
-  options: {
-    text: string;
-    genres: number[];
-    emoji: string;
-  }[];
-};
-
 const GENRES = [
   {id: 28, name: 'Action'},
   {id: 12, name: 'Adventure'},
@@ -158,26 +148,6 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
       console.error('Error initializing MyNextWatch:', error);
       setIsInitialized(true);
     }
-  };
-
-  const handleGenreToggle = (genreId: number) => {
-    // Deprecated: Inline onboarding flow removed. Kept as no-op for safety.
-    return;
-  };
-
-  const handleMoodAnswer = async () => {
-    // Deprecated: Inline onboarding flow removed. Mood update handled in Home modal.
-    return;
-  };
-
-  const handleBackToMood = () => {
-    // Deprecated: Inline onboarding flow removed.
-    return;
-  };
-
-  const handleGetStarted = async () => {
-    // Deprecated: Inline onboarding flow removed.
-    return;
   };
 
   const getNextRecommendation = useCallback(
@@ -401,7 +371,7 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
       {isLoading ? (
         <View style={styles.loadingRecommendation}>
           {/* <ActivityIndicator size="small" color={colors.accent} /> */}
-          <GradientSpinner color={colors.primary} size={30} />
+          <GradientSpinner color={colors.text.primary} size={30} />
           <Text style={styles.loadingText}>Finding your next watch...</Text>
         </View>
       ) : currentRecommendation ? (

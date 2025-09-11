@@ -15,6 +15,7 @@ import {
   Modal,
   Alert,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import {cinemaChat} from '../services/gemini';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
@@ -181,6 +182,7 @@ export const OnlineAIScreen: React.FC = () => {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<string>('');
   const [showThreadPicker, setShowThreadPicker] = useState(false);
+  const {height} = useWindowDimensions();
 
   // Helpers to work with threads
   const cap20 = (msgs: Message[]) => msgs.slice(-20);
@@ -1031,15 +1033,15 @@ export const OnlineAIScreen: React.FC = () => {
             ListEmptyComponent={
               <View
                 style={{
-                  flex: 1,
+                  height: height,
+                  display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  height: '100%',
+                  marginTop: -100,
                 }}>
-                <View style={{height: 250}} />
                 <Image
-                  source={require('../assets/theater.webp')}
-                  style={{width: 100, height: 100}}
+                  source={require('../assets/theaterai.webp')}
+                  style={{width: 80, height: 50, marginBottom: spacing.md}}
                 />
                 <Text
                   style={{

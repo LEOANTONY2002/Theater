@@ -10,9 +10,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getMovieTrivia} from '../services/gemini';
-import {GradientSpinner} from './GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
-import {HorizontalListSkeleton} from './LoadingSkeleton';
+import {TriviaListSkeleton} from './LoadingSkeleton';
 
 type TriviaFact = {
   fact: string;
@@ -121,11 +120,10 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
     },
     content: {},
     loadingContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: 200,
-      zIndex: 10,
-      marginTop: spacing.sm,
+      position: 'relative',
+      width: width,
+      overflow: 'visible',
+      left: -30,
     },
     listContainer: {
       position: 'relative',
@@ -227,7 +225,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <HorizontalListSkeleton ai={true} />
+            <TriviaListSkeleton />
           </View>
         ) : (
           <View style={styles.listContainer}>

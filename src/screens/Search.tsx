@@ -7,6 +7,7 @@ import {
   Text,
   FlatList,
   Image,
+  ScrollView,
 } from 'react-native';
 import {
   useEnhancedMovieSearch,
@@ -21,8 +22,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {HorizontalList} from '../components/HorizontalList';
 import {TrendingGrid} from '../components/TrendingGrid';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../types/navigation';
 import {FilterModal} from '../components/FilterModal';
 import {FilterParams, SavedFilter} from '../types/filters';
 import {useTrending} from '../hooks/useApp';
@@ -39,6 +38,7 @@ import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import CreateButton from '../components/createButton';
 import {HistoryManager} from '../store/history';
+import {useResponsive} from '../hooks/useResponsive';
 
 const RECENT_ITEMS_KEY = '@recent_search_items';
 const MAX_RECENT_ITEMS = 10;
@@ -80,6 +80,7 @@ export const SearchScreen = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TabType>('trending');
   const [historyItems, setHistoryItems] = useState<ContentItem[]>([]);
   const queryClient = useQueryClient();
+  const {isTablet} = useResponsive();
 
   // Get real saved filters data
   const {data: savedFilters = []} = useQuery({
@@ -626,6 +627,7 @@ export const SearchScreen = React.memo(() => {
                     margin: spacing.md,
                     padding: spacing.md,
                     borderWidth: 1,
+                    marginHorizontal: 50,
                     borderBottomWidth: 0,
                     borderColor: colors.modal.border,
                     borderRadius: borderRadius.lg,
@@ -671,9 +673,11 @@ export const SearchScreen = React.memo(() => {
                         Explore with Theater AI
                       </Text>
                       <Text
+                        numberOfLines={2}
                         style={{
                           fontSize: 12,
                           fontWeight: 400,
+                          maxWidth: isTablet ? 400 : 200,
                           color: 'rgba(198, 150, 215, 0.87)',
                         }}>
                         Find your next worthy movie or TV show to watch
@@ -719,12 +723,15 @@ export const SearchScreen = React.memo(() => {
                 </View>
 
                 {/* Tab Navigation */}
-                <View style={styles.tabContainer}>
+                <ScrollView
+                  style={styles.tabContainer}
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}>
                   {renderTabButton('trending', 'Trending')}
                   {renderTabButton('filters', 'My Filters')}
                   {renderTabButton('watchlists', 'My Watchlists')}
                   {renderTabButton('history', 'History')}
-                </View>
+                </ScrollView>
 
                 {/* Tab Content */}
                 {renderTabContent()}
@@ -966,9 +973,8 @@ const styles = StyleSheet.create({
   // Tab styles
   tabContainer: {
     flexDirection: 'row',
-    marginHorizontal: spacing.md,
-    borderRadius: borderRadius.lg,
     padding: spacing.xs,
+    paddingHorizontal: spacing.sm,
     marginVertical: spacing.md,
   },
   tabButton: {
