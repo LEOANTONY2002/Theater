@@ -678,7 +678,7 @@ const OnboardingAISettings: React.FC<{
       <View
         style={{
           position: 'absolute',
-          bottom: 20,
+          bottom: 30,
           left: 0,
           right: 0,
           zIndex: 2,
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
   clipboardButton: {
     position: 'absolute',
     right: 10,
-    top: '50%',
+    top: 22,
     transform: [{translateY: -10}],
     padding: spacing.xs,
     borderRadius: borderRadius.sm,

@@ -66,7 +66,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({
         <FastImage
           source={{
             uri: item?.poster_path
-              ? getImageUrl(item.poster_path, isTablet ? 'w342' : 'w154')
+              ? getImageUrl(item.poster_path, isTablet ? 'w500' : 'w342')
               : 'https://via.placeholder.com/300x450',
             priority: FastImage.priority.normal,
             cache: FastImage.cacheControl.web,
