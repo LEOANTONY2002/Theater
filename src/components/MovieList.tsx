@@ -113,9 +113,9 @@ const styles = StyleSheet.create({
     paddingVertical: 120,
     width: '100%',
     display: 'flex',
+    alignItems: 'center',
   },
   itemContainer: {
-    flex: 1,
     position: 'relative',
   },
   footer: {

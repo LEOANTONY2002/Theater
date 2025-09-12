@@ -15,16 +15,20 @@ export const SearchNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_bottom',
+        animation: 'slide_from_right',
         contentStyle: {
           backgroundColor: colors.background.primary,
         },
       }}>
-      <Stack.Screen name="SearchScreen" component={SearchScreen} />
-      <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} options={{animation: 'slide_from_bottom'}} />
-      <Stack.Screen name="TVShowDetails" component={TVShowDetailsScreen} options={{animation: 'slide_from_bottom'}} />
-      <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} options={{animation: 'slide_from_bottom'}} />
-      <Stack.Screen name="Category" component={CategoryScreen} options={{animation: 'slide_from_bottom'}} />
+      <Stack.Screen
+        name="SearchScreen"
+        component={SearchScreen}
+        options={{freezeOnBlur: true}}
+      />
+      <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} options={{animation: 'slide_from_right'}} />
+      <Stack.Screen name="TVShowDetails" component={TVShowDetailsScreen} options={{animation: 'slide_from_right'}} />
+      <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} options={{animation: 'slide_from_right'}} />
+      <Stack.Screen name="Category" component={CategoryScreen} options={{animation: 'slide_from_right'}} />
     </Stack.Navigator>
   );
 };

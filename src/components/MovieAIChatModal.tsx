@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useResponsive} from '../hooks/useResponsive';
 import {cinemaChat} from '../services/gemini';
 import {GradientSpinner} from './GradientSpinner';
+import {MicButton} from './MicButton';
 import LinearGradient from 'react-native-linear-gradient';
 import {BlurView} from '@react-native-community/blur';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
@@ -521,6 +522,15 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                       }
                       onSubmitEditing={() => handleSend()}
                       returnKeyType="send"
+                    />
+                    <MicButton
+                      onPartialText={text => {
+                        if (text) setInputText(text);
+                      }}
+                      onFinalText={text => {
+                        setInputText(text);
+                        inputRef.current?.focus();
+                      }}
                     />
                     <Animated.View>
                       <TouchableOpacity

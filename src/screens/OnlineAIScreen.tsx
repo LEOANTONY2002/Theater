@@ -26,6 +26,7 @@ import Markdown from 'react-native-markdown-display';
 import {BlurView} from '@react-native-community/blur';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {GradientSpinner} from '../components/GradientSpinner';
+import {MicButton} from '../components/MicButton';
 import {AISettingsManager} from '../store/aiSettings';
 import {useResponsive} from '../hooks/useResponsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -1197,6 +1198,18 @@ export const OnlineAIScreen: React.FC = () => {
                 }
                 onSubmitEditing={sendMessage}
                 returnKeyType="send"
+              />
+              <MicButton
+                onPartialText={text => {
+                  // live partial updates
+                  if (text) setInput(text);
+                }}
+                onFinalText={text => {
+                  setInput(text);
+                  // keep focus in the input so user can tap send
+                  inputRef.current?.focus();
+                }}
+                locale={Platform.OS === 'android' ? 'en-IN' : undefined}
               />
               <Animated.View>
                 <TouchableOpacity

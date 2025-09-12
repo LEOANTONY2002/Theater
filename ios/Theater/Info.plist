@@ -31,6 +31,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We use the microphone so you can speak your search and chat messages.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Speech recognition lets you dictate queries and chat messages hands‑free.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string/>
 	<key>UILaunchStoryboardName</key>

@@ -8,6 +8,7 @@ import {
   FlatList,
   Image,
   ScrollView,
+  Platform,
 } from 'react-native';
 import {
   useEnhancedMovieSearch,
@@ -16,7 +17,7 @@ import {
 import {MovieList, ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
-import {useNavigation} from '@react-navigation/native';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {HorizontalList} from '../components/HorizontalList';
@@ -39,6 +40,7 @@ import {useAIEnabled} from '../hooks/useAIEnabled';
 import CreateButton from '../components/createButton';
 import {HistoryManager} from '../store/history';
 import {useResponsive} from '../hooks/useResponsive';
+import {MicButton} from '../components/MicButton';
 
 const RECENT_ITEMS_KEY = '@recent_search_items';
 const MAX_RECENT_ITEMS = 10;
@@ -71,6 +73,7 @@ type TabType = 'trending' | 'filters' | 'watchlists' | 'history';
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
   const {isAIEnabled} = useAIEnabled();
+  const isFocused = useIsFocused();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [recentItems, setRecentItems] = useState<ContentItem[]>([]);
@@ -352,8 +355,6 @@ export const SearchScreen = React.memo(() => {
     return applySorting(filteredContent);
   }, [combinedContent, applyContentTypeFilter, applySorting]);
 
-  console.log('displayedContent', displayedContent);
-
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
   const showSearchResults = debouncedQuery.length > 0 || hasActiveFilters;
 
@@ -549,28 +550,46 @@ export const SearchScreen = React.memo(() => {
     };
   }, [queryClient]);
 
+  // When not focused (details screen on top), avoid rendering heavy content to reduce compositing load
+  if (!isFocused) {
+    return <View style={styles.container} />;
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <BlurView
-          style={styles.blurView}
-          blurType="dark"
-          blurAmount={10}
-          pointerEvents="none"
-        />
+        {isFocused && (
+          <BlurView
+            style={styles.blurView}
+            blurType="dark"
+            blurAmount={10}
+            pointerEvents="none"
+          />
+        )}
         <View style={styles.searchContainer}>
           <Icon
             name="search-outline"
-            size={24}
+            size={15}
             color={colors.text.tertiary}
             style={styles.searchIcon}
           />
           <TextInput
             style={styles.searchInput}
             placeholder="Search movies & TV shows..."
+            numberOfLines={1}
             placeholderTextColor={colors.text.tertiary}
             value={query}
             onChangeText={setQuery}
+          />
+          <MicButton
+            onPartialText={text => {
+              if (text) setQuery(text);
+            }}
+            onFinalText={text => {
+              setQuery(text);
+            }}
+            locale={Platform.OS === 'android' ? 'en-US' : undefined}
+            mode="hold"
           />
           {query.length > 0 && (
             <TouchableOpacity

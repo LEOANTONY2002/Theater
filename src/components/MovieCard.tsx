@@ -69,12 +69,14 @@ export const MovieCard: React.FC<MovieCardProps> = ({
               ? getImageUrl(item.poster_path, isTablet ? 'w500' : 'w342')
               : 'https://via.placeholder.com/300x450',
             priority: FastImage.priority.normal,
-            cache: FastImage.cacheControl.web,
+            // Use immutable to keep posters cached across visits regardless of headers
+            cache: FastImage.cacheControl.immutable,
           }}
           style={[
             baseStyles.poster,
             size === 'large' && baseStyles.posterLarge,
           ]}
+          defaultSource={require('../assets/search.png')}
           resizeMode={FastImage.resizeMode.cover}
         />
       </View>
