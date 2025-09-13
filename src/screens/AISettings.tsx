@@ -345,7 +345,10 @@ const AISettingsScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <GradientSpinner color={colors.primary} size={24} />
+          <GradientSpinner
+            colors={[colors.primary, colors.secondary]}
+            size={24}
+          />
         </View>
       </View>
     );
@@ -611,7 +614,10 @@ const AISettingsScreen: React.FC = () => {
               colors={[colors.primary, colors.secondary]}
               style={styles.saveButtonGradient}>
               {isValidating ? (
-                <GradientSpinner color={colors.primary} size={24} />
+                <GradientSpinner
+                  colors={[colors.primary, colors.secondary]}
+                  size={24}
+                />
               ) : (
                 <Text style={styles.saveButtonText}>Save Settings</Text>
               )}

@@ -7,6 +7,10 @@ import {
   Modal,
   ScrollView,
   Image,
+  Linking,
+  Share,
+  Alert,
+  TextInput,
 } from 'react-native';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
 import {BlurView} from '@react-native-community/blur';
@@ -17,21 +21,84 @@ import {useResponsive} from '../hooks/useResponsive';
 const AboutLegalScreen: React.FC = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showTosModal, setShowTosModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportMessage, setSupportMessage] = useState('');
   const {isTablet, orientation} = useResponsive();
+
+  // Reuse the same report/support mail behavior as AIReportFlag
+  const REPORT_EMAIL = 'la.curations@gmail.com';
+  const openSupportMail = async (message?: string) => {
+    const subject = 'Theater Support / Report';
+    const prompt = 'Please describe your issue or feedback here:';
+    const divider = '\n----------------------------------------\n';
+    const userNote = message?.trim() ? `User Message:\n${message.trim()}\n${divider}` : '';
+    const body = `App: Theater\nVersion: ${packageJson.version}\n${divider}${userNote}${prompt}\n`;
+
+    const MAX_MAILTO_BODY_LENGTH = 1800;
+    const encodedBody = encodeURIComponent(body);
+    const safeEncodedBody =
+      encodedBody.length > MAX_MAILTO_BODY_LENGTH
+        ? encodedBody.slice(0, MAX_MAILTO_BODY_LENGTH) +
+          encodeURIComponent(
+            '\n\n[Truncated. You can continue typing in the email draft.]',
+          )
+        : encodedBody;
+
+    const variants = [
+      // Gmail app deep link
+      `googlegmail://co?to=${encodeURIComponent(REPORT_EMAIL)}&subject=${encodeURIComponent(
+        subject,
+      )}&body=${safeEncodedBody}`,
+      // Outlook app deep link
+      `ms-outlook://compose?to=${encodeURIComponent(
+        REPORT_EMAIL,
+      )}&subject=${encodeURIComponent(subject)}&body=${safeEncodedBody}`,
+      // Some devices prefer the explicit to= query param first
+      `mailto:?to=${encodeURIComponent(REPORT_EMAIL)}&subject=${encodeURIComponent(
+        subject,
+      )}&body=${safeEncodedBody}`,
+      `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(
+        subject,
+      )}&body=${safeEncodedBody}`,
+      `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(subject)}`,
+      `mailto:${REPORT_EMAIL}`,
+      `mailto:`,
+    ];
+
+    for (const url of variants) {
+      try {
+        await Linking.openURL(url);
+        return; // success
+      } catch (_e) {
+        // try next variant
+      }
+    }
+
+    // Final fallback: show an alert asking the user to install/open an email app
+    Alert.alert(
+      'Open Email App',
+      `No email app was detected. Please install or open your mail app and send a message to ${REPORT_EMAIL}.`,
+      [
+        {text: 'OK', style: 'default'},
+      ],
+    );
+  };
 
   const styles = StyleSheet.create({
     section: {
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      position: 'absolute',
+      bottom: isTablet ? 10 : 2,
+      left: 0,
+      right: 0,
     },
     tmdbLogoWrapper: {
-      padding: 2,
       borderRadius: 4,
-      alignSelf: 'center',
     },
-    tmdbLogo: {width: 30, height: 30, opacity: 0.5},
+    tmdbLogo: {width: 25, height: 25, opacity: 0.5, marginRight: spacing.xs},
     footerText: {
       color: colors.text.tertiary || '#aaa',
       fontSize: 10,
@@ -39,7 +106,6 @@ const AboutLegalScreen: React.FC = () => {
       marginTop: spacing.xs,
       fontFamily: 'Inter',
       opacity: 0.5,
-      marginVertical: spacing.xxl,
       maxWidth: '90%',
     },
     linkCard: {
@@ -66,6 +132,41 @@ const AboutLegalScreen: React.FC = () => {
     linkText: {
       ...typography.button,
       color: colors.text.primary,
+    },
+    supportRow: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: isTablet ? 150 : 100, // slightly above bottom tab height
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+      gap: spacing.xs,
+    },
+    supportInline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+    },
+    supportHint: {
+      ...typography.caption,
+      color: colors.text.tertiary,
+      opacity: 0.9,
+      textAlign: 'center',
+    },
+    supportBtn: {
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.round,
+      backgroundColor: colors.modal.blur,
+    },
+    supportBtnText: {
+      ...typography.caption,
+      color: colors.text.primary,
+      fontWeight: '600',
     },
     versionText: {
       color: colors.text.tertiary,
@@ -115,6 +216,45 @@ const AboutLegalScreen: React.FC = () => {
       ...typography.body2,
       paddingVertical: spacing.sm,
     },
+    supportTextArea: {
+      minHeight: 120,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      backgroundColor: colors.modal.blur,
+      color: colors.text.primary,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      textAlignVertical: 'top',
+    },
+    supportActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.background.secondary,
+    },
+    supportActionBtn: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.round,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      backgroundColor: colors.modal.blur,
+    },
+    supportActionPrimary: {
+      backgroundColor: colors.text.primary,
+      borderColor: 'transparent',
+    },
+    supportActionText: {
+      ...typography.body2,
+      color: colors.text.secondary,
+    },
+    supportActionPrimaryText: {
+      ...typography.body2,
+      color: 'black',
+      fontWeight: '600',
+    },
   });
 
   return (
@@ -129,7 +269,7 @@ const AboutLegalScreen: React.FC = () => {
         source={require('../assets/symbol.webp')}
         style={{
           marginHorizontal: spacing.xxl,
-          width: isTablet ? '60%' : '85%',
+          width: isTablet ? '70%' : '85%',
           marginBottom: isTablet ? 0 : -spacing.xxl,
         }}
         resizeMode="contain"
@@ -184,16 +324,92 @@ const AboutLegalScreen: React.FC = () => {
         source={require('../assets/LA.webp')}
         style={{
           marginHorizontal: spacing.xxl,
+          marginTop: spacing.xl,
           width: isTablet ? 150 : 100,
           height: isTablet ? 170 : 120,
-          position:
-            isTablet && orientation === 'portrait' ? 'absolute' : 'relative',
-          bottom: isTablet && orientation === 'portrait' ? 170 : 0,
         }}
         resizeMode="contain"
       />
 
+      {/* Support / Report row above bottom tab */}
+      <View style={styles.supportRow} pointerEvents="box-none">
+        <View style={styles.supportInline}>
+          <Text style={styles.supportHint}>Need help or found an issue?</Text>
+          <TouchableOpacity
+            onPress={() => setShowSupportModal(true)}
+            activeOpacity={0.85}
+            style={styles.supportBtn}
+            accessibilityLabel="Contact support via email">
+            <Text style={styles.supportBtnText}>Contact Support</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={{height: 20}} />
+
+      {/* Support Modal */}
+      <Modal
+        visible={showSupportModal}
+        animationType="slide"
+        statusBarTranslucent
+        transparent
+        onRequestClose={() => setShowSupportModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+            />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Contact Support</Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={{paddingHorizontal: spacing.md}}
+                onPress={() => setShowSupportModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={{padding: spacing.md}}>
+              <Text style={styles.privacyText}>
+                Briefly describe the issue or feedback. Your text will be included in the email draft.
+              </Text>
+              <TextInput
+                style={styles.supportTextArea}
+                placeholder="Type your message here..."
+                placeholderTextColor={colors.text.tertiary}
+                multiline
+                numberOfLines={5}
+                value={supportMessage}
+                onChangeText={setSupportMessage}
+              />
+            </View>
+            <View style={styles.supportActions}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowSupportModal(false);
+                  setSupportMessage('');
+                }}
+                style={styles.supportActionBtn}
+                activeOpacity={0.85}>
+                <Text style={styles.supportActionText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  const msg = supportMessage;
+                  setShowSupportModal(false);
+                  setSupportMessage('');
+                  openSupportMail(msg);
+                }}
+                style={[styles.supportActionBtn, styles.supportActionPrimary]}
+                activeOpacity={0.85}>
+                <Text style={styles.supportActionPrimaryText}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Privacy Policy Modal */}
       <Modal

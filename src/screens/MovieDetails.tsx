@@ -15,11 +15,10 @@ import YoutubePlayer from 'react-native-youtube-iframe';
 import {
   useMovieDetails,
   useSimilarMovies,
-  useMovieRecommendations,
   useAISimilarMovies,
 } from '../hooks/useMovies';
 import {getImageUrl} from '../services/tmdb';
-import {Movie, MovieDetails as MovieDetailsType} from '../types/movie';
+import {Movie} from '../types/movie';
 import {Video, Genre, Cast} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
@@ -94,7 +93,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
-  const cinema = false;
+  const cinema = true;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -450,7 +449,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     },
     trailerContainer: {
       // backgroundColor: '#000',
-      zIndex: 100,
+      zIndex: 10,
       flex: 1,
     },
     title: {
@@ -800,13 +799,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             case 'header':
               return (
                 <View>
-                  {/* <LinearGradient
-                    colors={['rgba(21, 72, 93, 0.52)', 'transparent']}
-                    style={styles.gradientShade}
-                    start={{x: 0, y: 0}}
-                    end={{x: 0.5, y: 0.5}}
-                  /> */}
-
                   <View style={styles.main}>
                     <ImageBackground
                       source={require('../assets/curve.webp')}
@@ -869,7 +861,20 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           />
                         ) : (
                           <YoutubePlayer
-                            height={width * 0.5625}
+                            width={
+                              isTablet && orientation === 'portrait'
+                                ? width
+                                : isTablet && orientation === 'landscape'
+                                ? width + 90
+                                : width + 90
+                            }
+                            height={
+                              isTablet && orientation === 'portrait'
+                                ? '90%'
+                                : isTablet && orientation === 'landscape'
+                                ? height * 0.7
+                                : '100%'
+                            }
                             play={isPlaying}
                             videoId={trailer?.key}
                             webViewProps={{
@@ -877,6 +882,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                               allowsPictureInPicture: true,
                               allowsFullscreenVideo: true,
                               allowsPictureInPictureMediaPlayback: true,
+                              style: {
+                                objectFit: 'cover',
+                                marginBottom:
+                                  isTablet && orientation === 'portrait'
+                                    ? 0
+                                    : isTablet && orientation === 'landscape'
+                                    ? -100
+                                    : -60,
+                              },
                             }}
                             key={trailer?.key}
                             onChangeState={(state: string) => {
@@ -1196,12 +1210,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                               alignItems: 'center',
                               alignSelf: 'center',
                             }}
-                            color={colors.primary}
+                            colors={[colors.primary, colors.secondary]}
                           />
                           <Text
                             style={{
                               fontStyle: 'italic',
-                              color: colors.text.primary,
+                              color: colors.modal.activeBorder,
                               marginTop: spacing.md,
                             }}>
                             Theater AI is curating similar movies...

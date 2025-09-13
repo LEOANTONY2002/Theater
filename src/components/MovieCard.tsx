@@ -41,7 +41,7 @@ const baseStyles = StyleSheet.create({
   },
 });
 
-export const MovieCard: React.FC<MovieCardProps> = ({
+const MovieCardComponent: React.FC<MovieCardProps> = ({
   item,
   onPress,
   size = 'normal',
@@ -82,3 +82,14 @@ export const MovieCard: React.FC<MovieCardProps> = ({
     </TouchableOpacity>
   );
 };
+
+// Memoize to avoid re-renders when props are unchanged
+export const MovieCard = React.memo(MovieCardComponent, (prev, next) => {
+  return (
+    prev.item.id === next.item.id &&
+    prev.item.poster_path === next.item.poster_path &&
+    prev.size === next.size &&
+    prev.cardWidth === next.cardWidth &&
+    prev.onPress === next.onPress
+  );
+});

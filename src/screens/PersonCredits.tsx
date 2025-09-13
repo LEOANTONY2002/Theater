@@ -3,11 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
-  Image,
+  useWindowDimensions,
   TouchableOpacity,
+  Image,
 } from 'react-native';
-import {useRoute, RouteProp} from '@react-navigation/native';
+import FastImage from 'react-native-fast-image';
+import {useRoute, RouteProp, useIsFocused} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {HomeStackParamList} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
@@ -27,6 +28,7 @@ import {GridListSkeleton, HeadingSkeleton} from '../components/LoadingSkeleton';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {PersonAIChatModal} from '../components/PersonAIChatModal';
+import {FlashList, ListRenderItemInfo} from '@shopify/flash-list';
 
 type PersonCreditsScreenRouteProp = RouteProp<
   HomeStackParamList,
@@ -38,8 +40,15 @@ export const PersonCreditsScreen = () => {
   const {personId, personName} = route.params;
   const {navigateWithLimit} = useNavigationState();
   const {isTablet} = useResponsive();
+  const isFocused = useIsFocused();
   const columns = isTablet ? 5 : 3;
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
+  const {width: screenWidth} = useWindowDimensions();
+  const cardWidth = useMemo(
+    () => screenWidth / columns - 8,
+    [screenWidth, columns],
+  );
+  const cardHeight = useMemo(() => cardWidth * 1.5, [cardWidth]);
 
   // Get person details
   const {data: personDetails, isLoading: isLoadingDetails} =
@@ -100,10 +109,17 @@ export const PersonCreditsScreen = () => {
     [navigateWithLimit],
   );
 
-  const renderItem = ({item}: {item: ContentItem}) => (
-    <View style={styles.cardContainer}>
-      <MovieCard item={item} onPress={handleItemPress} />
-    </View>
+  const renderItem = useCallback(
+    ({item}: ListRenderItemInfo<ContentItem>) => (
+      <View style={styles.cardContainer}>
+        <MovieCard
+          item={item}
+          onPress={handleItemPress}
+          cardWidth={cardWidth}
+        />
+      </View>
+    ),
+    [handleItemPress, cardWidth],
   );
 
   const handleEndReached = () => {
@@ -115,7 +131,7 @@ export const PersonCreditsScreen = () => {
     }
   };
 
-  console.log('personDetails', personDetails);
+  // Avoid console logs in render path to reduce jank
 
   const styles = StyleSheet.create({
     container: {
@@ -236,6 +252,11 @@ export const PersonCreditsScreen = () => {
     },
   });
 
+  // If not focused (navigated to details on top), avoid rendering heavy content
+  if (!isFocused) {
+    return <View />;
+  }
+
   // Only render content after renderPhase allows it
   if (movieCredits.isLoading || tvCredits.isLoading) {
     return (
@@ -312,14 +333,17 @@ export const PersonCreditsScreen = () => {
         </TouchableOpacity>
       </LinearGradient>
       <View style={styles.profileContainer}>
-        <Image
+        <FastImage
           source={{
             uri: getImageUrl(
               personDetails?.profile_path || '',
               isTablet ? 'original' : 'w185',
             ),
+            priority: FastImage.priority.high,
+            cache: FastImage.cacheControl.immutable,
           }}
           style={styles.profileImage}
+          resizeMode={FastImage.resizeMode.cover}
         />
         <LinearGradient
           colors={['transparent', colors.background.primary]}
@@ -343,16 +367,20 @@ export const PersonCreditsScreen = () => {
         />
       </View>
 
-      <FlatList
+      <FlashList
         data={transformedData}
         renderItem={renderItem}
         keyExtractor={item => `${item.type}-${item.id}`}
         numColumns={columns}
-        columnWrapperStyle={styles.columnWrapper}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
+        estimatedItemSize={cardHeight}
+        overrideItemLayout={(layout, item, index) => {
+          layout.size = cardHeight;
+          layout.span = 1;
+        }}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.titleContainer}>

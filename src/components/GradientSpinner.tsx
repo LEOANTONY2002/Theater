@@ -15,17 +15,22 @@ export const GradientSpinner: React.FC<GradientSpinnerProps> = ({
   color = '#fff',
 }) => {
   const [currentColor, setCurrentColor] = useState<string>(
-    colors?.[0] || color,
+    (colors && colors.length > 0 ? colors[0] : color) || color,
   );
 
   useEffect(() => {
-    const id = setInterval(() => {
-      if (colors && colors?.length > 0) {
-        setCurrentColor(currentColor === colors[0] ? colors[1] : colors[0]);
-      }
-    }, 1200);
-    return () => clearInterval(id);
-  }, [currentColor]);
+    // If at least two colors are provided, alternate between the first two.
+    if (colors && colors.length >= 2) {
+      const id = setInterval(() => {
+        setCurrentColor(prev => (prev === colors[0] ? colors[1] : colors[0]));
+      }, 1200);
+      return () => clearInterval(id);
+    }
+
+    // If only one color or none is provided, ensure we stick to a valid color
+    setCurrentColor(colors && colors.length > 0 ? colors[0] : color);
+    return () => {};
+  }, [colors, color]);
 
   return (
     <ActivityIndicator

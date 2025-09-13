@@ -9,6 +9,7 @@ import {
   Linking,
   Clipboard,
   Share,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -73,7 +74,6 @@ export const AIReportFlag: React.FC<AIReportFlagProps> = ({
     const divider = '\n----------------------------------------\n';
 
     let body =
-      `Context: ${context}\n` +
       `Model: ${model || 'unknown'}\n` +
       (threadId ? `Thread: ${threadId}\n` : '') +
       `Submitted At: ${submittedAt}\n` +
@@ -89,23 +89,61 @@ export const AIReportFlag: React.FC<AIReportFlagProps> = ({
         divider;
     }
 
-    const mailto = `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`;
+    // Mail clients on Android can fail when the mailto URL is too long.
+    // Keep a conservative limit for the encoded body that goes into the mailto link.
+    const MAX_MAILTO_BODY_LENGTH = 1800; // encoded length budget (conservative)
+    const encodedBody = encodeURIComponent(body);
+    const safeEncodedBody =
+      encodedBody.length > MAX_MAILTO_BODY_LENGTH
+        ? encodedBody.slice(0, MAX_MAILTO_BODY_LENGTH) +
+          encodeURIComponent(
+            `\n\n[Truncated. Full details available via Share/Copy inside the app.]`,
+          )
+        : encodedBody;
 
-    try {
-      const supported = await Linking.canOpenURL(mailto);
-      if (supported) {
-        await Linking.openURL(mailto);
+    // Try app-specific and generic mailto variants first
+    const variants = [
+      // Gmail deep link
+      `googlegmail://co?to=${encodeURIComponent(
+        REPORT_EMAIL,
+      )}&subject=${encodeURIComponent(subject)}&body=${safeEncodedBody}`,
+      // Outlook deep link
+      `ms-outlook://compose?to=${encodeURIComponent(
+        REPORT_EMAIL,
+      )}&subject=${encodeURIComponent(subject)}&body=${safeEncodedBody}`,
+      // Explicit to= param
+      `mailto:?to=${encodeURIComponent(
+        REPORT_EMAIL,
+      )}&subject=${encodeURIComponent(subject)}&body=${safeEncodedBody}`,
+      // Standard mailto variants
+      `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(
+        subject,
+      )}&body=${safeEncodedBody}`,
+      `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(subject)}`,
+      `mailto:${REPORT_EMAIL}`,
+      `mailto:`,
+    ];
+
+    for (const url of variants) {
+      try {
+        await Linking.openURL(url);
         setVisible(false);
         // reset
         setCategory(CATEGORIES[0]);
         setDetails('');
         setIncludeConversation(true);
+        return;
+      } catch (_e) {
+        // try next
       }
-    } catch (e) {
-      // no-op
     }
+
+    // Final fallback: instruct user to send an email manually
+    Alert.alert(
+      'Open Email App',
+      `No email app was detected. Please install or open your mail app and send the report to ${REPORT_EMAIL}. You can also use the Share button to export details.`,
+      [{text: 'OK'}],
+    );
   };
 
   const buildShareText = () => {
@@ -402,11 +440,11 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     borderColor: 'transparent',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text.primary,
   },
   submitText: {
     ...typography.body2,
-    color: 'white',
+    color: 'black',
     fontWeight: '600',
   },
 });

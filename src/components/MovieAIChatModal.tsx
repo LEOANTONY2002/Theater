@@ -433,33 +433,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                         alignSelf: 'center',
                         backgroundColor: 'transparent',
                       }}
-                      color={colors.primary}
-                      colors={[
-                        colors.primary,
-                        colors.secondary,
-                        'rgba(239, 0, 184, 0.06)',
-                        'rgba(67, 2, 75, 0.06)',
-                        'rgba(211, 0, 239, 0.06)',
-                        'rgba(39, 1, 44, 0.06)',
-                        'rgba(211, 0, 239, 0.06)',
-                        'rgba(183, 0, 239, 0.34)',
-                        'rgba(213, 146, 249, 0.06)',
-                        'rgba(128, 0, 239, 0.06)',
-                        'rgba(0, 96, 239, 0.06)',
-                        'rgba(72, 0, 239, 0.06)',
-                        'rgba(44, 0, 239, 0.06)',
-                        'rgba(18, 0, 239, 0.06)',
-                        'rgba(0, 0, 239, 0.06)',
-                        'rgba(0, 123, 211, 0.06)',
-                        'rgba(0, 117, 184, 0.06)',
-                        'rgba(0, 0, 156, 0.06)',
-                        'rgba(0, 92, 128, 0.06)',
-                        'rgba(0, 0, 100, 0.06)',
-                        'rgba(0, 0, 72, 0.06)',
-                        'rgba(35, 0, 44, 0.06)',
-                        'rgba(18, 0, 15, 0.06)',
-                        'rgba(0, 0, 0, 0.06)',
-                      ]}
+                      colors={[colors.primary, colors.secondary]}
                     />
                     <Animated.Text
                       style={[
