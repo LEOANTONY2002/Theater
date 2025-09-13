@@ -1,36 +1,37 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {ViewStyle, ActivityIndicator} from 'react-native';
 
 interface GradientSpinnerProps {
   size?: number;
-  thickness?: number;
   colors?: string[];
   style?: ViewStyle;
-  mode?: 'default' | 'light' | 'ultraLight';
-  isVisible?: boolean; // do not render or animate when false
-  deferStart?: boolean; // start after interactions (smooth scroll)
-  durationMs?: number; // rotation duration
   color?: string;
 }
 
-const GradientSpinnerComponent: React.FC<GradientSpinnerProps> = ({
+export const GradientSpinner: React.FC<GradientSpinnerProps> = ({
   size = 60,
-  thickness = 6,
-  colors = ['#fff', '#fff', 'transparent'],
+  colors,
   style,
-  mode = 'default',
-  isVisible = true,
-  deferStart = false,
-  durationMs = 1000,
   color = '#fff',
 }) => {
+  const [currentColor, setCurrentColor] = useState<string>(
+    colors?.[0] || color,
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (colors && colors?.length > 0) {
+        setCurrentColor(currentColor === colors[0] ? colors[1] : colors[0]);
+      }
+    }, 1200);
+    return () => clearInterval(id);
+  }, [currentColor]);
+
   return (
     <ActivityIndicator
-      color={color}
+      color={currentColor}
       size={size}
-      style={[{borderRadius: 20}, style]}
+      style={[{borderRadius: 50}, style]}
     />
   );
 };
-
-export const GradientSpinner = React.memo(GradientSpinnerComponent);

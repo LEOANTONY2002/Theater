@@ -493,7 +493,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
 
                 {isDetecting ? (
                   <View style={styles.loadingContainer}>
-                    <GradientSpinner size={40} color={colors.primary} />
+                    <GradientSpinner size={50} color={colors.primary} />
                     <Text style={styles.loadingText}>
                       Detecting your region...
                     </Text>
@@ -603,7 +603,10 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
                 isDetecting && {backgroundColor: 'rgba(0,0,0,0.3)'},
               ]}>
               {isDetecting ? (
-                <GradientSpinner color={colors.primary} size={24} />
+                <GradientSpinner
+                  colors={[colors.primary, colors.secondary]}
+                  size={40}
+                />
               ) : (
                 <Image
                   style={styles.nextIcon}

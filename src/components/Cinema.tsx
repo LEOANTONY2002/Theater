@@ -120,7 +120,6 @@ const Cinema = ({
             <GradientSpinner
               size={30}
               style={{
-                marginVertical: 50,
                 alignItems: 'center',
                 alignSelf: 'center',
               }}

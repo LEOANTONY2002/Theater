@@ -76,7 +76,6 @@ export const MovieCard: React.FC<MovieCardProps> = ({
             baseStyles.poster,
             size === 'large' && baseStyles.posterLarge,
           ]}
-          defaultSource={require('../assets/search.png')}
           resizeMode={FastImage.resizeMode.cover}
         />
       </View>

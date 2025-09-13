@@ -1228,7 +1228,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     <View style={styles.noEpisodesContainer}>
                       <View style={styles.noEpisodesContainer}>
                         <GradientSpinner
-                          mode="light"
                           size={30}
                           style={{
                             marginVertical: 50,
@@ -1328,13 +1327,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         {marginVertical: isTablet ? 150 : 50},
                       ]}>
                       <GradientSpinner
-                        mode="light"
                         size={24}
                         style={{
                           alignItems: 'center',
                           alignSelf: 'center',
                         }}
-                        color={colors.primary}
+                        colors={[colors.primary, colors.secondary]}
                       />
                       <Text
                         style={[
