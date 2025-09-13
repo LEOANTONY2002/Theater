@@ -766,9 +766,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Watch Providers</Text>
                 <TouchableOpacity
-                  style={styles.showAllButton}
                   onPress={() => setShowAllProvidersModal(true)}>
-                  <Text style={styles.showAllText}>Show All</Text>
                   <Ionicons
                     name="chevron-forward"
                     size={16}
@@ -951,7 +949,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                       alignItems: 'center',
                       alignSelf: 'center',
                     }}
-                    color={colors.modal.activeBorder}
+                    color={colors.background.primary}
                   />
                 </View>
               ) : (
@@ -1181,7 +1179,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent:
       'center' as import('react-native').ViewStyle['justifyContent'],
     alignItems: 'center' as import('react-native').ViewStyle['alignItems'],
@@ -1189,7 +1187,7 @@ const styles = {
   },
   confirmModal: {
     width: 320 as import('react-native').ViewStyle['width'],
-    backgroundColor: colors.modal.active,
+    backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     alignItems: 'center' as import('react-native').ViewStyle['alignItems'],
@@ -1225,7 +1223,7 @@ const styles = {
     marginHorizontal: spacing.sm,
   },
   cancelButton: {
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.border,
   },
   deleteButton: {
     backgroundColor: colors.button.delete,

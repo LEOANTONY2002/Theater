@@ -1,5 +1,12 @@
 import React, {useState, useCallback, useEffect} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Image,
+} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {SavedFilter} from '../types/filters';
 import {FiltersManager} from '../store/filters';
@@ -9,7 +16,11 @@ import {MyFiltersModal} from '../components/MyFiltersModal';
 import LinearGradient from 'react-native-linear-gradient';
 import languageData from '../utils/language.json';
 import {Genre} from '../types/movie';
-import {getGenres} from '../services/tmdb';
+import {
+  getGenres,
+  getOptimizedImageUrl,
+  getAvailableWatchProviders,
+} from '../services/tmdb';
 import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
 import CreateButton from '../components/createButton';
 import {HorizontalList} from '../components/HorizontalList';
@@ -95,14 +106,29 @@ export const MyFiltersScreen = () => {
 
   const [allGenres, setAllGenres] = useState<Genre[]>([]);
 
+  // Fetch provider catalog (movie) and build id -> logo map
+  const {data: availableProviders = []} = useQuery({
+    queryKey: ['available_watch_providers', 'movie'],
+    queryFn: () => getAvailableWatchProviders(),
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+  const providerLogoById = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    try {
+      availableProviders.forEach((p: any) => {
+        if (p?.provider_id != null && p?.logo_path) {
+          map[String(p.provider_id)] = p.logo_path;
+        }
+      });
+    } catch {}
+    return map;
+  }, [availableProviders]);
+
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const [movieGenresData, tvGenresData] = await Promise.all([
-          getGenres('movie'),
-          getGenres('tv'),
-        ]);
-        const uniqueGenres = [...movieGenresData, ...tvGenresData].filter(
+        const [movieGenresData] = await Promise.all([getGenres('movie')]);
+        const uniqueGenres = [...movieGenresData].filter(
           (genre, index, self) =>
             index === self.findIndex(t => t.id === genre.id),
         );
@@ -198,6 +224,7 @@ export const MyFiltersScreen = () => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
+      top: 10,
     },
     card: {
       flexDirection: 'column',
@@ -244,6 +271,54 @@ export const MyFiltersScreen = () => {
       bottom: 10,
       left: -30,
       zIndex: 1,
+    },
+    providerIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+    },
+    providerIcon: {
+      width: 22,
+      height: 22,
+      borderRadius: 4,
+      backgroundColor: 'transparent',
+    },
+    // Provider grid styles for logos layout inside the 80x80 card
+    providerIconLarge: {
+      width: 56,
+      height: 56,
+      borderRadius: 8,
+    },
+    providerGrid: {
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xs,
+      gap: spacing.xs,
+    },
+    providerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+    },
+    providerIconGrid: {
+      width: 30,
+      height: 30,
+      borderRadius: 6,
+    },
+    providerCardDynamic: {
+      // allow the provider card to extend horizontally when many logos
+      width: undefined as unknown as number,
+      minWidth: 80 as unknown as number,
+      paddingHorizontal: spacing.xs,
+    },
+    providerGridDynamic: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
     },
   });
 
@@ -353,146 +428,257 @@ export const MyFiltersScreen = () => {
               </View>
             )}
           </View>
-          <View style={styles.filterContent}>
-            {type && (
-              <View style={styles.card}>
-                <Ionicons
-                  name={
-                    type === 'movie'
-                      ? 'film-outline'
-                      : type === 'tv'
-                      ? 'tv-outline'
-                      : 'apps-outline'
-                  }
-                  size={15}
-                  color={colors.text.primary}
-                />
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {type?.charAt(0).toUpperCase() + type?.slice(1)}
-                </Text>
-              </View>
-            )}
-            {sortBy && rating && language && (fromYear || toYear) ? (
-              <View
-                style={{
-                  flexDirection: 'column',
-                  gap: spacing.sm,
-                  alignItems: 'flex-start',
-                }}>
-                {sortBy && (
-                  <View style={styles.cardSmall}>
-                    <Ionicons
-                      name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {sortBy.toString()}
-                    </Text>
-                  </View>
-                )}
-                {rating && (
-                  <View style={styles.cardSmall}>
-                    <Ionicons
-                      name="star"
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {rating.toString()}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <>
-                {sortBy && (
-                  <View style={styles.card}>
-                    <Ionicons
-                      name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {sortBy.toString()}
-                    </Text>
-                  </View>
-                )}
-                {rating && (
-                  <View style={styles.card}>
-                    <Ionicons
-                      name="star"
-                      size={15}
-                      color={colors.text.primary}
-                    />
-                    <Text style={styles.cardText} numberOfLines={1}>
-                      {rating.toString()}
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-            {language && (
-              <View style={styles.card}>
-                <Ionicons
-                  name="language"
-                  size={15}
-                  color={colors.text.primary}
-                />
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {language?.name || language?.english_name}
-                </Text>
-              </View>
-            )}
-            {fromYear && toYear ? (
-              <View style={{flexDirection: 'column', gap: spacing.sm}}>
-                <View style={styles.cardSmall}>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={15}
-                    color={colors.text.primary}
-                  />
-                  <Text style={styles.cardText} numberOfLines={1}>
-                    {fromYear}
-                  </Text>
-                </View>
-                <View style={styles.cardSmall}>
-                  <Text style={styles.cardText} numberOfLines={1}>
-                    {toYear}
-                  </Text>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={15}
-                    color={colors.text.primary}
-                  />
-                </View>
-              </View>
-            ) : fromYear && !toYear ? (
-              <View style={styles.card}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={15}
-                  color={colors.text.primary}
-                />
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {fromYear}
-                </Text>
-              </View>
-            ) : toYear && !fromYear ? (
-              <View style={styles.card}>
-                <Text style={styles.cardText} numberOfLines={1}>
-                  {toYear}
-                </Text>
-                <Ionicons
-                  name="calendar-outline"
-                  size={15}
-                  color={colors.text.primary}
-                />
-              </View>
-            ) : null}
-          </View>
+
           {/* HorizontalList of filter search results */}
           <View style={styles.listContainer}>
+            <View style={styles.filterContent}>
+              {(() => {
+                const blocks: React.ReactElement[] = [];
+
+                blocks.push(<View style={{width: 15}} />);
+
+                // Type block
+                if (type) {
+                  blocks.push(
+                    <View style={styles.card}>
+                      <Ionicons
+                        name={
+                          type === 'movie'
+                            ? 'film-outline'
+                            : type === 'tv'
+                            ? 'tv-outline'
+                            : 'apps-outline'
+                        }
+                        size={15}
+                        color={colors.text.primary}
+                      />
+                      <Text style={styles.cardText} numberOfLines={1}>
+                        {type?.charAt(0).toUpperCase() + type?.slice(1)}
+                      </Text>
+                    </View>,
+                  );
+                }
+
+                if (sortBy) {
+                  blocks.push(
+                    <View style={styles.card}>
+                      <Ionicons
+                        name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                        size={15}
+                        color={colors.text.primary}
+                      />
+                      <Text style={styles.cardText} numberOfLines={1}>
+                        {sortBy.toString()}
+                      </Text>
+                    </View>,
+                  );
+                }
+                if (rating) {
+                  blocks.push(
+                    <View style={styles.card}>
+                      <Ionicons
+                        name="star"
+                        size={15}
+                        color={colors.text.primary}
+                      />
+                      <Text style={styles.cardText} numberOfLines={1}>
+                        {rating.toString()}
+                      </Text>
+                    </View>,
+                  );
+                }
+
+                // Language
+                if (language) {
+                  blocks.push(
+                    <View style={styles.card}>
+                      <Ionicons
+                        name="language"
+                        size={15}
+                        color={colors.text.primary}
+                      />
+                      <Text style={styles.cardText} numberOfLines={1}>
+                        {language?.name || language?.english_name}
+                      </Text>
+                    </View>,
+                  );
+                }
+
+                // Years
+                if (fromYear) {
+                  blocks.push(
+                    <View style={styles.card}>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={15}
+                        color={colors.text.primary}
+                      />
+                      <Text style={styles.cardText} numberOfLines={1}>
+                        {fromYear}
+                      </Text>
+                    </View>,
+                  );
+                }
+                if (toYear) {
+                  blocks.push(
+                    <View style={styles.card}>
+                      <Text style={styles.cardText} numberOfLines={1}>
+                        {toYear}
+                      </Text>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={15}
+                        color={colors.text.primary}
+                      />
+                    </View>,
+                  );
+                }
+
+                // Watch providers
+                const provider = (filter?.params as any)
+                  ?.with_watch_providers as string | undefined;
+                if (provider && provider.trim().length > 0) {
+                  const ids = provider
+                    .split(/[,|]/)
+                    .map(p => p.trim())
+                    .filter(Boolean)
+                    .map(rawId => String(parseInt(rawId, 10)));
+                  const logos = ids
+                    .map((id, idx) => ({
+                      id,
+                      key: `${filter.id}-prov-${idx}`,
+                      path: providerLogoById[id] || null,
+                    }))
+                    .filter(x => !!x.path);
+
+                  const count = logos.length;
+                  if (count === 0) {
+                    // fallback to icon-only if no logos resolved
+                    blocks.push(
+                      <View style={styles.card}>
+                        <Ionicons
+                          name="play"
+                          size={20}
+                          color={colors.text.secondary}
+                        />
+                      </View>,
+                    );
+                  } else if (count === 1) {
+                    blocks.push(
+                      <View style={styles.card}>
+                        <Image
+                          key={logos[0].key}
+                          source={{
+                            uri: getOptimizedImageUrl(
+                              logos[0].path as string,
+                              'small',
+                            ),
+                          }}
+                          style={styles.providerIconLarge}
+                          resizeMode="contain"
+                          accessibilityLabel={`Provider ${logos[0].id}`}
+                        />
+                      </View>,
+                    );
+                  } else if (count <= 4) {
+                    blocks.push(
+                      <View style={styles.card}>
+                        <View style={styles.providerGrid}>
+                          <View style={styles.providerRow}>
+                            {logos.slice(0, Math.min(2, count)).map(l => (
+                              <Image
+                                key={l.key}
+                                source={{
+                                  uri: getOptimizedImageUrl(
+                                    l.path as string,
+                                    'small',
+                                  ),
+                                }}
+                                style={styles.providerIconGrid}
+                                resizeMode="contain"
+                                accessibilityLabel={`Provider ${l.id}`}
+                              />
+                            ))}
+                          </View>
+                          <View style={styles.providerRow}>
+                            {logos.slice(2, Math.min(4, count)).map(l => (
+                              <Image
+                                key={l.key}
+                                source={{
+                                  uri: getOptimizedImageUrl(
+                                    l.path as string,
+                                    'small',
+                                  ),
+                                }}
+                                style={styles.providerIconGrid}
+                                resizeMode="contain"
+                                accessibilityLabel={`Provider ${l.id}`}
+                              />
+                            ))}
+                          </View>
+                        </View>
+                      </View>,
+                    );
+                  } else {
+                    // More than 4: extend horizontally with 2 rows, repeating pattern
+                    const top = logos.filter((_, i) => i % 2 === 0);
+                    const bottom = logos.filter((_, i) => i % 2 === 1);
+                    blocks.push(
+                      <View style={[styles.card, styles.providerCardDynamic]}>
+                        <View style={styles.providerGridDynamic}>
+                          <View style={styles.providerRow}>
+                            {top.map(l => (
+                              <Image
+                                key={`top-${l.key}`}
+                                source={{
+                                  uri: getOptimizedImageUrl(
+                                    l.path as string,
+                                    'small',
+                                  ),
+                                }}
+                                style={styles.providerIconGrid}
+                                resizeMode="contain"
+                                accessibilityLabel={`Provider ${l.id}`}
+                              />
+                            ))}
+                          </View>
+                          <View style={styles.providerRow}>
+                            {bottom.map(l => (
+                              <Image
+                                key={`bot-${l.key}`}
+                                source={{
+                                  uri: getOptimizedImageUrl(
+                                    l.path as string,
+                                    'small',
+                                  ),
+                                }}
+                                style={styles.providerIconGrid}
+                                resizeMode="contain"
+                                accessibilityLabel={`Provider ${l.id}`}
+                              />
+                            ))}
+                          </View>
+                        </View>
+                      </View>,
+                    );
+                  }
+
+                  blocks.push(<View style={{width: 25}} />);
+                }
+
+                // Render as horizontal FlatList
+                return (
+                  <FlatList
+                    data={blocks}
+                    keyExtractor={(_, idx) => `${filter.id}-chip-${idx}`}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{gap: spacing.sm}}
+                    renderItem={({item}) => item}
+                  />
+                );
+              })()}
+            </View>
             <HorizontalList
               title={''}
               data={flattenedData}
@@ -524,19 +710,13 @@ export const MyFiltersScreen = () => {
   return (
     <View style={{flex: 1}}>
       <Animated.View style={[styles.header, animatedHeaderStyle]}>
-        <Animated.View
-          style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
-          <BlurView
-            style={StyleSheet.absoluteFill}
-            blurType="dark"
-            blurAmount={16}
-            overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
-            reducedTransparencyFallbackColor={
-              colors.modal?.blur || 'rgba(255,255,255,0.11)'
-            }
-            pointerEvents="none"
-          />
-        </Animated.View>
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {backgroundColor: 'rgba(0, 0, 0, 0.7)'},
+          ]}
+          pointerEvents="none"
+        />
         <View
           style={{
             flexDirection: 'row',

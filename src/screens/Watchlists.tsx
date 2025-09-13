@@ -427,19 +427,13 @@ export const WatchlistsScreen: React.FC = () => {
   return (
     <View style={{flex: 1}}>
       <Animated.View style={[styles.header, animatedHeaderStyle]}>
-        <Animated.View
-          style={[StyleSheet.absoluteFill, {opacity: blurOpacity, zIndex: 0}]}>
-          <BlurView
-            style={StyleSheet.absoluteFill}
-            blurType="dark"
-            blurAmount={16}
-            overlayColor={colors.modal?.blur || 'rgba(255,255,255,0.11)'}
-            reducedTransparencyFallbackColor={
-              colors.modal?.blur || 'rgba(255,255,255,0.11)'
-            }
-            pointerEvents="none"
-          />
-        </Animated.View>
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {backgroundColor: 'rgba(0, 0, 0, 0.7)'},
+          ]}
+          pointerEvents="none"
+        />
         <View
           style={{
             flexDirection: 'row',
