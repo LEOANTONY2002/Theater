@@ -945,13 +945,12 @@ export const HomeScreen = React.memo(() => {
     },
     headingText: {
       fontSize: WIDTH / 8,
-      fontWeight: '900',
       color: colors.text.tertiary,
       marginVertical: spacing.md,
       textAlign: 'center',
       opacity: 0.5,
       zIndex: -1,
-      fontFamily: 'Inter 28pt Black',
+      fontFamily: 'Inter_28pt-ExtraBold',
     },
   });
 

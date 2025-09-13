@@ -102,7 +102,7 @@ const AboutLegalScreen: React.FC = () => {
       fontSize: 10,
       textAlign: 'center',
       marginTop: spacing.xs,
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
       opacity: 0.5,
       maxWidth: '90%',
     },
@@ -170,7 +170,7 @@ const AboutLegalScreen: React.FC = () => {
       color: colors.text.tertiary,
       fontSize: 12,
       textAlign: 'center',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     modalContainer: {
       flex: 1,

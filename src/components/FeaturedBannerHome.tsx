@@ -72,7 +72,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
     },
     titleContainer: {
       position: 'absolute',
-      top: 30,
+      top: 20,
       left: 0,
       right: 0,
       bottom: 0,
@@ -86,9 +86,8 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = ({
       color: colors.text.primary,
       paddingHorizontal: spacing.lg,
       fontSize: isTablet ? 120 : 80,
-      fontWeight: '900',
       textAlign: 'center',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_28pt-ExtraBold',
     },
     cardStack: {
       width: 'auto',

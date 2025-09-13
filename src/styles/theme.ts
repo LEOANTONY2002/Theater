@@ -96,51 +96,51 @@ export const typography = {
   h1: {
     fontSize: 30,
     letterSpacing: 0.3,
-    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter_18pt-Regular',
     fontWeight: fw('700', 'normal'),
   },
   h2: {
     fontSize: 18,
     letterSpacing: 0.2,
     // Inter doesn't ship a 600 file in our bundle; use Bold on Android
-    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter_18pt-Regular',
     fontWeight: fw('600', 'normal'),
   },
   h3: {
     fontSize: 16,
     letterSpacing: 0.5,
     // No Medium in our bundle; fallback to Regular on Android
-    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter_18pt-Regular',
     fontWeight: fw('500', 'normal'),
   },
   body1: {
     fontSize: 14,
     letterSpacing: 0.1,
-    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter_18pt-Regular',
     fontWeight: fw('400', 'normal'),
   },
   body2: {
     fontSize: 13,
     letterSpacing: 0.1,
-    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter_18pt-Regular',
     fontWeight: fw('400', 'normal'),
   },
   caption: {
     fontSize: 12,
     letterSpacing: 0.2,
-    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter_18pt-Regular',
     fontWeight: fw('400', 'normal'),
   },
   button: {
     fontSize: 13,
     letterSpacing: 0.5,
-    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_28pt-Bold' : 'Inter_18pt-Regular',
     fontWeight: fw('600', 'normal'),
   },
   subtitle: {
     fontSize: 16,
     letterSpacing: 0.15,
-    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter',
+    fontFamily: isAndroid ? 'Inter_18pt-Regular' : 'Inter_18pt-Regular',
     fontWeight: fw('500', 'normal'),
   },
 };

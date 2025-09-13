@@ -265,7 +265,7 @@ export const MySpaceScreen = React.memo(() => {
       color: colors.text.secondary,
       flex: 1,
       fontWeight: 400,
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     watchlistContainer: {
       paddingBottom: spacing.md,
@@ -405,7 +405,7 @@ export const MySpaceScreen = React.memo(() => {
       flex: 1,
       textAlign: 'center',
       marginRight: 8,
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     tmdbLogoWrapper: {
       padding: 2,
@@ -422,7 +422,7 @@ export const MySpaceScreen = React.memo(() => {
       color: colors.text.secondary,
       fontSize: 13,
       textAlign: 'center',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     privacyContent: {
       padding: spacing.md,
@@ -439,7 +439,7 @@ export const MySpaceScreen = React.memo(() => {
       fontSize: 12,
       textAlign: 'center',
       marginTop: spacing.xs,
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     closeButton: {
       padding: spacing.xs,

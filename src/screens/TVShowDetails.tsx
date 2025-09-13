@@ -533,7 +533,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       color: '#fff',
       textAlign: 'center',
       width: '100%',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     infoContainer: {
       flexDirection: 'row',
@@ -574,7 +574,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     watchButtonText: {
       fontWeight: '700',
       fontSize: 16,
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     addButton: {
       width: 48,
@@ -640,13 +640,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       fontSize: 12,
       fontWeight: '500',
       textAlign: 'center',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     character: {
       color: '#888',
       fontSize: 12,
       textAlign: 'center',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     scrollView: {
       flex: 1,
@@ -706,7 +706,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       fontWeight: '500',
       marginTop: 8,
       marginBottom: 4,
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     blurView: {
       position: 'absolute',
@@ -738,7 +738,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       color: colors.text.primary,
       fontSize: 18,
       fontWeight: '600',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     seasonsList: {
       padding: 16,

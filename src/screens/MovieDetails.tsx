@@ -458,7 +458,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       color: '#fff',
       textAlign: 'center',
       width: '100%',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     infoContainer: {
       flexDirection: 'column',
@@ -504,7 +504,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     watchButtonText: {
       fontWeight: '700',
       fontSize: 16,
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     addButton: {
       width: 48,
@@ -570,13 +570,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       fontSize: 12,
       fontWeight: '500',
       textAlign: 'center',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     character: {
       color: '#888',
       fontSize: 12,
       textAlign: 'center',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     scrollView: {
       flex: 1,
@@ -636,12 +636,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       fontSize: 24,
       fontWeight: '400',
       color: '#fff',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     posterSubtitle: {
       fontSize: 14,
       color: 'rgba(255, 255, 255, 0.68)',
-      fontFamily: 'Inter',
+      fontFamily: 'Inter_18pt-Regular',
     },
     posterActions: {
       flexDirection: 'row',
