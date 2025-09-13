@@ -17,6 +17,7 @@ import {BlurView} from '@react-native-community/blur';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import packageJson from '../../package.json';
 import {useResponsive} from '../hooks/useResponsive';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const AboutLegalScreen: React.FC = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -29,10 +30,7 @@ const AboutLegalScreen: React.FC = () => {
   const REPORT_EMAIL = 'la.curations@gmail.com';
   const openSupportMail = async (message?: string) => {
     const subject = 'Theater Support / Report';
-    const prompt = 'Please describe your issue or feedback here:';
-    const divider = '\n----------------------------------------\n';
-    const userNote = message?.trim() ? `User Message:\n${message.trim()}\n${divider}` : '';
-    const body = `App: Theater\nVersion: ${packageJson.version}\n${divider}${userNote}${prompt}\n`;
+    const body = message?.trim() || '';
 
     const MAX_MAILTO_BODY_LENGTH = 1800;
     const encodedBody = encodeURIComponent(body);
@@ -46,17 +44,17 @@ const AboutLegalScreen: React.FC = () => {
 
     const variants = [
       // Gmail app deep link
-      `googlegmail://co?to=${encodeURIComponent(REPORT_EMAIL)}&subject=${encodeURIComponent(
-        subject,
-      )}&body=${safeEncodedBody}`,
+      `googlegmail://co?to=${encodeURIComponent(
+        REPORT_EMAIL,
+      )}&subject=${encodeURIComponent(subject)}&body=${safeEncodedBody}`,
       // Outlook app deep link
       `ms-outlook://compose?to=${encodeURIComponent(
         REPORT_EMAIL,
       )}&subject=${encodeURIComponent(subject)}&body=${safeEncodedBody}`,
       // Some devices prefer the explicit to= query param first
-      `mailto:?to=${encodeURIComponent(REPORT_EMAIL)}&subject=${encodeURIComponent(
-        subject,
-      )}&body=${safeEncodedBody}`,
+      `mailto:?to=${encodeURIComponent(
+        REPORT_EMAIL,
+      )}&subject=${encodeURIComponent(subject)}&body=${safeEncodedBody}`,
       `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(
         subject,
       )}&body=${safeEncodedBody}`,
@@ -78,9 +76,7 @@ const AboutLegalScreen: React.FC = () => {
     Alert.alert(
       'Open Email App',
       `No email app was detected. Please install or open your mail app and send a message to ${REPORT_EMAIL}.`,
-      [
-        {text: 'OK', style: 'default'},
-      ],
+      [{text: 'OK', style: 'default'}],
     );
   };
 
@@ -158,10 +154,13 @@ const AboutLegalScreen: React.FC = () => {
     supportBtn: {
       borderWidth: 1,
       borderColor: colors.modal.border,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
       borderRadius: borderRadius.round,
       backgroundColor: colors.modal.blur,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
     },
     supportBtnText: {
       ...typography.caption,
@@ -334,13 +333,14 @@ const AboutLegalScreen: React.FC = () => {
       {/* Support / Report row above bottom tab */}
       <View style={styles.supportRow} pointerEvents="box-none">
         <View style={styles.supportInline}>
-          <Text style={styles.supportHint}>Need help or found an issue?</Text>
+          <Text style={styles.supportHint}>Support or Report</Text>
           <TouchableOpacity
             onPress={() => setShowSupportModal(true)}
             activeOpacity={0.85}
             style={styles.supportBtn}
             accessibilityLabel="Contact support via email">
-            <Text style={styles.supportBtnText}>Contact Support</Text>
+            <Icon name="pencil" size={12} color={colors.text.primary} />
+            <Text style={styles.supportBtnText}>Write Me</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -363,7 +363,7 @@ const AboutLegalScreen: React.FC = () => {
               overlayColor={colors.modal.blurDark}
             />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Contact Support</Text>
+              <Text style={styles.modalTitle}>Write Me</Text>
               <TouchableOpacity
                 activeOpacity={0.9}
                 style={{paddingHorizontal: spacing.md}}
@@ -373,7 +373,8 @@ const AboutLegalScreen: React.FC = () => {
             </View>
             <View style={{padding: spacing.md}}>
               <Text style={styles.privacyText}>
-                Briefly describe the issue or feedback. Your text will be included in the email draft.
+                Briefly describe the issue or feedback. Your text will be
+                included in the email draft.
               </Text>
               <TextInput
                 style={styles.supportTextArea}
