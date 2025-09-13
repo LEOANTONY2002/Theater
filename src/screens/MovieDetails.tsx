@@ -419,7 +419,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       width: width - 32,
       height:
         isTablet && orientation === 'portrait'
-          ? 500
+          ? 400
           : isTablet && orientation === 'landscape'
           ? height * 0.7
           : 200,
