@@ -234,8 +234,24 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
   // Refresh recommendation when parent signals mood change, without remounting
   useEffect(() => {
     if (!isInitialized || !isOnboardingComplete) return;
-    // Use stored feedback to steer the next pick
-    getNextRecommendation(userFeedback);
+    // Reload latest preferences (mood answers) and refresh recommendation
+    (async () => {
+      try {
+        const prefs = await AsyncStorage.getItem(STORAGE_KEYS.USER_PREFERENCES);
+        if (prefs) {
+          const parsed = JSON.parse(prefs);
+          if (parsed?.moodAnswers) {
+            // Update local state so UI uses the freshest mood answers
+            setMoodAnswers(parsed.moodAnswers);
+          }
+        }
+      } catch (e) {
+        // non-fatal
+      } finally {
+        // Use stored feedback to steer the next pick
+        getNextRecommendation(userFeedback);
+      }
+    })();
   }, [refreshSignal]);
 
   const handleFeedback = useCallback(
@@ -316,19 +332,17 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
 
   return (
     <View style={styles.container}>
-      {!isLoading && (
-        <LinearGradient
-          colors={[
-            'transparent',
-            colors.background.primary,
-            colors.background.primary,
-          ]}
-          pointerEvents="none"
-          style={styles.backgroundGradient}
-          start={{x: 0, y: 0}}
-          end={{x: 0, y: 1}}
-        />
-      )}
+      <LinearGradient
+        colors={[
+          'transparent',
+          colors.background.primary,
+          colors.background.primary,
+        ]}
+        pointerEvents="none"
+        style={styles.backgroundGradient}
+        start={{x: 0, y: 0}}
+        end={{x: 0, y: 1}}
+      />
 
       <View
         style={{

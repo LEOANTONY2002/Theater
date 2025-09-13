@@ -104,36 +104,6 @@ const MOOD_QUESTIONS: MoodQuestion[] = [
     ],
   },
   {
-    id: 'energy_level',
-    question: "What's your energy level?",
-    options: [
-      {
-        text: 'High energy, bring the action!',
-        emoji: '⚡',
-        icon: 'lightning-bolt-outline',
-        iconType: 'MaterialCommunityIcons',
-      },
-      {
-        text: 'Moderate, something engaging',
-        emoji: '🎯',
-        icon: 'target',
-        iconType: 'MaterialCommunityIcons',
-      },
-      {
-        text: 'Low energy, easy watching',
-        emoji: '😌',
-        icon: 'flower-tulip-outline',
-        iconType: 'MaterialCommunityIcons',
-      },
-      {
-        text: 'Tired, need background noise',
-        emoji: '😴',
-        icon: 'sleep',
-        iconType: 'MaterialCommunityIcons',
-      },
-    ],
-  },
-  {
     id: 'content_preference',
     question: 'What type of story appeals to you today?',
     options: [

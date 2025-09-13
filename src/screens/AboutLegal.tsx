@@ -18,6 +18,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import packageJson from '../../package.json';
 import {useResponsive} from '../hooks/useResponsive';
 import Icon from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
+import {GradientButton} from '../components/GradientButton';
 
 const AboutLegalScreen: React.FC = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -152,19 +154,16 @@ const AboutLegalScreen: React.FC = () => {
       textAlign: 'center',
     },
     supportBtn: {
-      borderWidth: 1,
-      borderColor: colors.modal.border,
       paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.round,
-      backgroundColor: colors.modal.blur,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.sm,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
     },
     supportBtnText: {
       ...typography.caption,
-      color: colors.text.primary,
+      color: colors.text.secondary,
       fontWeight: '600',
     },
     versionText: {
@@ -195,7 +194,6 @@ const AboutLegalScreen: React.FC = () => {
     modalTitle: {
       color: colors.text.primary,
       ...typography.h3,
-      paddingVertical: spacing.sm,
     },
     modalBody: {
       flex: 1,
@@ -227,31 +225,21 @@ const AboutLegalScreen: React.FC = () => {
     },
     supportActions: {
       flexDirection: 'row',
-      justifyContent: 'flex-end',
       gap: spacing.sm,
       padding: spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.background.secondary,
     },
     supportActionBtn: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.xl,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.round,
       borderWidth: 1,
       borderColor: colors.modal.border,
       backgroundColor: colors.modal.blur,
-    },
-    supportActionPrimary: {
-      backgroundColor: colors.text.primary,
-      borderColor: 'transparent',
+      marginTop: -20,
     },
     supportActionText: {
       ...typography.body2,
       color: colors.text.secondary,
-    },
-    supportActionPrimaryText: {
-      ...typography.body2,
-      color: 'black',
       fontWeight: '600',
     },
   });
@@ -297,6 +285,33 @@ const AboutLegalScreen: React.FC = () => {
       </View>
 
       <Text style={styles.versionText}>App Version {packageJson.version}</Text>
+      <View style={{height: 40}} />
+
+      <Image
+        source={require('../assets/LA.webp')}
+        style={{
+          marginHorizontal: spacing.xxl,
+          marginTop: spacing.xl,
+          width: isTablet ? 150 : 100,
+          height: isTablet ? 170 : 120,
+        }}
+        resizeMode="contain"
+      />
+
+      <TouchableOpacity
+        onPress={() => setShowSupportModal(true)}
+        activeOpacity={0.85}
+        style={{marginTop: spacing.sm}}
+        accessibilityLabel="Contact support via email">
+        <LinearGradient
+          colors={['rgba(192, 171, 255, 0.1)', 'rgba(255, 163, 206, 0.1)']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.supportBtn}>
+          <Icon name="pencil" size={12} color={colors.text.secondary} />
+          <Text style={styles.supportBtnText}>Write Me</Text>
+        </LinearGradient>
+      </TouchableOpacity>
 
       <View style={styles.section}>
         <TouchableOpacity
@@ -319,34 +334,6 @@ const AboutLegalScreen: React.FC = () => {
         </Text>
       </View>
 
-      <Image
-        source={require('../assets/LA.webp')}
-        style={{
-          marginHorizontal: spacing.xxl,
-          marginTop: spacing.xl,
-          width: isTablet ? 150 : 100,
-          height: isTablet ? 170 : 120,
-        }}
-        resizeMode="contain"
-      />
-
-      {/* Support / Report row above bottom tab */}
-      <View style={styles.supportRow} pointerEvents="box-none">
-        <View style={styles.supportInline}>
-          <Text style={styles.supportHint}>Support or Report</Text>
-          <TouchableOpacity
-            onPress={() => setShowSupportModal(true)}
-            activeOpacity={0.85}
-            style={styles.supportBtn}
-            accessibilityLabel="Contact support via email">
-            <Icon name="pencil" size={12} color={colors.text.primary} />
-            <Text style={styles.supportBtnText}>Write Me</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={{height: 20}} />
-
       {/* Support Modal */}
       <Modal
         visible={showSupportModal}
@@ -363,7 +350,17 @@ const AboutLegalScreen: React.FC = () => {
               overlayColor={colors.modal.blurDark}
             />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Write Me</Text>
+              <View>
+                <Text style={styles.modalTitle}>Write Me</Text>
+                <Text
+                  style={{
+                    color: colors.text.secondary,
+                    fontSize: 12,
+                    marginTop: 0,
+                  }}>
+                  Support or Report
+                </Text>
+              </View>
               <TouchableOpacity
                 activeOpacity={0.9}
                 style={{paddingHorizontal: spacing.md}}
@@ -373,8 +370,7 @@ const AboutLegalScreen: React.FC = () => {
             </View>
             <View style={{padding: spacing.md}}>
               <Text style={styles.privacyText}>
-                Briefly describe the issue or feedback. Your text will be
-                included in the email draft.
+                Tell me about your theater experience
               </Text>
               <TextInput
                 style={styles.supportTextArea}
@@ -386,28 +382,23 @@ const AboutLegalScreen: React.FC = () => {
                 onChangeText={setSupportMessage}
               />
             </View>
-            <View style={styles.supportActions}>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowSupportModal(false);
-                  setSupportMessage('');
-                }}
-                style={styles.supportActionBtn}
-                activeOpacity={0.85}>
-                <Text style={styles.supportActionText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  const msg = supportMessage;
-                  setShowSupportModal(false);
-                  setSupportMessage('');
-                  openSupportMail(msg);
-                }}
-                style={[styles.supportActionBtn, styles.supportActionPrimary]}
-                activeOpacity={0.85}>
-                <Text style={styles.supportActionPrimaryText}>Send</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.supportActions}
+              onPress={() => {
+                const msg = supportMessage;
+                setShowSupportModal(false);
+                setSupportMessage('');
+                openSupportMail(msg);
+              }}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.supportActionBtn}>
+                <Text style={styles.supportActionText}>Send</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

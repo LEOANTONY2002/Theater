@@ -396,10 +396,12 @@ export async function getPersonalizedRecommendation(
   if (moodAnswers) {
     userPrompt += 'My current mood and preferences:\n';
     Object.entries(moodAnswers).forEach(([questionId, answer]) => {
+      if (questionId === 'energy_level') {
+        return; // skip removed question
+      }
       const questionMap: {[key: string]: string} = {
         'current_mood': 'How I\'m feeling right now',
         'content_type': 'Preferred content type',
-        'energy_level': 'My current energy level',
         'content_preference': 'Preferred story tone/style',
         'discovery_mood': 'Discovery preference'
       };
