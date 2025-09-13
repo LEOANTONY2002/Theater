@@ -431,16 +431,14 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
               <TouchableOpacity
                 style={[styles.feedbackButton, styles.notOkButton]}
                 onPress={() => handleFeedback(false)}
-                activeOpacity={0.7}>
-                <Ionicons name="close" size={20} color="#fff" />
-                <Text style={styles.feedbackButtonText}>Not for me</Text>
+                activeOpacity={0.8}>
+                <Ionicons name="close" size={15} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.feedbackButton, styles.okButton]}
                 onPress={() => handleFeedback(true)}
-                activeOpacity={0.7}>
-                <Ionicons name="checkmark" size={20} color="#fff" />
-                <Text style={styles.feedbackButtonText}>Looks good!</Text>
+                activeOpacity={0.8}>
+                <Ionicons name="checkmark" size={15} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
@@ -637,15 +635,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.round,
     gap: spacing.xs,
     zIndex: 2,
   },
   okButton: {
-    backgroundColor: colors.modal.active,
+    backgroundColor: colors.modal.blur,
+    borderWidth: 1,
+    borderColor: colors.modal.blur,
   },
   notOkButton: {
-    backgroundColor: colors.modal.blur,
+    backgroundColor: colors.modal.blurDark,
+    borderWidth: 1,
+    borderColor: colors.modal.blur,
   },
   alreadyWatchedButton: {
     backgroundColor: '#6B7280', // Gray color for "already watched"
