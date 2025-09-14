@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from 'react';
-import {ViewStyle, ActivityIndicator} from 'react-native';
+import {ViewStyle, ActivityIndicator, Platform} from 'react-native';
 
 interface GradientSpinnerProps {
-  size?: number;
+  size?: number | 'small' | 'large';
   colors?: string[];
   style?: ViewStyle;
   color?: string;
@@ -32,10 +32,19 @@ export const GradientSpinner: React.FC<GradientSpinnerProps> = ({
     return () => {};
   }, [colors, color]);
 
+  // On Android, ActivityIndicator only supports 'small' | 'large'
+  const mappedSize = (() => {
+    if (Platform.OS !== 'android') return size as any;
+    if (typeof size === 'string') return size;
+    // Map numeric size to small/large heuristically
+    if (typeof size === 'number') return size > 30 ? 'large' : 'small';
+    return 'small';
+  })();
+
   return (
     <ActivityIndicator
       color={currentColor}
-      size={size}
+      size={mappedSize}
       style={[{borderRadius: 50}, style]}
     />
   );

@@ -748,6 +748,7 @@ export const HomeScreen = React.memo(() => {
         case 'myNextWatch':
           return (
             <MyNextWatch
+              key={`mnw:${item.refreshSignal}`}
               onUpdateMood={onUpdateMoodCb}
               refreshSignal={item.refreshSignal}
             />

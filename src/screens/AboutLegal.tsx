@@ -287,16 +287,21 @@ const AboutLegalScreen: React.FC = () => {
       <Text style={styles.versionText}>App Version {packageJson.version}</Text>
       <View style={{height: 40}} />
 
-      <Image
-        source={require('../assets/LA.webp')}
-        style={{
-          marginHorizontal: spacing.xxl,
-          marginTop: spacing.xl,
-          width: isTablet ? 150 : 100,
-          height: isTablet ? 170 : 120,
-        }}
-        resizeMode="contain"
-      />
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => Linking.openURL('https://lacurations.vercel.app/?redirect=theater')}
+        accessibilityLabel="Open LA Curations website">
+        <Image
+          source={require('../assets/LA.webp')}
+          style={{
+            marginHorizontal: spacing.xxl,
+            marginTop: spacing.xl,
+            width: isTablet ? 150 : 100,
+            height: isTablet ? 170 : 120,
+          }}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => setShowSupportModal(true)}

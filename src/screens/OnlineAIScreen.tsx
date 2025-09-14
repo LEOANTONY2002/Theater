@@ -24,7 +24,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Markdown from 'react-native-markdown-display';
 import {BlurView} from '@react-native-community/blur';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {useNavigation, useRoute, useIsFocused} from '@react-navigation/native';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {MicButton} from '../components/MicButton';
 import {AISettingsManager} from '../store/aiSettings';
@@ -32,6 +32,8 @@ import {useResponsive} from '../hooks/useResponsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import {AIReportFlag} from '../components/AIReportFlag';
+import {HorizontalList} from '../components/HorizontalList';
+import {ContentItem} from '../components/MovieList';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -55,114 +57,12 @@ interface ChatThread {
   messages: Message[];
 }
 
-interface ParallaxCardProps {
-  media: {
-    id: number;
-    type: string;
-    poster_path?: string;
-    backdrop_path?: string;
-    overview?: string;
-    title: string;
-    year: number;
-    release_date?: string;
-    first_air_date?: string;
-  };
-  index: number;
-  navigation: any;
-  scrollX: Animated.Value;
-}
-
-const ParallaxCard: React.FC<ParallaxCardProps> = ({
-  media,
-  index,
-  navigation,
-  scrollX,
-}) => {
-  const cardWidth = 100; // Card width + margin
-
-  const inputRange = [
-    (index - 1) * cardWidth,
-    index * cardWidth,
-    (index + 1) * cardWidth,
-  ];
-
-  const scale = scrollX.interpolate({
-    inputRange,
-    outputRange: [0.95, 1, 0.95],
-    extrapolate: 'clamp',
-  });
-
-  const opacity = scrollX.interpolate({
-    inputRange,
-    outputRange: [0.95, 1, 0.95],
-    extrapolate: 'clamp',
-  });
-
-  return (
-    <Animated.View
-      style={[
-        styles.contentCard,
-        {
-          transform: [{scale}],
-          opacity,
-        },
-      ]}>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => {
-          const nav: any = navigation;
-          if (media.type === 'movie') {
-            nav.navigate('MovieDetails', {
-              movie: {
-                id: media.id,
-                title: media.title,
-                poster_path: media.poster_path,
-                backdrop_path: media.backdrop_path,
-                overview: media.overview,
-                release_date: media.release_date,
-              },
-            });
-          } else if (media.type === 'tv') {
-            nav.navigate('TVShowDetails', {
-              show: {
-                id: media.id,
-                name: media.title,
-                poster_path: media.poster_path,
-                backdrop_path: media.backdrop_path,
-                overview: media.overview,
-                first_air_date: media.first_air_date,
-              },
-            });
-          }
-        }}>
-        <View style={styles.posterContainer}>
-          <Image
-            source={{
-              uri: `https://image.tmdb.org/t/p/w342${media?.poster_path}`,
-            }}
-            style={styles.posterImage}
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
-            style={styles.posterGradient}
-          />
-          {/* <View style={styles.posterInfo}>
-            <Text style={styles.posterTitle} numberOfLines={2}>
-              {media.title}
-            </Text>
-            <Text style={styles.posterYear}>
-              {media.year} • {media.type.toUpperCase()}
-            </Text>
-          </View> */}
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
+// Parallax card removed; using Watchlists-style HorizontalList instead
 
 export const OnlineAIScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const isFocused = useIsFocused();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -226,7 +126,7 @@ export const OnlineAIScreen: React.FC = () => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  const scrollX = useRef(new Animated.Value(0)).current;
+  // Removed parallax scrollX; not needed with HorizontalList
 
   // Scroll to bottom when messages change or animation updates
   useEffect(() => {
@@ -236,6 +136,15 @@ export const OnlineAIScreen: React.FC = () => {
       }, 100);
     }
   }, [messages, animating, animatedContent]);
+
+  // When screen regains focus (coming back from details), scroll to the latest message
+  useEffect(() => {
+    if (isFocused && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({animated: true});
+      }, 150);
+    }
+  }, [isFocused]);
 
   // Initialize entrance animations
   useEffect(() => {
@@ -483,10 +392,54 @@ export const OnlineAIScreen: React.FC = () => {
                 )}&year=${item.year}`,
               );
               const data = await res.json();
-              found =
-                data.results && data.results.length > 0
-                  ? data.results[0]
-                  : null;
+              const candidates = Array.isArray(data.results) ? data.results : [];
+              // Prefer language match first, then score by year and popularity
+              const aiLang = item.original_language;
+              const aiYear = typeof item.year === 'string' ? parseInt(item.year, 10) : item.year;
+              const normalize = (t: string | undefined) =>
+                (t || '')
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/\p{Diacritic}/gu, '')
+                  .replace(/[^a-z0-9]+/g, ' ')
+                  .trim();
+              const aiTitleN = normalize(item.title);
+              let pool = aiLang
+                ? candidates.filter((c: any) => c?.original_language === aiLang)
+                : candidates;
+              // Fallback: if language-filtered pool is empty, retry without year constraint
+              if (pool.length === 0) {
+                const res2 = await fetch(
+                  `https://api.themoviedb.org/3/search/movie?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                    item.title,
+                  )}`,
+                );
+                const data2 = await res2.json();
+                pool = Array.isArray(data2.results) ? data2.results : [];
+                if (aiLang) {
+                  const langPool = pool.filter((c: any) => c?.original_language === aiLang);
+                  if (langPool.length > 0) pool = langPool;
+                }
+              }
+              if (pool.length === 0) {
+                found = null;
+              } else {
+                const score = (c: any) => {
+                  let s = 0;
+                  const candTitle = c?.title || c?.name || '';
+                  const candTitleN = normalize(candTitle);
+                  if (candTitleN === aiTitleN) s += 2; // exact normalized title match bonus
+                  else if (candTitleN.startsWith(aiTitleN) || aiTitleN.startsWith(candTitleN)) s += 1; // prefix containment bonus
+                  const y = c?.release_date && c.release_date.length >= 4 ? parseInt(c.release_date.slice(0, 4), 10) : null;
+                  if (aiYear && y) {
+                    if (y === aiYear) s += 3;
+                    else if (Math.abs(y - aiYear) === 1) s += 1;
+                  }
+                  if (typeof c?.popularity === 'number') s += Math.min(2, c.popularity / 100);
+                  return s;
+                };
+                found = pool.reduce((best: any, cur: any) => (score(cur) > score(best) ? cur : best), pool[0]);
+              }
             } else if (item.type === 'tv') {
               const res = await fetch(
                 `https://api.themoviedb.org/3/search/tv?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
@@ -494,10 +447,52 @@ export const OnlineAIScreen: React.FC = () => {
                 )}&first_air_date_year=${item.year}`,
               );
               const data = await res.json();
-              found =
-                data.results && data.results.length > 0
-                  ? data.results[0]
-                  : null;
+              const candidates = Array.isArray(data.results) ? data.results : [];
+              const aiLang = item.original_language;
+              const aiYear = typeof item.year === 'string' ? parseInt(item.year, 10) : item.year;
+              const normalize = (t: string | undefined) =>
+                (t || '')
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/\p{Diacritic}/gu, '')
+                  .replace(/[^a-z0-9]+/g, ' ')
+                  .trim();
+              const aiTitleN = normalize(item.title);
+              let pool = aiLang
+                ? candidates.filter((c: any) => c?.original_language === aiLang)
+                : candidates;
+              if (pool.length === 0) {
+                const res2 = await fetch(
+                  `https://api.themoviedb.org/3/search/tv?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                    item.title,
+                  )}`,
+                );
+                const data2 = await res2.json();
+                pool = Array.isArray(data2.results) ? data2.results : [];
+                if (aiLang) {
+                  const langPool = pool.filter((c: any) => c?.original_language === aiLang);
+                  if (langPool.length > 0) pool = langPool;
+                }
+              }
+              if (pool.length === 0) {
+                found = null;
+              } else {
+                const score = (c: any) => {
+                  let s = 0;
+                  const candTitle = c?.name || c?.title || '';
+                  const candTitleN = normalize(candTitle);
+                  if (candTitleN === aiTitleN) s += 2;
+                  else if (candTitleN.startsWith(aiTitleN) || aiTitleN.startsWith(candTitleN)) s += 1;
+                  const y = c?.first_air_date && c.first_air_date.length >= 4 ? parseInt(c.first_air_date.slice(0, 4), 10) : null;
+                  if (aiYear && y) {
+                    if (y === aiYear) s += 3;
+                    else if (Math.abs(y - aiYear) === 1) s += 1;
+                  }
+                  if (typeof c?.popularity === 'number') s += Math.min(2, c.popularity / 100);
+                  return s;
+                };
+                found = pool.reduce((best: any, cur: any) => (score(cur) > score(best) ? cur : best), pool[0]);
+              }
             }
             if (found) {
               tmdbResults.push({
@@ -707,74 +702,53 @@ export const OnlineAIScreen: React.FC = () => {
           </View>
         )}
         {item.tmdbResults && item.tmdbResults.length > 0 && (
-          <View style={styles.contentCarousel}>
-            <View
-              style={{
-                position: 'absolute',
-                width: '80%',
-                marginLeft: '10%',
-                height: 255,
-                backgroundColor: colors.modal.blur,
-                borderRadius: borderRadius.lg,
-                borderColor: colors.modal.border,
-                borderWidth: 2,
-                zIndex: -1,
-              }}
-            />
-            <LinearGradient
-              colors={['rgb(18, 0, 22)', 'transparent']}
-              pointerEvents="none"
-              style={{
-                width: '25%',
-                height: '110%',
-                position: 'absolute',
-                bottom: -20,
-                left: 0,
-                // paddingHorizontal: 10,
-                zIndex: 2,
-              }}
-              start={{x: 0, y: 1}}
-              end={{x: 1, y: 1}}
-            />
-            <LinearGradient
-              colors={['transparent', 'rgb(18, 0, 22)']}
-              pointerEvents="none"
-              style={{
-                width: '25%',
-                height: '110%',
-                position: 'absolute',
-                bottom: -20,
-                right: 0,
-                // paddingHorizontal: 10,
-                zIndex: 2,
-              }}
-              start={{x: 0, y: 1}}
-              end={{x: 1, y: 1}}
-            />
-            <FlatList
-              data={item.tmdbResults}
-              horizontal
-              keyExtractor={m => m.title + m.year + m.type}
-              renderItem={({item: media, index}) =>
-                media.poster_path ? (
-                  <ParallaxCard
-                    media={media}
-                    index={index}
-                    navigation={navigation}
-                    scrollX={scrollX}
-                  />
-                ) : null
-              }
-              contentContainerStyle={styles.carouselContent}
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={100}
-              decelerationRate={0.9}
-              onScroll={Animated.event(
-                [{nativeEvent: {contentOffset: {x: scrollX}}}],
-                {useNativeDriver: false},
-              )}
-              scrollEventThrottle={16}
-            />
+          <View style={{marginTop: spacing.sm}}>
+            <View style={styles.watchlistItemBox}>
+              <LinearGradient
+                colors={['transparent', 'rgb(18, 0, 22)', 'rgb(18, 0, 22)']}
+                pointerEvents="none"
+                style={styles.watchlistItemGradient}
+                start={{x: 0, y: 0}}
+                end={{x: 0, y: 1}}
+              />
+              <View style={styles.listContainerAI}>
+                <HorizontalList
+                  title={''}
+                  data={
+                    (item.tmdbResults || []).map(m => ({
+                      id: m.id,
+                      title: m.title,
+                      name: m.title,
+                      overview: m.overview || '',
+                      poster_path: m.poster_path,
+                      backdrop_path: m.backdrop_path,
+                      vote_average: 0,
+                      release_date: m.release_date || '',
+                      first_air_date: m.first_air_date || '',
+                      type: (m.type === 'tv'
+                        ? 'tv'
+                        : 'movie') as ContentItem['type'],
+                    })) as unknown as ContentItem[]
+                  }
+                  isLoading={false}
+                  onItemPress={(ci: ContentItem) => {
+                    if (ci.type === 'movie') {
+                      (navigation as any).navigate('MovieDetails', {movie: ci});
+                    } else {
+                      (navigation as any).navigate('TVShowDetails', {show: ci});
+                    }
+                  }}
+                  isSeeAll={false}
+                  isFilter={true}
+                  isHeadingSkeleton={false}
+                />
+                <LinearGradient
+                  colors={['transparent', 'rgb(18, 0, 22)']}
+                  pointerEvents="none"
+                  style={styles.watchlistItemBottomFade}
+                />
+              </View>
+            </View>
           </View>
         )}
       </View>
@@ -785,6 +759,11 @@ export const OnlineAIScreen: React.FC = () => {
   const displayMessages: Message[] = animating
     ? [...messages, {role: 'assistant', content: animatedContent} as Message]
     : messages;
+
+  // When not focused, render a lightweight container to prevent heavy list/animations causing stutter
+  if (!isFocused) {
+    return <View style={{flex: 1, backgroundColor: 'rgb(18, 0, 22)'}} />;
+  }
 
   return (
     <KeyboardAvoidingView
@@ -1516,5 +1495,44 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: {width: 0, height: 1},
     textShadowRadius: 2,
+  },
+  // Watchlists-like container for tmdbResults under AI response
+  watchlistItemBox: {
+    backgroundColor: colors.background.tertiary,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    position: 'relative',
+    height: 300,
+    marginHorizontal: spacing.md,
+  },
+  watchlistItemGradient: {
+    width: '180%',
+    height: '130%',
+    position: 'absolute',
+    bottom: -25,
+    left: -50,
+    zIndex: 0,
+    transform: [{rotate: '-15deg'}],
+  },
+  listContainerAI: {
+    position: 'relative',
+    width: '120%',
+    overflow: 'scroll',
+    bottom: 10,
+    left: -30,
+    zIndex: 1,
+  },
+  watchlistItemBottomFade: {
+    width: '100%',
+    height: 200,
+    position: 'absolute',
+    bottom: 20,
+    zIndex: 1,
+    opacity: 0.9,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
   },
 });

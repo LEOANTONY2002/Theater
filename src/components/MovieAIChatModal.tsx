@@ -24,6 +24,9 @@ import {BlurView} from '@react-native-community/blur';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import Markdown from 'react-native-markdown-display';
 import {AIReportFlag} from './AIReportFlag';
+import {HorizontalList} from './HorizontalList';
+import {ContentItem} from './MovieList';
+import {useNavigation} from '@react-navigation/native';
 
 type Message = {
   id: string;
@@ -50,7 +53,9 @@ const DEFAULT_MOVIE_QUESTIONS = [
   "What's the movie's rating?",
   'Is this movie worth watching?',
   'What genre is this movie?',
-  'When was this movie released?',
+  'What is the movie budget?',
+  'What is the movie revenue?',
+  'More like this',
 ];
 
 const DEFAULT_TV_QUESTIONS = [
@@ -61,7 +66,9 @@ const DEFAULT_TV_QUESTIONS = [
   "What's the show's rating?",
   'Is this series worth watching?',
   'What genre is this show?',
-  'When did this series first air?',
+  'What is the show budget?',
+  'What is the show revenue?',
+  'More like this',
 ];
 
 export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
@@ -77,10 +84,13 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [aiResults, setAiResults] = useState<ContentItem[]>([]);
+  const [aiResultsLoading, setAiResultsLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
   const androidInset = useAndroidKeyboardInset(10);
+  const navigation = useNavigation<any>();
 
   // Animation values (matching OnlineAI screen)
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -211,7 +221,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
         console.log('Sending chat messages:', chatMessages);
 
         // Call the AI service with the conversation messages
-        const {aiResponse} = await cinemaChat(chatMessages);
+        const {aiResponse, arr} = await cinemaChat(chatMessages);
 
         // Add AI response
         const aiMessage: Message = {
@@ -222,6 +232,195 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
         };
 
         setMessages(prev => [...prev, aiMessage]);
+
+        // Resolve and show AI suggestions as a horizontal list
+        if (Array.isArray(arr) && arr.length > 0) {
+          setAiResultsLoading(true);
+          try {
+            const resolved: ContentItem[] = [];
+            for (const item of arr) {
+              let found: any = null;
+              if (item.type === 'movie') {
+                const res = await fetch(
+                  `https://api.themoviedb.org/3/search/movie?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                    item.title,
+                  )}&year=${item.year}`,
+                );
+                const data = await res.json();
+                const candidates = Array.isArray(data.results)
+                  ? data.results
+                  : [];
+                const aiLang = item.original_language;
+                const aiYear =
+                  typeof item.year === 'string'
+                    ? parseInt(item.year, 10)
+                    : item.year;
+                const normalize = (t?: string) =>
+                  (t || '')
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/\p{Diacritic}/gu, '')
+                    .replace(/[^a-z0-9]+/g, ' ')
+                    .trim();
+                const aiTitleN = normalize(item.title);
+                let pool = aiLang
+                  ? candidates.filter(
+                      (c: any) => c?.original_language === aiLang,
+                    )
+                  : candidates;
+                if (pool.length === 0) {
+                  const res2 = await fetch(
+                    `https://api.themoviedb.org/3/search/movie?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                      item.title,
+                    )}`,
+                  );
+                  const data2 = await res2.json();
+                  pool = Array.isArray(data2.results) ? data2.results : [];
+                  if (aiLang) {
+                    const langPool = pool.filter(
+                      (c: any) => c?.original_language === aiLang,
+                    );
+                    if (langPool.length > 0) pool = langPool;
+                  }
+                }
+                if (pool.length > 0) {
+                  const score = (c: any) => {
+                    let s = 0;
+                    const candTitle = c?.title || c?.name || '';
+                    const candTitleN = normalize(candTitle);
+                    if (candTitleN === aiTitleN) s += 2;
+                    else if (
+                      candTitleN.startsWith(aiTitleN) ||
+                      aiTitleN.startsWith(candTitleN)
+                    )
+                      s += 1;
+                    const y =
+                      c?.release_date && c.release_date.length >= 4
+                        ? parseInt(c.release_date.slice(0, 4), 10)
+                        : null;
+                    if (aiYear && y) {
+                      if (y === aiYear) s += 3;
+                      else if (Math.abs(y - aiYear) === 1) s += 1;
+                    }
+                    if (typeof c?.popularity === 'number')
+                      s += Math.min(2, c.popularity / 100);
+                    return s;
+                  };
+                  found = pool.reduce((best: any, cur: any) =>
+                    score(cur) > score(best) ? cur : best,
+                  );
+                }
+                if (found) {
+                  resolved.push({
+                    id: found.id,
+                    type: 'movie',
+                    poster_path: found.poster_path,
+                    backdrop_path: found.backdrop_path,
+                    overview: found.overview,
+                    title: found.title || item.title,
+                    name: found.title,
+                    vote_average: found.vote_average || 0,
+                    genre_ids: found.genre_ids || [],
+                    media_type: 'movie',
+                    release_date: found.release_date,
+                  } as any);
+                }
+              } else if (item.type === 'tv') {
+                const res = await fetch(
+                  `https://api.themoviedb.org/3/search/tv?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                    item.title,
+                  )}&first_air_date_year=${item.year}`,
+                );
+                const data = await res.json();
+                const candidates = Array.isArray(data.results)
+                  ? data.results
+                  : [];
+                const aiLang = item.original_language;
+                const aiYear =
+                  typeof item.year === 'string'
+                    ? parseInt(item.year, 10)
+                    : item.year;
+                const normalize = (t?: string) =>
+                  (t || '')
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/\p{Diacritic}/gu, '')
+                    .replace(/[^a-z0-9]+/g, ' ')
+                    .trim();
+                const aiTitleN = normalize(item.title);
+                let pool = aiLang
+                  ? candidates.filter(
+                      (c: any) => c?.original_language === aiLang,
+                    )
+                  : candidates;
+                if (pool.length === 0) {
+                  const res2 = await fetch(
+                    `https://api.themoviedb.org/3/search/tv?api_key=ddc242ac9b33e6c9054b5193c541ffbb&query=${encodeURIComponent(
+                      item.title,
+                    )}`,
+                  );
+                  const data2 = await res2.json();
+                  pool = Array.isArray(data2.results) ? data2.results : [];
+                  if (aiLang) {
+                    const langPool = pool.filter(
+                      (c: any) => c?.original_language === aiLang,
+                    );
+                    if (langPool.length > 0) pool = langPool;
+                  }
+                }
+                if (pool.length > 0) {
+                  const score = (c: any) => {
+                    let s = 0;
+                    const candTitle = c?.name || c?.title || '';
+                    const candTitleN = normalize(candTitle);
+                    if (candTitleN === aiTitleN) s += 2;
+                    else if (
+                      candTitleN.startsWith(aiTitleN) ||
+                      aiTitleN.startsWith(candTitleN)
+                    )
+                      s += 1;
+                    const y =
+                      c?.first_air_date && c.first_air_date.length >= 4
+                        ? parseInt(c.first_air_date.slice(0, 4), 10)
+                        : null;
+                    if (aiYear && y) {
+                      if (y === aiYear) s += 3;
+                      else if (Math.abs(y - aiYear) === 1) s += 1;
+                    }
+                    if (typeof c?.popularity === 'number')
+                      s += Math.min(2, c.popularity / 100);
+                    return s;
+                  };
+                  found = pool.reduce((best: any, cur: any) =>
+                    score(cur) > score(best) ? cur : best,
+                  );
+                }
+                if (found) {
+                  resolved.push({
+                    id: found.id,
+                    type: 'tv',
+                    poster_path: found.poster_path,
+                    backdrop_path: found.backdrop_path,
+                    overview: found.overview,
+                    title: found.name || item.title,
+                    name: found.name,
+                    vote_average: found.vote_average || 0,
+                    genre_ids: found.genre_ids || [],
+                    media_type: 'tv',
+                    first_air_date: found.first_air_date,
+                  } as any);
+                }
+              }
+            }
+            setAiResults(resolved.slice(0, 10));
+          } catch (e) {
+            console.log('AI suggestions resolve error', e);
+          } finally {
+            setAiResultsLoading(false);
+          }
+        } else {
+          setAiResults([]);
+        }
       } catch (error) {
         console.error('Error getting AI response:', error);
         console.error('Error details:', JSON.stringify(error, null, 2));
@@ -281,6 +480,27 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           style={[styles.message, styles.assistant]}>
           <Markdown style={{body: styles.messageText}}>{item.text}</Markdown>
         </LinearGradient>
+        {aiResults.length > 0 && (
+          <View style={{marginTop: -spacing.xl, marginBottom: spacing.md}}>
+            <HorizontalList
+              title=""
+              data={aiResults as any}
+              onItemPress={(content: any) => {
+                if (
+                  content.type === 'movie' ||
+                  content.media_type === 'movie'
+                ) {
+                  navigation.navigate('MovieDetails', {movie: content});
+                } else {
+                  navigation.navigate('TVShowDetails', {show: content});
+                }
+              }}
+              isLoading={aiResultsLoading}
+              isSeeAll={false}
+              ai
+            />
+          </View>
+        )}
         <AIReportFlag
           aiText={item.text}
           userText={undefined}
@@ -424,7 +644,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                   <Animated.View
                     style={{
                       marginHorizontal: spacing.lg,
-                      marginBottom: 150,
+                      marginBottom: 32,
                     }}>
                     <GradientSpinner
                       size={30}
@@ -451,6 +671,26 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                       Theater AI is thinking...
                     </Animated.Text>
                   </Animated.View>
+                ) : aiResults.length > 0 ? (
+                  <View style={{marginTop: -spacing.xl, marginBottom: 150}}>
+                    <HorizontalList
+                      title=""
+                      data={aiResults as any}
+                      onItemPress={(content: any) => {
+                        if (
+                          content.type === 'movie' ||
+                          content.media_type === 'movie'
+                        ) {
+                          navigation.navigate('MovieDetails', {movie: content});
+                        } else {
+                          navigation.navigate('TVShowDetails', {show: content});
+                        }
+                      }}
+                      isLoading={aiResultsLoading}
+                      isSeeAll={false}
+                      ai
+                    />
+                  </View>
                 ) : null
               }
             />

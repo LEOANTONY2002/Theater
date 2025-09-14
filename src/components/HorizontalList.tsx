@@ -197,7 +197,11 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
             ListFooterComponent={
-              isLoading ? <HorizontalListSkeleton ai={ai} /> : null
+              isLoading ? (
+                <HorizontalListSkeleton ai={ai} />
+              ) : (
+                <View style={{width: 50}} />
+              )
             }
           />
         </View>
