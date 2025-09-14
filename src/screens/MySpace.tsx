@@ -706,7 +706,7 @@ export const MySpaceScreen = React.memo(() => {
         </View>
       </TouchableOpacity>
 
-      <View>
+      {/* <View>
         <TouchableOpacity
           style={styles.headerContainer}
           activeOpacity={0.9}
@@ -745,7 +745,7 @@ export const MySpaceScreen = React.memo(() => {
             ))}
           </ScrollView>
         ) : null}
-      </View>
+      </View> */}
 
       {/* About & Legal screen */}
       <View style={{}}>
