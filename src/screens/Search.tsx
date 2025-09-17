@@ -120,6 +120,21 @@ export const SearchScreen = React.memo(() => {
 
   const navigation = useNavigation();
 
+  // Normalize legacy comma-delimited with_genres to pipe-delimited OR
+  const normalizeWithGenres = useCallback((params: any) => {
+    if (
+      params?.with_genres &&
+      typeof params.with_genres === 'string' &&
+      params.with_genres.includes(',')
+    ) {
+      return {
+        ...params,
+        with_genres: params.with_genres.split(',').filter(Boolean).join('|'),
+      };
+    }
+    return params;
+  }, []);
+
   // trending
   const {
     data: trendingData,
@@ -166,7 +181,7 @@ export const SearchScreen = React.memo(() => {
           <>
             <View
               style={[styles.recentItemsHeader, {marginBottom: spacing.md}]}>
-              <Text style={styles.sectionTitle}>History</Text>
+              <Text style={styles.sectionTitle}></Text>
               <TouchableOpacity
                 onPress={async () => {
                   await HistoryManager.clear();
@@ -397,19 +412,25 @@ export const SearchScreen = React.memo(() => {
               key={filter.id}
               savedFilter={filter}
               onSeeAllPress={() => {
+                // Build a normalized SavedFilter so Category uses useSavedFilterContent
+                const normalizedSaved: SavedFilter = {
+                  ...filter,
+                  params: normalizeWithGenres(filter.params),
+                } as SavedFilter;
+
                 // Navigate within Search stack to keep back gesture returning to Search
                 if (filter.type === 'tv') {
                   (navigation as any).navigate('Category', {
                     title: filter.name,
                     contentType: 'tv',
-                    filter: filter.params, // plain params for tv
+                    filter: normalizedSaved,
                   });
                 } else {
-                  // 'movie' or 'all': pass SavedFilter; hook will handle 'all'
+                  // 'movie' or 'all' -> use 'movie' as concrete contentType; filter.type drives the hook
                   (navigation as any).navigate('Category', {
                     title: filter.name,
                     contentType: 'movie',
-                    filter: filter,
+                    filter: normalizedSaved,
                   });
                 }
               }}
@@ -754,7 +775,7 @@ export const SearchScreen = React.memo(() => {
 
                 {/* Tab Content */}
                 {renderTabContent()}
-                <View style={{height: 200}} />
+                <View style={{height: 300}} />
               </>
             )}
             showsVerticalScrollIndicator={false}

@@ -107,7 +107,18 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
       if (editingFilter) {
         setFilterName(editingFilter.name);
         setContentType(editingFilter.type);
-        setFilters(editingFilter.params);
+        const params = editingFilter.params || ({} as any);
+        const normalized =
+          params.with_genres && params.with_genres.includes(',')
+            ? {
+                ...params,
+                with_genres: params.with_genres
+                  .split(',')
+                  .filter(Boolean)
+                  .join('|'),
+              }
+            : params;
+        setFilters(normalized);
       } else {
         setFilterName('');
         setContentType('all');
@@ -402,7 +413,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   // Toggle multiple genre IDs at once (used for 'All')
   const handleGenreToggleIds = (ids: number[]) => {
     setFilters(prev => {
-      const current = prev.with_genres ? prev.with_genres.split(',') : [];
+      const current = prev.with_genres ? prev.with_genres.split('|') : [];
       const idStrs = ids.map(id => id.toString());
       const allSelected = idStrs.every(id => current.includes(id));
       const next = allSelected
@@ -410,7 +421,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         : Array.from(new Set([...current, ...idStrs]));
       return {
         ...prev,
-        with_genres: next.filter(Boolean).join(',') || undefined,
+        with_genres: next.filter(Boolean).join('|') || undefined,
       };
     });
   };
@@ -627,10 +638,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     label={genre.name}
                     selected={(() => {
                       if (!filters.with_genres) return false;
+                      const tokens = filters.with_genres.split('|');
                       if (contentType !== 'all') {
-                        return filters.with_genres.includes(
-                          genre.id.toString(),
-                        );
+                        return tokens.includes(genre.id.toString());
                       }
                       const movieMatch = movieGenres.find(
                         g => g.name === genre.name,
@@ -639,11 +649,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                       const ids = [movieMatch?.id, tvMatch?.id]
                         .filter(Boolean)
                         .map(String) as string[];
-                      if (ids.length === 0)
-                        return filters.with_genres.includes(
-                          genre.id.toString(),
-                        );
-                      return ids.some(id => filters.with_genres!.includes(id));
+                      if (ids.length === 0) return tokens.includes(genre.id.toString());
+                      return ids.some(id => tokens.includes(id));
                     })()}
                     onPress={() => handleGenreToggle(genre.id, genre.name)}
                   />

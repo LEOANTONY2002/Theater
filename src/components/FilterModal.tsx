@@ -108,7 +108,15 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   // Only set filters and contentType from props when modal is opened
   useEffect(() => {
     if (visible) {
-      setFilters(initialFilters);
+      // Normalize any legacy with_genres strings that used commas (AND) to pipes (OR)
+      if (initialFilters?.with_genres && initialFilters.with_genres.includes(',')) {
+        setFilters({
+          ...initialFilters,
+          with_genres: initialFilters.with_genres.split(',').filter(Boolean).join('|'),
+        });
+      } else {
+        setFilters(initialFilters);
+      }
       setContentType(initialContentType);
       // Do NOT reset or reload any other state here
     }
@@ -258,7 +266,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   // Toggle one or more genre IDs (used to support 'All' content type)
   const handleGenreToggleIds = (ids: number[]) => {
     setFilters(prev => {
-      const current = prev.with_genres ? prev.with_genres.split(',') : [];
+      const current = prev.with_genres ? prev.with_genres.split('|') : [];
       const idStrs = ids.map(id => id.toString());
       const allSelected = idStrs.every(id => current.includes(id));
       const next = allSelected
@@ -266,7 +274,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         : Array.from(new Set([...current, ...idStrs]));
       return {
         ...prev,
-        with_genres: next.filter(Boolean).join(',') || undefined,
+        with_genres: next.filter(Boolean).join('|') || undefined,
       };
     });
   };
@@ -331,7 +339,18 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const handleSavedFilterSelect = (savedFilter: SavedFilter) => {
     setIsApplyingSavedFilter(true);
     setContentType(savedFilter.type);
-    setFilters(savedFilter.params);
+    const params = savedFilter.params || {} as any;
+    const normalized =
+      params.with_genres && params.with_genres.includes(',')
+        ? {
+            ...params,
+            with_genres: params.with_genres
+              .split(',')
+              .filter(Boolean)
+              .join('|'),
+          }
+        : params;
+    setFilters(normalized);
 
     // Update sort order when applying saved filter
     if (savedFilter.params.sort_by) {
@@ -557,10 +576,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     label={genre.name}
                     selected={(() => {
                       if (!filters.with_genres) return false;
+                      const tokens = filters.with_genres.split('|');
                       if (contentType !== 'all') {
-                        return filters.with_genres.includes(
-                          genre.id.toString(),
-                        );
+                        return tokens.includes(genre.id.toString());
                       }
                       const movieMatch = movieGenres.find(
                         g => g.name === genre.name,
@@ -569,11 +587,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       const ids = [movieMatch?.id, tvMatch?.id]
                         .filter(Boolean)
                         .map(String) as string[];
-                      if (ids.length === 0)
-                        return filters.with_genres.includes(
-                          genre.id.toString(),
-                        );
-                      return ids.some(id => filters.with_genres!.includes(id));
+                      if (ids.length === 0) return tokens.includes(genre.id.toString());
+                      return ids.some(id => tokens.includes(id));
                     })()}
                     onPress={() => handleGenreToggle(genre.id, genre.name)}
                   />

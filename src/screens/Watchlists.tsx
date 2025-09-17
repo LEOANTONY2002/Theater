@@ -7,6 +7,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Share,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {Animated, Easing} from 'react-native';
@@ -17,6 +18,7 @@ import {
   useCreateWatchlist,
   useWatchlistItems,
   useDeleteWatchlist,
+  useAddToWatchlist,
 } from '../hooks/useWatchlists';
 import {HorizontalList} from '../components/HorizontalList';
 import {ContentItem} from '../components/MovieList';
@@ -30,6 +32,8 @@ import {modalStyles} from '../styles/styles';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {useResponsive} from '../hooks/useResponsive';
+import {generateWatchlistCode, parseWatchlistCode} from '../utils/shareCode';
+import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -37,10 +41,14 @@ type WatchlistsScreenNavigationProp =
 export const WatchlistsScreen: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newWatchlistName, setNewWatchlistName] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importCode, setImportCode] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   const {data: watchlists = [], isLoading} = useWatchlists();
   const createWatchlistMutation = useCreateWatchlist();
   const deleteWatchlistMutation = useDeleteWatchlist();
+  const addToWatchlistMutation = useAddToWatchlist();
   const navigation = useNavigation<WatchlistsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const {isTablet, orientation} = useResponsive();
@@ -252,13 +260,65 @@ export const WatchlistsScreen: React.FC = () => {
     },
     modalContent: {
       width: '90%',
-      height: 310,
       backgroundColor: colors.modal.active,
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
       position: 'relative',
     },
+    importModalContent: {
+      width: '92%',
+      backgroundColor: colors.modal.active,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      paddingBottom: spacing.md,
+    },
   });
+
+  const handleImportSubmit = useCallback(async () => {
+    if (!importCode.trim()) {
+      Alert.alert('Import', 'Please paste a valid code.');
+      return;
+    }
+    const parsed = parseWatchlistCode(importCode.trim());
+    if (!parsed || parsed.items.length === 0) {
+      Alert.alert('Import', 'Invalid or empty code.');
+      return;
+    }
+    try {
+      setIsImporting(true);
+      const newList = await createWatchlistMutation.mutateAsync(
+        `${parsed.name}`,
+      );
+      for (const it of parsed.items) {
+        try {
+          if (it.type === 'movie') {
+            const movie = await getMovieDetails(it.id);
+            await addToWatchlistMutation.mutateAsync({
+              watchlistId: newList.id,
+              item: movie,
+              itemType: 'movie',
+            });
+          } else {
+            const show = await getTVShowDetails(it.id);
+            await addToWatchlistMutation.mutateAsync({
+              watchlistId: newList.id,
+              item: show,
+              itemType: 'tv',
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to import item', it, e);
+        }
+      }
+      setShowImportModal(false);
+      setImportCode('');
+      Alert.alert('Import Complete', 'Watchlist imported successfully.');
+    } catch (e) {
+      Alert.alert('Import Failed', 'Could not import this code.');
+    } finally {
+      setIsImporting(false);
+    }
+  }, [importCode, createWatchlistMutation]);
 
   // Child component to render a watchlist and its results
   const WatchlistItemWithResults = ({
@@ -317,6 +377,40 @@ export const WatchlistsScreen: React.FC = () => {
     ).length;
     const tvCount = contentItems.filter(item => item.type === 'tv').length;
 
+    const handleShare = useCallback(async () => {
+      try {
+        const header = `My Watchlist: ${watchlistName}`;
+        const lines = contentItems.slice(0, 50).map((it, idx) => {
+          const title =
+            it.type === 'movie' ? (it as any).title : (it as any).name;
+          const year =
+            (it as any).release_date || (it as any).first_air_date || '';
+          const yearStr = year ? ` (${String(year).slice(0, 4)})` : '';
+          return `${idx + 1}. ${title}${yearStr}`;
+        });
+        const footer =
+          contentItems.length > lines.length
+            ? `\n...and ${contentItems.length - lines.length} more`
+            : '';
+
+        const code = generateWatchlistCode(
+          watchlistName,
+          contentItems.map(it => ({id: it.id, type: it.type})),
+        );
+        const importHint = `\n\nImport in Theater → Watchlists → Import and paste this code:\n${code}`;
+
+        const message = `${header}\n\n${lines.join(
+          '\n',
+        )}${footer}${importHint}`;
+        await Share.share({message});
+      } catch (e) {
+        Alert.alert(
+          'Share Failed',
+          'Unable to share this watchlist right now.',
+        );
+      }
+    }, [contentItems, watchlistName]);
+
     return (
       <View style={{marginBottom: spacing.xl, position: 'relative'}}>
         <View style={styles.watchlistItem}>
@@ -335,7 +429,12 @@ export const WatchlistsScreen: React.FC = () => {
               left: -50,
               // paddingHorizontal: 10,
               zIndex: 0,
-              transform: [{rotate: '-15deg'}],
+              transform: [
+                {
+                  rotate:
+                    isTablet && orientation == 'landscape' ? '-5deg' : '-15deg',
+                },
+              ],
             }}
             start={{x: 0, y: 0}}
             end={{x: 0, y: 1}}
@@ -348,19 +447,28 @@ export const WatchlistsScreen: React.FC = () => {
                 justifyContent: 'space-between',
               }}>
               <Text style={styles.watchlistName}>{watchlistName}</Text>
-              <TouchableOpacity
-                style={{
-                  alignItems: 'center',
-                  padding: 5,
-                }}
-                activeOpacity={0.9}
-                onPress={() => onWatchlistPress(watchlistId, watchlistName)}>
-                <Ionicons
-                  name="trash-outline"
-                  size={15}
-                  color={colors.text.primary}
-                />
-              </TouchableOpacity>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <TouchableOpacity
+                  style={{alignItems: 'center', padding: 5, marginRight: 6}}
+                  activeOpacity={0.9}
+                  onPress={handleShare}>
+                  <Ionicons
+                    name="share-outline"
+                    size={16}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{alignItems: 'center', padding: 5}}
+                  activeOpacity={0.9}
+                  onPress={() => onWatchlistPress(watchlistId, watchlistName)}>
+                  <Ionicons
+                    name="trash-outline"
+                    size={15}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             {movieCount > 0 || tvCount > 0 ? (
               <View
@@ -449,13 +557,24 @@ export const WatchlistsScreen: React.FC = () => {
             />
           </TouchableOpacity>
           <Text style={styles.title}>Watchlists</Text>
-          {watchlists.length > 0 && (
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => setShowCreateModal(true)}>
-              <Ionicons name="add" size={24} color={colors.text.primary} />
+              onPress={() => setShowImportModal(true)}>
+              <Ionicons
+                name="download-outline"
+                size={22}
+                color={colors.text.primary}
+              />
             </TouchableOpacity>
-          )}
+            {watchlists.length > 0 && (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowCreateModal(true)}>
+                <Ionicons name="add" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </Animated.View>
       <Animated.ScrollView
@@ -506,7 +625,7 @@ export const WatchlistsScreen: React.FC = () => {
           transparent={true}
           onRequestClose={handleCloseModal}>
           <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent]}>
               <BlurView
                 style={StyleSheet.absoluteFill}
                 blurType="dark"
@@ -556,6 +675,71 @@ export const WatchlistsScreen: React.FC = () => {
                       {createWatchlistMutation.isPending
                         ? 'Creating...'
                         : 'Create'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Import Watchlist Modal */}
+        <Modal
+          visible={showImportModal}
+          animationType="slide"
+          statusBarTranslucent={true}
+          transparent={true}
+          onRequestClose={() => setShowImportModal(false)}>
+          <View style={styles.modalContainer}>
+            <View style={styles.importModalContent}>
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="dark"
+                blurAmount={10}
+                overlayColor={colors.modal.blurDark}
+              />
+              <View style={modalStyles.modalHeader}>
+                <Text style={modalStyles.modalTitle}>Import Watchlist</Text>
+                <TouchableOpacity onPress={() => setShowImportModal(false)}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={{padding: spacing.md}}>
+                <Text style={modalStyles.sectionTitle}>Paste Code</Text>
+                <TextInput
+                  style={[
+                    modalStyles.input,
+                    {height: 100, marginTop: spacing.sm},
+                  ]}
+                  value={importCode}
+                  onChangeText={setImportCode}
+                  placeholder="THTR1:..."
+                  placeholderTextColor={colors.text.muted}
+                  multiline
+                />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: spacing.md,
+                    gap: spacing.md,
+                    width: isTablet ? '50%' : '100%',
+                  }}>
+                  <TouchableOpacity
+                    style={[modalStyles.footerButton, modalStyles.resetButton]}
+                    onPress={() => setShowImportModal(false)}>
+                    <Text style={modalStyles.resetButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[modalStyles.footerButton, modalStyles.applyButton]}
+                    onPress={handleImportSubmit}
+                    disabled={isImporting}>
+                    <Text style={modalStyles.applyButtonText}>
+                      {isImporting ? 'Importing...' : 'Import'}
                     </Text>
                   </TouchableOpacity>
                 </View>

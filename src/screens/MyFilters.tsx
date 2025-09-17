@@ -382,22 +382,31 @@ export const MyFiltersScreen = () => {
         key={filter.id}
         style={{marginBottom: spacing.xl, position: 'relative'}}>
         <View style={styles.filterItem}>
-          <LinearGradient
-            colors={['transparent', colors.background.primary]}
-            pointerEvents="none"
-            style={{
-              width: isTablet ? '350%' : '250%',
-              height: isTablet ? '260%' : '200%',
-              position: 'absolute',
-              bottom: 0,
-              left: isTablet ? -150 : -120,
-              paddingHorizontal: 10,
-              zIndex: 0,
-              transform: [{rotate: '-11deg'}],
-            }}
-            start={{x: 0, y: 0}}
-            end={{x: 0, y: 1}}
-          />
+          {flattenedData?.length > 0 && (
+            <LinearGradient
+              colors={['transparent', colors.background.primary]}
+              pointerEvents="none"
+              style={{
+                width: isTablet ? '350%' : '250%',
+                height: isTablet ? '260%' : '200%',
+                position: 'absolute',
+                bottom: 0,
+                left: isTablet ? -150 : -120,
+                paddingHorizontal: 10,
+                zIndex: 0,
+                transform: [
+                  {
+                    rotate:
+                      isTablet && orientation == 'landscape'
+                        ? '-5deg'
+                        : '-11deg',
+                  },
+                ],
+              }}
+              start={{x: 0, y: 0}}
+              end={{x: 0, y: 1}}
+            />
+          )}
           <View style={styles.filterHeader}>
             <View
               style={{
