@@ -468,6 +468,15 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     });
   };
 
+  // Clear helpers for quick reset of horizontal lists
+  const clearAllGenres = () => {
+    setFilters(prev => ({...prev, with_genres: undefined}));
+  };
+
+  const clearAllWatchProviders = () => {
+    setFilters(prev => ({...prev, with_watch_providers: undefined}));
+  };
+
   const getFilteredGenres = () => {
     if (contentType === 'movie') return movieGenres;
     if (contentType === 'tv') return tvGenres;
@@ -618,13 +627,21 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             <View style={[styles.section, {paddingHorizontal: 0}]}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Genres</Text>
-                <TouchableOpacity onPress={() => setShowAllGenresModal(true)}>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.accent}
-                  />
-                </TouchableOpacity>
+                <View
+                  style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                  {!!filters.with_genres && (
+                    <TouchableOpacity onPress={clearAllGenres}>
+                      <Text style={{color: colors.text.muted}}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={() => setShowAllGenresModal(true)}>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.accent}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
               <FlatList
                 data={getFilteredGenres()}
@@ -649,7 +666,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                       const ids = [movieMatch?.id, tvMatch?.id]
                         .filter(Boolean)
                         .map(String) as string[];
-                      if (ids.length === 0) return tokens.includes(genre.id.toString());
+                      if (ids.length === 0)
+                        return tokens.includes(genre.id.toString());
                       return ids.some(id => tokens.includes(id));
                     })()}
                     onPress={() => handleGenreToggle(genre.id, genre.name)}
@@ -772,14 +790,22 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             <View style={[styles.section, {paddingHorizontal: 0}]}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Watch Providers</Text>
-                <TouchableOpacity
-                  onPress={() => setShowAllProvidersModal(true)}>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.accent}
-                  />
-                </TouchableOpacity>
+                <View
+                  style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                  {!!filters.with_watch_providers && (
+                    <TouchableOpacity onPress={clearAllWatchProviders}>
+                      <Text style={{color: colors.text.muted}}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setShowAllProvidersModal(true)}>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.accent}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
               <FlatList
                 data={watchProviders}
@@ -811,18 +837,38 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                           opacity: 1,
                         },
                       ]}>
-                      <Image
-                        source={{
-                          uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
-                        }}
+                      <View
                         style={{
                           width: 70,
                           height: 70,
                           margin: 2,
                           borderRadius: 16,
-                        }}
-                        resizeMode="contain"
-                      />
+                          overflow: 'hidden',
+                        }}>
+                        <Image
+                          source={{
+                            uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
+                          }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                          }}
+                          resizeMode="contain"
+                        />
+                        {selected && (
+                          <View
+                            style={{
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              borderRadius: 10,
+                              padding: 2,
+                            }}>
+                            <Ionicons name="checkmark" size={14} color="#fff" />
+                          </View>
+                        )}
+                      </View>
                     </TouchableOpacity>
                   );
                 }}
@@ -1028,9 +1074,16 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     ? [filters.with_original_language]
                     : []
                 }
-                onChangeSelected={langs =>
-                  setTempLanguageSelection(langs as SettingsLanguage[])
-                }
+                onChangeSelected={langs => {
+                  const arr = langs as SettingsLanguage[];
+                  setTempLanguageSelection(arr);
+                  setSelectedLanguages(arr);
+                  setFilters(prev => ({
+                    ...prev,
+                    with_original_language: arr[0]?.iso_639_1 || undefined,
+                  }));
+                  setShowLanguageModal(false);
+                }}
               />
             </View>
           </View>

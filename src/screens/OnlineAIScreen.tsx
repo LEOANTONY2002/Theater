@@ -603,16 +603,32 @@ export const OnlineAIScreen: React.FC = () => {
       }
       animate();
     } catch (e) {
-      setIsRateLimitExceeded(e?.toString()?.includes('429') ? true : false);
-      console.log(e);
-      console.log(isRateLimitExceeded ? 'Rate limit exceeded' : 'Other error');
+      const errText = (e as any)?.message
+        ? String((e as any).message)
+        : String(e);
+      const is429 = /429/.test(errText);
+      const is401or403 = /401|403/.test(errText);
+      const is503 = /503/.test(errText);
+      const noApiKey = /NO_API_KEY/i.test(errText);
+      setIsRateLimitExceeded(is429);
+      console.log('AI error:', errText);
 
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: isRateLimitExceeded
-          ? 'Sorry, you cannot continue. Please change your API key in the settings.'
-          : 'Sorry, there was an error.',
-      };
+      let friendly = 'Sorry, there was an error.';
+      if (noApiKey) {
+        friendly =
+          'AI key missing. Please open AI Settings and add your Gemini API key.';
+      } else if (is401or403) {
+        friendly =
+          'Your AI API key seems invalid or unauthorized. Please update it in AI Settings.';
+      } else if (is429) {
+        friendly =
+          'Rate limit exceeded. Please wait a bit or try a different API key in AI Settings.';
+      } else if (is503) {
+        friendly =
+          'The AI service is temporarily unavailable (503). Please try again shortly.';
+      }
+
+      const errorMessage: Message = {role: 'assistant', content: friendly};
       await setAndPersistMessages([...newMessages, errorMessage]);
       setAnimating(false);
       setAnimatedContent('');
@@ -718,6 +734,28 @@ export const OnlineAIScreen: React.FC = () => {
       return undefined;
     };
     const prevUserText = getPrevUserText(index);
+
+    // Sanitize assistant content: remove trailing empty fenced code blocks (e.g., ```json\n\n```)
+    const stripTrailingEmptyCodeFence = (s: string) =>
+      typeof s === 'string'
+        ? s
+            // remove a trailing empty fenced block with optional language
+            .replace(/\n?```[a-zA-Z0-9]*\s*```\s*$/s, '')
+            // remove any dangling lone fence at end
+            .replace(/\n?```\s*$/s, '')
+            .trimEnd()
+        : s;
+    const contentToRender =
+      item.role === 'assistant' ? stripTrailingEmptyCodeFence(item?.content) : item?.content;
+
+    // Markdown styles to avoid white background blocks
+    const markdownStyles = {
+      body: styles.messageText,
+      code_block: {backgroundColor: 'transparent'},
+      fence: {backgroundColor: 'transparent'},
+      code_inline: {backgroundColor: 'transparent'},
+    } as const;
+
     return (
       <View style={isLast && {paddingBottom: 120}}>
         {item.role === 'user' ? (
@@ -727,8 +765,8 @@ export const OnlineAIScreen: React.FC = () => {
         ) : (
           <View>
             <View style={[styles.message, styles.assistant]}>
-              <Markdown style={{body: styles.messageText}}>
-                {item?.content}
+              <Markdown style={markdownStyles}>
+                {contentToRender}
               </Markdown>
             </View>
             <AIReportFlag

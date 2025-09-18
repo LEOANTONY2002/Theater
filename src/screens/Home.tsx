@@ -859,7 +859,7 @@ export const HomeScreen = React.memo(() => {
                         color: colors.text.primary,
                         fontFamily: 'Inter_18pt-Regular',
                       }}>
-                      Get Started
+                      Start
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -1066,6 +1066,7 @@ export const HomeScreen = React.memo(() => {
         windowSize={7}
         initialNumToRender={4}
         maxToRenderPerBatch={4}
+        ListFooterComponent={<View style={{height: 100}} />}
       />
 
       {/* Mood Questionnaire Modal */}

@@ -252,9 +252,9 @@ export const PersonCreditsScreen = () => {
     },
   });
 
-  // If not focused (navigated to details on top), avoid rendering heavy content
+  // If not focused, avoid rendering heavy content
   if (!isFocused) {
-    return <View />;
+    return <View style={styles.container} />;
   }
 
   // Only render content after renderPhase allows it

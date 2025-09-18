@@ -7,7 +7,7 @@ import {
   Animated,
   useWindowDimensions,
 } from 'react-native';
-import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {useNavigation, useRoute, RouteProp, useIsFocused} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {
   MoviesStackParamList,
@@ -42,6 +42,7 @@ export const CategoryScreen = () => {
   const route = useRoute<CategoryScreenRouteProp>();
   const {title, categoryType, contentType, filter, fromSearch} =
     (route.params as any) || {};
+  const isFocused = useIsFocused();
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {isTablet, orientation} = useResponsive();
@@ -238,6 +239,11 @@ export const CategoryScreen = () => {
       SettingsManager.removeChangeListener(handleSettingsChange);
     };
   }, [queryClient]);
+
+  // When not focused (another screen is on top), render an empty container to reduce load
+  if (!isFocused) {
+    return <View style={styles.container} />;
+  }
 
   // Show loading screen until content can be rendered
   if (!canRenderContent) {

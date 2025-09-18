@@ -7,8 +7,13 @@ import {
   Modal,
   TextInput,
   Alert,
-  Share,
+  Share as NativeShare,
+  ActivityIndicator,
+  Image,
+  Platform,
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
+import ShareLib from 'react-native-share';
 import {BlurView} from '@react-native-community/blur';
 import {Animated, Easing} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -34,6 +39,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useResponsive} from '../hooks/useResponsive';
 import {generateWatchlistCode, parseWatchlistCode} from '../utils/shareCode';
 import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
+import SharePoster from '../components/SharePoster';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -335,6 +341,11 @@ export const WatchlistsScreen: React.FC = () => {
     onItemPress: (item: ContentItem) => void;
   }) => {
     const {data: items = [], isLoading} = useWatchlistItems(watchlistId);
+    const storyRef = React.useRef<ViewShot>(null);
+    const [isSharingStory, setIsSharingStory] = React.useState(false);
+    const [showStoryModal, setShowStoryModal] = React.useState(false);
+    const [storyUri, setStoryUri] = React.useState<string | null>(null);
+    const [storyLoading, setStoryLoading] = React.useState(false);
 
     // Convert watchlist items to ContentItem format
     const contentItems: ContentItem[] = items.map(item => {
@@ -402,7 +413,7 @@ export const WatchlistsScreen: React.FC = () => {
         const message = `${header}\n\n${lines.join(
           '\n',
         )}${footer}${importHint}`;
-        await Share.share({message});
+        await NativeShare.share({message});
       } catch (e) {
         Alert.alert(
           'Share Failed',
@@ -411,9 +422,106 @@ export const WatchlistsScreen: React.FC = () => {
       }
     }, [contentItems, watchlistName]);
 
+    const handleShareStory = useCallback(async () => {
+      try {
+        setIsSharingStory(true);
+        // Ensure the poster is rendered, then capture
+        await new Promise(r => setTimeout(r, 150));
+        const filePath = await storyRef.current?.capture?.();
+        if (!filePath || typeof filePath !== 'string') {
+          throw new Error('Capture returned empty uri');
+        }
+        const uri = filePath.startsWith('file://')
+          ? filePath
+          : `file://${filePath}`;
+        await ShareLib.open({url: uri, type: 'image/png'});
+      } catch (e) {
+        console.warn('Share story failed', e);
+        Alert.alert('Share Failed', 'Unable to share story right now.');
+      } finally {
+        setIsSharingStory(false);
+      }
+    }, []);
+
+    const handleOpenStoryModal = useCallback(async () => {
+      setShowStoryModal(true);
+      setStoryLoading(true);
+      setStoryUri(null);
+      try {
+        await new Promise(r => setTimeout(r, 180));
+        const filePath = await storyRef.current?.capture?.();
+        if (!filePath || typeof filePath !== 'string') {
+          throw new Error('Capture returned empty uri');
+        }
+        const uri = filePath.startsWith('file://')
+          ? filePath
+          : `file://${filePath}`;
+        setStoryUri(uri);
+      } catch (e) {
+        console.warn('Create story failed', e);
+        Alert.alert('Create Story', 'Could not generate the poster.');
+        setShowStoryModal(false);
+      } finally {
+        setStoryLoading(false);
+      }
+    }, []);
+
+    const handleStoryShare = useCallback(async () => {
+      if (!storyUri) return;
+      try {
+        await ShareLib.open({url: storyUri, type: 'image/png'});
+      } catch (e) {
+        console.warn('Share sheet error', e);
+      }
+    }, [storyUri]);
+
+    const handleStoryDownload = useCallback(async () => {
+      if (!storyUri) return;
+      try {
+        // iOS supports saveToFiles. Cast to any to avoid TS mismatch if not in types
+        if (Platform.OS === 'ios') {
+          await (ShareLib as any).open({
+            url: storyUri,
+            type: 'image/png',
+            saveToFiles: true,
+          });
+        } else {
+          // On Android, suggest user select a destination app to save
+          await ShareLib.open({url: storyUri, type: 'image/png'});
+        }
+      } catch (e) {
+        console.warn('Download/share error', e);
+      }
+    }, [storyUri]);
+
     return (
       <View style={{marginBottom: spacing.xl, position: 'relative'}}>
         <View style={styles.watchlistItem}>
+          {isSharingStory && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 2,
+                backgroundColor: 'rgba(0,0,0,0.35)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: borderRadius.lg,
+              }}>
+              <ActivityIndicator size="large" color={colors.text.primary} />
+              <Text
+                style={{
+                  marginTop: 8,
+                  color: colors.text.secondary,
+                  fontFamily: 'Inter_18pt-Regular',
+                }}>
+                Creating poster...
+              </Text>
+            </View>
+          )}
           <LinearGradient
             colors={[
               'transparent',
@@ -448,6 +556,17 @@ export const WatchlistsScreen: React.FC = () => {
               }}>
               <Text style={styles.watchlistName}>{watchlistName}</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <TouchableOpacity
+                  style={{alignItems: 'center', padding: 5, marginRight: 6}}
+                  activeOpacity={0.9}
+                  onPress={handleOpenStoryModal}
+                  disabled={isSharingStory}>
+                  <Ionicons
+                    name="images-outline"
+                    size={16}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={{alignItems: 'center', padding: 5, marginRight: 6}}
                   activeOpacity={0.9}
@@ -486,6 +605,7 @@ export const WatchlistsScreen: React.FC = () => {
                       borderRadius: 5,
                       marginTop: 2,
                       backgroundColor: colors.text.muted,
+                      fontFamily: 'Inter_18pt-Regular',
                     }}>
                     {' '}
                   </Text>
@@ -527,7 +647,145 @@ export const WatchlistsScreen: React.FC = () => {
               }}
             />
           </View>
+          {/* Hidden poster for story capture */}
+          <View style={{position: 'absolute', left: -9999, top: -9999}}>
+            <ViewShot
+              ref={storyRef}
+              options={{format: 'png', quality: 1, result: 'tmpfile'}}
+              captureMode="mount">
+              <SharePoster
+                watchlistName={watchlistName}
+                items={contentItems}
+                importCode={generateWatchlistCode(
+                  watchlistName,
+                  contentItems.map(it => ({id: it.id, type: it.type})),
+                )}
+              />
+            </ViewShot>
+          </View>
         </View>
+
+        {/* Story Preview Modal */}
+        <Modal
+          visible={showStoryModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowStoryModal(false)}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: spacing.md,
+            }}>
+            <View
+              style={{
+                width: '92%',
+                borderRadius: borderRadius.lg,
+                backgroundColor: colors.modal.active,
+                overflow: 'hidden',
+                alignItems: 'center',
+                padding: spacing.md,
+              }}>
+              {storyLoading ? (
+                <View style={{padding: spacing.xl, alignItems: 'center'}}>
+                  <ActivityIndicator size="large" color={colors.text.primary} />
+                  <Text
+                    style={{
+                      marginTop: spacing.sm,
+                      color: colors.text.secondary,
+                      fontFamily: 'Inter_18pt-Regular',
+                    }}>
+                    Creating poster...
+                  </Text>
+                </View>
+              ) : storyUri ? (
+                <>
+                  <Image
+                    source={{uri: storyUri}}
+                    style={{
+                      width: 270,
+                      height: 480,
+                      borderRadius: borderRadius.md,
+                      backgroundColor: '#000',
+                    }}
+                    resizeMode="cover"
+                  />
+                  <View
+                    style={{
+                      marginTop: spacing.md,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.lg,
+                    }}>
+                    <TouchableOpacity
+                      onPress={handleStoryShare}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="share-social-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Share
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleStoryDownload}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="download-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Download
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setShowStoryModal(false)}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="close-circle-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Close
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <View style={{padding: spacing.lg}}>
+                  <Text
+                    style={{
+                      color: colors.text.secondary,
+                      fontFamily: 'Inter_18pt-Regular',
+                    }}>
+                    Failed to create poster.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   };
@@ -611,77 +869,8 @@ export const WatchlistsScreen: React.FC = () => {
               Create your first watchlist to start organizing your favorite
               movies and shows
             </Text>
-            <CreateButton
-              onPress={() => setShowCreateModal(true)}
-              title="Create Your First Watchlist"
-              icon="add"
-            />
           </View>
         )}
-        <Modal
-          visible={showCreateModal}
-          animationType="slide"
-          statusBarTranslucent={true}
-          transparent={true}
-          onRequestClose={handleCloseModal}>
-          <View style={styles.modalContainer}>
-            <View style={[styles.modalContent]}>
-              <BlurView
-                style={StyleSheet.absoluteFill}
-                blurType="dark"
-                blurAmount={10}
-                overlayColor={colors.modal.blurDark}
-              />
-
-              <View style={modalStyles.modalHeader}>
-                <Text style={modalStyles.modalTitle}>Create New Watchlist</Text>
-                <TouchableOpacity onPress={handleCloseModal}>
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={colors.text.primary}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={modalStyles.scrollContent}>
-                <Text style={modalStyles.sectionTitle}>Watchlist Name</Text>
-                <TextInput
-                  style={[
-                    modalStyles.input,
-                    {
-                      marginBottom: spacing.lg,
-                      height: 50,
-                      marginTop: spacing.sm,
-                    },
-                  ]}
-                  value={newWatchlistName}
-                  onChangeText={setNewWatchlistName}
-                  placeholder="Enter watchlist name"
-                  placeholderTextColor={colors.text.muted}
-                  autoFocus
-                />
-                <View style={modalStyles.footer}>
-                  <TouchableOpacity
-                    style={[modalStyles.footerButton, modalStyles.resetButton]}
-                    onPress={handleCloseModal}>
-                    <Text style={modalStyles.resetButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[modalStyles.footerButton, modalStyles.applyButton]}
-                    onPress={handleCreateWatchlist}
-                    disabled={createWatchlistMutation.isPending}>
-                    <Text style={modalStyles.applyButtonText}>
-                      {createWatchlistMutation.isPending
-                        ? 'Creating...'
-                        : 'Create'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Modal>
 
         {/* Import Watchlist Modal */}
         <Modal

@@ -387,8 +387,8 @@ export const MyFiltersScreen = () => {
               colors={['transparent', colors.background.primary]}
               pointerEvents="none"
               style={{
-                width: isTablet ? '350%' : '250%',
-                height: isTablet ? '260%' : '200%',
+                width: isTablet ? '370%' : '250%',
+                height: isTablet ? '350%' : '200%',
                 position: 'absolute',
                 bottom: 0,
                 left: isTablet ? -150 : -120,
@@ -688,16 +688,24 @@ export const MyFiltersScreen = () => {
                 );
               })()}
             </View>
-            <HorizontalList
-              title={''}
-              data={flattenedData}
-              isLoading={isFetchingNextFilterPage}
-              onItemPress={handleItemPress}
-              onEndReached={hasNextFilterPage ? fetchNextFilterPage : undefined}
-              isSeeAll={false}
-              isFilter={true}
-              isHeadingSkeleton={false}
-            />
+            {flattenedData?.length > 0 ? (
+              <HorizontalList
+                title={''}
+                data={flattenedData}
+                isLoading={isFetchingNextFilterPage}
+                onItemPress={handleItemPress}
+                onEndReached={
+                  hasNextFilterPage ? fetchNextFilterPage : undefined
+                }
+                isSeeAll={false}
+                isFilter={true}
+                isHeadingSkeleton={false}
+              />
+            ) : (
+              <View style={{marginTop: spacing.lg, marginLeft: spacing.sm}}>
+                <HorizontalListSkeleton />
+              </View>
+            )}
             <LinearGradient
               colors={['transparent', colors.background.primary]}
               pointerEvents="none"

@@ -87,9 +87,8 @@ const TabBarBackground = () => {
       <BlurView
         blurType="dark"
         blurAmount={10}
-        blurRadius={7}
         style={styles.blurContainer}
-        overlayColor={colors.modal.blur}
+        overlayColor={colors.modal.blurDark}
       />
     </View>
   );

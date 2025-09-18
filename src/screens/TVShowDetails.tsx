@@ -364,6 +364,11 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     navigation.goBack();
   }, [navigation]);
 
+  // Always ensure AI chat modal is closed when TV show changes
+  useEffect(() => {
+    setIsAIChatModalOpen(false);
+  }, [show.id]);
+
   const handlePersonPress = useCallback(
     (personId: number, personName: string) => {
       navigateWithLimit('PersonCredits', {
@@ -810,6 +815,11 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       fontFamily: 'Inter_18pt-Regular',
     },
   });
+
+  // When not focused (another screen is on top), render an empty container to reduce load
+  if (!isFocused) {
+    return <View style={styles.container} />;
+  }
 
   // Show NoInternet if offline and no cache for TV show details
   // Only show if we have an actual error and are offline with no cache
@@ -1393,6 +1403,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         keyExtractor={(item: any) => item.id}
         getItemType={(item: any) => item.type}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={<View style={{height: 200}} />}
       />
 
       <WatchlistModal

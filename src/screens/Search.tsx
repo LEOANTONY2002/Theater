@@ -636,6 +636,14 @@ export const SearchScreen = React.memo(() => {
             color={hasActiveFilters ? colors.text.primary : colors.modal.active}
           />
         </TouchableOpacity>
+        {hasActiveFilters && (
+          <TouchableOpacity
+            accessibilityLabel="Clear filters"
+            style={styles.clearFilterButton}
+            onPress={handleResetFilters}>
+            <Icon name="close-circle" size={20} color={colors.text.muted} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={{flex: 1}}>
@@ -929,6 +937,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.modal.border,
     backgroundColor: colors.modal.active,
+  },
+  clearFilterButton: {
+    borderRadius: borderRadius.round,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   recentItemsContainer: {
     paddingTop: spacing.sm,

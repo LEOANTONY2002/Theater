@@ -9,7 +9,7 @@ import {
   Easing,
   Platform,
 } from 'react-native';
-import {RouteProp, useNavigation} from '@react-navigation/native';
+import {RouteProp, useNavigation, useIsFocused} from '@react-navigation/native';
 import {HomeStackParamList} from '../types/navigation';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import {getContentByGenre} from '../services/tmdb';
@@ -37,6 +37,7 @@ interface GenreScreenProps {
 export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const navigation = useNavigation<GenreScreenNavigationProp>();
   const {genreId, genreName, contentType} = route.params;
+  const isFocused = useIsFocused();
   const [canRenderContent, setCanRenderContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {isNavigating, navigateWithLimit} = useNavigationState();
@@ -208,6 +209,8 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     };
   }, [queryClient]);
 
+  // Note: Do NOT early-return based on focus to keep hooks order consistent across renders.
+
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       const params =
@@ -259,6 +262,10 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
   // Calculate the content to render
   const renderContent = useMemo(() => {
+    // If not focused, render a lightweight placeholder to avoid heavy work
+    if (!isFocused) {
+      return <View style={{flex: 1, backgroundColor: colors.background.primary}} />;
+    }
     if (!canRenderContent) {
       return (
         <View style={styles.loadingContainer}>
@@ -352,6 +359,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     refetch,
     rowHeight,
     renderFooter,
+    isFocused,
   ]);
 
   return (

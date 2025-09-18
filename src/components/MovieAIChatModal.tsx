@@ -43,6 +43,7 @@ type MovieAIChatModalProps = {
   movieOverview: string;
   movieGenres: string[];
   contentType?: 'movie' | 'tv';
+  onSelectContent?: (content: ContentItem) => void;
 };
 
 const DEFAULT_MOVIE_QUESTIONS = [
@@ -79,6 +80,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   movieOverview,
   movieGenres,
   contentType = 'movie',
+  onSelectContent,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -153,25 +155,35 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
     }
   }, [isLoading]);
 
-  // Add initial welcome message
+  // Add initial welcome message (only when opening, do not reset on movie change)
   useEffect(() => {
     if (visible) {
-      setMessages([
-        {
-          id: '1',
-          text: `Hi! I'm your AI assistant for "${movieTitle}". Ask me anything about this movie, its plot, cast, or get recommendations for similar movies!`,
-          sender: 'ai',
-          timestamp: new Date(),
-        },
-      ]);
-      setInputText('');
+      // Initialize only if chat is empty
+      if (messages.length === 0) {
+        setMessages([
+          {
+            id: '1',
+            text: `Hi! I'm your AI assistant for "${movieTitle}". Ask me anything about this movie, its plot, cast, or get recommendations for similar movies!`,
+            sender: 'ai',
+            timestamp: new Date(),
+          },
+        ]);
+      }
+      // Always clear previous AI suggestions when opening
+      setAiResults([]);
+      setAiResultsLoading(false);
       setShowSuggestions(true);
     } else {
       // Reset messages when modal is closed
       setMessages([]);
+      setInputText('');
+      // Clear AI suggestions when closing
+      setAiResults([]);
+      setAiResultsLoading(false);
       setShowSuggestions(true);
     }
-  }, [visible, movieTitle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const handleSend = useCallback(
     async (overrideText?: string) => {
@@ -486,13 +498,17 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
               title=""
               data={aiResults as any}
               onItemPress={(content: any) => {
-                if (
-                  content.type === 'movie' ||
-                  content.media_type === 'movie'
-                ) {
-                  navigation.navigate('MovieDetails', {movie: content});
+                if (onSelectContent) {
+                  onSelectContent(content);
                 } else {
-                  navigation.navigate('TVShowDetails', {show: content});
+                  if (
+                    content.type === 'movie' ||
+                    content.media_type === 'movie'
+                  ) {
+                    navigation.navigate('MovieDetails', {movie: content});
+                  } else {
+                    navigation.navigate('TVShowDetails', {show: content});
+                  }
                 }
               }}
               isLoading={aiResultsLoading}
@@ -595,10 +611,10 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           </TouchableOpacity>
           <LinearGradient
             colors={[
-              'rgba(209, 8, 112, 0.84)',
-              'rgba(209, 8, 125, 0.53)',
-              'rgba(75, 8, 209, 0.47)',
-              'rgb(133, 7, 183)',
+              'rgba(120, 0, 62, 0.94)',
+              'rgb(117, 0, 68)',
+              'rgb(29, 0, 88)',
+              'rgb(142, 0, 198)',
             ]}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}
@@ -608,7 +624,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
               left: 0,
               right: 0,
               bottom: 0,
-              opacity: 0.5,
+              opacity: 0.7,
             }}
           />
           <View style={styles.container}>
@@ -677,13 +693,21 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                       title=""
                       data={aiResults as any}
                       onItemPress={(content: any) => {
-                        if (
-                          content.type === 'movie' ||
-                          content.media_type === 'movie'
-                        ) {
-                          navigation.navigate('MovieDetails', {movie: content});
+                        if (onSelectContent) {
+                          onSelectContent(content);
                         } else {
-                          navigation.navigate('TVShowDetails', {show: content});
+                          if (
+                            content.type === 'movie' ||
+                            content.media_type === 'movie'
+                          ) {
+                            navigation.navigate('MovieDetails', {
+                              movie: content,
+                            });
+                          } else {
+                            navigation.navigate('TVShowDetails', {
+                              show: content,
+                            });
+                          }
                         }
                       }}
                       isLoading={aiResultsLoading}

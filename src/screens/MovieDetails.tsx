@@ -358,6 +358,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     [navigateWithLimit],
   );
 
+  // Always ensure AI chat modal is closed when movie changes
+  useEffect(() => {
+    setIsAIChatModalOpen(false);
+  }, [movie.id]);
+
   const handleBackPress = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
@@ -714,6 +719,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       fontFamily: 'Inter_18pt-Regular',
     },
   });
+
+  // When not focused (another screen is on top), render an empty container to reduce load
+  if (!isFocused) {
+    return <View style={styles.container} />;
+  }
 
   // Show NoInternet if offline and no cache for movie details
   // Only show if we have an actual error and are offline with no cache
