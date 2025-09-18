@@ -732,6 +732,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     ...typography.body2,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   messageText: {color: colors.text.primary, ...typography.body2},
   inputRow: {
@@ -767,6 +768,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
     marginBottom: spacing.sm,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   suggestionsScrollContent: {paddingHorizontal: spacing.md},
   suggestionChip: {

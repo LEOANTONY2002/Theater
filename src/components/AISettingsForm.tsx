@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.primary,
     marginBottom: spacing.xs,
+    fontFamily: 'Inter_18pt-Regular',
   },
   apiKeyContainer: {
     flexDirection: 'row',
@@ -230,6 +231,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 16,
     paddingRight: spacing.sm,
+    fontFamily: 'Inter_18pt-Regular',
   },
   visibilityButton: {
     padding: spacing.sm,
@@ -248,21 +250,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.secondary,
     marginTop: spacing.xs,
+    fontFamily: 'Inter_18pt-Regular',
   },
   link: {
     color: colors.primary,
     textDecorationLine: 'underline',
+    fontFamily: 'Inter_18pt-Regular',
   },
   infoBox: {
     backgroundColor: colors.background.secondary,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
+    fontFamily: 'Inter_18pt-Regular',
   },
   infoText: {
     color: colors.text.primary,
     fontSize: 14,
     lineHeight: 20,
+    fontFamily: 'Inter_18pt-Regular',
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -274,11 +280,13 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     color: colors.text.secondary,
     fontSize: 14,
+    fontFamily: 'Inter_18pt-Regular',
   },
   emptyText: {
     textAlign: 'center',
     color: colors.text.secondary,
     padding: spacing.lg,
+    fontFamily: 'Inter_18pt-Regular',
   },
   modelItem: {
     flexDirection: 'row',
@@ -317,10 +325,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 2,
+    fontFamily: 'Inter_18pt-Regular',
   },
   modelDescription: {
     color: colors.text.secondary,
     fontSize: 14,
+    fontFamily: 'Inter_18pt-Regular',
   },
   refreshButton: {
     flexDirection: 'row',
@@ -336,6 +346,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     fontWeight: '500',
     fontSize: 14,
+    fontFamily: 'Inter_18pt-Regular',
   },
   refreshing: {
     transform: [{rotate: '360deg'}],

@@ -139,5 +139,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.xs,
     width: 150,
+    fontFamily: 'Inter_18pt-Regular',
   },
 });

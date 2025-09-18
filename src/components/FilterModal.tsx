@@ -109,10 +109,16 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   useEffect(() => {
     if (visible) {
       // Normalize any legacy with_genres strings that used commas (AND) to pipes (OR)
-      if (initialFilters?.with_genres && initialFilters.with_genres.includes(',')) {
+      if (
+        initialFilters?.with_genres &&
+        initialFilters.with_genres.includes(',')
+      ) {
         setFilters({
           ...initialFilters,
-          with_genres: initialFilters.with_genres.split(',').filter(Boolean).join('|'),
+          with_genres: initialFilters.with_genres
+            .split(',')
+            .filter(Boolean)
+            .join('|'),
         });
       } else {
         setFilters(initialFilters);
@@ -339,7 +345,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const handleSavedFilterSelect = (savedFilter: SavedFilter) => {
     setIsApplyingSavedFilter(true);
     setContentType(savedFilter.type);
-    const params = savedFilter.params || {} as any;
+    const params = savedFilter.params || ({} as any);
     const normalized =
       params.with_genres && params.with_genres.includes(',')
         ? {
@@ -587,7 +593,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       const ids = [movieMatch?.id, tvMatch?.id]
                         .filter(Boolean)
                         .map(String) as string[];
-                      if (ids.length === 0) return tokens.includes(genre.id.toString());
+                      if (ids.length === 0)
+                        return tokens.includes(genre.id.toString());
                       return ids.some(id => tokens.includes(id));
                     })()}
                     onPress={() => handleGenreToggle(genre.id, genre.name)}
@@ -895,6 +902,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 color: 'rgba(255, 255, 255, 0.8)',
                 fontSize: 18,
                 marginBottom: 16,
+                fontFamily: 'Inter_18pt-Regular',
+                fontWeight: '600',
               }}>
               Save Filter
             </Text>
@@ -909,6 +918,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 ...typography.body1,
                 width: '100%',
                 marginBottom: spacing.md,
+                fontFamily: 'Inter_18pt-Regular',
               }}
               placeholder="Filter name"
               placeholderTextColor="rgba(168, 168, 168, 0.3)"
@@ -934,7 +944,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 }}
                 onPress={handleCancelSaveFilter}
                 disabled={saving}>
-                <Text style={{color: '#fff', fontWeight: 600}}>Cancel</Text>
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontFamily: 'Inter_18pt-Regular',
+                    fontWeight: '600',
+                  }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{
@@ -948,7 +965,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 }}
                 onPress={handleConfirmSaveFilter}
                 disabled={!newFilterName.trim() || saving}>
-                <Text style={{color: '#000', fontWeight: 600}}>Save</Text>
+                <Text
+                  style={{
+                    color: '#000',
+                    fontFamily: 'Inter_18pt-Regular',
+                    fontWeight: '600',
+                  }}>
+                  Save
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -982,6 +1006,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 fontSize: 18,
                 marginBottom: 6,
                 fontWeight: 800,
+                fontFamily: 'Inter_18pt-Regular',
               }}>
               No Results
             </Text>
@@ -990,6 +1015,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 color: 'rgba(255, 255, 255, 0.5)',
                 marginBottom: 16,
                 fontWeight: 400,
+                fontFamily: 'Inter_18pt-Regular',
               }}>
               This filter has no content
             </Text>
@@ -1002,7 +1028,14 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 width: 100,
               }}
               onPress={() => setShowNoResultsModal(false)}>
-              <Text style={{color: '#444', fontWeight: 'bold'}}>OK</Text>
+              <Text
+                style={{
+                  color: '#444',
+                  fontWeight: 'bold',
+                  fontFamily: 'Inter_18pt-Regular',
+                }}>
+                OK
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

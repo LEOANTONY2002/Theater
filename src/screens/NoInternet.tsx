@@ -34,6 +34,7 @@ export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
       fontWeight: '900',
       textAlign: 'center',
       marginBottom: spacing.sm,
+      fontFamily: 'Inter_18pt-Regular',
     },
     image: {
       width: isTablet ? 300 : 200,

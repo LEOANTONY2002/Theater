@@ -709,6 +709,7 @@ export const SearchScreen = React.memo(() => {
                           fontSize: 14,
                           fontWeight: 400,
                           color: 'rgb(255, 240, 253)',
+                          fontFamily: 'Inter_18pt-Regular',
                         }}>
                         Explore with Theater AI
                       </Text>
@@ -719,6 +720,7 @@ export const SearchScreen = React.memo(() => {
                           fontWeight: 400,
                           maxWidth: isTablet ? 400 : 200,
                           color: 'rgba(198, 150, 215, 0.87)',
+                          fontFamily: 'Inter_18pt-Regular',
                         }}>
                         Find your next worthy movie or TV show to watch
                       </Text>
@@ -755,6 +757,7 @@ export const SearchScreen = React.memo(() => {
                           fontSize: 12,
                           fontWeight: 700,
                           color: colors.text.primary,
+                          fontFamily: 'Inter_18pt-Regular',
                         }}>
                         Ask AI
                       </Text>
@@ -997,6 +1000,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     fontWeight: '900',
     textAlign: 'center',
+    fontFamily: 'Inter_18pt-Regular',
   },
   noResultsText: {
     color: colors.text.secondary,

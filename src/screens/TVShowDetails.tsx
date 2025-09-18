@@ -617,6 +617,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       fontSize: 14,
       lineHeight: 20,
       marginBottom: 30,
+      fontFamily: 'Inter_18pt-Regular',
     },
     sectionTitle: {
       ...typography.h3,
@@ -671,6 +672,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       color: colors.text.primary,
       fontSize: 16,
       fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
     },
     episodesContainer: {
       paddingHorizontal: 16,
@@ -766,6 +768,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       fontSize: 16,
       fontWeight: '500',
       marginBottom: 4,
+      fontFamily: 'Inter_18pt-Regular',
     },
     seasonItemEpisodes: {
       color: colors.text.secondary,
@@ -804,6 +807,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       color: colors.text.primary,
       fontSize: 10,
       fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
     },
   });
 

@@ -119,6 +119,7 @@ const styles = StyleSheet.create({
     opacity: 0.2,
     fontSize: 60,
     fontWeight: '900',
+    fontFamily: 'Inter_28pt-ExtraBold',
   },
   tagText: {
     color: colors.text.primary,
@@ -130,5 +131,6 @@ const styles = StyleSheet.create({
     height: '100%',
     textAlignVertical: 'center',
     fontWeight: '600',
+    fontFamily: 'Inter_18pt-Regular',
   },
 });

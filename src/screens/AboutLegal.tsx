@@ -201,7 +201,6 @@ const AboutLegalScreen: React.FC = () => {
     privacyContent: {
       padding: spacing.md,
       color: colors.text.primary,
-      ...typography.body1,
     },
     privacySectionTitle: {
       color: colors.text.primary,
@@ -289,7 +288,9 @@ const AboutLegalScreen: React.FC = () => {
 
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => Linking.openURL('https://lacurations.vercel.app/?redirect=theater')}
+        onPress={() =>
+          Linking.openURL('https://lacurations.vercel.app/?redirect=theater')
+        }
         accessibilityLabel="Open LA Curations website">
         <Image
           source={require('../assets/LA.webp')}
@@ -362,6 +363,7 @@ const AboutLegalScreen: React.FC = () => {
                     color: colors.text.secondary,
                     fontSize: 12,
                     marginTop: 0,
+                    fontFamily: 'Inter_18pt-Regular',
                   }}>
                   Support or Report
                 </Text>
@@ -435,7 +437,7 @@ const AboutLegalScreen: React.FC = () => {
             <ScrollView
               style={styles.modalBody}
               showsVerticalScrollIndicator={false}>
-              <Text style={styles.privacyContent}>
+              <View style={styles.privacyContent}>
                 <Text style={styles.privacySectionTitle}>
                   Privacy Policy for Theater App{'\n\n'}
                 </Text>
@@ -491,7 +493,7 @@ const AboutLegalScreen: React.FC = () => {
                 {/* <Text style={styles.privacyText}>
                   Last updated: {new Date().toLocaleDateString()}
                 </Text> */}
-              </Text>
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -524,7 +526,7 @@ const AboutLegalScreen: React.FC = () => {
             <ScrollView
               style={styles.modalBody}
               showsVerticalScrollIndicator={false}>
-              <Text style={styles.privacyContent}>
+              <View style={styles.privacyContent}>
                 <Text style={styles.privacySectionTitle}>
                   Terms of Service{'\n\n'}
                 </Text>
@@ -588,7 +590,7 @@ const AboutLegalScreen: React.FC = () => {
                 {/* <Text style={styles.privacyText}>
                   Last updated: {new Date().toLocaleDateString()}
                 </Text> */}
-              </Text>
+              </View>
             </ScrollView>
           </View>
         </View>

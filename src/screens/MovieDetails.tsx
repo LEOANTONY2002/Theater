@@ -547,6 +547,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       color: colors.text.muted,
       fontSize: 14,
       lineHeight: 20,
+      fontFamily: 'Inter_18pt-Regular',
     },
     sectionTitle: {
       ...typography.h3,
@@ -710,6 +711,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       color: colors.text.primary,
       fontSize: 10,
       fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
     },
   });
 

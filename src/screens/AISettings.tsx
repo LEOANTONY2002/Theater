@@ -463,6 +463,7 @@ const AISettingsScreen: React.FC = () => {
                     textDecorationLine: 'underline',
                     textDecorationColor: colors.text.primary,
                     textDecorationStyle: 'solid',
+                    fontFamily: 'Inter_18pt-Regular',
                   }}>
                   https://aistudio.google.com/app/apikey
                 </Text>
@@ -590,10 +591,19 @@ const AISettingsScreen: React.FC = () => {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Text
-            style={{color: colors.text.secondary, marginBottom: spacing.xs}}>
+            style={{
+              color: colors.text.secondary,
+              marginBottom: spacing.xs,
+              fontFamily: 'Inter_18pt-Regular',
+            }}>
             Important Warning:
           </Text>
-          <Text style={{color: colors.text.muted, marginBottom: spacing.md}}>
+          <Text
+            style={{
+              color: colors.text.muted,
+              marginBottom: spacing.md,
+              fontFamily: 'Inter_18pt-Regular',
+            }}>
             • Your API key is like a password. Do not share it with anyone.
             {'\n'}• You are responsible for any usage and associated costs with
             your key.

@@ -607,16 +607,19 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     color: colors.text.primary,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   mediaType: {
     fontSize: typography.caption.fontSize,
     color: colors.text.secondary,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   overview: {
     fontSize: typography.caption.fontSize,
     color: colors.text.secondary,
     lineHeight: typography.caption.fontSize * 1.4,
+    fontFamily: 'Inter_18pt-Regular',
   },
   feedbackContainer: {
     alignItems: 'center',
@@ -625,6 +628,7 @@ const styles = StyleSheet.create({
   feedbackTitle: {
     fontSize: 12,
     color: colors.text.primary,
+    fontFamily: 'Inter_18pt-Regular',
   },
   feedbackButtons: {
     flexDirection: 'row',
@@ -656,6 +660,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.primary,
     fontWeight: '600',
+    fontFamily: 'Inter_18pt-Regular',
   },
   emptyState: {
     alignItems: 'center',
@@ -665,6 +670,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typography.body1.fontSize,
     color: colors.text.secondary,
+    fontFamily: 'Inter_18pt-Regular',
   },
   retryButton: {
     paddingHorizontal: spacing.lg,
@@ -676,6 +682,7 @@ const styles = StyleSheet.create({
     fontSize: typography.body2.fontSize,
     color: '#000',
     fontWeight: '600',
+    fontFamily: 'Inter_18pt-Regular',
   },
   // New mood onboarding styles
   questionContainer: {
@@ -690,6 +697,7 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     color: colors.text.secondary,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   progressBar: {
     width: '100%',
@@ -709,6 +717,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     textAlign: 'center',
     marginVertical: spacing.md,
+    fontFamily: 'Inter_18pt-Regular',
   },
   optionsContainer: {
     flex: 1,
@@ -731,6 +740,7 @@ const styles = StyleSheet.create({
     fontSize: typography.body1.fontSize,
     color: colors.text.primary,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   backButton: {
     flexDirection: 'row',
@@ -744,6 +754,7 @@ const styles = StyleSheet.create({
     fontSize: typography.body2.fontSize,
     color: colors.text.secondary,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   backHeaderButton: {
     padding: spacing.sm,
@@ -769,6 +780,7 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     color: colors.accent,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
 });
 

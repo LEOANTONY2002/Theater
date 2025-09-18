@@ -657,6 +657,7 @@ const OnboardingAISettings: React.FC<{
               borderColor: colors.modal.blur,
               backgroundColor: colors.text.primary,
               textAlign: 'center',
+              fontFamily: 'Inter_18pt-Regular',
             }}>
             Get your API key
           </Text>
@@ -693,6 +694,7 @@ const OnboardingAISettings: React.FC<{
             textAlign: 'center',
             fontSize: 10,
             marginHorizontal: spacing.md,
+            fontFamily: 'Inter_18pt-Regular',
           }}>
           By using your own key, you agree to Google's Generative AI terms of
           service.
@@ -710,7 +712,13 @@ const OnboardingAISettings: React.FC<{
               alignSelf: 'center',
             }}>
             <TouchableOpacity activeOpacity={0.9} onPress={handleSkipPress}>
-              <Text style={{color: colors.text.muted}}>Skip</Text>
+              <Text
+                style={{
+                  color: colors.text.muted,
+                  fontFamily: 'Inter_18pt-Regular',
+                }}>
+                Skip
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -728,7 +736,12 @@ const OnboardingAISettings: React.FC<{
                   width: isTablet ? 200 : width * 0.5,
                   opacity: isValidating || apiKey === '' ? 0.5 : 1,
                 }}>
-                <Text style={{color: colors.text.primary, fontWeight: 'bold'}}>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    fontWeight: 'bold',
+                    fontFamily: 'Inter_18pt-Regular',
+                  }}>
                   Enter Theater
                 </Text>
               </LinearGradient>

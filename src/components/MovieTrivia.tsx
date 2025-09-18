@@ -170,11 +170,13 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       fontSize: typography.caption.fontSize,
       color: '#fff',
       fontWeight: '600',
+      fontFamily: 'Inter_18pt-Regular',
     },
     factText: {
       fontSize: typography.body2.fontSize,
       color: colors.text.primary,
       lineHeight: typography.body2.fontSize * 1.5,
+      fontFamily: 'Inter_18pt-Regular',
     },
     fadeGradient: {
       width: '100%',
@@ -195,6 +197,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       fontSize: typography.body2.fontSize,
       color: colors.text.secondary,
       textAlign: 'center',
+      fontFamily: 'Inter_18pt-Regular',
     },
   });
 

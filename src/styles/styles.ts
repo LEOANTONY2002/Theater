@@ -80,6 +80,8 @@ export const modalStyles = StyleSheet.create({
   },
   activeText: {
     color: colors.modal.activeText,
+    fontFamily: 'Inter_18pt-Regular',
+    fontWeight: '600',
   },
   pickerContainer: {
     backgroundColor: colors.modal.content,
@@ -253,6 +255,8 @@ export const modalStyles = StyleSheet.create({
   },
   activeTagText: {
     opacity: 1,
+    fontFamily: 'Inter_18pt-Regular',
+    fontWeight: '600',
   },
   tagSubText: {
     color: colors.text.secondary,

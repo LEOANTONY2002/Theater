@@ -92,6 +92,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
         width: 100,
         letterSpacing: -10,
         textAlign: 'center',
+        fontFamily: 'Inter_28pt-ExtraBold',
       },
       listWrapper: {
         flex: 1,

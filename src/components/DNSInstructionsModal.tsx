@@ -57,6 +57,7 @@ export const DNSInstructionsModal = ({
       fontWeight: '900',
       textAlign: 'center',
       marginBottom: spacing.sm,
+      fontFamily: 'Inter_28pt-ExtraBold',
     },
     image: {
       width: isTablet ? 300 : 200,
@@ -70,6 +71,7 @@ export const DNSInstructionsModal = ({
       color: colors.text.secondary,
       textAlign: 'center',
       marginBottom: spacing.md,
+      fontFamily: 'Inter_18pt-Regular',
     },
     instructions: {
       ...typography.body2,
@@ -118,7 +120,12 @@ export const DNSInstructionsModal = ({
           </View>
           <Text style={styles.subtitle}>
             To use this app, please set your Private DNS to{' '}
-            <Text style={{fontWeight: 'bold', color: colors.primary}}>
+            <Text
+              style={{
+                fontWeight: 'bold',
+                color: colors.primary,
+                fontFamily: 'Inter_18pt-Regular',
+              }}>
               dns.google
             </Text>{' '}
             in your device settings.

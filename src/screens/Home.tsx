@@ -823,6 +823,7 @@ export const HomeScreen = React.memo(() => {
                         fontSize: 14,
                         fontWeight: 400,
                         color: 'rgb(255, 240, 253)',
+                        fontFamily: 'Inter_18pt-Regular',
                       }}>
                       My Next Watch
                     </Text>
@@ -831,6 +832,7 @@ export const HomeScreen = React.memo(() => {
                         fontSize: 12,
                         fontWeight: 400,
                         color: 'rgba(198, 150, 215, 0.87)',
+                        fontFamily: 'Inter_18pt-Regular',
                       }}>
                       How are you feeling today?
                     </Text>
@@ -855,6 +857,7 @@ export const HomeScreen = React.memo(() => {
                         fontSize: 12,
                         fontWeight: 700,
                         color: colors.text.primary,
+                        fontFamily: 'Inter_18pt-Regular',
                       }}>
                       Get Started
                     </Text>

@@ -392,10 +392,15 @@ export const OnlineAIScreen: React.FC = () => {
                 )}&year=${item.year}`,
               );
               const data = await res.json();
-              const candidates = Array.isArray(data.results) ? data.results : [];
+              const candidates = Array.isArray(data.results)
+                ? data.results
+                : [];
               // Prefer language match first, then score by year and popularity
               const aiLang = item.original_language;
-              const aiYear = typeof item.year === 'string' ? parseInt(item.year, 10) : item.year;
+              const aiYear =
+                typeof item.year === 'string'
+                  ? parseInt(item.year, 10)
+                  : item.year;
               const normalize = (t: string | undefined) =>
                 (t || '')
                   .toLowerCase()
@@ -417,7 +422,9 @@ export const OnlineAIScreen: React.FC = () => {
                 const data2 = await res2.json();
                 pool = Array.isArray(data2.results) ? data2.results : [];
                 if (aiLang) {
-                  const langPool = pool.filter((c: any) => c?.original_language === aiLang);
+                  const langPool = pool.filter(
+                    (c: any) => c?.original_language === aiLang,
+                  );
                   if (langPool.length > 0) pool = langPool;
                 }
               }
@@ -428,17 +435,30 @@ export const OnlineAIScreen: React.FC = () => {
                   let s = 0;
                   const candTitle = c?.title || c?.name || '';
                   const candTitleN = normalize(candTitle);
-                  if (candTitleN === aiTitleN) s += 2; // exact normalized title match bonus
-                  else if (candTitleN.startsWith(aiTitleN) || aiTitleN.startsWith(candTitleN)) s += 1; // prefix containment bonus
-                  const y = c?.release_date && c.release_date.length >= 4 ? parseInt(c.release_date.slice(0, 4), 10) : null;
+                  if (candTitleN === aiTitleN)
+                    s += 2; // exact normalized title match bonus
+                  else if (
+                    candTitleN.startsWith(aiTitleN) ||
+                    aiTitleN.startsWith(candTitleN)
+                  )
+                    s += 1; // prefix containment bonus
+                  const y =
+                    c?.release_date && c.release_date.length >= 4
+                      ? parseInt(c.release_date.slice(0, 4), 10)
+                      : null;
                   if (aiYear && y) {
                     if (y === aiYear) s += 3;
                     else if (Math.abs(y - aiYear) === 1) s += 1;
                   }
-                  if (typeof c?.popularity === 'number') s += Math.min(2, c.popularity / 100);
+                  if (typeof c?.popularity === 'number')
+                    s += Math.min(2, c.popularity / 100);
                   return s;
                 };
-                found = pool.reduce((best: any, cur: any) => (score(cur) > score(best) ? cur : best), pool[0]);
+                found = pool.reduce(
+                  (best: any, cur: any) =>
+                    score(cur) > score(best) ? cur : best,
+                  pool[0],
+                );
               }
             } else if (item.type === 'tv') {
               const res = await fetch(
@@ -447,9 +467,14 @@ export const OnlineAIScreen: React.FC = () => {
                 )}&first_air_date_year=${item.year}`,
               );
               const data = await res.json();
-              const candidates = Array.isArray(data.results) ? data.results : [];
+              const candidates = Array.isArray(data.results)
+                ? data.results
+                : [];
               const aiLang = item.original_language;
-              const aiYear = typeof item.year === 'string' ? parseInt(item.year, 10) : item.year;
+              const aiYear =
+                typeof item.year === 'string'
+                  ? parseInt(item.year, 10)
+                  : item.year;
               const normalize = (t: string | undefined) =>
                 (t || '')
                   .toLowerCase()
@@ -470,7 +495,9 @@ export const OnlineAIScreen: React.FC = () => {
                 const data2 = await res2.json();
                 pool = Array.isArray(data2.results) ? data2.results : [];
                 if (aiLang) {
-                  const langPool = pool.filter((c: any) => c?.original_language === aiLang);
+                  const langPool = pool.filter(
+                    (c: any) => c?.original_language === aiLang,
+                  );
                   if (langPool.length > 0) pool = langPool;
                 }
               }
@@ -482,16 +509,28 @@ export const OnlineAIScreen: React.FC = () => {
                   const candTitle = c?.name || c?.title || '';
                   const candTitleN = normalize(candTitle);
                   if (candTitleN === aiTitleN) s += 2;
-                  else if (candTitleN.startsWith(aiTitleN) || aiTitleN.startsWith(candTitleN)) s += 1;
-                  const y = c?.first_air_date && c.first_air_date.length >= 4 ? parseInt(c.first_air_date.slice(0, 4), 10) : null;
+                  else if (
+                    candTitleN.startsWith(aiTitleN) ||
+                    aiTitleN.startsWith(candTitleN)
+                  )
+                    s += 1;
+                  const y =
+                    c?.first_air_date && c.first_air_date.length >= 4
+                      ? parseInt(c.first_air_date.slice(0, 4), 10)
+                      : null;
                   if (aiYear && y) {
                     if (y === aiYear) s += 3;
                     else if (Math.abs(y - aiYear) === 1) s += 1;
                   }
-                  if (typeof c?.popularity === 'number') s += Math.min(2, c.popularity / 100);
+                  if (typeof c?.popularity === 'number')
+                    s += Math.min(2, c.popularity / 100);
                   return s;
                 };
-                found = pool.reduce((best: any, cur: any) => (score(cur) > score(best) ? cur : best), pool[0]);
+                found = pool.reduce(
+                  (best: any, cur: any) =>
+                    score(cur) > score(best) ? cur : best,
+                  pool[0],
+                );
               }
             }
             if (found) {
@@ -1307,7 +1346,13 @@ export const OnlineAIScreen: React.FC = () => {
                 }}
               />
               {threads.length === 0 ? (
-                <Text style={{color: colors.text.tertiary}}>No chats yet</Text>
+                <Text
+                  style={{
+                    color: colors.text.tertiary,
+                    fontFamily: 'Inter_18pt-Regular',
+                  }}>
+                  No chats yet
+                </Text>
               ) : (
                 <ScrollView
                   contentContainerStyle={{paddingBottom: 200}}
@@ -1345,6 +1390,7 @@ export const OnlineAIScreen: React.FC = () => {
                         <Text
                           style={{
                             color: colors.text.primary,
+                            fontFamily: 'Inter_18pt-Regular',
                           }}
                           numberOfLines={1}>
                           {label}

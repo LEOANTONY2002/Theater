@@ -277,12 +277,14 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
       color: colors.text.primary,
       marginBottom: spacing.md,
       textAlign: 'center',
+      fontFamily: 'Inter_18pt-Regular',
     },
     welcomeSubtitle: {
       fontSize: 16,
       color: colors.text.secondary,
       textAlign: 'center',
       lineHeight: 24,
+      fontFamily: 'Inter_18pt-Regular',
     },
     container: {
       flex: 1,
@@ -296,21 +298,21 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
     title: {
       color: colors.text.primary,
       fontSize: 24,
-      fontFamily: 'Poppins-SemiBold',
+      fontFamily: 'Inter_18pt-Regular',
       textAlign: 'center',
       marginBottom: spacing.xs,
     },
     subtitle: {
       color: colors.text.primary,
       fontSize: 16,
-      fontFamily: 'Poppins-Medium',
+      fontFamily: 'Inter_18pt-Regular',
       margin: 2,
       paddingVertical: spacing.md,
     },
     regionNativeName: {
       color: colors.text.secondary,
       fontSize: 14,
-      fontFamily: 'Poppins-Regular',
+      fontFamily: 'Inter_18pt-Regular',
     },
     radioButton: {
       width: 24,
@@ -335,13 +337,13 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
     },
     loadingText: {
       color: colors.text.secondary,
-      fontFamily: 'Poppins-Regular',
+      fontFamily: 'Inter_18pt-Regular',
       marginTop: spacing.lg,
       textAlign: 'center',
     },
     emptyText: {
       color: colors.text.secondary,
-      fontFamily: 'Poppins-Regular',
+      fontFamily: 'Inter_18pt-Regular',
       textAlign: 'center',
       marginTop: spacing.xl,
     },
@@ -361,12 +363,12 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
     regionName: {
       color: colors.text.primary,
       fontSize: 16,
-      fontFamily: 'Poppins-Medium',
+      fontFamily: 'Inter_18pt-Regular',
       marginBottom: 2,
     },
     errorText: {
       color: colors.primary,
-      fontFamily: 'Poppins-Medium',
+      fontFamily: 'Inter_18pt-Regular',
       textAlign: 'center',
       marginBottom: spacing.md,
     },

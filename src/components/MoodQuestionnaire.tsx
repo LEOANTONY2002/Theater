@@ -406,6 +406,7 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     color: colors.text.secondary,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
   progressBar: {
     width: '100%',
@@ -426,6 +427,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: spacing.lg,
     paddingHorizontal: spacing.md,
+    fontFamily: 'Inter_18pt-Regular',
   },
   optionsContainer: {
     flex: 1,
@@ -448,5 +450,6 @@ const styles = StyleSheet.create({
     fontSize: typography.body1.fontSize,
     color: colors.text.primary,
     fontWeight: '500',
+    fontFamily: 'Inter_18pt-Regular',
   },
 });

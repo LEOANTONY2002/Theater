@@ -57,6 +57,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
       fontSize: 16,
       fontWeight: '600',
       textAlign: 'center',
+      fontFamily: 'Inter_18pt-Regular',
     },
     disabled: {
       opacity: 0.6,

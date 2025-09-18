@@ -60,6 +60,7 @@ export const Chip: React.FC<ChipProps> = ({
     },
     selectedLabel: {
       color: colors.accent,
+      fontFamily: 'Inter_18pt-Regular',
     },
   });
 
@@ -95,6 +96,7 @@ export const Chip: React.FC<ChipProps> = ({
               opacity: 0.08,
               fontSize: 60,
               fontWeight: '900',
+              fontFamily: 'Inter_28pt-ExtraBold',
             }}>
             {label?.slice(0, 2).toString()}
           </Text>

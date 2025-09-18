@@ -102,7 +102,12 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
       justifyContent: 'center',
       alignItems: 'center',
     },
-    hintText: {color: colors.text.secondary, fontSize: 14, marginTop: 16},
+    hintText: {
+      color: colors.text.secondary,
+      fontSize: 14,
+      marginTop: 16,
+      fontFamily: 'Inter_18pt-Regular',
+    },
     actions: {flexDirection: 'row', gap: 12, marginTop: 20},
     actionBtn: {
       minWidth: 110,
@@ -115,7 +120,7 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
       borderColor: colors.modal.border,
       backgroundColor: 'transparent',
     },
-    actionText: {color: colors.text.primary},
+    actionText: {color: colors.text.primary, fontFamily: 'Inter_18pt-Regular'},
   });
 
   return (

@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 10,
     textAlign: 'center',
+    fontFamily: 'Inter_18pt-Regular',
   },
   fitToScreenButton: {
     position: 'absolute',
