@@ -1101,11 +1101,25 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
           <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>All Genres</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setShowAllGenresModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                {!!filters.with_genres && (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={clearAllGenres}
+                    style={{marginRight: spacing.md}}>
+                    <Text style={{color: colors.text.muted}}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => setShowAllGenresModal(false)}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -1156,11 +1170,25 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
           <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>All Watch Providers</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setShowAllProvidersModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                {!!filters.with_watch_providers && (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={clearAllWatchProviders}
+                    style={{marginRight: spacing.md}}>
+                    <Text style={{color: colors.text.muted}}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => setShowAllProvidersModal(false)}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -1207,6 +1235,19 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                         }}
                         resizeMode="contain"
                       />
+                      {selected && (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            borderRadius: 10,
+                            padding: 2,
+                          }}>
+                          <Ionicons name="checkmark" size={14} color="#fff" />
+                        </View>
+                      )}
                     </TouchableOpacity>
                   );
                 })}

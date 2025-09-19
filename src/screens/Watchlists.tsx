@@ -632,6 +632,7 @@ export const WatchlistsScreen: React.FC = () => {
               isFilter={true}
               isHeadingSkeleton={false}
             />
+            <View style={{width: 100, height: 100}} />
             <LinearGradient
               colors={['transparent', colors.background.primary]}
               pointerEvents="none"
