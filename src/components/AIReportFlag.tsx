@@ -181,7 +181,7 @@ export const AIReportFlag: React.FC<AIReportFlagProps> = ({
   };
 
   return (
-    <View style={{marginLeft: spacing.md}}>
+    <View style={{marginLeft: spacing.md, opacity: 0.5}}>
       <View style={styles.actionsInlineRow}>
         <TouchableOpacity
           onPress={handleCopy}

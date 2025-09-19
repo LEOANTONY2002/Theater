@@ -240,10 +240,7 @@ export const CategoryScreen = () => {
     };
   }, [queryClient]);
 
-  // When not focused (another screen is on top), render an empty container to reduce load
-  if (!isFocused) {
-    return <View style={styles.container} />;
-  }
+  // Do not early return on unfocused; we will hide the list to preserve scroll
 
   // Show loading screen until content can be rendered
   if (!canRenderContent) {
@@ -330,6 +327,9 @@ export const CategoryScreen = () => {
           )}
           bounces={true}
           overScrollMode="always"
+          // Keep mounted to preserve scroll; hide when not focused
+          style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
+          pointerEvents={isFocused ? 'auto' : 'none'}
         />
       </View>
       {isInitialLoading && (

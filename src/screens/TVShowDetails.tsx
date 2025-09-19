@@ -390,7 +390,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         <Image
           source={{
             uri: episode.still_path
-              ? getImageUrl(episode.still_path, 'w300')
+              ? getImageUrl(episode.still_path, 'w500')
               : 'https://via.placeholder.com/200x112',
           }}
           style={styles.episodeImage}

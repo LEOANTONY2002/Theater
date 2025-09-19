@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {useRoute, RouteProp, useIsFocused} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {HomeStackParamList} from '../types/navigation';
 import {ContentItem} from '../components/MovieList';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
@@ -376,11 +375,6 @@ export const PersonCreditsScreen = () => {
         contentContainerStyle={styles.listContent}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
-        estimatedItemSize={cardHeight}
-        overrideItemLayout={(layout, item, index) => {
-          layout.size = cardHeight;
-          layout.span = 1;
-        }}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.titleContainer}>

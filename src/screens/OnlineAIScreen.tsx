@@ -746,7 +746,9 @@ export const OnlineAIScreen: React.FC = () => {
             .trimEnd()
         : s;
     const contentToRender =
-      item.role === 'assistant' ? stripTrailingEmptyCodeFence(item?.content) : item?.content;
+      item.role === 'assistant'
+        ? stripTrailingEmptyCodeFence(item?.content)
+        : item?.content;
 
     // Markdown styles to avoid white background blocks
     const markdownStyles = {
@@ -765,9 +767,7 @@ export const OnlineAIScreen: React.FC = () => {
         ) : (
           <View>
             <View style={[styles.message, styles.assistant]}>
-              <Markdown style={markdownStyles}>
-                {contentToRender}
-              </Markdown>
+              <Markdown style={markdownStyles}>{contentToRender}</Markdown>
             </View>
             <AIReportFlag
               aiText={item?.content}
@@ -779,16 +779,20 @@ export const OnlineAIScreen: React.FC = () => {
           </View>
         )}
         {item.tmdbResults && item.tmdbResults.length > 0 && (
-          <View style={{marginTop: spacing.sm}}>
+          <View style={{marginTop: spacing.md}}>
             <View style={styles.watchlistItemBox}>
               <LinearGradient
                 colors={['transparent', 'rgb(18, 0, 22)', 'rgb(18, 0, 22)']}
                 pointerEvents="none"
-                style={styles.watchlistItemGradient}
+                style={[styles.watchlistItemGradient]}
                 start={{x: 0, y: 0}}
                 end={{x: 0, y: 1}}
               />
-              <View style={styles.listContainerAI}>
+              <View
+                style={[
+                  styles.listContainerAI,
+                  {height: isTablet ? 350 : 250},
+                ]}>
                 <HorizontalList
                   title={''}
                   data={
@@ -822,7 +826,14 @@ export const OnlineAIScreen: React.FC = () => {
                 <LinearGradient
                   colors={['transparent', 'rgb(18, 0, 22)']}
                   pointerEvents="none"
-                  style={styles.watchlistItemBottomFade}
+                  style={{
+                    width: '100%',
+                    height: 200,
+                    position: 'absolute',
+                    bottom: isTablet ? 50 : 20,
+                    zIndex: 1,
+                    opacity: 0.9,
+                  }}
                 />
               </View>
             </View>
@@ -1609,14 +1620,5 @@ const styles = StyleSheet.create({
     left: -30,
     zIndex: 1,
   },
-  watchlistItemBottomFade: {
-    width: '100%',
-    height: 200,
-    position: 'absolute',
-    bottom: 20,
-    zIndex: 1,
-    opacity: 0.9,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
+  watchlistItemBottomFade: {},
 });

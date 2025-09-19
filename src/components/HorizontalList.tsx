@@ -43,6 +43,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     const styles = StyleSheet.create({
       container: {
         marginBottom: spacing.md,
+        zIndex: 1,
       },
       headerContainer: {
         flexDirection: 'row',

@@ -262,10 +262,6 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
   // Calculate the content to render
   const renderContent = useMemo(() => {
-    // If not focused, render a lightweight placeholder to avoid heavy work
-    if (!isFocused) {
-      return <View style={{flex: 1, backgroundColor: colors.background.primary}} />;
-    }
     if (!canRenderContent) {
       return (
         <View style={styles.loadingContainer}>
@@ -345,6 +341,9 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
           [{nativeEvent: {contentOffset: {y: scrollY.current}}}],
           {useNativeDriver: true},
         )}
+        // Keep mounted to preserve scroll; hide when not focused
+        style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
+        pointerEvents={isFocused ? 'auto' : 'none'}
       />
     );
   }, [

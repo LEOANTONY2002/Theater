@@ -45,6 +45,15 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
+  const [isStarted, setIsStarted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsStarted(true);
+      handleNextPress();
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Load regions on mount
   useEffect(() => {
@@ -77,6 +86,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
   };
 
   const handleNextPress = async () => {
+    setIsStarted(true);
     if (currentStep === 'welcome') {
       setIsDetecting(true);
       try {
