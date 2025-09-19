@@ -32,7 +32,7 @@ import {FiltersManager} from '../store/filters';
 import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
 import {HomeFilterRow} from '../components/HomeFilterRow';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useIsFocused} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
@@ -50,6 +50,7 @@ export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
+  const isFocused = useIsFocused();
   const [showMoodQuestionnaire, setShowMoodQuestionnaire] = useState(false);
   const {isAIEnabled} = useAIEnabled();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
@@ -1067,6 +1068,9 @@ export const HomeScreen = React.memo(() => {
         initialNumToRender={4}
         maxToRenderPerBatch={4}
         ListFooterComponent={<View style={{height: 100}} />}
+        // Keep mounted to preserve scroll; hide when not focused
+        style={{display: isFocused ? 'flex' as const : 'none' as const}}
+        pointerEvents={isFocused ? 'auto' : 'none'}
       />
 
       {/* Mood Questionnaire Modal */}

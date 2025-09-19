@@ -571,11 +571,6 @@ export const SearchScreen = React.memo(() => {
     };
   }, [queryClient]);
 
-  // When not focused (details screen on top), avoid rendering heavy content to reduce compositing load
-  if (!isFocused) {
-    return <View style={styles.container} />;
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -646,7 +641,13 @@ export const SearchScreen = React.memo(() => {
         )}
       </View>
 
-      <View style={{flex: 1}}>
+      <View
+        style={{
+          flex: 1,
+          // Keep mounted to preserve scroll; hide when not focused
+          display: isFocused ? ('flex' as const) : ('none' as const),
+        }}
+        pointerEvents={isFocused ? 'auto' : 'none'}>
         {!showSearchResults ? (
           <FlatList
             style={{paddingTop: 120}}

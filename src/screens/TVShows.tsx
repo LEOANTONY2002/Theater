@@ -7,7 +7,7 @@ import {
   useDiscoverTVShows,
 } from '../hooks/useTVShows';
 import {TVShow} from '../types/tvshow';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useIsFocused} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
@@ -35,6 +35,7 @@ type TVShowsScreenNavigationProp =
 export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
   const {navigateWithLimit} = useNavigationState();
+  const isFocused = useIsFocused();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
 
@@ -572,25 +573,29 @@ export const TVShowsScreen = React.memo(() => {
   return (
     <RNGestureHandlerRootView style={{flex: 1}}>
       <View style={styles.container}>
-        <FlatList
-          data={sections}
-          renderItem={renderSection}
-          keyExtractor={keyExtractor}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{paddingBottom: 100}}
-          // FlashList optimizations
-          removeClippedSubviews={true}
-          // Scroll optimizations
-          scrollEventThrottle={16}
-          // Performance optimizations
-          extraData={null}
-          onScrollBeginDrag={() => {}}
-          onScrollEndDrag={() => {}}
-          onMomentumScrollEnd={() => {}}
-          // Memory management
-          disableIntervalMomentum={false}
-          // initialNumToRender and windowSize removed, not supported by FlashList
-        />
+        {isFocused ? (
+          <FlatList
+            data={sections}
+            renderItem={renderSection}
+            keyExtractor={keyExtractor}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{paddingBottom: 100}}
+            // FlashList optimizations
+            removeClippedSubviews={true}
+            // Scroll optimizations
+            scrollEventThrottle={16}
+            // Performance optimizations
+            extraData={null}
+            onScrollBeginDrag={() => {}}
+            onScrollEndDrag={() => {}}
+            onMomentumScrollEnd={() => {}}
+            // Memory management
+            disableIntervalMomentum={false}
+            // initialNumToRender and windowSize removed, not supported by FlashList
+          />
+        ) : (
+          <View />
+        )}
       </View>
     </RNGestureHandlerRootView>
   );

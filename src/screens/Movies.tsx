@@ -6,7 +6,7 @@ import {
   useDiscoverMovies,
 } from '../hooks/useMovies';
 import {Movie} from '../types/movie';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useIsFocused} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
@@ -34,6 +34,7 @@ export const MoviesScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation<MoviesScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
+  const isFocused = useIsFocused();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [renderPhase, setRenderPhase] = useState(0);
@@ -698,6 +699,9 @@ export const MoviesScreen = React.memo(() => {
           contentContainerStyle={{paddingBottom: 100}}
           removeClippedSubviews={true}
           keyboardShouldPersistTaps="handled"
+          // Keep mounted to preserve scroll; hide when not focused
+          style={{display: isFocused ? 'flex' as const : 'none' as const}}
+          pointerEvents={isFocused ? 'auto' : 'none'}
         />
       </View>
     </RNGestureHandlerRootView>
