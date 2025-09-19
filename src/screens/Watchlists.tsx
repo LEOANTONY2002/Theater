@@ -675,7 +675,7 @@ export const WatchlistsScreen: React.FC = () => {
           <View
             style={{
               flex: 1,
-              backgroundColor: 'rgba(0,0,0,0.7)',
+              backgroundColor: 'rgba(0,0,0,0.8)',
               alignItems: 'center',
               justifyContent: 'center',
               padding: spacing.md,
@@ -684,7 +684,6 @@ export const WatchlistsScreen: React.FC = () => {
               style={{
                 width: '92%',
                 borderRadius: borderRadius.lg,
-                backgroundColor: colors.modal.active,
                 overflow: 'hidden',
                 alignItems: 'center',
                 padding: spacing.md,

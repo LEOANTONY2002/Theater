@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
+import {View, Text, Image, ImageBackground, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { colors, spacing, typography, borderRadius } from '../styles/theme';
+import {colors, spacing, typography, borderRadius} from '../styles/theme';
 
 export type SharePosterItem = {
   id: number;
@@ -21,7 +21,11 @@ interface SharePosterProps {
 }
 
 // 1080 x 1920 recommended canvas
-export const SharePoster: React.FC<SharePosterProps> = ({ watchlistName, items, importCode }) => {
+export const SharePoster: React.FC<SharePosterProps> = ({
+  watchlistName,
+  items,
+  importCode,
+}) => {
   const top = items[0];
   const backdrop = top?.backdrop_path
     ? `https://image.tmdb.org/t/p/w780${top.backdrop_path}`
@@ -31,17 +35,6 @@ export const SharePoster: React.FC<SharePosterProps> = ({ watchlistName, items, 
 
   return (
     <View style={styles.canvas}>
-      <ImageBackground
-        source={backdrop ? { uri: backdrop } : undefined}
-        resizeMode="cover"
-        style={StyleSheet.absoluteFillObject as any}
-      >
-        <LinearGradient
-          colors={["rgba(0,0,0,0.1)", "rgba(0,0,0,0.85)"]}
-          style={StyleSheet.absoluteFillObject as any}
-        />
-      </ImageBackground>
-
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2}>
           {watchlistName}
@@ -52,15 +45,17 @@ export const SharePoster: React.FC<SharePosterProps> = ({ watchlistName, items, 
       </View>
 
       <View style={styles.grid}>
-        {posters.map((it) => (
+        {posters.map(it => (
           <View key={`${it.type}-${it.id}`} style={styles.gridItem}>
             {it.poster_path ? (
               <Image
-                source={{ uri: `https://image.tmdb.org/t/p/w500${it.poster_path}` }}
+                source={{
+                  uri: `https://image.tmdb.org/t/p/w500${it.poster_path}`,
+                }}
                 style={styles.poster}
                 resizeMode="cover"
-              />)
-              : (
+              />
+            ) : (
               <View style={[styles.poster, styles.posterPlaceholder]} />
             )}
           </View>
@@ -69,8 +64,12 @@ export const SharePoster: React.FC<SharePosterProps> = ({ watchlistName, items, 
 
       {importCode ? (
         <View style={styles.footer}>
-          <Text style={styles.footerLabel}>Import this watchlist in Theater</Text>
-          <Text style={styles.code} numberOfLines={2}>{importCode}</Text>
+          <Text style={styles.footerLabel}>
+            Import this watchlist in Theater
+          </Text>
+          <Text style={styles.code} numberOfLines={2}>
+            {importCode}
+          </Text>
         </View>
       ) : null}
     </View>
