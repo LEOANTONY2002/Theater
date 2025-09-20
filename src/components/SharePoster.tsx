@@ -20,14 +20,23 @@ interface SharePosterProps {
   items: SharePosterItem[];
   importCode?: string;
   isFilter?: boolean;
+  showQR?: boolean;
+  details?: {
+    runtime?: number; // minutes
+    year?: number;
+    rating?: number; // 0-10
+    genres?: string[];
+  };
 }
 
 // 1080 x 1920 recommended canvas
 export const SharePoster: React.FC<SharePosterProps> = ({
   watchlistName,
   items,
-  importCode,
+  importCode = '',
   isFilter = false,
+  showQR = true,
+  details,
 }) => {
   const posters = items.slice(0, 9);
   console.log('importCode', importCode);
@@ -49,7 +58,7 @@ export const SharePoster: React.FC<SharePosterProps> = ({
       />
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={1}>
-          {isFilter ? 'Filter' : 'Watchlist'}
+          {details ? 'Watching' : isFilter ? 'Filter' : 'Watchlist'}
         </Text>
       </View>
 
@@ -139,58 +148,110 @@ export const SharePoster: React.FC<SharePosterProps> = ({
         resizeMode="contain"
       />
 
-      <Text
-        numberOfLines={2}
-        style={{
-          color: colors.text.primary,
-          ...typography.h1,
-          fontSize: 60,
-          marginTop: 60,
-          opacity: 0.5,
-          fontWeight: 'bold',
-          marginVertical: 64,
-        }}>
-        {watchlistName}
-      </Text>
+      {!details && (
+        <Text
+          numberOfLines={2}
+          style={{
+            color: colors.text.primary,
+            ...typography.h1,
+            fontSize: 60,
+            marginTop: 60,
+            opacity: 0.5,
+            fontWeight: 'bold',
+            marginVertical: 16,
+          }}>
+          {watchlistName}
+        </Text>
+      )}
 
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          position: 'absolute',
-          bottom: 50,
-          left: 50,
-        }}>
-        <QRCode
-          value={`https://lacurations.vercel.app/theater?redirect=${
-            isFilter ? 'filtercode' : 'watchlistcode'
-          }&code=${encodeURIComponent(importCode || '')}`}
-          size={150}
-          logoBackgroundColor="#000"
-          logoBorderRadius={100}
-          enableLinearGradient={true}
-          backgroundColor="rgba(13, 1, 47, 0.2)"
-          linearGradient={['rgb(172, 95, 249)', 'rgb(234, 66, 152))']}
-        />
-        <View style={{marginLeft: 20}}>
+      {details && (
+        <View
+          style={{
+            alignItems: 'center',
+            marginTop: 78,
+            paddingHorizontal: 48,
+          }}>
           <Text
             style={{
               color: colors.text.secondary,
               ...typography.body1,
-              fontSize: 25,
+              fontSize: 35,
             }}>
-            Get
+            {[
+              details.year !== undefined ? String(details.year) : undefined,
+              details.runtime !== undefined
+                ? `${Math.floor((details.runtime || 0) / 60)}h ${
+                    (details.runtime || 0) % 60
+                  }m`
+                : undefined,
+              details.rating !== undefined
+                ? `${
+                    details.rating.toFixed
+                      ? details.rating.toFixed(1)
+                      : details.rating
+                  }`
+                : undefined,
+            ]
+              .filter(Boolean)
+              .join('  •  ')}
           </Text>
-          <Text
-            style={{
-              color: colors.text.secondary,
-              ...typography.body1,
-              fontSize: 25,
-            }}>
-            My {isFilter ? 'Filter' : 'Watchlist'}
-          </Text>
+          {details.genres?.length && (
+            <Text
+              numberOfLines={2}
+              style={{
+                color: colors.text.muted,
+                ...typography.body1,
+                fontSize: 32,
+                marginTop: 10,
+                opacity: 0.7,
+                textAlign: 'center',
+              }}>
+              {details.genres.slice(0, 5).join(' | ')}
+            </Text>
+          )}
         </View>
-      </View>
+      )}
+
+      {showQR && !!importCode && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            position: 'absolute',
+            bottom: 50,
+            left: 50,
+          }}>
+          <QRCode
+            value={`https://lacurations.vercel.app/theater?redirect=${
+              isFilter ? 'filtercode' : 'watchlistcode'
+            }&code=${encodeURIComponent(importCode || '')}`}
+            size={150}
+            logoBackgroundColor="#000"
+            logoBorderRadius={100}
+            enableLinearGradient={true}
+            backgroundColor="rgba(13, 1, 47, 0.2)"
+            linearGradient={['rgb(172, 95, 249)', 'rgb(234, 66, 152))']}
+          />
+          <View style={{marginLeft: 20}}>
+            <Text
+              style={{
+                color: colors.text.secondary,
+                ...typography.body1,
+                fontSize: 25,
+              }}>
+              Get
+            </Text>
+            <Text
+              style={{
+                color: colors.text.secondary,
+                ...typography.body1,
+                fontSize: 25,
+              }}>
+              My {isFilter ? 'Filter' : 'Watchlist'}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
