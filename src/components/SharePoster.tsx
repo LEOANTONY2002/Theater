@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, Image, ImageBackground, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import QRCode from 'react-native-qrcode-svg';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 
 export type SharePosterItem = {
@@ -18,6 +19,7 @@ interface SharePosterProps {
   watchlistName: string;
   items: SharePosterItem[];
   importCode?: string;
+  isFilter?: boolean;
 }
 
 // 1080 x 1920 recommended canvas
@@ -25,53 +27,170 @@ export const SharePoster: React.FC<SharePosterProps> = ({
   watchlistName,
   items,
   importCode,
+  isFilter = false,
 }) => {
-  const top = items[0];
-  const backdrop = top?.backdrop_path
-    ? `https://image.tmdb.org/t/p/w780${top.backdrop_path}`
-    : undefined;
-
   const posters = items.slice(0, 9);
+  console.log('importCode', importCode);
 
   return (
     <View style={styles.canvas}>
+      <LinearGradient
+        colors={['rgba(21, 71, 93, 0.36)', 'transparent']}
+        start={{x: 0, y: 0}}
+        end={{x: 0, y: 0.7}}
+        style={{
+          height: 1920,
+          width: 1080,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          zIndex: -10,
+        }}
+      />
       <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={2}>
-          {watchlistName}
-        </Text>
-        <Text style={styles.subtitle}>
-          {items.length} {items.length === 1 ? 'item' : 'items'} · Theater
+        <Text style={styles.title} numberOfLines={1}>
+          {isFilter ? 'Filter' : 'Watchlist'}
         </Text>
       </View>
 
-      <View style={styles.grid}>
-        {posters.map(it => (
-          <View key={`${it.type}-${it.id}`} style={styles.gridItem}>
-            {it.poster_path ? (
-              <Image
-                source={{
-                  uri: `https://image.tmdb.org/t/p/w500${it.poster_path}`,
-                }}
-                style={styles.poster}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={[styles.poster, styles.posterPlaceholder]} />
-            )}
-          </View>
-        ))}
+      <View
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}>
+        <Image
+          source={{
+            uri: `https://image.tmdb.org/t/p/w500${
+              posters[0]?.poster_path || posters[0]?.backdrop_path
+            }`,
+          }}
+          style={{
+            width: 600,
+            height: 1080,
+            borderRadius: 70,
+            zIndex: 1,
+          }}
+          resizeMode="cover"
+        />
+        {posters?.length > 0 && (
+          <Image
+            source={{
+              uri: `https://image.tmdb.org/t/p/w500${
+                posters[1]?.poster_path || posters[1]?.backdrop_path
+              }`,
+            }}
+            style={{
+              width: 500,
+              height: 900,
+              position: 'absolute',
+              zIndex: 0,
+              left: 220,
+              marginBottom: -20,
+              transform: [{rotate: '15deg'}],
+              borderRadius: 70,
+              opacity: 0.3,
+            }}
+            resizeMode="cover"
+          />
+        )}
+        {posters?.length > 1 && (
+          <Image
+            source={{
+              uri: `https://image.tmdb.org/t/p/w500${
+                posters[2]?.poster_path || posters[2]?.backdrop_path
+              }`,
+            }}
+            style={{
+              width: 500,
+              height: 900,
+              position: 'absolute',
+              zIndex: 0,
+              right: 220,
+              marginBottom: -20,
+              transform: [{rotate: '-15deg'}],
+              borderRadius: 70,
+              opacity: 0.3,
+            }}
+            resizeMode="cover"
+          />
+        )}
+        <LinearGradient
+          colors={[colors.background.secondary, colors.background.primary]}
+          style={{
+            position: 'absolute',
+            borderRadius: 70,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 2,
+          }}
+        />
       </View>
+      <Image
+        source={require('../assets/arc.png')}
+        style={{
+          width: 1000,
+          height: 100,
+          zIndex: 2,
+          marginTop: -100,
+        }}
+        resizeMode="contain"
+      />
 
-      {importCode ? (
-        <View style={styles.footer}>
-          <Text style={styles.footerLabel}>
-            Import this watchlist in Theater
+      <Text
+        numberOfLines={2}
+        style={{
+          color: colors.text.primary,
+          ...typography.h1,
+          fontSize: 60,
+          marginTop: 60,
+          opacity: 0.5,
+          fontWeight: 'bold',
+          marginVertical: 64,
+        }}>
+        {watchlistName}
+      </Text>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          position: 'absolute',
+          bottom: 50,
+          left: 50,
+        }}>
+        <QRCode
+          value={`https://lacurations.vercel.app/theater?redirect=${
+            isFilter ? 'filtercode' : 'watchlistcode'
+          }&code=${encodeURIComponent(importCode || '')}`}
+          size={150}
+          logoBackgroundColor="#000"
+          logoBorderRadius={100}
+          enableLinearGradient={true}
+          backgroundColor="rgba(13, 1, 47, 0.2)"
+          linearGradient={['rgb(172, 95, 249)', 'rgb(234, 66, 152))']}
+        />
+        <View style={{marginLeft: 20}}>
+          <Text
+            style={{
+              color: colors.text.secondary,
+              ...typography.body1,
+              fontSize: 25,
+            }}>
+            Get
           </Text>
-          <Text style={styles.code} numberOfLines={2}>
-            {importCode}
+          <Text
+            style={{
+              color: colors.text.secondary,
+              ...typography.body1,
+              fontSize: 25,
+            }}>
+            My {isFilter ? 'Filter' : 'Watchlist'}
           </Text>
         </View>
-      ) : null}
+      </View>
     </View>
   );
 };
@@ -80,30 +199,33 @@ const styles = StyleSheet.create({
   canvas: {
     width: 1080,
     height: 1920,
-    backgroundColor: '#000',
+    backgroundColor: colors.background.primary,
     borderRadius: 24,
     overflow: 'hidden',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 220,
   },
   header: {
-    paddingTop: 72,
     paddingHorizontal: 64,
   },
   title: {
-    color: colors.text.primary,
+    color: colors.modal.content,
+    opacity: 0.5,
     ...typography.h1,
+    fontSize: 200,
+    fontFamily: 'Inter_28pt-ExtraBold',
+    marginBottom: -90,
   },
   subtitle: {
     marginTop: 12,
     color: colors.text.secondary,
     ...typography.body1,
   },
-  grid: {
-    marginTop: 48,
-    paddingHorizontal: 48,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
+
   gridItem: {
     width: (1080 - 48 * 2 - 24 * 2) / 3, // 3 per row with 24 spacing
     height: ((1080 - 48 * 2 - 24 * 2) / 3) * 1.5,
@@ -127,8 +249,18 @@ const styles = StyleSheet.create({
     left: 48,
     right: 48,
     padding: spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     borderRadius: borderRadius.md,
+  },
+  qrContainer: {
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrBackground: {
+    borderRadius: 8,
   },
   footerLabel: {
     color: colors.text.secondary,
@@ -138,6 +270,11 @@ const styles = StyleSheet.create({
   code: {
     color: colors.text.primary,
     ...typography.body1,
+  },
+  hint: {
+    marginTop: 6,
+    color: colors.text.secondary,
+    ...typography.caption,
   },
 });
 

@@ -1,5 +1,7 @@
-// Utility to generate and parse compact watchlist share codes without external deps
-// Format (v1): THTR1:<name_b64url>;<entries>
+// Utility to generate and parse compact share codes without external deps
+// Formats (current):
+// - Watchlist: THTRW:<name_b64url>;<entries>
+// - Filter:    THTRF:<name_b64url>;<type_char>;<params_b64url>
 // entries => comma-separated list of tokens: `${type}${idBase36}` where type is 'm' or 't'
 // Example: THTR1:TXkgTGlzdA; m2s9,m3g4,t1yz
 
@@ -8,6 +10,81 @@ function toBase64Url(input: string): string {
     ? Buffer.from(input, 'utf8').toString('base64')
     : (globalThis as any).btoa(unescape(encodeURIComponent(input)));
   return b64.replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+// ===== Filters =====
+// Format: THTRF:<name_b64url>;<type_char>;<params_b64url>
+// type_char: 'a' | 'm' | 't' for all/movie/tv
+export type MinimalFilter = {
+  name: string;
+  type: 'all' | 'movie' | 'tv';
+  params: Record<string, any>;
+};
+
+export function generateFilterCode(filter: MinimalFilter): string {
+  const safeName = (filter.name || 'Filter').trim().slice(0, 60);
+  const nameB64 = toBase64Url(safeName);
+  const typeChar = filter.type === 'movie' ? 'm' : filter.type === 'tv' ? 't' : 'a';
+  const paramsJson = JSON.stringify(filter.params || {});
+  const paramsB64 = toBase64Url(paramsJson);
+  return `THTRF:${nameB64};${typeChar};${paramsB64}`;
+}
+
+export function parseFilterCode(code: string): MinimalFilter | null {
+  if (!code) return null;
+  let trimmed = code.trim();
+  // Accept URL forms: https://lacurations.vercel.app/theater?redirect=filtercode&code=...
+  if (/^https?:\/\//i.test(trimmed)) {
+    const parsed = extractCodeAndRedirectFromUrl(trimmed);
+    if (parsed && parsed.redirect === 'filtercode' && parsed.code) {
+      trimmed = parsed.code.trim();
+    }
+  }
+  if (!trimmed.startsWith('THTRF:')) return null;
+  const rest = trimmed.slice('THTRF:'.length);
+  const [nameB64, typeChar = 'a', paramsB64 = ''] = rest.split(';');
+  if (!nameB64) return null;
+  let name: string;
+  try {
+    name = fromBase64Url(nameB64);
+  } catch {
+    name = 'Imported Filter';
+  }
+  let params: Record<string, any> = {};
+  if (paramsB64) {
+    try {
+      const json = fromBase64Url(paramsB64);
+      params = JSON.parse(json);
+    } catch {
+      params = {};
+    }
+  }
+  const type: 'all' | 'movie' | 'tv' = typeChar === 'm' ? 'movie' : typeChar === 't' ? 'tv' : 'all';
+  return { name: name || 'Imported Filter', type, params };
+}
+
+// ===== Helpers =====
+// Parse URLs both in web and RN without relying on URL class availability
+function extractCodeAndRedirectFromUrl(input: string): { redirect: string | null; code: string | null } | null {
+  try {
+    // Extract query part
+    const qIndex = input.indexOf('?');
+    if (qIndex === -1) return null;
+    const query = input.slice(qIndex + 1);
+    const params: Record<string, string> = {};
+    for (const pair of query.split('&')) {
+      const [kRaw, vRaw = ''] = pair.split('=');
+      const k = decodeURIComponent(kRaw || '').toLowerCase();
+      const v = decodeURIComponent(vRaw || '');
+      if (k) params[k] = v;
+    }
+    return {
+      redirect: (params['redirect'] || '').toLowerCase() || null,
+      code: params['code'] || null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function fromBase64Url(b64url: string): string {
@@ -34,14 +111,21 @@ export function generateWatchlistCode(
   const tokens = items
     .map(it => `${it.type === 'movie' ? 'm' : 't'}${it.id.toString(36)}`)
     .join(',');
-  return `THTR1:${nameB64};${tokens}`;
+  return `THTRW:${nameB64};${tokens}`;
 }
 
 export function parseWatchlistCode(code: string): { name: string; items: MinimalWatchlistItem[] } | null {
   if (!code) return null;
-  const trimmed = code.trim();
-  if (!trimmed.startsWith('THTR1:')) return null;
-  const rest = trimmed.slice('THTR1:'.length);
+  let trimmed = code.trim();
+  // Accept URL forms: https://lacurations.vercel.app/theater?redirect=watchlistcode&code=...
+  if (/^https?:\/\//i.test(trimmed)) {
+    const parsed = extractCodeAndRedirectFromUrl(trimmed);
+    if (parsed && parsed.redirect === 'watchlistcode' && parsed.code) {
+      trimmed = parsed.code.trim();
+    }
+  }
+  if (!trimmed.startsWith('THTRW:')) return null;
+  const rest = trimmed.slice('THTRW:'.length);
   const [nameB64, tokenStr = ''] = rest.split(';');
   if (!nameB64) return null;
   let name: string;

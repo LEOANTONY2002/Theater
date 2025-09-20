@@ -6,6 +6,11 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  Clipboard,
+  Alert,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {SavedFilter} from '../types/filters';
@@ -28,11 +33,19 @@ import {useSavedFilterContent} from '../hooks/useApp';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {BlurView} from '@react-native-community/blur';
+import ViewShot from 'react-native-view-shot';
+import ShareLib from 'react-native-share';
 import {Animated, Easing} from 'react-native';
 import {useResponsive} from '../hooks/useResponsive';
+import SharePoster from '../components/SharePoster';
+import {generateFilterCode, parseFilterCode} from '../utils/shareCode';
+import {modalStyles} from '../styles/styles';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importCode, setImportCode] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
   const navigation = useNavigation();
@@ -141,6 +154,34 @@ export const MyFiltersScreen = () => {
     fetchGenres();
   }, []);
 
+  // Import Filter submit (same UX as Watchlists)
+  const handleImportFilterSubmit = useCallback(async () => {
+    if (!importCode.trim()) {
+      Alert.alert('Import', 'Please paste a valid code.');
+      return;
+    }
+    const parsed = parseFilterCode(importCode.trim());
+    if (!parsed) {
+      Alert.alert('Import', 'Invalid code.');
+      return;
+    }
+    try {
+      setIsImporting(true);
+      await FiltersManager.saveFilter(
+        parsed.name,
+        parsed.params as any,
+        parsed.type,
+      );
+      setShowImportModal(false);
+      setImportCode('');
+    } catch (e) {
+      console.log(e);
+      Alert.alert('Import Failed', e?.message || 'Could not import this code.');
+    } finally {
+      setIsImporting(false);
+    }
+  }, [importCode]);
+
   const styles = StyleSheet.create({
     container: {
       height: '100%',
@@ -168,6 +209,20 @@ export const MyFiltersScreen = () => {
       color: colors.text.primary,
       ...typography.h2,
     },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    },
+    importModalContent: {
+      width: '90%',
+      backgroundColor: colors.modal.active,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      paddingBottom: spacing.md,
+    },
+    addRow: {flexDirection: 'row', alignItems: 'center'},
     addButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -366,6 +421,73 @@ export const MyFiltersScreen = () => {
     const flattenedData =
       filterContent?.pages?.flatMap(page => page?.results || []) || [];
 
+    // Share Poster state and capture for this filter
+    const posterRef = React.useRef<ViewShot>(null);
+    const [showPosterModal, setShowPosterModal] = useState(false);
+    const [isSharingPoster, setIsSharingPoster] = useState(false);
+    const [posterLoading, setPosterLoading] = useState(false);
+    const [posterUri, setPosterUri] = useState<string | null>(null);
+    const importCodeForFilter = React.useMemo(
+      () =>
+        generateFilterCode({
+          name: filter.name,
+          type: filter.type,
+          params: filter.params || {},
+        }),
+      [filter],
+    );
+
+    const contentItems = React.useMemo(() => {
+      return flattenedData.slice(0, 12).map((it: any) => ({
+        id: it.id,
+        type: it.type,
+        title: it.title,
+        name: it.name,
+        poster_path: it.poster_path,
+        backdrop_path: it.backdrop_path,
+        release_date: it.release_date,
+        first_air_date: it.first_air_date,
+      }));
+    }, [flattenedData]);
+
+    const handleOpenPoster = useCallback(async () => {
+      setShowPosterModal(true);
+      setPosterLoading(true);
+      setPosterUri(null);
+      try {
+        // Allow hidden poster to render
+        await new Promise(r => setTimeout(r, 200));
+        let filePath = await posterRef.current?.capture?.();
+        if (!filePath || typeof filePath !== 'string') {
+          await new Promise(r => setTimeout(r, 250));
+          filePath = await posterRef.current?.capture?.();
+        }
+        if (filePath && typeof filePath === 'string') {
+          const uri = filePath.startsWith('file://')
+            ? filePath
+            : `file://${filePath}`;
+          setPosterUri(uri);
+        }
+      } catch (e) {
+        console.warn('Create poster failed', e);
+        setShowPosterModal(false);
+      } finally {
+        setPosterLoading(false);
+      }
+    }, []);
+
+    const handleSharePoster = useCallback(async () => {
+      if (!posterUri) return;
+      try {
+        setIsSharingPoster(true);
+        await ShareLib.open({url: posterUri, type: 'image/png'});
+      } catch (e) {
+        console.warn('Poster share failed', e);
+      } finally {
+        setIsSharingPoster(false);
+      }
+    }, [posterUri]);
+
     const navigation = useNavigation<NativeStackNavigationProp<any>>();
     const handleItemPress = (item: any) => {
       console.log('Item pressed:', item);
@@ -415,19 +537,28 @@ export const MyFiltersScreen = () => {
                 justifyContent: 'space-between',
               }}>
               <Text style={styles.filterName}>{filter.name}</Text>
-              <TouchableOpacity
-                style={{
-                  alignItems: 'center',
-                  padding: 5,
-                }}
-                activeOpacity={0.9}
-                onPress={() => onEdit(filter)}>
-                <Ionicons
-                  name="pencil-outline"
-                  size={15}
-                  color={colors.text.primary}
-                />
-              </TouchableOpacity>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <TouchableOpacity
+                  style={{alignItems: 'center', padding: 5, marginRight: 6}}
+                  activeOpacity={0.9}
+                  onPress={handleOpenPoster}>
+                  <Ionicons
+                    name="share-social-outline"
+                    size={16}
+                    color={colors.text.muted}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{alignItems: 'center', padding: 5}}
+                  activeOpacity={0.9}
+                  onPress={() => onEdit(filter)}>
+                  <Ionicons
+                    name="pencil-outline"
+                    size={15}
+                    color={colors.text.muted}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             {genreNames && (
               <View style={styles.genreContainer}>
@@ -720,6 +851,156 @@ export const MyFiltersScreen = () => {
             />
           </View>
         </View>
+        {/* Hidden poster for capture (on-screen but invisible) */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            opacity: 0.01,
+            width: 1080,
+            height: 1920,
+          }}
+          pointerEvents="none"
+          collapsable={false}
+          renderToHardwareTextureAndroid>
+          <ViewShot
+            ref={posterRef}
+            options={{format: 'png', quality: 1, result: 'tmpfile'}}
+            captureMode="mount">
+            <SharePoster
+              watchlistName={filter.name}
+              items={contentItems as any}
+              importCode={importCodeForFilter}
+              isFilter={true}
+            />
+          </ViewShot>
+        </View>
+
+        {/* Poster Preview Modal (matches Watchlists) */}
+        <Modal
+          visible={showPosterModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowPosterModal(false)}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: spacing.md,
+            }}>
+            <View
+              style={{
+                width: '92%',
+                borderRadius: borderRadius.lg,
+                overflow: 'hidden',
+                alignItems: 'center',
+                padding: spacing.md,
+              }}>
+              {posterLoading ? (
+                <View style={{padding: spacing.xl, alignItems: 'center'}}>
+                  <ActivityIndicator size="large" color={colors.text.primary} />
+                  <Text
+                    style={{
+                      marginTop: spacing.sm,
+                      color: colors.text.secondary,
+                      fontFamily: 'Inter_18pt-Regular',
+                    }}>
+                    Creating poster...
+                  </Text>
+                </View>
+              ) : posterUri ? (
+                <>
+                  <Image
+                    source={{uri: posterUri}}
+                    style={{
+                      width: 270,
+                      height: 480,
+                      borderRadius: borderRadius.md,
+                      backgroundColor: '#000',
+                    }}
+                    resizeMode="cover"
+                  />
+                  <View
+                    style={{
+                      marginTop: spacing.md,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.lg,
+                    }}>
+                    <TouchableOpacity
+                      onPress={handleSharePoster}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="share-social-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Share
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        try {
+                          await Clipboard.setString(importCodeForFilter);
+                        } catch {}
+                      }}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="copy-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Copy code
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setShowPosterModal(false)}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="close-circle-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Close
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <View style={{padding: spacing.lg}}>
+                  <Text
+                    style={{
+                      color: colors.text.secondary,
+                      fontFamily: 'Inter_18pt-Regular',
+                    }}>
+                    Failed to create poster.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   };
@@ -751,14 +1032,26 @@ export const MyFiltersScreen = () => {
             />
           </TouchableOpacity>
           <Text style={styles.title}>My Filters</Text>
-          {savedFilters.length > 0 && (
+          <View style={styles.addRow}>
             <TouchableOpacity
               activeOpacity={0.9}
               style={styles.addButton}
-              onPress={() => setShowAddModal(true)}>
-              <Ionicons name="add" size={24} color={colors.text.primary} />
+              onPress={() => setShowImportModal(true)}>
+              <Ionicons
+                name="download-outline"
+                size={22}
+                color={colors.text.primary}
+              />
             </TouchableOpacity>
-          )}
+            {savedFilters.length > 0 && (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.addButton}
+                onPress={() => setShowAddModal(true)}>
+                <Ionicons name="add" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </Animated.View>
       <Animated.ScrollView
@@ -807,6 +1100,81 @@ export const MyFiltersScreen = () => {
           editingFilter={editingFilter}
           onDelete={handleDelete}
         />
+        {/* Import Filter Modal (UI mirrored from Watchlists) */}
+        <Modal
+          visible={showImportModal}
+          animationType="slide"
+          statusBarTranslucent={true}
+          transparent={true}
+          onRequestClose={() => setShowImportModal(false)}>
+          <View style={styles.modalContainer}>
+            <View style={styles.importModalContent}>
+              <BlurView
+                style={[
+                  {
+                    flex: 1,
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                  },
+                ]}
+                blurType="dark"
+                blurAmount={50}
+                overlayColor={colors.modal.blurDark}
+              />
+              <View style={modalStyles.modalHeader}>
+                <Text style={modalStyles.modalTitle}>Import Filter</Text>
+                <TouchableOpacity onPress={() => setShowImportModal(false)}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={{padding: spacing.md}}>
+                <Text style={modalStyles.sectionTitle}>Paste Code</Text>
+                <TextInput
+                  style={[
+                    modalStyles.input,
+                    {height: 100, marginTop: spacing.sm},
+                  ]}
+                  value={importCode}
+                  onChangeText={setImportCode}
+                  placeholder="THTRF:..."
+                  placeholderTextColor={colors.text.muted}
+                  multiline
+                />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: spacing.md,
+                    gap: spacing.md,
+                    width: isTablet ? '50%' : '100%',
+                  }}>
+                  <TouchableOpacity
+                    style={[modalStyles.footerButton, modalStyles.resetButton]}
+                    onPress={() => setShowImportModal(false)}>
+                    <Text style={modalStyles.resetButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[modalStyles.footerButton, modalStyles.applyButton]}
+                    onPress={handleImportFilterSubmit}
+                    disabled={isImporting}>
+                    {isImporting ? (
+                      <ActivityIndicator color={colors.background.primary} />
+                    ) : (
+                      <Text style={modalStyles.applyButtonText}>Import</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </Animated.ScrollView>
     </View>
   );

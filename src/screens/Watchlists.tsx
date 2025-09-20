@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
   Platform,
+  Clipboard,
 } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import ShareLib from 'react-native-share';
@@ -346,6 +347,7 @@ export const WatchlistsScreen: React.FC = () => {
     const [showStoryModal, setShowStoryModal] = React.useState(false);
     const [storyUri, setStoryUri] = React.useState<string | null>(null);
     const [storyLoading, setStoryLoading] = React.useState(false);
+    const [posterReady, setPosterReady] = React.useState(false);
 
     // Convert watchlist items to ContentItem format
     const contentItems: ContentItem[] = items.map(item => {
@@ -382,6 +384,16 @@ export const WatchlistsScreen: React.FC = () => {
       }
     });
 
+    // Generate import/share code for THIS watchlist (do NOT use the top-level importCode state)
+    const shareCode = React.useMemo(
+      () =>
+        generateWatchlistCode(
+          watchlistName,
+          contentItems.map(ci => ({id: ci.id, type: ci.type})),
+        ),
+      [watchlistName, contentItems],
+    );
+
     // Calculate content type distribution
     const movieCount = contentItems.filter(
       item => item.type === 'movie',
@@ -404,11 +416,7 @@ export const WatchlistsScreen: React.FC = () => {
             ? `\n...and ${contentItems.length - lines.length} more`
             : '';
 
-        const code = generateWatchlistCode(
-          watchlistName,
-          contentItems.map(it => ({id: it.id, type: it.type})),
-        );
-        const importHint = `\n\nImport in Theater → Watchlists → Import and paste this code:\n${code}`;
+        const importHint = `\n\nImport in Theater → Watchlists → Import and paste this code:\n${shareCode}`;
 
         const message = `${header}\n\n${lines.join(
           '\n',
@@ -420,7 +428,7 @@ export const WatchlistsScreen: React.FC = () => {
           'Unable to share this watchlist right now.',
         );
       }
-    }, [contentItems, watchlistName]);
+    }, [contentItems, watchlistName, importCode]);
 
     const handleShareStory = useCallback(async () => {
       try {
@@ -448,8 +456,35 @@ export const WatchlistsScreen: React.FC = () => {
       setStoryLoading(true);
       setStoryUri(null);
       try {
-        await new Promise(r => setTimeout(r, 180));
-        const filePath = await storyRef.current?.capture?.();
+        // Prefetch a few key images used by the poster to avoid blank captures
+        const urls = contentItems
+          .slice(0, 3)
+          .map(it =>
+            it.poster_path
+              ? `https://image.tmdb.org/t/p/w500${it.poster_path}`
+              : null,
+          )
+          .filter((u): u is string => !!u);
+        try {
+          await Promise.allSettled(urls.map(u => Image.prefetch(u)));
+        } catch {}
+
+        // Wait for layout to finish and poster to be ready
+        let attempts = 0;
+        while (!posterReady && attempts < 10) {
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+
+        // Give RN a tiny extra frame
+        await new Promise(r => setTimeout(r, 100));
+
+        let filePath = await storyRef.current?.capture?.();
+        if (!filePath || typeof filePath !== 'string') {
+          // Retry once after a short delay
+          await new Promise(r => setTimeout(r, 250));
+          filePath = await storyRef.current?.capture?.();
+        }
         if (!filePath || typeof filePath !== 'string') {
           throw new Error('Capture returned empty uri');
         }
@@ -562,21 +597,21 @@ export const WatchlistsScreen: React.FC = () => {
                   onPress={handleOpenStoryModal}
                   disabled={isSharingStory}>
                   <Ionicons
-                    name="images-outline"
+                    name="share-social-outline"
                     size={16}
-                    color={colors.text.primary}
+                    color={colors.text.muted}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={{alignItems: 'center', padding: 5, marginRight: 6}}
                   activeOpacity={0.9}
                   onPress={handleShare}>
                   <Ionicons
                     name="share-outline"
                     size={16}
-                    color={colors.text.primary}
+                    color={colors.text.muted}
                   />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
                 <TouchableOpacity
                   style={{alignItems: 'center', padding: 5}}
                   activeOpacity={0.9}
@@ -584,7 +619,7 @@ export const WatchlistsScreen: React.FC = () => {
                   <Ionicons
                     name="trash-outline"
                     size={15}
-                    color={colors.text.primary}
+                    color={colors.text.muted}
                   />
                 </TouchableOpacity>
               </View>
@@ -649,7 +684,19 @@ export const WatchlistsScreen: React.FC = () => {
             />
           </View>
           {/* Hidden poster for story capture */}
-          <View style={{position: 'absolute', left: -9999, top: -9999}}>
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              opacity: 0.01 /* keep it renderable */,
+              width: 1080,
+              height: 1920,
+            }}
+            pointerEvents="none"
+            collapsable={false}
+            renderToHardwareTextureAndroid
+            onLayout={() => setPosterReady(true)}>
             <ViewShot
               ref={storyRef}
               options={{format: 'png', quality: 1, result: 'tmpfile'}}
@@ -657,10 +704,7 @@ export const WatchlistsScreen: React.FC = () => {
               <SharePoster
                 watchlistName={watchlistName}
                 items={contentItems}
-                importCode={generateWatchlistCode(
-                  watchlistName,
-                  contentItems.map(it => ({id: it.id, type: it.type})),
-                )}
+                importCode={shareCode}
               />
             </ViewShot>
           </View>
@@ -675,7 +719,7 @@ export const WatchlistsScreen: React.FC = () => {
           <View
             style={{
               flex: 1,
-              backgroundColor: 'rgba(0,0,0,0.8)',
+              backgroundColor: 'rgba(0,0,0,0.9)',
               alignItems: 'center',
               justifyContent: 'center',
               padding: spacing.md,
@@ -737,10 +781,14 @@ export const WatchlistsScreen: React.FC = () => {
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={handleStoryDownload}
+                      onPress={async () => {
+                        try {
+                          await Clipboard.setString(shareCode);
+                        } catch {}
+                      }}
                       style={{alignItems: 'center'}}>
                       <Ionicons
-                        name="download-outline"
+                        name="copy-outline"
                         size={22}
                         color={colors.text.primary}
                       />
@@ -750,7 +798,7 @@ export const WatchlistsScreen: React.FC = () => {
                           marginTop: 4,
                           fontFamily: 'Inter_18pt-Regular',
                         }}>
-                        Download
+                        Copy code
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity

@@ -111,7 +111,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: spacing.sm,
       marginBottom: spacing.sm,
     },
     headerTitle: {
@@ -221,8 +221,8 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Trivia & Facts</Text>
         <Ionicons name="bulb" size={20} color={colors.accent} />
+        <Text style={styles.headerTitle}>Trivia & Facts</Text>
       </View>
 
       <View style={styles.content}>
