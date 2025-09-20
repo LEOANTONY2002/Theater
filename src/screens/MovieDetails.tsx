@@ -7,6 +7,8 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   Alert,
+  Modal,
+  ActivityIndicator,
   Animated,
   Easing,
 } from 'react-native';
@@ -61,6 +63,8 @@ import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {offlineCache} from '../services/offlineCache';
 import {HistoryManager} from '../store/history';
+import ShareLib from 'react-native-share';
+import {requestPosterCapture} from '../components/PosterCaptureHost';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -103,6 +107,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+
+  // Poster share state
+  const [showPosterModal, setShowPosterModal] = useState(false);
+  const [posterLoading, setPosterLoading] = useState(false);
+  const [posterUri, setPosterUri] = useState<string | null>(null);
+  const [isSharingPoster, setIsSharingPoster] = useState(false);
 
   // Record to history when user starts watching
   const addToHistory = useCallback(() => {
@@ -186,7 +196,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
   // Animation values for loading states and components
   const loadingPulseAnim = useRef(new Animated.Value(1)).current;
-  const posterFadeAnim = useRef(new Animated.Value(0)).current;
+  const posterFadeAnim = useRef(new Animated.Value(1)).current;
   const contentFadeAnim = useRef(new Animated.Value(0)).current;
   const castFadeAnim = useRef(new Animated.Value(0)).current;
   const similarFadeAnim = useRef(new Animated.Value(0)).current;
@@ -308,6 +318,25 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
 
   const {data: watchProviders} = useWatchProviders(movie.id, 'movie');
+
+  // First available streaming provider icon (prefer flatrate → free → rent → buy → ads)
+  const streamingIcon = useMemo(() => {
+    const p = (watchProviders || {}) as any;
+    const pick =
+      p?.flatrate?.[0]?.logo_path ||
+      p?.free?.[0]?.logo_path ||
+      p?.rent?.[0]?.logo_path ||
+      p?.buy?.[0]?.logo_path ||
+      p?.ads?.[0]?.logo_path ||
+      null;
+    return pick ? getImageUrl(pick, 'w185') : null;
+  }, [watchProviders]);
+
+  // Languages for poster metadata (only original language code)
+  const posterLanguages = useMemo(() => {
+    const code = (movie as any)?.original_language as string | undefined;
+    return code ? [code.toUpperCase()] : [];
+  }, [movie]);
   const {data: imdbRating, isLoading: isLoadingImdbRating} = useIMDBRating(
     movieDetails?.imdb_id?.toString() || '',
   );
@@ -366,6 +395,97 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const handleBackPress = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+  // Build poster inputs
+  const posterItems = useMemo(() => {
+    return [
+      {
+        id: movie.id,
+        type: 'movie' as const,
+        title: movie.title,
+        name: movie.title,
+        poster_path: movie.poster_path || movieDetails?.poster_path,
+        backdrop_path:
+          movie.backdrop_path ||
+          movieDetails?.backdrop_path ||
+          movie.poster_path ||
+          movieDetails?.poster_path,
+        release_date:
+          (movie as any).release_date || (movieDetails as any)?.release_date,
+      },
+    ];
+  }, [movie, movieDetails]);
+
+  const posterDetails = useMemo(() => {
+    return {
+      runtime: movieDetails?.runtime,
+      year: (() => {
+        const d =
+          (movie as any).release_date || (movieDetails as any)?.release_date;
+        try {
+          return d ? new Date(d).getFullYear() : undefined;
+        } catch {
+          return undefined;
+        }
+      })(),
+      rating: movieDetails?.vote_average,
+      genres: movieDetails?.genres?.map((g: any) => g.name) || [],
+    };
+  }, [movie, movieDetails]);
+
+  const handleOpenPoster = useCallback(async () => {
+    setShowPosterModal(true);
+    setPosterLoading(true);
+    setPosterUri(null);
+    try {
+      const uri = await requestPosterCapture(
+        {
+          watchlistName: movie.title,
+          items: posterItems as any,
+          isFilter: false,
+          showQR: false,
+          details: posterDetails,
+          streamingIcon: streamingIcon,
+          languages: posterLanguages,
+        },
+        'tmpfile',
+      );
+      setPosterUri(uri);
+    } catch (e) {
+      console.warn('Create poster failed', e);
+      setShowPosterModal(false);
+    } finally {
+      setPosterLoading(false);
+    }
+  }, [movie.title, posterItems, posterDetails, streamingIcon]);
+
+  const handleSharePoster = useCallback(async () => {
+    try {
+      setIsSharingPoster(true);
+      let uri = posterUri;
+      if (!uri) {
+        uri = await requestPosterCapture(
+          {
+            watchlistName: movie.title,
+            items: posterItems as any,
+            isFilter: false,
+            showQR: false,
+            details: posterDetails,
+            streamingIcon,
+            languages: posterLanguages,
+          },
+          'tmpfile',
+        );
+      }
+      if (uri) {
+        await ShareLib.open({url: uri, type: 'image/png'});
+      }
+    } catch (e) {
+      console.warn('Poster share failed', e);
+    } finally {
+      setIsSharingPoster(false);
+    }
+  }, [posterUri, movie.title, posterItems, posterDetails]);
 
   const similarMoviesData = useMemo(() => {
     if (movieDetails?.genres?.some((genre: Genre) => genre.id === 10749)) {
@@ -756,6 +876,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         }
         movieGenres={movieDetails?.genres?.map((g: any) => g.name) || []}
       />
+      {/* Floating AI chat button */}
       <LinearGradient
         colors={['rgba(142, 4, 255, 0.46)', 'rgba(255, 4, 125, 0.65)']}
         start={{x: 0, y: 0}}
@@ -796,6 +917,111 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           />
         </TouchableOpacity>
       </LinearGradient>
+      {/* Poster Preview Modal */}
+      <Modal
+        visible={showPosterModal}
+        statusBarTranslucent
+        navigationBarTranslucent
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowPosterModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: spacing.md,
+          }}>
+          <View
+            style={{
+              width: '92%',
+              borderRadius: borderRadius.lg,
+              overflow: 'hidden',
+              alignItems: 'center',
+              padding: spacing.md,
+            }}>
+            {posterLoading ? (
+              <View style={{padding: spacing.xl, alignItems: 'center'}}>
+                <ActivityIndicator size="large" color={colors.text.primary} />
+                <Text
+                  style={{
+                    marginTop: spacing.sm,
+                    color: colors.text.secondary,
+                    fontFamily: 'Inter_18pt-Regular',
+                  }}>
+                  Creating poster...
+                </Text>
+              </View>
+            ) : posterUri ? (
+              <>
+                <Image
+                  source={{uri: posterUri}}
+                  style={{
+                    width: 270,
+                    height: 480,
+                    borderRadius: borderRadius.md,
+                    backgroundColor: '#000',
+                  }}
+                  resizeMode="cover"
+                />
+                <View
+                  style={{
+                    marginTop: spacing.md,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.lg,
+                  }}>
+                  <TouchableOpacity
+                    onPress={handleSharePoster}
+                    style={{alignItems: 'center'}}>
+                    <Icon
+                      name="share-social-outline"
+                      size={22}
+                      color={colors.text.primary}
+                    />
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        marginTop: 4,
+                        fontFamily: 'Inter_18pt-Regular',
+                      }}>
+                      Share
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowPosterModal(false)}
+                    style={{alignItems: 'center'}}>
+                    <Icon
+                      name="close-circle-outline"
+                      size={22}
+                      color={colors.text.primary}
+                    />
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        marginTop: 4,
+                        fontFamily: 'Inter_18pt-Regular',
+                      }}>
+                      Close
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <View style={{padding: spacing.lg}}>
+                <Text
+                  style={{
+                    color: colors.text.secondary,
+                    fontFamily: 'Inter_18pt-Regular',
+                  }}>
+                  Failed to create poster.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
       <FlashList
         data={[
           {type: 'header', id: 'header'},
@@ -857,6 +1083,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           }}
                           style={styles.backdrop}
                           onLoadEnd={() => {
+                            setIsPosterLoading(false);
+                            setIsImageLoaded(true);
+                          }}
+                          onError={() => {
                             setIsPosterLoading(false);
                             setIsImageLoaded(true);
                           }}
@@ -1024,6 +1254,16 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         color={isInWatchlist ? colors.accent : '#fff'}
                       />
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.addButton}
+                      onPress={handleOpenPoster}
+                      activeOpacity={0.9}>
+                      <Icon
+                        name="share-social-outline"
+                        size={20}
+                        color="#fff"
+                      />
+                    </TouchableOpacity>
                   </View>
                   <View style={styles.genreContainer}>
                     {movieDetails?.genres
@@ -1170,7 +1410,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       </TouchableOpacity>
                     )}
                     keyExtractor={(person: Cast) => person.id.toString()}
-                    estimatedItemSize={100}
+                    estimatedItemSize={200}
                   />
                 </Animated.View>
               ) : null;

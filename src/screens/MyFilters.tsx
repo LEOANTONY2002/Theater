@@ -33,13 +33,13 @@ import {useSavedFilterContent} from '../hooks/useApp';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {BlurView} from '@react-native-community/blur';
-import ViewShot from 'react-native-view-shot';
 import ShareLib from 'react-native-share';
 import {Animated, Easing} from 'react-native';
 import {useResponsive} from '../hooks/useResponsive';
-import SharePoster from '../components/SharePoster';
+import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {generateFilterCode, parseFilterCode} from '../utils/shareCode';
 import {modalStyles} from '../styles/styles';
+import {ContentItem} from '../components/MovieList';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -286,9 +286,9 @@ export const MyFiltersScreen = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.xs,
-      backgroundColor: colors.background.card,
+      // backgroundColor: colors.background.card,
       borderWidth: 1,
-      borderColor: colors.modal.content,
+      borderColor: colors.modal.blur,
       borderRadius: borderRadius.md,
       width: 80,
       height: 80,
@@ -421,8 +421,7 @@ export const MyFiltersScreen = () => {
     const flattenedData =
       filterContent?.pages?.flatMap(page => page?.results || []) || [];
 
-    // Share Poster state and capture for this filter
-    const posterRef = React.useRef<ViewShot>(null);
+    // Share Poster state (centralized capture host)
     const [showPosterModal, setShowPosterModal] = useState(false);
     const [isSharingPoster, setIsSharingPoster] = useState(false);
     const [posterLoading, setPosterLoading] = useState(false);
@@ -437,54 +436,71 @@ export const MyFiltersScreen = () => {
       [filter],
     );
 
-    const contentItems = React.useMemo(() => {
-      return flattenedData.slice(0, 12).map((it: any) => ({
-        id: it.id,
-        type: it.type,
-        title: it.title,
-        name: it.name,
-        poster_path: it.poster_path,
-        backdrop_path: it.backdrop_path,
-        release_date: it.release_date,
-        first_air_date: it.first_air_date,
-      }));
-    }, [flattenedData]);
+    const contentItems: ContentItem[] = flattenedData.slice(0, 3).map(item => {
+      if (item.type === 'movie') {
+        return {
+          id: item.id,
+          title: item.title || '',
+          originalTitle: item.originalTitle || '',
+          overview: item.overview,
+          poster_path: item.poster_path,
+          backdrop_path: item.backdrop_path,
+          vote_average: item.vote_average,
+          release_date: item.release_date || '',
+          genre_ids: item.genre_ids,
+          popularity: item.popularity,
+          original_language: item.original_language,
+          type: 'movie' as const,
+        };
+      } else {
+        return {
+          id: item.id,
+          name: item.name || '',
+          overview: item.overview,
+          poster_path: item.poster_path,
+          backdrop_path: item.backdrop_path,
+          vote_average: item.vote_average,
+          first_air_date: item.first_air_date || '',
+          genre_ids: item.genre_ids,
+          origin_country: item.origin_country || [],
+          popularity: item.popularity,
+          original_language: item.original_language,
+          type: 'tv' as const,
+        };
+      }
+    });
 
-    const handleOpenPoster = useCallback(async () => {
+    const handleOpenPoster = async () => {
       setShowPosterModal(true);
       setPosterLoading(true);
       setPosterUri(null);
       try {
-        // Allow hidden poster to render
-        await new Promise(r => setTimeout(r, 200));
-        let filePath = await posterRef.current?.capture?.();
-        if (!filePath || typeof filePath !== 'string') {
-          await new Promise(r => setTimeout(r, 250));
-          filePath = await posterRef.current?.capture?.();
-        }
-        if (filePath && typeof filePath === 'string') {
-          const uri = filePath.startsWith('file://')
-            ? filePath
-            : `file://${filePath}`;
-          setPosterUri(uri);
-        }
+        const uri = await requestPosterCapture(
+          {
+            watchlistName: filter.name,
+            items: contentItems,
+            importCode: importCodeForFilter,
+            isFilter: true,
+            showQR: true,
+          },
+          'tmpfile',
+        );
+        console.log('uri', uri);
+        setPosterUri(uri);
       } catch (e) {
         console.warn('Create poster failed', e);
         setShowPosterModal(false);
       } finally {
         setPosterLoading(false);
       }
-    }, []);
+    };
 
     const handleSharePoster = useCallback(async () => {
       if (!posterUri) return;
       try {
-        setIsSharingPoster(true);
         await ShareLib.open({url: posterUri, type: 'image/png'});
       } catch (e) {
-        console.warn('Poster share failed', e);
-      } finally {
-        setIsSharingPoster(false);
+        console.warn('Share sheet error', e);
       }
     }, [posterUri]);
 
@@ -538,16 +554,18 @@ export const MyFiltersScreen = () => {
               }}>
               <Text style={styles.filterName}>{filter.name}</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <TouchableOpacity
-                  style={{alignItems: 'center', padding: 5, marginRight: 6}}
-                  activeOpacity={0.9}
-                  onPress={handleOpenPoster}>
-                  <Ionicons
-                    name="share-social-outline"
-                    size={16}
-                    color={colors.text.muted}
-                  />
-                </TouchableOpacity>
+                {contentItems?.length > 0 && (
+                  <TouchableOpacity
+                    style={{alignItems: 'center', padding: 5, marginRight: 6}}
+                    activeOpacity={0.9}
+                    onPress={handleOpenPoster}>
+                    <Ionicons
+                      name="share-social-outline"
+                      size={16}
+                      color={colors.text.muted}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={{alignItems: 'center', padding: 5}}
                   activeOpacity={0.9}
@@ -851,35 +869,12 @@ export const MyFiltersScreen = () => {
             />
           </View>
         </View>
-        {/* Hidden poster for capture (on-screen but invisible) */}
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            opacity: 0.01,
-            width: 1080,
-            height: 1920,
-          }}
-          pointerEvents="none"
-          collapsable={false}
-          renderToHardwareTextureAndroid>
-          <ViewShot
-            ref={posterRef}
-            options={{format: 'png', quality: 1, result: 'tmpfile'}}
-            captureMode="mount">
-            <SharePoster
-              watchlistName={filter.name}
-              items={contentItems as any}
-              importCode={importCodeForFilter}
-              isFilter={true}
-            />
-          </ViewShot>
-        </View>
 
         {/* Poster Preview Modal (matches Watchlists) */}
         <Modal
           visible={showPosterModal}
+          statusBarTranslucent
+          navigationBarTranslucent
           animationType="fade"
           transparent
           onRequestClose={() => setShowPosterModal(false)}>

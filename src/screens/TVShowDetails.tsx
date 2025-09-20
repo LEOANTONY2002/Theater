@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useRef} from 'react';
+import React, {useState, useEffect, useCallback, useRef, useMemo} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   Modal,
+  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -65,6 +66,8 @@ import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {offlineCache} from '../services/offlineCache';
 import {HistoryManager} from '../store/history';
+import ShareLib from 'react-native-share';
+import {requestPosterCapture} from '../components/PosterCaptureHost';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -109,6 +112,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
 
+  // Poster share state
+  const [showPosterModal, setShowPosterModal] = useState(false);
+  const [posterLoading, setPosterLoading] = useState(false);
+  const [posterUri, setPosterUri] = useState<string | null>(null);
+  const [isSharingPoster, setIsSharingPoster] = useState(false);
+
   // Record to history when user starts watching
   const addToHistory = useCallback(() => {
     const voteAvg =
@@ -139,6 +148,30 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     };
     HistoryManager.add(item as any);
   }, [show, showDetails]);
+
+  // Watch providers and first streaming icon (prefer flatrate → free → rent → buy → ads)
+  const {data: watchProviders} = useWatchProviders(show.id, 'tv');
+  const streamingIcon = useMemo(() => {
+    const p = (watchProviders || {}) as any;
+    const pick =
+      p?.flatrate?.[0]?.logo_path ||
+      p?.free?.[0]?.logo_path ||
+      p?.rent?.[0]?.logo_path ||
+      p?.buy?.[0]?.logo_path ||
+      p?.ads?.[0]?.logo_path ||
+      null;
+    return pick ? getImageUrl(pick, 'w185') : null;
+  }, [watchProviders]);
+
+  // Languages for poster metadata (only original language code)
+  const posterLanguages = useMemo(() => {
+    const code = (show as any)?.original_language as string | undefined;
+    return code ? [code.toUpperCase()] : [];
+  }, [show]);
+
+  // Seasons/Episodes counts for TV poster
+  const seasonsCount = showDetails?.number_of_seasons ?? showDetails?.seasons?.length ?? undefined;
+  const episodesCount = showDetails?.number_of_episodes ?? undefined;
 
   useEffect(() => {
     addToHistory();
@@ -204,7 +237,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   // Animation values for loading states and components (same as MovieDetails)
   const loadingPulseAnim = useRef(new Animated.Value(1)).current;
-  const posterFadeAnim = useRef(new Animated.Value(0)).current;
+  const posterFadeAnim = useRef(new Animated.Value(1)).current;
   const contentFadeAnim = useRef(new Animated.Value(0)).current;
   const castFadeAnim = useRef(new Animated.Value(0)).current;
   const similarFadeAnim = useRef(new Animated.Value(0)).current;
@@ -231,7 +264,101 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     selectedSeason?.season_number,
   );
 
-  const {data: watchProviders} = useWatchProviders(show.id, 'tv');
+  // Build poster inputs
+  const posterItems = useMemo(() => {
+    return [
+      {
+        id: show.id,
+        type: 'tv' as const,
+        title: show.name,
+        name: show.name,
+        poster_path: show.poster_path || showDetails?.poster_path,
+        backdrop_path:
+          show.backdrop_path ||
+          showDetails?.backdrop_path ||
+          show.poster_path ||
+          showDetails?.poster_path,
+        first_air_date:
+          (show as any).first_air_date || (showDetails as any)?.first_air_date,
+      },
+    ];
+  }, [show, showDetails]);
+
+  const posterDetails = useMemo(() => {
+    const runtime = undefined; // TV runtime varies by episode; omit
+    return {
+      runtime,
+      year: (() => {
+        const d =
+          (show as any).first_air_date || (showDetails as any)?.first_air_date;
+        try {
+          return d ? new Date(d).getFullYear() : undefined;
+        } catch {
+          return undefined;
+        }
+      })(),
+      rating: (showDetails as any)?.vote_average ?? (show as any)?.vote_average,
+      genres: showDetails?.genres?.map((g: any) => g.name) || [],
+    };
+  }, [show, showDetails]);
+
+  const handleOpenPoster = useCallback(async () => {
+    setShowPosterModal(true);
+    setPosterLoading(true);
+    setPosterUri(null);
+    try {
+      const uri = await requestPosterCapture(
+        {
+          watchlistName: show.name,
+          items: posterItems as any,
+          isFilter: false,
+          showQR: false,
+          details: posterDetails,
+          streamingIcon,
+          languages: posterLanguages,
+          seasons: seasonsCount,
+          episodes: episodesCount,
+        },
+        'tmpfile',
+      );
+      setPosterUri(uri);
+    } catch (e) {
+      console.warn('Create poster failed', e);
+      setShowPosterModal(false);
+    } finally {
+      setPosterLoading(false);
+    }
+  }, [show.name, posterItems, posterDetails, streamingIcon]);
+
+  const handleSharePoster = useCallback(async () => {
+    try {
+      setIsSharingPoster(true);
+      let uri = posterUri;
+      if (!uri) {
+        uri = await requestPosterCapture(
+          {
+            watchlistName: show.name,
+            items: posterItems as any,
+            isFilter: false,
+            showQR: false,
+            details: posterDetails,
+            streamingIcon,
+            languages: posterLanguages,
+            seasons: seasonsCount,
+            episodes: episodesCount,
+          },
+          'tmpfile',
+        );
+      }
+      if (uri) {
+        await ShareLib.open({url: uri, type: 'image/png'});
+      }
+    } catch (e) {
+      console.warn('Poster share failed', e);
+    } finally {
+      setIsSharingPoster(false);
+    }
+  }, [posterUri, show.name, posterItems, posterDetails, streamingIcon, posterLanguages, seasonsCount, episodesCount]);
 
   // Animate loading spinner with pulse effect (same as MovieDetails)
   useEffect(() => {
@@ -897,6 +1024,111 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           />
         </TouchableOpacity>
       </LinearGradient>
+      {/* Poster Preview Modal */}
+      <Modal
+        visible={showPosterModal}
+        statusBarTranslucent
+        navigationBarTranslucent
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowPosterModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: spacing.md,
+          }}>
+          <View
+            style={{
+              width: '92%',
+              borderRadius: borderRadius.lg,
+              overflow: 'hidden',
+              alignItems: 'center',
+              padding: spacing.md,
+            }}>
+            {posterLoading ? (
+              <View style={{padding: spacing.xl, alignItems: 'center'}}>
+                <ActivityIndicator size="large" color={colors.text.primary} />
+                <Text
+                  style={{
+                    marginTop: spacing.sm,
+                    color: colors.text.secondary,
+                    fontFamily: 'Inter_18pt-Regular',
+                  }}>
+                  Creating poster...
+                </Text>
+              </View>
+            ) : posterUri ? (
+              <>
+                <Image
+                  source={{uri: posterUri}}
+                  style={{
+                    width: 270,
+                    height: 480,
+                    borderRadius: borderRadius.md,
+                    backgroundColor: '#000',
+                  }}
+                  resizeMode="cover"
+                />
+                <View
+                  style={{
+                    marginTop: spacing.md,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.lg,
+                  }}>
+                  <TouchableOpacity
+                    onPress={handleSharePoster}
+                    style={{alignItems: 'center'}}>
+                    <Ionicons
+                      name="share-social-outline"
+                      size={22}
+                      color={colors.text.primary}
+                    />
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        marginTop: 4,
+                        fontFamily: 'Inter_18pt-Regular',
+                      }}>
+                      Share
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowPosterModal(false)}
+                    style={{alignItems: 'center'}}>
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={22}
+                      color={colors.text.primary}
+                    />
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        marginTop: 4,
+                        fontFamily: 'Inter_18pt-Regular',
+                      }}>
+                      Close
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <View style={{padding: spacing.lg}}>
+                <Text
+                  style={{
+                    color: colors.text.secondary,
+                    fontFamily: 'Inter_18pt-Regular',
+                  }}>
+                  Failed to create poster.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
       <FlashList
         data={[
           {type: 'header', id: 'header'},
@@ -950,12 +1182,17 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         <Image
                           source={{
                             uri: getImageUrl(
-                              showDetails.backdrop_path || '',
+                              (show as any).backdrop_path ||
+                                (showDetails as any)?.backdrop_path ||
+                                (show as any).poster_path ||
+                                (showDetails as any)?.poster_path ||
+                                '',
                               'original',
                             ),
                           }}
                           style={styles.backdrop}
                           onLoadEnd={() => setIsPosterLoading(false)}
+                          onError={() => setIsPosterLoading(false)}
                           resizeMode="cover"
                         />
                       </Animated.View>
@@ -1101,6 +1338,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         color={isInAnyWatchlist ? colors.accent : '#fff'}
                       />
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.addButton}
+                      onPress={handleOpenPoster}
+                      activeOpacity={0.9}>
+                      <Ionicons
+                        name="share-social-outline"
+                        size={20}
+                        color="#fff"
+                      />
+                    </TouchableOpacity>
                   </View>
                   <View style={styles.genreContainer}>
                     {showDetails?.genres
@@ -1171,7 +1418,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     data={showDetails.credits.cast.slice(0, 10)}
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingHorizontal: 16}}
+                    contentContainerStyle={{paddingHorizontal: spacing.md}}
                     renderItem={({item: person}: {item: Cast}) => (
                       <TouchableOpacity
                         style={styles.castItem}
@@ -1193,7 +1440,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       </TouchableOpacity>
                     )}
                     keyExtractor={(person: Cast) => person.id.toString()}
-                    estimatedItemSize={100}
                   />
                 </Animated.View>
               ) : null;

@@ -1069,8 +1069,8 @@ export const HomeScreen = React.memo(() => {
         maxToRenderPerBatch={4}
         ListFooterComponent={<View style={{height: 100}} />}
         // Keep mounted to preserve scroll; hide when not focused
-        style={{display: isFocused ? 'flex' as const : 'none' as const}}
-        pointerEvents={isFocused ? 'auto' : 'none'}
+        style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
+        // pointerEvents={isFocused ? 'auto' : 'none'}
       />
 
       {/* Mood Questionnaire Modal */}

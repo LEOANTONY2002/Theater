@@ -34,14 +34,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   const styles = StyleSheet.create({
     container: {
       borderRadius: borderRadius.round,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
+      flex: 1,
     },
     button: {
       flexDirection: 'row',
@@ -69,11 +62,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
       activeOpacity={0.8}
       onPress={onPress}
       disabled={disabled}
-      style={[
-        styles.container,
-        disabled && styles.disabled,
-        {width: fullWidth ? '100%' : 200},
-      ]}>
+      style={[styles.container, disabled && styles.disabled]}>
       <LinearGradient
         colors={
           !v2

@@ -4,6 +4,41 @@ import LinearGradient from 'react-native-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 
+// Minimal ISO-639-1 to English language name map (fallback to code)
+const ISO_LANG_MAP: Record<string, string> = {
+  en: 'English',
+  hi: 'Hindi',
+  ta: 'Tamil',
+  te: 'Telugu',
+  ml: 'Malayalam',
+  kn: 'Kannada',
+  mr: 'Marathi',
+  bn: 'Bengali',
+  ur: 'Urdu',
+  gu: 'Gujarati',
+  pa: 'Punjabi',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  ru: 'Russian',
+  ja: 'Japanese',
+  ko: 'Korean',
+  zh: 'Chinese',
+  ar: 'Arabic',
+  tr: 'Turkish',
+  th: 'Thai',
+  id: 'Indonesian',
+  vi: 'Vietnamese',
+};
+
+const langLabel = (code?: string) => {
+  if (!code) return undefined;
+  const k = code.toLowerCase();
+  return ISO_LANG_MAP[k] || code.toUpperCase();
+};
+
 export type SharePosterItem = {
   id: number;
   type: 'movie' | 'tv';
@@ -27,6 +62,10 @@ interface SharePosterProps {
     rating?: number; // 0-10
     genres?: string[];
   };
+  streamingIcon?: string | null;
+  languages?: string[];
+  seasons?: number;
+  episodes?: number;
 }
 
 // 1080 x 1920 recommended canvas
@@ -37,8 +76,15 @@ export const SharePoster: React.FC<SharePosterProps> = ({
   isFilter = false,
   showQR = true,
   details,
+  streamingIcon,
+  languages,
+  seasons,
+  episodes,
 }) => {
   const posters = items.slice(0, 9);
+  const posterImages = posters.filter(
+    p => !!(p?.poster_path || p?.backdrop_path),
+  );
   console.log('importCode', importCode);
 
   return (
@@ -68,25 +114,39 @@ export const SharePoster: React.FC<SharePosterProps> = ({
           flexDirection: 'row',
           alignItems: 'center',
         }}>
-        <Image
-          source={{
-            uri: `https://image.tmdb.org/t/p/w500${
-              posters[0]?.poster_path || posters[0]?.backdrop_path
-            }`,
-          }}
-          style={{
-            width: 600,
-            height: 1080,
-            borderRadius: 70,
-            zIndex: 1,
-          }}
-          resizeMode="cover"
-        />
-        {posters?.length > 0 && (
+        {posterImages.length > 0 ? (
           <Image
             source={{
               uri: `https://image.tmdb.org/t/p/w500${
-                posters[1]?.poster_path || posters[1]?.backdrop_path
+                posterImages[0]?.poster_path || posterImages[0]?.backdrop_path
+              }`,
+            }}
+            style={{
+              width: 600,
+              height: 1080,
+              borderRadius: 70,
+              zIndex: 1,
+            }}
+            resizeMode="cover"
+          />
+        ) : (
+          <Image
+            source={require('../assets/theater.webp')}
+            style={{
+              width: 600,
+              height: 1080,
+              borderRadius: 70,
+              zIndex: 1,
+              opacity: 0.2,
+            }}
+            resizeMode="contain"
+          />
+        )}
+        {posterImages?.length > 1 && (
+          <Image
+            source={{
+              uri: `https://image.tmdb.org/t/p/w500${
+                posterImages[1]?.poster_path || posterImages[1]?.backdrop_path
               }`,
             }}
             style={{
@@ -103,11 +163,11 @@ export const SharePoster: React.FC<SharePosterProps> = ({
             resizeMode="cover"
           />
         )}
-        {posters?.length > 1 && (
+        {posterImages?.length > 2 && (
           <Image
             source={{
               uri: `https://image.tmdb.org/t/p/w500${
-                posters[2]?.poster_path || posters[2]?.backdrop_path
+                posterImages[2]?.poster_path || posterImages[2]?.backdrop_path
               }`,
             }}
             style={{
@@ -179,17 +239,17 @@ export const SharePoster: React.FC<SharePosterProps> = ({
             }}>
             {[
               details.year !== undefined ? String(details.year) : undefined,
+              langLabel(languages?.[0]),
+              seasons
+                ? `${seasons} season${seasons > 1 ? 's' : ''}`
+                : undefined,
+              episodes
+                ? `${episodes} episode${episodes > 1 ? 's' : ''}`
+                : undefined,
               details.runtime !== undefined
                 ? `${Math.floor((details.runtime || 0) / 60)}h ${
                     (details.runtime || 0) % 60
                   }m`
-                : undefined,
-              details.rating !== undefined
-                ? `${
-                    details.rating.toFixed
-                      ? details.rating.toFixed(1)
-                      : details.rating
-                  }`
                 : undefined,
             ]
               .filter(Boolean)
@@ -209,10 +269,23 @@ export const SharePoster: React.FC<SharePosterProps> = ({
               {details.genres.slice(0, 5).join(' | ')}
             </Text>
           )}
+
+          {/* Seasons/Episodes combined above in metadata line */}
+
+          {/* Streaming icon below genres if provided */}
+          {!!streamingIcon && (
+            <View style={{marginTop: 50, alignItems: 'center', opacity: 0.7}}>
+              <Image
+                source={{uri: streamingIcon}}
+                style={{width: 72, height: 72, borderRadius: 16}}
+                resizeMode="contain"
+              />
+            </View>
+          )}
         </View>
       )}
 
-      {showQR && !!importCode && (
+      {showQR && !!importCode ? (
         <View
           style={{
             flexDirection: 'row',
@@ -226,11 +299,9 @@ export const SharePoster: React.FC<SharePosterProps> = ({
               isFilter ? 'filtercode' : 'watchlistcode'
             }&code=${encodeURIComponent(importCode || '')}`}
             size={150}
-            logoBackgroundColor="#000"
-            logoBorderRadius={100}
             enableLinearGradient={true}
-            backgroundColor="rgba(13, 1, 47, 0.2)"
-            linearGradient={['rgb(172, 95, 249)', 'rgb(234, 66, 152))']}
+            backgroundColor="rgb(252, 251, 255)"
+            linearGradient={['rgb(110, 54, 250)', 'rgb(255, 52, 157))']}
           />
           <View style={{marginLeft: 20}}>
             <Text
@@ -251,7 +322,35 @@ export const SharePoster: React.FC<SharePosterProps> = ({
             </Text>
           </View>
         </View>
+      ) : (
+        <Image
+          source={require('../assets/theater.webp')}
+          style={{
+            width: 120,
+            height: 80,
+            zIndex: 2,
+            position: 'absolute',
+            bottom: 50,
+            left: 50,
+            opacity: 0.3,
+          }}
+          resizeMode="contain"
+        />
       )}
+
+      <Image
+        source={require('../assets/symbol.webp')}
+        style={{
+          width: 200,
+          height: 80,
+          zIndex: 2,
+          position: 'absolute',
+          bottom: 50,
+          right: 50,
+          opacity: 0.3,
+        }}
+        resizeMode="contain"
+      />
     </View>
   );
 };

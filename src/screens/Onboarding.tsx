@@ -47,14 +47,6 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
   const slideAnim = useState(new Animated.Value(50))[0];
   const [isStarted, setIsStarted] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsStarted(true);
-      handleNextPress();
-    }, 10000);
-    return () => clearTimeout(timer);
-  }, []);
-
   // Load regions on mount
   useEffect(() => {
     const loadRegions = async () => {

@@ -10,6 +10,7 @@ import {LogBox, StatusBar, AppState, DevSettings} from 'react-native';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
 import {queryClient} from './src/services/queryClient';
+import {PosterCaptureHost} from './src/components/PosterCaptureHost';
 import {enableScreens} from 'react-native-screens';
 import {DNSInstructionsModal} from './src/components/DNSInstructionsModal';
 import {checkInternet} from './src/services/connectivity';
@@ -163,6 +164,8 @@ const App = () => {
         <>
           <AppNavigator />
           {/* <PerformanceMonitor screenName="AppRoot" /> */}
+          {/* Centralized off-screen poster capture host */}
+          <PosterCaptureHost />
           {(() => {
             // Make queryClient globally accessible for monitoring
             (global as any).queryClient = queryClient;

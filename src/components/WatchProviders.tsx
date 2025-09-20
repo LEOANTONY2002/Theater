@@ -150,7 +150,7 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
     fallbackUrl?: string,
   ) => {
     const provider = STREAMING_APPS[providerName];
-    
+
     // If no provider config found, use fallback URL
     if (!provider && fallbackUrl) {
       try {
@@ -171,14 +171,16 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
       if (provider.app) {
         const canOpenDeepLink = await Linking.canOpenURL(provider.app);
         if (canOpenDeepLink) {
-          console.log(`Opening ${providerName} app with deep link: ${provider.app}`);
+          console.log(
+            `Opening ${providerName} app with deep link: ${provider.app}`,
+          );
           await Linking.openURL(provider.app);
           return;
         } else {
           console.log(`Cannot open ${providerName} app, falling back to web`);
         }
       }
-      
+
       // Fallback to web browser
       console.log(`Opening ${providerName} in browser: ${provider.web}`);
       await Linking.openURL(provider.web);
@@ -188,7 +190,10 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
       try {
         await Linking.openURL(provider.web);
       } catch (webError) {
-        console.error(`Failed to open web fallback for ${providerName}:`, webError);
+        console.error(
+          `Failed to open web fallback for ${providerName}:`,
+          webError,
+        );
       }
     }
   };

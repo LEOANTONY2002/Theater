@@ -13,7 +13,6 @@ import {
   Platform,
   Clipboard,
 } from 'react-native';
-import ViewShot from 'react-native-view-shot';
 import ShareLib from 'react-native-share';
 import {BlurView} from '@react-native-community/blur';
 import {Animated, Easing} from 'react-native';
@@ -40,7 +39,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useResponsive} from '../hooks/useResponsive';
 import {generateWatchlistCode, parseWatchlistCode} from '../utils/shareCode';
 import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
-import SharePoster from '../components/SharePoster';
+import {requestPosterCapture} from '../components/PosterCaptureHost';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -342,12 +341,11 @@ export const WatchlistsScreen: React.FC = () => {
     onItemPress: (item: ContentItem) => void;
   }) => {
     const {data: items = [], isLoading} = useWatchlistItems(watchlistId);
-    const storyRef = React.useRef<ViewShot>(null);
     const [isSharingStory, setIsSharingStory] = React.useState(false);
     const [showStoryModal, setShowStoryModal] = React.useState(false);
     const [storyUri, setStoryUri] = React.useState<string | null>(null);
     const [storyLoading, setStoryLoading] = React.useState(false);
-    const [posterReady, setPosterReady] = React.useState(false);
+    const [posterReady] = React.useState(false);
 
     // Convert watchlist items to ContentItem format
     const contentItems: ContentItem[] = items.map(item => {
@@ -400,97 +398,21 @@ export const WatchlistsScreen: React.FC = () => {
     ).length;
     const tvCount = contentItems.filter(item => item.type === 'tv').length;
 
-    const handleShare = useCallback(async () => {
-      try {
-        const header = `My Watchlist: ${watchlistName}`;
-        const lines = contentItems.slice(0, 50).map((it, idx) => {
-          const title =
-            it.type === 'movie' ? (it as any).title : (it as any).name;
-          const year =
-            (it as any).release_date || (it as any).first_air_date || '';
-          const yearStr = year ? ` (${String(year).slice(0, 4)})` : '';
-          return `${idx + 1}. ${title}${yearStr}`;
-        });
-        const footer =
-          contentItems.length > lines.length
-            ? `\n...and ${contentItems.length - lines.length} more`
-            : '';
-
-        const importHint = `\n\nImport in Theater → Watchlists → Import and paste this code:\n${shareCode}`;
-
-        const message = `${header}\n\n${lines.join(
-          '\n',
-        )}${footer}${importHint}`;
-        await NativeShare.share({message});
-      } catch (e) {
-        Alert.alert(
-          'Share Failed',
-          'Unable to share this watchlist right now.',
-        );
-      }
-    }, [contentItems, watchlistName, importCode]);
-
-    const handleShareStory = useCallback(async () => {
-      try {
-        setIsSharingStory(true);
-        // Ensure the poster is rendered, then capture
-        await new Promise(r => setTimeout(r, 150));
-        const filePath = await storyRef.current?.capture?.();
-        if (!filePath || typeof filePath !== 'string') {
-          throw new Error('Capture returned empty uri');
-        }
-        const uri = filePath.startsWith('file://')
-          ? filePath
-          : `file://${filePath}`;
-        await ShareLib.open({url: uri, type: 'image/png'});
-      } catch (e) {
-        console.warn('Share story failed', e);
-        Alert.alert('Share Failed', 'Unable to share story right now.');
-      } finally {
-        setIsSharingStory(false);
-      }
-    }, []);
-
-    const handleOpenStoryModal = useCallback(async () => {
+    const handleOpenStoryModal = async () => {
       setShowStoryModal(true);
       setStoryLoading(true);
       setStoryUri(null);
       try {
-        // Prefetch a few key images used by the poster to avoid blank captures
-        const urls = contentItems
-          .slice(0, 3)
-          .map(it =>
-            it.poster_path
-              ? `https://image.tmdb.org/t/p/w500${it.poster_path}`
-              : null,
-          )
-          .filter((u): u is string => !!u);
-        try {
-          await Promise.allSettled(urls.map(u => Image.prefetch(u)));
-        } catch {}
-
-        // Wait for layout to finish and poster to be ready
-        let attempts = 0;
-        while (!posterReady && attempts < 10) {
-          await new Promise(r => setTimeout(r, 100));
-          attempts++;
-        }
-
-        // Give RN a tiny extra frame
-        await new Promise(r => setTimeout(r, 100));
-
-        let filePath = await storyRef.current?.capture?.();
-        if (!filePath || typeof filePath !== 'string') {
-          // Retry once after a short delay
-          await new Promise(r => setTimeout(r, 250));
-          filePath = await storyRef.current?.capture?.();
-        }
-        if (!filePath || typeof filePath !== 'string') {
-          throw new Error('Capture returned empty uri');
-        }
-        const uri = filePath.startsWith('file://')
-          ? filePath
-          : `file://${filePath}`;
+        const uri = await requestPosterCapture(
+          {
+            watchlistName,
+            items: contentItems.slice(0, 3) as any,
+            importCode: shareCode,
+            isFilter: false,
+            showQR: true,
+          },
+          'tmpfile',
+        );
         setStoryUri(uri);
       } catch (e) {
         console.warn('Create story failed', e);
@@ -499,7 +421,7 @@ export const WatchlistsScreen: React.FC = () => {
       } finally {
         setStoryLoading(false);
       }
-    }, []);
+    };
 
     const handleStoryShare = useCallback(async () => {
       if (!storyUri) return;
@@ -507,25 +429,6 @@ export const WatchlistsScreen: React.FC = () => {
         await ShareLib.open({url: storyUri, type: 'image/png'});
       } catch (e) {
         console.warn('Share sheet error', e);
-      }
-    }, [storyUri]);
-
-    const handleStoryDownload = useCallback(async () => {
-      if (!storyUri) return;
-      try {
-        // iOS supports saveToFiles. Cast to any to avoid TS mismatch if not in types
-        if (Platform.OS === 'ios') {
-          await (ShareLib as any).open({
-            url: storyUri,
-            type: 'image/png',
-            saveToFiles: true,
-          });
-        } else {
-          // On Android, suggest user select a destination app to save
-          await ShareLib.open({url: storyUri, type: 'image/png'});
-        }
-      } catch (e) {
-        console.warn('Download/share error', e);
       }
     }, [storyUri]);
 
@@ -683,31 +586,7 @@ export const WatchlistsScreen: React.FC = () => {
               }}
             />
           </View>
-          {/* Hidden poster for story capture */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              opacity: 0.01 /* keep it renderable */,
-              width: 1080,
-              height: 1920,
-            }}
-            pointerEvents="none"
-            collapsable={false}
-            renderToHardwareTextureAndroid
-            onLayout={() => setPosterReady(true)}>
-            <ViewShot
-              ref={storyRef}
-              options={{format: 'png', quality: 1, result: 'tmpfile'}}
-              captureMode="mount">
-              <SharePoster
-                watchlistName={watchlistName}
-                items={contentItems}
-                importCode={shareCode}
-              />
-            </ViewShot>
-          </View>
+          {/* No inline ViewShot; capture handled by PosterCaptureHost */}
         </View>
 
         {/* Story Preview Modal */}

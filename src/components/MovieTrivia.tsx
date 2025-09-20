@@ -63,7 +63,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const {width} = useWindowDimensions();
-  const {isTablet} = useResponsive();
+  const {isTablet, orientation} = useResponsive();
 
   const loadTrivia = async () => {
     if (hasLoaded) return;
@@ -94,18 +94,27 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       borderRadius: borderRadius.lg,
       padding: spacing.md,
       position: 'relative',
-      height: 300,
+      height: 270,
       marginBottom: spacing.lg,
       overflow: 'visible',
     },
     backgroundGradient: {
       width: '270%',
-      height: '200%',
+      height: isTablet && orientation === 'portrait' ? '230%' : '180%',
       position: 'absolute',
-      bottom: isTablet ? -55 : -75,
+      bottom: isTablet && orientation === 'portrait' ? -75 : -25,
       left: -50,
       zIndex: 2,
-      transform: [{rotate: isTablet ? '-10deg' : '-30deg'}],
+      transform: [
+        {
+          rotate:
+            isTablet && orientation === 'landscape'
+              ? '-5deg'
+              : isTablet && orientation == 'portrait'
+              ? '-10deg'
+              : '-20deg',
+        },
+      ],
       pointerEvents: 'none',
     },
     header: {
