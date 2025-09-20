@@ -170,7 +170,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   }, [show]);
 
   // Seasons/Episodes counts for TV poster
-  const seasonsCount = showDetails?.number_of_seasons ?? showDetails?.seasons?.length ?? undefined;
+  const seasonsCount =
+    showDetails?.number_of_seasons ?? showDetails?.seasons?.length ?? undefined;
   const episodesCount = showDetails?.number_of_episodes ?? undefined;
 
   useEffect(() => {
@@ -358,7 +359,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     } finally {
       setIsSharingPoster(false);
     }
-  }, [posterUri, show.name, posterItems, posterDetails, streamingIcon, posterLanguages, seasonsCount, episodesCount]);
+  }, [
+    posterUri,
+    show.name,
+    posterItems,
+    posterDetails,
+    streamingIcon,
+    posterLanguages,
+    seasonsCount,
+    episodesCount,
+  ]);
 
   // Animate loading spinner with pulse effect (same as MovieDetails)
   useEffect(() => {
@@ -1303,6 +1313,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           }}
                           style={styles.watchButton}
                           textStyle={styles.watchButtonText}
+                          fullWidth
                           v2
                         />
                       ) : (
@@ -1313,6 +1324,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           }}
                           style={styles.watchButton}
                           textStyle={styles.watchButtonText}
+                          fullWidth
                         />
                       )
                     ) : (
@@ -1326,6 +1338,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           opacity: isPlaying ? 0.3 : 1,
                         }}
                         textStyle={styles.watchButtonText}
+                        fullWidth
                       />
                     )}
                     <TouchableOpacity

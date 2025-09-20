@@ -1,3 +1,4 @@
+import FastImage from 'react-native-fast-image';
 import React, {useCallback, useState} from 'react';
 import {
   View,
@@ -224,17 +225,20 @@ export const FeaturedBannerHomePoster: React.FC<
     },
   });
 
+  const uri = `https://image.tmdb.org/t/p/${isTablet ? 'original' : 'w500'}${
+    item?.poster_path || item?.backdrop_path || ''
+  }`;
+
   return (
     <View>
-      <ImageBackground
+      <FastImage
         onLoadEnd={() => setLoading(false)}
         source={{
-          uri: `https://image.tmdb.org/t/p/${isTablet ? 'original' : 'w500'}${
-            item?.poster_path
-          }`,
+          uri,
+          priority: FastImage.priority.high,
         }}
         style={styles.cardContainer}
-        imageStyle={styles.imageStyle}>
+        resizeMode={FastImage.resizeMode.cover}>
         {/* {loading && (
           <View style={styles.skeletonContainer}>
             <BannerHomeSkeleton />
@@ -281,7 +285,7 @@ export const FeaturedBannerHomePoster: React.FC<
             </TouchableOpacity>
           </View>
         </View>
-      </ImageBackground>
+      </FastImage>
 
       <WatchlistModal
         visible={showWatchlistModal}

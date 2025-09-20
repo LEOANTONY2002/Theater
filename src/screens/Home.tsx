@@ -154,81 +154,25 @@ export const HomeScreen = React.memo(() => {
   //   refetch: refetchTrendingTVShows,
   // } = useTrendingTVShows('day');
 
-  // Get a random popular item for the banner
+  // Featured banner items: compute from available sources (up to 3) and refresh as data arrives
   const featuredItems = useMemo(() => {
-    const items: Array<{item: any; type: 'movie' | 'tv'; title: string}> = [];
-    const usedMovieIds = new Set<number>();
+    const pickFirstWithPoster = (arr: any[]) =>
+      (arr || []).find(x => x?.poster_path) || (arr || [])[0] || null;
 
-    const getUniqueMovie = (movieList: any[], title: string) => {
-      if (!movieList || movieList.length === 0) return null;
+    const latestList = recentMovies?.pages?.[0]?.results || [];
+    const popularList = popularMovies?.pages?.[0]?.results || [];
+    const topRatedList = topRatedMovies?.pages?.[0]?.results || [];
 
-      // Try to find a movie that hasn't been used yet
-      const availableMovies = movieList.filter(
-        movie => !usedMovieIds.has(movie.id),
-      );
+    const latest = pickFirstWithPoster(latestList);
+    const popular = pickFirstWithPoster(popularList);
+    const topRated = pickFirstWithPoster(topRatedList);
 
-      if (availableMovies.length === 0) {
-        // If all movies are used, reset and pick from first 10
-        usedMovieIds.clear();
-        const firstTen = movieList.slice(0, 10);
-        const randomIndex = Math.floor(Math.random() * firstTen.length);
-        const selectedMovie = firstTen[randomIndex];
-        usedMovieIds.add(selectedMovie.id);
-        return selectedMovie;
-      }
-
-      // Pick a random movie from available ones
-      const randomIndex = Math.floor(Math.random() * availableMovies.length);
-      const selectedMovie = availableMovies[randomIndex];
-      usedMovieIds.add(selectedMovie.id);
-      return selectedMovie;
-    };
-
-    // Get unique movies for each category
-    const latestMovie = getUniqueMovie(
-      recentMovies?.pages?.[0]?.results || [],
-      'Latest',
-    );
-    if (latestMovie) {
-      items.push({
-        item: latestMovie,
-        type: 'movie' as const,
-        title: 'Latest',
-      });
-    }
-
-    const popularMovie = getUniqueMovie(
-      popularMovies?.pages?.[0]?.results || [],
-      'Popular',
-    );
-    if (popularMovie) {
-      items.push({
-        item: popularMovie,
-        type: 'movie' as const,
-        title: 'Popular',
-      });
-    }
-
-    const topRatedMovie = getUniqueMovie(
-      topRatedMovies?.pages?.[0]?.results || [],
-      'Top',
-    );
-    if (topRatedMovie) {
-      items.push({
-        item: topRatedMovie,
-        type: 'movie' as const,
-        title: 'Top',
-      });
-    }
-
-    return items;
-  }, [
-    recentMovies,
-    recentTVShows,
-    popularMovies,
-    topRatedMovies,
-    topRatedTVShows,
-  ]);
+    const next: Array<{item: any; type: 'movie' | 'tv'; title: string}> = [];
+    if (latest) next.push({item: latest, type: 'movie', title: 'Latest'});
+    if (popular) next.push({item: popular, type: 'movie', title: 'Popular'});
+    if (topRated) next.push({item: topRated, type: 'movie', title: 'Top'});
+    return next;
+  }, [recentMovies, popularMovies, topRatedMovies]);
 
   const {
     data: top10MoviesTodayByRegion,

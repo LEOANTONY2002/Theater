@@ -27,15 +27,12 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   style,
   textStyle,
   disabled = false,
-  fullWidth = true,
+  fullWidth = false,
   isIcon = true,
   v2 = false,
 }) => {
   const styles = StyleSheet.create({
-    container: {
-      borderRadius: borderRadius.round,
-      flex: 1,
-    },
+    container: {},
     button: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -44,6 +41,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
       paddingHorizontal: 24,
       paddingVertical: 12,
       borderRadius: 8,
+      width: fullWidth ? '100%' : undefined,
     },
     text: {
       color: !v2 ? colors.text.primary : colors.background.primary,

@@ -434,13 +434,9 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
       </View>
     ) : (
       <View>
-        <LinearGradient
-          colors={['rgba(19, 1, 45, 0.51)', 'rgba(91, 2, 62, 0.51)']}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={[styles.message, styles.assistant]}>
+        <View style={[styles.message, styles.assistant]}>
           <Markdown style={{body: styles.messageText}}>{item.text}</Markdown>
-        </LinearGradient>
+        </View>
         <AIReportFlag
           aiText={item.text}
           userText={undefined}
@@ -501,12 +497,7 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
             <Icon name="close" size={24} color="white" />
           </TouchableOpacity>
           <LinearGradient
-            colors={[
-              'rgba(209, 8, 112, 0.84)',
-              'rgba(209, 8, 125, 0.53)',
-              'rgba(75, 8, 209, 0.47)',
-              'rgb(133, 7, 183)',
-            ]}
+            colors={['rgb(18, 1, 51)', 'rgb(42, 0, 39)']}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}
             style={{
@@ -515,22 +506,10 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
               left: 0,
               right: 0,
               bottom: 0,
-              opacity: 0.5,
+              opacity: 0.8,
             }}
           />
           <View style={styles.container}>
-            <LinearGradient
-              colors={['rgba(57, 0, 40, 0.7)', 'rgba(98, 0, 55, 0)']}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 120,
-                zIndex: 10,
-                marginHorizontal: 2,
-              }}
-            />
             <FlatList
               ref={flatListRef}
               data={messages}
@@ -596,17 +575,6 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                   </View>
                 ) : null
               }
-            />
-            <LinearGradient
-              colors={['transparent', 'rgb(31, 2, 53)']}
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 150,
-                zIndex: 1,
-              }}
             />
             <View style={{zIndex: 1, backgroundColor: colors.modal.blur}}>
               <View
@@ -723,11 +691,15 @@ const styles = StyleSheet.create({
   },
   user: {
     alignSelf: 'flex-end',
-    backgroundColor: 'rgba(229, 210, 255, 0.27)',
+    backgroundColor: 'rgba(252, 248, 253, 0.37)',
     color: colors.background.primary,
     borderRadius: borderRadius.xl,
   },
-  assistant: {alignSelf: 'flex-start', borderRadius: borderRadius.xl},
+  assistant: {
+    alignSelf: 'flex-start',
+    borderRadius: borderRadius.xl,
+    backgroundColor: 'rgba(96, 71, 105, 0.46)',
+  },
   userText: {
     color: colors.text.primary,
     ...typography.body2,

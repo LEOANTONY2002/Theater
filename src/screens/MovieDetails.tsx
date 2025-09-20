@@ -1218,6 +1218,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           }}
                           style={{...styles.watchButton}}
                           textStyle={styles.watchButtonText}
+                          fullWidth
                           v2
                         />
                       ) : (
@@ -1228,6 +1229,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           }}
                           style={styles.watchButton}
                           textStyle={styles.watchButtonText}
+                          fullWidth
                         />
                       )
                     ) : (
@@ -1242,6 +1244,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           opacity: isPlaying ? 0.3 : 1,
                         }}
                         textStyle={styles.watchButtonText}
+                        fullWidth
                       />
                     )}
                     <TouchableOpacity
