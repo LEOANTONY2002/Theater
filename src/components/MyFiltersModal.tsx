@@ -457,13 +457,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         watch_region: next.length > 0 ? 'US' : prev.watch_region,
       };
 
-      console.log('MyFilters watch provider toggle:', {
-        providerId,
-        isSelected,
-        current,
-        next,
-        result,
-      });
       return result;
     });
   };

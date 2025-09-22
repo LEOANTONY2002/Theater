@@ -14,11 +14,8 @@ export const AppNavigator = () => {
     const unsubscribe = (global as any).__navigationRef?.addListener?.(
       'state',
       (e: any) => {
-        console.log('Navigation state changed:', e.data.state?.routes?.length);
-
         // If we have too many routes in the stack, clear cache to prevent glitches
         if (e.data.state?.routes?.length > 10) {
-          console.warn('Too many navigation routes - clearing cache');
           queryClient.clear();
         }
       },

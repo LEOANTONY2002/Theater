@@ -28,9 +28,15 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
     }, []);
 
     const imgPath = v2 ? item.backdrop_path : item.poster_path;
-    const imageUrl = imgPath
-      ? getImageUrl(imgPath, isTablet ? 'w342' : 'w185')
-      : '';
+    // Use smaller image sizes on phones to improve scroll performance
+    const tmdbSize = v2
+      ? isTablet
+        ? 'w500' // backdrop on tablet
+        : 'w300' // backdrop on phone
+      : isTablet
+      ? 'w342' // poster on tablet
+      : 'w185'; // poster on phone
+    const imageUrl = imgPath ? getImageUrl(imgPath, tmdbSize) : '';
 
     const title =
       'title' in item ? item.title : 'name' in item ? item.name : '';

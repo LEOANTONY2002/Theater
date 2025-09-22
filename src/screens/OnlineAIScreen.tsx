@@ -95,9 +95,7 @@ export const OnlineAIScreen: React.FC = () => {
         [THREADS_KEY, JSON.stringify(all)],
         [CURRENT_THREAD_KEY, currentId],
       ]);
-    } catch (e) {
-      console.log('Persist threads failed', e);
-    }
+    } catch (e) {}
   };
 
   const findCurrentIndex = (all: ChatThread[], id: string) =>
@@ -351,7 +349,6 @@ export const OnlineAIScreen: React.FC = () => {
         content,
       }));
       const response = await cinemaChat(groqMessages);
-      console.log('AI response:', response);
       let tmdbResults:
         | Array<{
             id: number;
@@ -560,7 +557,6 @@ export const OnlineAIScreen: React.FC = () => {
             }
           }
           text = response.aiResponse;
-          console.log('Extracted TMDB results:', tmdbResults);
           setAnimating(true);
           let i = 0;
           const step = 100; // Number of characters to reveal per frame
@@ -580,9 +576,7 @@ export const OnlineAIScreen: React.FC = () => {
           }
           animate();
           return;
-        } catch (e) {
-          console.log('Failed to parse TMDB results:', e);
-        }
+        } catch (e) {}
       }
       setAnimating(true);
       let i = 0;
@@ -611,7 +605,6 @@ export const OnlineAIScreen: React.FC = () => {
       const is503 = /503/.test(errText);
       const noApiKey = /NO_API_KEY/i.test(errText);
       setIsRateLimitExceeded(is429);
-      console.log('AI error:', errText);
 
       let friendly = 'Sorry, there was an error.';
       if (noApiKey) {

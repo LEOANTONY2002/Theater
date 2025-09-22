@@ -303,8 +303,6 @@ export const SearchScreen = React.memo(() => {
   const hasNoResults =
     !isLoading && !hasError && movies.length === 0 && tvShows.length === 0;
 
-  console.log('hasNoResults', hasNoResults);
-
   const applyContentTypeFilter = useCallback(
     (content: ContentItem[]) => {
       if (contentType === 'all') {

@@ -110,8 +110,6 @@ export const getMovies = async (
     }
 
     if (type === 'upcoming') {
-      console.log('upcoming', today, future, region);
-
       const response = await tmdbApi.get('/discover/movie', {
         params: {
           page,
@@ -126,8 +124,6 @@ export const getMovies = async (
     }
 
     if (type === 'upcoming_by_region') {
-      console.log('upcoming', today, future, region);
-
       const response = await tmdbApi.get('/discover/movie', {
         params: {
           page,
@@ -328,8 +324,6 @@ export const searchMovies = async (
     return response.data;
   }
 
-  console.log('SEARCH MOVIE', filters);
-
   const params2 = {
     query,
     page,
@@ -345,10 +339,6 @@ export const searchMovies = async (
     params2.watch_region = filters.watch_region || 'US';
   }
 
-  console.log('SEARCH MOVIE PARAMS', params2);
-
-  // For search queries, we need to use the search endpoint
-  // but still respect the sort_by parameter if provided
   let searchResponse = await tmdbApi.get('/search/movie', {
     params: params2,
   });
@@ -584,7 +574,6 @@ export const discoverMovies = async (filters: any = {}, page = 1) => {
     with_adult: false,
     include_adult: false,
   };
-  console.log(params);
 
   const response = await tmdbApi.get('/discover/movie', {
     params,

@@ -91,7 +91,6 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         }
 
         const regionCode = await detectRegion();
-        console.log('regionCode', regionCode);
 
         if (regionCode) {
           const region = regions.find(r => r.iso_3166_1 === regionCode);

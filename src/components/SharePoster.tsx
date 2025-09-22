@@ -85,7 +85,6 @@ export const SharePoster: React.FC<SharePosterProps> = ({
   const posterImages = posters.filter(
     p => !!(p?.poster_path || p?.backdrop_path),
   );
-  console.log('importCode', importCode);
 
   return (
     <View style={styles.canvas}>

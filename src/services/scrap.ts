@@ -19,7 +19,6 @@ const headers = {
 
 export const getIMDBRating = async (id: string) => {
   try {
-    console.log('ID', id);
     const response = await axios.get(`https://imdb.com/title/${id}`, {
       headers,
     });
@@ -54,16 +53,11 @@ export const getIMDBRating = async (id: string) => {
       .trim();
 
     return {rating, voteCount, director};
-  } catch (error) {
-    console.log('errrrrrrr', error);
-  }
+  } catch (error) {}
 };
 
 export const getIMDBSeriesRating = async (title: string, year: string) => {
   try {
-    console.log('title', title);
-    console.log('year', year);
-
     const response = await axios.get(
       `https://imdb.com/find?title=${title}&title_type=tv_series&release_date=${year}`,
       {
@@ -84,11 +78,6 @@ export const getIMDBSeriesRating = async (title: string, year: string) => {
       .replace(/[()]/g, '')
       .trim();
 
-    console.log('rating', rating);
-    console.log('voteCount', voteCount);
-
     return {rating, voteCount};
-  } catch (error) {
-    console.log('errrrrrrr', error);
-  }
+  } catch (error) {}
 };

@@ -101,8 +101,6 @@ export const MyFiltersScreen = () => {
     queryFn: FiltersManager.getSavedFilters,
   });
 
-  console.log('savedFilters', savedFilters, 'isLoading', isLoading);
-
   const handleSaveFilter = useCallback(
     (filter: SavedFilter) => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
@@ -175,8 +173,7 @@ export const MyFiltersScreen = () => {
       setShowImportModal(false);
       setImportCode('');
     } catch (e) {
-      console.log(e);
-      Alert.alert('Import Failed', e?.message || 'Could not import this code.');
+      Alert.alert('Import Failed', 'Could not import this code.');
     } finally {
       setIsImporting(false);
     }
@@ -485,7 +482,6 @@ export const MyFiltersScreen = () => {
           },
           'tmpfile',
         );
-        console.log('uri', uri);
         setPosterUri(uri);
       } catch (e) {
         console.warn('Create poster failed', e);
@@ -506,8 +502,6 @@ export const MyFiltersScreen = () => {
 
     const navigation = useNavigation<NativeStackNavigationProp<any>>();
     const handleItemPress = (item: any) => {
-      console.log('Item pressed:', item);
-
       if (item.type === 'movie') {
         navigation.push('MovieDetails', {movie: item});
       } else if (item.type === 'tv') {
@@ -525,10 +519,10 @@ export const MyFiltersScreen = () => {
             pointerEvents="none"
             style={{
               width: isTablet ? '300%' : '250%',
-              height: isTablet ? '250%' : '200%',
+              height: isTablet ? '250%' : '250%',
               position: 'absolute',
-              bottom: 20,
-              left: isTablet ? -170 : -120,
+              bottom: isTablet ? 20 : -20,
+              left: isTablet ? -170 : -220,
               paddingHorizontal: 10,
               zIndex: 0,
               transform: [
@@ -538,7 +532,7 @@ export const MyFiltersScreen = () => {
                       ? '-5deg'
                       : isTablet && orientation == 'portrait'
                       ? '-5deg'
-                      : '-11deg',
+                      : '-35deg',
                 },
               ],
             }}

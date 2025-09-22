@@ -101,12 +101,6 @@ class OfflineCacheService {
       await AsyncStorage.setItem(key, JSON.stringify(cachedItem));
       this.cacheIndex.add(key);
       await this.updateCacheIndex();
-
-      console.log(
-        `Cached ${type}:${identifier} (expires in ${Math.round(
-          ttl / (60 * 1000),
-        )} minutes)`,
-      );
     } catch (error) {
       console.error('Failed to cache item:', error);
     }
@@ -129,7 +123,6 @@ class OfflineCacheService {
         return null;
       }
 
-      console.log(`Cache hit for ${type}:${identifier}`);
       return cachedItem.data;
     } catch (error) {
       console.error('Failed to get cached item:', error);
@@ -171,7 +164,6 @@ class OfflineCacheService {
       await AsyncStorage.multiRemove(keys);
       await AsyncStorage.removeItem(this.CACHE_INDEX_KEY);
       this.cacheIndex.clear();
-      console.log('Offline cache cleared');
     } catch (error) {
       console.error('Failed to clear cache:', error);
     }
@@ -237,7 +229,6 @@ class OfflineCacheService {
       stats.totalItems >= this.MAX_ITEMS ||
       stats.totalSize >= this.MAX_CACHE_SIZE
     ) {
-      console.log('Cache size limit reached, cleaning up...');
       await this.cleanupOldestItems(Math.floor(this.MAX_ITEMS * 0.3)); // Remove 30% of items
     }
   }
@@ -268,7 +259,6 @@ class OfflineCacheService {
         await AsyncStorage.multiRemove(expiredKeys);
         expiredKeys.forEach(key => this.cacheIndex.delete(key));
         await this.updateCacheIndex();
-        console.log(`Cleaned up ${expiredKeys.length} expired cache items`);
       }
     } catch (error) {
       console.error('Failed to cleanup expired items:', error);
@@ -300,7 +290,6 @@ class OfflineCacheService {
         await AsyncStorage.multiRemove(keysToRemove);
         keysToRemove.forEach(key => this.cacheIndex.delete(key));
         await this.updateCacheIndex();
-        console.log(`Cleaned up ${keysToRemove.length} oldest cache items`);
       }
     } catch (error) {
       console.error('Failed to cleanup oldest items:', error);

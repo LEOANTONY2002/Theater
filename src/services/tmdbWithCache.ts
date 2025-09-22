@@ -58,7 +58,6 @@ class TMDBWithCacheService {
       cacheKey.identifier,
     );
     if (cachedResult) {
-      console.log('Using cached data for offline access');
       return cachedResult;
     }
 
@@ -458,8 +457,6 @@ class TMDBWithCacheService {
   }
 
   async preloadEssentialContent(): Promise<void> {
-    console.log('Preloading essential content for offline use...');
-
     try {
       // Preload popular movies and TV shows
       const popularMoviesPromise = this.getMovies('popular', 1);
@@ -480,8 +477,6 @@ class TMDBWithCacheService {
         movieGenresPromise,
         tvGenresPromise,
       ]);
-
-      console.log('Essential content preloaded successfully');
     } catch (error) {
       console.error('Failed to preload essential content:', error);
     }

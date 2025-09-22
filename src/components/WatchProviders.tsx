@@ -171,22 +171,14 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
       if (provider.app) {
         const canOpenDeepLink = await Linking.canOpenURL(provider.app);
         if (canOpenDeepLink) {
-          console.log(
-            `Opening ${providerName} app with deep link: ${provider.app}`,
-          );
           await Linking.openURL(provider.app);
           return;
-        } else {
-          console.log(`Cannot open ${providerName} app, falling back to web`);
         }
       }
 
-      // Fallback to web browser
-      console.log(`Opening ${providerName} in browser: ${provider.web}`);
       await Linking.openURL(provider.web);
     } catch (error) {
       console.error(`Error opening ${providerName}:`, error);
-      // Final fallback to web
       try {
         await Linking.openURL(provider.web);
       } catch (webError) {
@@ -238,8 +230,6 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
           <Text style={styles.sectionTitle}>Streaming Now</Text>
           <View style={styles.providersList}>
             {scrapedProviders.map((p, idx) => {
-              console.log(p.icon);
-
               return (
                 <TouchableOpacity
                   key={idx}

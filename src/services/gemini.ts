@@ -11,7 +11,6 @@ const getGeminiConfig = async () => {
   const settings = await AISettingsManager.getSettings();
 
   try {
-
     return {
       model: settings.model || DEFAULT_MODEL,
       apiKey: settings.apiKey,
@@ -72,8 +71,14 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
   const config = await getGeminiConfig();
   const {systemInstruction, contents} = convertMessagesToGemini(messages);
 
-  if (!config.apiKey || typeof config.apiKey !== 'string' || config.apiKey.trim().length === 0) {
-    const err = new Error('NO_API_KEY: Please set your Gemini API key in AI Settings');
+  if (
+    !config.apiKey ||
+    typeof config.apiKey !== 'string' ||
+    config.apiKey.trim().length === 0
+  ) {
+    const err = new Error(
+      'NO_API_KEY: Please set your Gemini API key in AI Settings',
+    );
     // Log once for debugging
     console.error('[Gemini] Missing API key. Open Settings and add your key.');
     throw err;
@@ -127,12 +132,20 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
 
       if (!response.ok) {
         const bodyText = await response.text().catch(() => '');
-        const enriched = new Error(`HTTP ${response.status}: ${bodyText || response.statusText}`);
+        const enriched = new Error(
+          `HTTP ${response.status}: ${bodyText || response.statusText}`,
+        );
         // Retry only on 5xx
-        if (response.status >= 500 && response.status < 600 && attempt < maxRetries) {
+        if (
+          response.status >= 500 &&
+          response.status < 600 &&
+          attempt < maxRetries
+        ) {
           attempt += 1;
           const delay = 500 * Math.pow(2, attempt - 1);
-          console.warn(`[Gemini] Transient error ${response.status}. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+          console.warn(
+            `[Gemini] Transient error ${response.status}. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
+          );
           await new Promise(res => setTimeout(res, delay));
           continue;
         }
@@ -154,11 +167,16 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
       // If fetch/network error, retry up to maxRetries
       const errObj: any = error as any;
       const message = String(errObj?.message || errObj);
-      const shouldRetry = /Network request failed|fetch failed|ECONNRESET|ETIMEDOUT/i.test(message) && attempt < maxRetries;
+      const shouldRetry =
+        /Network request failed|fetch failed|ECONNRESET|ETIMEDOUT/i.test(
+          message,
+        ) && attempt < maxRetries;
       if (shouldRetry) {
         attempt += 1;
         const delay = 500 * Math.pow(2, attempt - 1);
-        console.warn(`[Gemini] Network error. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+        console.warn(
+          `[Gemini] Network error. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
+        );
         await new Promise(res => setTimeout(res, delay));
         continue;
       }
@@ -184,7 +202,7 @@ export async function getSimilarByStory({
   type: 'movie' | 'tv';
 }) {
   const cacheKey = `${type}:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-  
+
   // Try to get from cache first
   const cachedResponse = await cache.get(CACHE_KEYS.AI_SIMILAR, cacheKey);
   if (cachedResponse) {
@@ -269,12 +287,11 @@ export async function cinemaChat(
   const geminiMessages = [system, ...messages];
   try {
     const response = await callGemini(geminiMessages);
-    
+
     let arr = [];
 
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\[.*?\]/s);
-    console.log('jsonMatch', jsonMatch);
 
     if (jsonMatch) {
       arr = JSON.parse(jsonMatch[0] || '[]');
@@ -301,8 +318,10 @@ export async function getMovieTrivia({
   type: 'movie' | 'tv';
 }) {
   // Generate a consistent cache key
-  const cacheKey = `trivia:${type}:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}${year ? `:${year}` : ''}`;
-  
+  const cacheKey = `trivia:${type}:${title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')}${year ? `:${year}` : ''}`;
+
   // Try to get from cache first
   try {
     const cached = await cache.get<string>(CACHE_KEYS.AI_TRIVIA, cacheKey);
@@ -313,7 +332,7 @@ export async function getMovieTrivia({
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
-      } 
+      }
       // If it's already an array, return it
       else if (Array.isArray(cached)) {
         return cached;
@@ -336,7 +355,7 @@ export async function getMovieTrivia({
     ]);
 
     let triviaItems: string[] = [];
-    
+
     // First try to parse the response as JSON
     try {
       // Try to extract JSON array if it's wrapped in markdown or other text
@@ -403,20 +422,25 @@ export async function getPersonalizedRecommendation(
     title: string;
     liked: boolean;
     timestamp: number;
-  }>
+  }>,
 ): Promise<any> {
   // Create a cache key based on mood answers and recent feedback
-  const cacheKey = `mood:${JSON.stringify(moodAnswers)}:history:${feedbackHistory.length > 0 ? feedbackHistory[0].contentId : 'none'}`;
-  
+  const cacheKey = `mood:${JSON.stringify(moodAnswers)}:history:${
+    feedbackHistory.length > 0 ? feedbackHistory[0].contentId : 'none'
+  }`;
+
   // Try to get from cache first (shorter TTL since preferences might change)
-  const cachedResponse = await cache.get(CACHE_KEYS.AI_RECOMMENDATION, cacheKey);
+  const cachedResponse = await cache.get(
+    CACHE_KEYS.AI_RECOMMENDATION,
+    cacheKey,
+  );
   if (cachedResponse) {
     return cachedResponse;
   }
 
   const likedContent = feedbackHistory.filter(f => f.liked === true);
   const dislikedContent = feedbackHistory.filter(f => f.liked === false);
-  
+
   const system = {
     role: 'system' as const,
     content: `You are Theater AI, a personalized movie/TV recommendation engine. 
@@ -431,7 +455,7 @@ export async function getPersonalizedRecommendation(
   };
 
   let userPrompt = '';
-  
+
   if (moodAnswers) {
     userPrompt += 'My current mood and preferences:\n';
     Object.entries(moodAnswers).forEach(([questionId, answer]) => {
@@ -439,10 +463,10 @@ export async function getPersonalizedRecommendation(
         return; // skip removed question
       }
       const questionMap: {[key: string]: string} = {
-        'current_mood': 'How I\'m feeling right now',
-        'content_type': 'Preferred content type',
-        'content_preference': 'Preferred story tone/style',
-        'discovery_mood': 'Discovery preference'
+        current_mood: "How I'm feeling right now",
+        content_type: 'Preferred content type',
+        content_preference: 'Preferred story tone/style',
+        discovery_mood: 'Discovery preference',
       };
       userPrompt += `- ${questionMap[questionId] || questionId}: ${answer}\n`;
     });
@@ -456,21 +480,30 @@ export async function getPersonalizedRecommendation(
     if (val === 'movie') desiredType = 'movie';
     else if (val === 'series') desiredType = 'tv';
   }
-  
+
   if (likedContent.length > 0) {
-    userPrompt += `Content I previously enjoyed:\n${likedContent.map(c => `- ${c.title}`).join('\n')}\n\n`;
+    userPrompt += `Content I previously enjoyed:\n${likedContent
+      .map(c => `- ${c.title}`)
+      .join('\n')}\n\n`;
   }
-  
+
   if (dislikedContent.length > 0) {
-    userPrompt += `Content I didn't enjoy:\n${dislikedContent.map(c => `- ${c.title}`).join('\n')}\n\n`;
+    userPrompt += `Content I didn't enjoy:\n${dislikedContent
+      .map(c => `- ${c.title}`)
+      .join('\n')}\n\n`;
   }
-  
-  userPrompt += 'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now. ';
-  userPrompt += 'Align the suggestion\'s tone with my selected story preference and overall mood (avoid contradictions, e.g., do not suggest dark & gritty for a lighthearted/\"laughs\" mood). ';
+
+  userPrompt +=
+    'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now. ';
+  userPrompt +=
+    'Align the suggestion\'s tone with my selected story preference and overall mood (avoid contradictions, e.g., do not suggest dark & gritty for a lighthearted/"laughs" mood). ';
   if (desiredType) {
-    userPrompt += `STRICT: Recommend only a ${desiredType === 'movie' ? 'movie' : 'TV series'} and set \"type\": \"${desiredType}\" in the JSON.`;
+    userPrompt += `STRICT: Recommend only a ${
+      desiredType === 'movie' ? 'movie' : 'TV series'
+    } and set \"type\": \"${desiredType}\" in the JSON.`;
   }
-  userPrompt += 'IMPORTANT: Do NOT recommend any title that appears in the liked or disliked lists above (avoid repeats).';
+  userPrompt +=
+    'IMPORTANT: Do NOT recommend any title that appears in the liked or disliked lists above (avoid repeats).';
 
   const user = {
     role: 'user' as const,
@@ -479,26 +512,28 @@ export async function getPersonalizedRecommendation(
 
   try {
     const result = await callGemini([system, user]);
-    
+
     // Try to extract JSON from the response
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const aiRecommendation = JSON.parse(jsonMatch[0]);
-      
+
       // Now search TMDB for the actual content data
       let tmdbData = null;
       if (aiRecommendation.type === 'movie') {
         const data = await searchMovies(aiRecommendation.title, 1, {
           year: aiRecommendation.year,
         } as any);
-        tmdbData = data?.results && data.results.length > 0 ? data.results[0] : null;
+        tmdbData =
+          data?.results && data.results.length > 0 ? data.results[0] : null;
       } else if (aiRecommendation.type === 'tv') {
         const data = await searchTVShows(aiRecommendation.title, 1, {
           first_air_date_year: aiRecommendation.year,
         } as any);
-        tmdbData = data?.results && data.results.length > 0 ? data.results[0] : null;
+        tmdbData =
+          data?.results && data.results.length > 0 ? data.results[0] : null;
       }
-      
+
       if (tmdbData) {
         return {
           id: tmdbData.id,

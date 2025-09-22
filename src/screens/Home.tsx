@@ -332,10 +332,7 @@ export const HomeScreen = React.memo(() => {
         await AsyncStorage.removeItem(AI_CACHE_KEY);
         setBecauseSeed(s => s + 1);
       }
-    } catch (e) {
-      // Non-fatal; keep UI stable
-      console.log('checkRecentSearchUpdateForAI error', e);
-    }
+    } catch (e) {}
   }, []);
 
   const handleMoodComplete = async (answers: {[key: string]: string}) => {

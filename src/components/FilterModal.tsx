@@ -317,13 +317,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         watch_region: next.length > 0 ? 'US' : prev.watch_region,
       };
 
-      console.log('Watch provider toggle:', {
-        providerId,
-        isSelected,
-        current,
-        next,
-        result,
-      });
       return result;
     });
   };

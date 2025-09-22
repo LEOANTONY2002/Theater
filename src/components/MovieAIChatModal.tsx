@@ -11,6 +11,7 @@ import {
   Easing,
   ScrollView,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {Modal} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
@@ -230,7 +231,6 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
             content: msg.text,
           })),
         ];
-        console.log('Sending chat messages:', chatMessages);
 
         // Call the AI service with the conversation messages
         const {aiResponse, arr} = await cinemaChat(chatMessages);
@@ -426,7 +426,6 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
             }
             setAiResults(resolved.slice(0, 10));
           } catch (e) {
-            console.log('AI suggestions resolve error', e);
           } finally {
             setAiResultsLoading(false);
           }
@@ -553,7 +552,8 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   return (
     <Modal
       animationType="slide"
-      navigationBarTranslucent={true}
+      navigationBarTranslucent
+      statusBarTranslucent
       transparent={true}
       visible={visible}
       onRequestClose={onClose}>
@@ -565,223 +565,235 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           marginTop: 50,
           overflow: 'hidden',
         }}>
-        <Animated.View
-          style={[
-            {flex: 1, position: 'relative'},
-            {
-              opacity: fadeAnim,
-              transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
-            },
-          ]}>
-          <BlurView
-            blurType="dark"
-            blurAmount={5}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}
-            overlayColor={colors.modal.blur}
-          />
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: borderRadius.round,
-              height: 50,
-              width: 50,
-              borderColor: colors.modal.border,
-              borderWidth: 1,
-              backgroundColor: colors.modal.blur,
-              zIndex: 2,
-            }}
-            onPress={onClose}>
-            <Icon name="close" size={24} color="white" />
-          </TouchableOpacity>
-          <LinearGradient
-            colors={['rgb(18, 1, 51)', 'rgb(42, 0, 39)']}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: 0.8,
-            }}
-          />
-          <View style={styles.container}>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              renderItem={renderMessage}
-              keyExtractor={item => item.id}
-              contentContainerStyle={[styles.chat]}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({animated: true})
-              }
-              onLayout={() =>
-                flatListRef.current?.scrollToEnd({animated: true})
-              }
-              ListFooterComponent={
-                isLoading ? (
-                  <Animated.View
-                    style={{
-                      marginHorizontal: spacing.lg,
-                      marginBottom: 32,
-                    }}>
-                    <GradientSpinner
-                      size={30}
-                      style={{
-                        alignItems: 'center',
-                        alignSelf: 'center',
-                        backgroundColor: 'transparent',
-                      }}
-                      colors={[colors.primary, colors.secondary]}
-                    />
-                    <Animated.Text
-                      style={[
-                        {
-                          color: colors.text.secondary,
-                          textAlign: 'center',
-                          fontSize: 12,
-                          marginTop: 4,
-                          fontStyle: 'italic',
-                        },
-                        {
-                          opacity: pulseAnim,
-                        },
-                      ]}>
-                      Theater AI is thinking...
-                    </Animated.Text>
-                  </Animated.View>
-                ) : aiResults.length > 0 ? (
-                  <View style={{marginTop: -spacing.xl, marginBottom: 150}}>
-                    <HorizontalList
-                      title=""
-                      data={aiResults as any}
-                      onItemPress={(content: any) => {
-                        if (onSelectContent) {
-                          onSelectContent(content);
-                        } else {
-                          if (
-                            content.type === 'movie' ||
-                            content.media_type === 'movie'
-                          ) {
-                            navigation.navigate('MovieDetails', {
-                              movie: content,
-                            });
-                          } else {
-                            navigation.navigate('TVShowDetails', {
-                              show: content,
-                            });
-                          }
-                        }
-                      }}
-                      isLoading={aiResultsLoading}
-                      isSeeAll={false}
-                      ai
-                    />
-                  </View>
-                ) : null
-              }
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+          style={{flex: 1}}>
+          <Animated.View
+            style={[
+              {flex: 1, position: 'relative'},
+              {
+                opacity: fadeAnim,
+                transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
+              },
+            ]}>
+            <BlurView
+              blurType="dark"
+              blurAmount={5}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+              overlayColor={colors.modal.blur}
             />
-            <View style={{zIndex: 1, backgroundColor: colors.modal.blur}}>
-              {renderSuggestions()}
-              <View
-                style={{
-                  marginHorizontal: isTablet ? 100 : spacing.lg,
-                  borderRadius: 50,
-                  overflow: 'hidden',
-                  zIndex: 3,
-                }}>
-                <TouchableWithoutFeedback
-                  onPress={() => inputRef.current?.focus()}>
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      ref={inputRef}
-                      style={styles.input}
-                      value={inputText}
-                      onChangeText={setInputText}
-                      placeholder={`Ask about ${
-                        contentType === 'tv' ? 'this show' : 'this movie'
-                      }...`}
-                      placeholderTextColor={colors.text.tertiary}
-                      editable={true}
-                      onFocus={() =>
-                        setTimeout(
-                          () =>
-                            flatListRef.current?.scrollToEnd({animated: true}),
-                          50,
-                        )
-                      }
-                      onSubmitEditing={() => handleSend()}
-                      returnKeyType="send"
-                    />
-                    <MicButton
-                      onPartialText={text => {
-                        if (text) setInputText(text);
-                      }}
-                      onFinalText={text => {
-                        setInputText(text);
-                        inputRef.current?.focus();
-                      }}
-                    />
-                    <Animated.View>
-                      <TouchableOpacity
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={{
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: borderRadius.round,
+                height: 50,
+                width: 50,
+                borderColor: colors.modal.border,
+                borderWidth: 1,
+                backgroundColor: colors.modal.blur,
+                zIndex: 2,
+              }}
+              onPress={onClose}>
+              <Icon name="close" size={24} color="white" />
+            </TouchableOpacity>
+            <LinearGradient
+              colors={['rgb(18, 1, 51)', 'rgb(42, 0, 39)']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                opacity: 0.8,
+              }}
+            />
+            <View style={styles.container}>
+              <FlatList
+                ref={flatListRef}
+                data={messages}
+                renderItem={renderMessage}
+                keyExtractor={item => item.id}
+                contentContainerStyle={[styles.chat]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                onContentSizeChange={() =>
+                  flatListRef.current?.scrollToEnd({animated: true})
+                }
+                onLayout={() =>
+                  flatListRef.current?.scrollToEnd({animated: true})
+                }
+                ListFooterComponent={
+                  isLoading ? (
+                    <Animated.View
+                      style={{
+                        marginHorizontal: spacing.lg,
+                        marginBottom: 32,
+                      }}>
+                      <GradientSpinner
+                        size={30}
+                        style={{
+                          alignItems: 'center',
+                          alignSelf: 'center',
+                          backgroundColor: 'transparent',
+                        }}
+                        colors={[colors.primary, colors.secondary]}
+                      />
+                      <Animated.Text
                         style={[
-                          styles.sendButton,
                           {
-                            opacity: isLoading || !inputText.trim() ? 0.5 : 1,
+                            color: colors.text.secondary,
+                            textAlign: 'center',
+                            fontSize: 12,
+                            marginTop: 4,
+                            fontStyle: 'italic',
                           },
-                        ]}
-                        onPress={() => handleSend()}
-                        disabled={isLoading || !inputText.trim()}>
-                        <Icon
-                          name={'send'}
-                          size={24}
-                          color={
-                            isLoading || !inputText.trim()
-                              ? colors.modal.active
-                              : colors.text.primary
-                          }
-                        />
-                      </TouchableOpacity>
+                          {
+                            opacity: pulseAnim,
+                          },
+                        ]}>
+                        Theater AI is thinking...
+                      </Animated.Text>
                     </Animated.View>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
+                  ) : aiResults.length > 0 ? (
+                    <View style={{marginTop: -spacing.xl, marginBottom: 150}}>
+                      <HorizontalList
+                        title=""
+                        data={aiResults as any}
+                        onItemPress={(content: any) => {
+                          if (onSelectContent) {
+                            onSelectContent(content);
+                          } else {
+                            if (
+                              content.type === 'movie' ||
+                              content.media_type === 'movie'
+                            ) {
+                              navigation.navigate('MovieDetails', {
+                                movie: content,
+                              });
+                            } else {
+                              navigation.navigate('TVShowDetails', {
+                                show: content,
+                              });
+                            }
+                          }
+                        }}
+                        isLoading={aiResultsLoading}
+                        isSeeAll={false}
+                        ai
+                      />
+                    </View>
+                  ) : null
+                }
+              />
               <View
                 style={{
-                  marginVertical: spacing.md,
-                  marginHorizontal: spacing.sm,
+                  zIndex: 1,
+                  backgroundColor: colors.modal.blur,
+                  paddingBottom: Platform.OS === 'android' ? androidInset : 0,
                 }}>
-                <Text
+                {renderSuggestions()}
+                <View
                   style={{
-                    textAlign: 'center',
-                    ...typography.caption,
-                    fontSize: 10,
-                    color: colors.text.tertiary,
+                    marginHorizontal: isTablet ? 100 : spacing.lg,
+                    borderRadius: 50,
+                    overflow: 'hidden',
+                    zIndex: 3,
                   }}>
-                  Responses are AI generated and for entertainment purposes
-                  only.
-                </Text>
+                  <TouchableWithoutFeedback
+                    onPress={() => inputRef.current?.focus()}>
+                    <View style={styles.inputRow}>
+                      <TextInput
+                        ref={inputRef}
+                        style={styles.input}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        placeholder={`Ask about ${
+                          contentType === 'tv' ? 'this show' : 'this movie'
+                        }...`}
+                        placeholderTextColor={colors.text.tertiary}
+                        editable={true}
+                        onFocus={() =>
+                          setTimeout(
+                            () =>
+                              flatListRef.current?.scrollToEnd({
+                                animated: true,
+                              }),
+                            50,
+                          )
+                        }
+                        onSubmitEditing={() => handleSend()}
+                        returnKeyType="send"
+                      />
+                      <MicButton
+                        onPartialText={text => {
+                          if (text) setInputText(text);
+                        }}
+                        onFinalText={text => {
+                          setInputText(text);
+                          inputRef.current?.focus();
+                        }}
+                      />
+                      <Animated.View>
+                        <TouchableOpacity
+                          style={[
+                            styles.sendButton,
+                            {
+                              opacity: isLoading || !inputText.trim() ? 0.5 : 1,
+                            },
+                          ]}
+                          onPress={() => handleSend()}
+                          disabled={isLoading || !inputText.trim()}>
+                          <Icon
+                            name={'send'}
+                            size={24}
+                            color={
+                              isLoading || !inputText.trim()
+                                ? colors.modal.active
+                                : colors.text.primary
+                            }
+                          />
+                        </TouchableOpacity>
+                      </Animated.View>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </View>
+                <View
+                  style={{
+                    marginVertical: spacing.md,
+                    marginHorizontal: spacing.sm,
+                  }}>
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                      ...typography.caption,
+                      fontSize: 10,
+                      color: colors.text.tertiary,
+                    }}>
+                    Responses are AI generated and for entertainment purposes
+                    only.
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

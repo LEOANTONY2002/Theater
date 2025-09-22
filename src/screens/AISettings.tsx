@@ -60,17 +60,10 @@ const FALLBACK_MODELS: GeminiModel[] = [
 // Function to fetch available Gemini models from the API
 const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
   try {
-    console.log(
-      'fetchGeminiModels called with API key:',
-      apiKey ? 'Present' : 'Missing',
-    );
-
     if (!apiKey || apiKey.trim() === '') {
-      console.log('No API key provided, using fallback models');
       return FALLBACK_MODELS;
     }
 
-    console.log('Making API call to fetch Gemini models...');
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
       {
@@ -81,17 +74,13 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
       },
     );
 
-    console.log('API response status:', response.status, response.statusText);
-
     if (!response.ok) {
-      console.error('Failed to fetch models:', response.statusText);
       return FALLBACK_MODELS;
     }
 
     const data = await response.json();
 
     if (!data.models || !Array.isArray(data.models)) {
-      console.error('Invalid response format from models API');
       return FALLBACK_MODELS;
     }
 
@@ -120,10 +109,8 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
         return 0;
       });
 
-    console.log('Fetched Gemini models:', geminiModels);
     return geminiModels.length > 0 ? geminiModels : FALLBACK_MODELS;
   } catch (error) {
-    console.error('Error fetching Gemini models:', error);
     return FALLBACK_MODELS;
   }
 };
@@ -161,7 +148,6 @@ const AISettingsScreen: React.FC = () => {
   // Load models when API key changes
   useEffect(() => {
     if (apiKey && apiKey.trim() !== '') {
-      console.log('API key changed, loading models:', apiKey);
       loadAvailableModels(apiKey);
     }
   }, [apiKey]);
@@ -243,16 +229,9 @@ const AISettingsScreen: React.FC = () => {
         },
       );
 
-      console.log('response', response);
-
-      // If we get a 200, the key is valid
-      // If we get a 400 with specific error, the key is invalid
-      // Any other error is treated as a network/connection issue
       if (response.status === 200) return true;
       if (response.status === 400) return false;
 
-      const errorData = await response.json();
-      console.error('API key validation error:', errorData);
       return false;
     } catch (error) {
       console.error('API key validation error:', error);
@@ -264,8 +243,6 @@ const AISettingsScreen: React.FC = () => {
     if (!hasChanges()) return;
 
     const trimmedApiKey = apiKey?.trim() || null;
-    console.log('trimmedApiKey', trimmedApiKey);
-    console.log('initialSettings', initialSettings);
     if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
       setIsValidating(true);
       try {
@@ -308,13 +285,11 @@ const AISettingsScreen: React.FC = () => {
 
       // Load available models if API key was added/changed
       if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
-        console.log('Loading models with new API key:', trimmedApiKey);
         await loadAvailableModels(trimmedApiKey);
       }
 
       showAlert('Success', 'AI settings saved successfully!');
     } catch (error) {
-      console.error('Error saving AI settings:', error);
       showAlert('Error', 'Failed to save settings. Please try again.');
     } finally {
       setIsValidating(false);
@@ -330,7 +305,7 @@ const AISettingsScreen: React.FC = () => {
         setTimeout(() => setIsApiKeyCopied(false), 2000);
       }
     } catch (error) {
-      console.error('Error pasting from clipboard:', error);
+      showAlert('Error', 'Failed to paste API key. Please try again.');
     }
   };
 

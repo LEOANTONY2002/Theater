@@ -393,7 +393,6 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
             }
             setAiResults(resolved.slice(0, 10));
           } catch (e) {
-            console.log('Person AI suggestions resolve error', e);
           } finally {
             setAiResultsLoading(false);
           }
