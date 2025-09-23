@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   LogBox,
   StatusBar,
@@ -27,14 +27,32 @@ import {offlineCache} from './src/services/offlineCache';
 import {checkTMDB} from './src/services/tmdb';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors} from './src/styles/theme';
+import {BlurPreference} from './src/store/blurPreference';
 
-const App = () => {
+export default function App() {
+  const [themeReady, setThemeReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const [hasCache, setHasCache] = useState(false);
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [showDNSModal, setShowDNSModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
+
+  // Ensure theme preference is loaded before first render
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await BlurPreference.init();
+      } finally {
+        if (mounted) setThemeReady(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   enableScreens();
   LogBox.ignoreAllLogs();
 
@@ -131,8 +149,8 @@ const App = () => {
   //   );
   // }
 
-  // Avoid flashing Home before onboarding state is known
-  if (isLoading || isOnboarded === null) {
+  // Avoid flashing Home before theme/onboarding state is known
+  if (!themeReady || isLoading || isOnboarded === null) {
     return (
       <>
         <StatusBar
@@ -200,6 +218,4 @@ const App = () => {
       /> */}
     </QueryClientProvider>
   );
-};
-
-export default App;
+}

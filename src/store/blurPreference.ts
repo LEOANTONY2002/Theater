@@ -25,9 +25,12 @@ export const BlurPreference = {
         mode = 'glass';
       }
       cached = true;
+      // Notify listeners so UI can re-render with the loaded mode
+      listeners.forEach(l => l());
     } catch {
       cached = true;
       mode = 'glass';
+      listeners.forEach(l => l());
     }
   },
   // Back-compat boolean getter: true when glass

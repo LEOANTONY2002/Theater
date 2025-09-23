@@ -47,7 +47,7 @@ export const MaybeBlurView: React.FC<
   if (!useFallback) {
     return (
       <BlurView
-        blurType={'light'}
+        blurType={'dark'}
         blurAmount={blurAmount}
         style={style}
         overlayColor={colors.modal.blurDark}
