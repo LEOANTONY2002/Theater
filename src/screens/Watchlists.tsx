@@ -40,6 +40,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import {generateWatchlistCode, parseWatchlistCode} from '../utils/shareCode';
 import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -808,11 +809,13 @@ export const WatchlistsScreen: React.FC = () => {
           onRequestClose={() => setShowImportModal(false)}>
           <View style={styles.modalContainer}>
             <View style={styles.importModalContent}>
-              <BlurView
+              <MaybeBlurView
                 style={StyleSheet.absoluteFill}
                 blurType="dark"
                 blurAmount={10}
                 overlayColor={colors.modal.blurDark}
+                radius={20}
+                dialog
               />
               <View style={modalStyles.modalHeader}>
                 <Text style={modalStyles.modalTitle}>Import Watchlist</Text>

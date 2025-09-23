@@ -15,6 +15,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {GradientProgressBar} from './GradientProgressBar';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
+import {MaybeBlurView} from './MaybeBlurView';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS} from '../types/filters';
 import {
@@ -439,7 +440,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
+        <MaybeBlurView
+          blurType="dark"
+          blurAmount={10}
+          modal={true}
+          style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filter</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -911,7 +916,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 </TouchableOpacity>
               ))}
           </View>
-        </BlurView>
+        </MaybeBlurView>
       </View>
       {/* Save Filter Modal */}
       <RNModal
@@ -1094,7 +1099,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
           }));
         }}>
         <View style={styles.modalContainer}>
-          <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
+          <MaybeBlurView
+            blurType="dark"
+            blurAmount={10}
+            style={styles.modalContent}
+            modal={true}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Language Settings</Text>
               <TouchableOpacity
@@ -1132,7 +1141,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 }}
               />
             </View>
-          </BlurView>
+          </MaybeBlurView>
         </View>
       </Modal>
 
@@ -1144,7 +1153,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         transparent={true}
         onRequestClose={() => setShowAllGenresModal(false)}>
         <View style={styles.modalContainer}>
-          <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
+          <MaybeBlurView
+            blurType="dark"
+            blurAmount={10}
+            style={styles.modalContent}
+            modal={true}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>All Genres</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -1201,7 +1214,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </View>
               <View style={{height: 100}} />
             </ScrollView>
-          </BlurView>
+          </MaybeBlurView>
         </View>
       </Modal>
 
@@ -1213,7 +1226,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         transparent={true}
         onRequestClose={() => setShowAllProvidersModal(false)}>
         <View style={styles.modalContainer}>
-          <BlurView blurType="dark" blurAmount={10} style={styles.modalContent}>
+          <MaybeBlurView
+            blurType="dark"
+            blurAmount={10}
+            style={styles.modalContent}
+            modal={true}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>All Watch Providers</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -1298,7 +1315,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </View>
               <View style={{height: 100}} />
             </ScrollView>
-          </BlurView>
+          </MaybeBlurView>
         </View>
       </Modal>
     </Modal>

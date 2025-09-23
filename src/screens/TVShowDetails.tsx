@@ -68,6 +68,7 @@ import {offlineCache} from '../services/offlineCache';
 import {HistoryManager} from '../store/history';
 import ShareLib from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -861,14 +862,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'transparent',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
       justifyContent: 'flex-end',
     },
     modalContent: {
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: borderRadius.xl,
+      borderTopRightRadius: borderRadius.xl,
       maxHeight: '80%',
       overflow: 'hidden',
+      flex: 1,
+      marginTop: 100,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -1526,14 +1529,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       style={styles.modalOverlay}
                       activeOpacity={0.9}
                       onPress={() => setShowSeasonModal(false)}>
-                      <View style={styles.modalContent}>
-                        <BlurView
-                          style={styles.blurView}
-                          blurType="dark"
-                          blurAmount={10}
-                          overlayColor={colors.modal.blur}
-                          reducedTransparencyFallbackColor={colors.modal.blur}
-                        />
+                      <MaybeBlurView
+                        style={styles.modalContent}
+                        blurType="dark"
+                        blurAmount={10}
+                        overlayColor={colors.modal.blur}
+                        modal
+                        radius={borderRadius.xl}>
                         <View style={styles.modalHeader}>
                           <Text style={styles.modalTitle}>Select Season</Text>
                           <TouchableOpacity
@@ -1546,7 +1548,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             />
                           </TouchableOpacity>
                         </View>
-                        <ScrollView style={styles.seasonsList}>
+                        <ScrollView
+                          style={styles.seasonsList}
+                          showsVerticalScrollIndicator={false}>
                           {showDetails.seasons.map(
                             (s: TVShowDetailsType['seasons'][0]) => (
                               <TouchableOpacity
@@ -1585,7 +1589,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             ),
                           )}
                         </ScrollView>
-                      </View>
+                      </MaybeBlurView>
                     </TouchableOpacity>
                   </Modal>
                 </View>

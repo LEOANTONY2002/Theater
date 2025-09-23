@@ -6,7 +6,13 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {LogBox, StatusBar, AppState, DevSettings} from 'react-native';
+import {
+  LogBox,
+  StatusBar,
+  AppState,
+  DevSettings,
+  StyleSheet,
+} from 'react-native';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
 import {queryClient} from './src/services/queryClient';
@@ -19,6 +25,8 @@ import Onboarding from './src/screens/Onboarding';
 import {OnboardingManager} from './src/store/onboarding';
 import {offlineCache} from './src/services/offlineCache';
 import {checkTMDB} from './src/services/tmdb';
+import LinearGradient from 'react-native-linear-gradient';
+import {colors} from './src/styles/theme';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -179,6 +187,17 @@ const App = () => {
           />
         </>
       )}
+      {/* <LinearGradient
+        colors={['transparent', colors.background.primary]}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 150,
+          zIndex: 1,
+        }}
+      /> */}
     </QueryClientProvider>
   );
 };

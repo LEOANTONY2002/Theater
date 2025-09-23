@@ -29,7 +29,7 @@ import {useTrending} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useQueryClient, useQuery} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
-import {BlurView} from '@react-native-community/blur';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 import LinearGradient from 'react-native-linear-gradient';
 import FastImage from 'react-native-fast-image';
 import {GradientSpinner} from '../components/GradientSpinner';
@@ -573,10 +573,11 @@ export const SearchScreen = React.memo(() => {
     <View style={styles.container}>
       <View style={styles.header}>
         {isFocused && (
-          <BlurView
+          <MaybeBlurView
             style={styles.blurView}
             blurType="dark"
             blurAmount={10}
+            dialog
             pointerEvents="none"
           />
         )}
@@ -884,12 +885,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     position: 'absolute',
     top: 0,
-    left: 0,
     zIndex: 1,
     overflow: 'hidden',
     paddingVertical: spacing.md,
     margin: 20,
     borderRadius: borderRadius.round,
+    width: '80%',
+    alignSelf: 'center',
   },
   blurView: {
     position: 'absolute',
@@ -907,7 +909,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.round,
     borderWidth: 1,
-    borderColor: colors.modal.active,
+    borderColor: colors.modal.border,
   },
   searchIcon: {
     marginRight: spacing.sm,
@@ -930,7 +932,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.modal.active,
+    borderColor: colors.modal.border,
   },
   filterButtonActive: {
     borderWidth: 1,

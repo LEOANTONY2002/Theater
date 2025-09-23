@@ -60,7 +60,6 @@ const FALLBACK_MODELS: GeminiModel[] = [
 const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
   try {
     if (!apiKey || apiKey.trim() === '') {
-      console.log('No API key provided, using fallback models');
       return FALLBACK_MODELS;
     }
 
@@ -75,14 +74,12 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
     );
 
     if (!response.ok) {
-      console.error('Failed to fetch models:', response.statusText);
       return FALLBACK_MODELS;
     }
 
     const data = await response.json();
 
     if (!data.models || !Array.isArray(data.models)) {
-      console.error('Invalid response format from models API');
       return FALLBACK_MODELS;
     }
 
@@ -111,10 +108,8 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
         return 0;
       });
 
-    console.log('Fetched Gemini models:', geminiModels);
     return geminiModels.length > 0 ? geminiModels : FALLBACK_MODELS;
   } catch (error) {
-    console.error('Error fetching Gemini models:', error);
     return FALLBACK_MODELS;
   }
 };
@@ -189,7 +184,6 @@ const OnboardingAISettings: React.FC<{
   const loadSettings = async () => {
     try {
       const settings = await AISettingsManager.getSettings();
-      console.log('settings', settings);
 
       if (settings) {
         setApiKey(settings.apiKey || '');
@@ -218,8 +212,6 @@ const OnboardingAISettings: React.FC<{
     }
   };
 
-  console.log('initialSettings', initialSettings);
-
   const loadAvailableModels = async (currentApiKey: string) => {
     setIsLoadingModels(true);
     try {
@@ -231,14 +223,6 @@ const OnboardingAISettings: React.FC<{
     } finally {
       setIsLoadingModels(false);
     }
-  };
-
-  const hasChanges = () => {
-    if (!initialSettings) return false;
-    return (
-      apiKey !== initialSettings.apiKey ||
-      selectedModel !== initialSettings.model
-    );
   };
 
   const validateApiKey = async (key: string): Promise<boolean> => {
@@ -274,11 +258,6 @@ const OnboardingAISettings: React.FC<{
         },
       );
 
-      console.log('response', response);
-
-      // If we get a 200, the key is valid
-      // If we get a 400 with specific error, the key is invalid
-      // Any other error is treated as a network/connection issue
       if (response.status === 200) return true;
       if (response.status === 400) return false;
       if (response.status === 503) {
@@ -325,10 +304,7 @@ const OnboardingAISettings: React.FC<{
   };
 
   const saveSettings = async () => {
-    console.log('saveSettings');
     const trimmedApiKey = apiKey.trim();
-    console.log('trimmedApiKey', trimmedApiKey);
-    console.log('initialSettings', initialSettings);
     if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
       setIsValidating(true);
       try {

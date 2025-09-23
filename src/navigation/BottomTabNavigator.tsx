@@ -1,5 +1,12 @@
 import React, {useState, useEffect} from 'react';
-import {View, StyleSheet, Platform, Animated} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Platform,
+  Animated,
+  TouchableOpacity,
+} from 'react-native';
+import type {BottomTabBarButtonProps} from '@react-navigation/bottom-tabs';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useNavigation, useNavigationState} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
@@ -12,7 +19,7 @@ import {
   MySpaceStackNavigator,
 } from './TabStacks';
 import {colors, spacing, borderRadius, shadows} from '../styles/theme';
-import {BlurView} from '@react-native-community/blur';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 import {useResponsive} from '../hooks/useResponsive';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -36,8 +43,6 @@ const styles = StyleSheet.create({
     // Height/marginBottom set in TabBarBackground for live updates
     borderRadius: borderRadius.round,
     overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.11)',
     backgroundColor: 'rgba(255, 255, 255, 0)',
   },
   blurContainer: {
@@ -65,9 +70,35 @@ const TabIcon = ({focused, name, color}: TabIconProps) => {
             opacity: focused ? 1 : 0.7,
           },
         ]}>
-        <Icon name={name} size={20} color={color} />
+        <Icon name={name} size={20} color={color} suppressHighlighting={true} />
       </View>
     </View>
+  );
+};
+
+// Custom button to avoid native ripple/highlight artifacts on Android
+const TabBarButton = ({
+  onPress,
+  onLongPress,
+  accessibilityState,
+  accessibilityRole,
+  accessibilityLabel,
+  testID,
+  children,
+  style,
+}: BottomTabBarButtonProps) => {
+  return (
+    <TouchableOpacity
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
+      testID={testID}
+      activeOpacity={0.7}
+      onPress={onPress ?? undefined}
+      onLongPress={onLongPress ?? undefined}
+      style={style as any}>
+      {children}
+    </TouchableOpacity>
   );
 };
 
@@ -84,11 +115,13 @@ const TabBarBackground = () => {
           marginBottom: isTablet ? 15 : 10,
         },
       ]}>
-      <BlurView
+      <MaybeBlurView
         blurType="dark"
         blurAmount={10}
         style={styles.blurContainer}
         overlayColor={colors.modal.blurDark}
+        bottomBar
+        gradientColors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.5)']}
       />
     </View>
   );
@@ -126,6 +159,10 @@ export const BottomTabNavigator = () => {
     <View style={styles.container}>
       <Tab.Navigator
         screenOptions={{
+          // Use a custom button to avoid Android ripple/highlight around icons
+          tabBarButton: props => <TabBarButton {...props} />,
+          tabBarActiveBackgroundColor: 'transparent',
+          tabBarInactiveBackgroundColor: 'transparent',
           tabBarStyle: {
             elevation: 10,
             shadowColor: 'rgba(0, 0, 0, 0.5)',

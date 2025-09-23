@@ -21,7 +21,7 @@ import {cinemaChat} from '../services/gemini';
 import {GradientSpinner} from './GradientSpinner';
 import {MicButton} from './MicButton';
 import LinearGradient from 'react-native-linear-gradient';
-import {BlurView} from '@react-native-community/blur';
+import {MaybeBlurView} from './MaybeBlurView';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import Markdown from 'react-native-markdown-display';
 import {AIReportFlag} from './AIReportFlag';
@@ -577,7 +577,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                 transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
               },
             ]}>
-            <BlurView
+            <MaybeBlurView
               blurType="dark"
               blurAmount={5}
               style={{
@@ -588,6 +588,8 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                 bottom: 0,
               }}
               overlayColor={colors.modal.blur}
+              autoDisableOnLowTier
+              gradientColors={['rgba(14,14,24,0.85)', 'rgba(14,14,24,0.80)']}
             />
             <TouchableOpacity
               activeOpacity={0.9}

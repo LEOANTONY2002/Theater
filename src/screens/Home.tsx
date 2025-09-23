@@ -42,7 +42,7 @@ import {BecauseYouWatched} from '../components/BecauseYouWatched';
 import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FastImage from 'react-native-fast-image';
-import {BlurView} from '@react-native-community/blur';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {cache, CACHE_KEYS} from '../utils/cache';
 
@@ -1023,13 +1023,14 @@ export const HomeScreen = React.memo(() => {
         statusBarTranslucent={true}
         transparent={true}
         onRequestClose={() => setShowMoodModal(false)}>
-        <BlurView
+        <MaybeBlurView
           style={{
             flex: 1,
             marginTop: 80,
           }}
           blurType="dark"
-          blurAmount={10}>
+          blurAmount={10}
+          modal={true}>
           <View
             style={[
               modalStyles.container,
@@ -1048,7 +1049,7 @@ export const HomeScreen = React.memo(() => {
               onCancel={() => setShowMoodModal(false)}
             />
           </View>
-        </BlurView>
+        </MaybeBlurView>
       </Modal>
     </View>
   );

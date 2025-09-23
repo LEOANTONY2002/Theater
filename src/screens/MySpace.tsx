@@ -7,6 +7,7 @@ import {
   Modal,
   ScrollView,
   Image,
+  Switch,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -16,6 +17,7 @@ import {LanguageSettings} from '../components/LanguageSettings';
 import {SettingsManager} from '../store/settings';
 import {useQueryClient, useQuery} from '@tanstack/react-query';
 import {BlurView} from '@react-native-community/blur';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {LanguageSkeleton} from '../components/LoadingSkeleton';
 import {SavedFilter} from '../types/filters';
@@ -33,6 +35,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
 import {useAIEnabled} from '../hooks/useAIEnabled';
+import {BlurPreference} from '../store/blurPreference';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -57,6 +60,9 @@ export const MySpaceScreen = React.memo(() => {
   const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
   const [lastMoodUpdate, setLastMoodUpdate] = useState<string>('');
   const {isTablet} = useResponsive();
+  // Blur preference toggle state
+  const [forceBlurAll, setForceBlurAll] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -96,6 +102,21 @@ export const MySpaceScreen = React.memo(() => {
     loadMoodAnswers();
   }, []);
 
+  // Initialize and subscribe to blur preference changes
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    (async () => {
+      await BlurPreference.init();
+      setForceBlurAll(BlurPreference.get());
+      unsubscribe = BlurPreference.subscribe(() =>
+        setForceBlurAll(BlurPreference.get()),
+      );
+    })();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   // Add focus effect to refresh filters
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -120,7 +141,6 @@ export const MySpaceScreen = React.memo(() => {
         queryKey: ['top_10_shows_today_by_region'],
       });
     };
-
     SettingsManager.addChangeListener(handleSettingsChange);
 
     return () => {
@@ -282,8 +302,9 @@ export const MySpaceScreen = React.memo(() => {
     modalContent: {
       borderTopLeftRadius: borderRadius.xl,
       borderTopRightRadius: borderRadius.xl,
-      height: '90%',
       overflow: 'hidden',
+      paddingBottom: spacing.xl,
+      backgroundColor: colors.modal.blurDark,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -643,6 +664,26 @@ export const MySpaceScreen = React.memo(() => {
         </View>
       </TouchableOpacity>
 
+      {/* Theme Preferences */}
+      <TouchableOpacity
+        style={styles.headerContainer}
+        activeOpacity={0.9}
+        onPress={() => setShowThemeModal(true)}
+        accessibilityRole="button"
+        testID="themeSelectorButton">
+        <Text style={styles.sectionTitle}>Theme</Text>
+        <View style={styles.regionInfo}>
+          <Text style={styles.regionText} numberOfLines={1}>
+            {forceBlurAll ? 'Glass' : 'Normal'}
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={14}
+            color={colors.text.primary}
+          />
+        </View>
+      </TouchableOpacity>
+
       {/* Ask AI Section */}
       <View style={{position: 'relative', overflow: 'hidden'}}>
         <LinearGradient
@@ -771,13 +812,11 @@ export const MySpaceScreen = React.memo(() => {
         transparent={true}
         onRequestClose={() => setShowLanguageModal(false)}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-            />
+          <MaybeBlurView
+            blurType="dark"
+            blurAmount={10}
+            style={styles.modalContent}
+            gradientColors={[colors.modal.blur, colors.modal.blur]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Language Settings</Text>
               <TouchableOpacity
@@ -789,7 +828,7 @@ export const MySpaceScreen = React.memo(() => {
             <View style={styles.modalBody}>
               <LanguageSettings />
             </View>
-          </View>
+          </MaybeBlurView>
         </View>
       </Modal>
 
@@ -801,27 +840,121 @@ export const MySpaceScreen = React.memo(() => {
         onSelectRegion={handleRegionSelect}
       />
 
-      {/* Mood Settings Modal */}
+      {/* Theme Modal */}
       <Modal
-        visible={showMoodModal}
+        visible={showThemeModal}
         animationType="slide"
         statusBarTranslucent={true}
         transparent={true}
-        onRequestClose={handleMoodCancel}>
+        onRequestClose={() => setShowThemeModal(false)}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blur}
-            />
-            <MoodQuestionnaire
-              onComplete={handleMoodComplete}
-              onCancel={handleMoodCancel}
-              initialAnswers={moodAnswers}
-            />
-          </View>
+          <MaybeBlurView
+            style={{
+              flex: 1,
+              marginTop: '50%',
+              borderTopLeftRadius: borderRadius.xl,
+              borderTopRightRadius: borderRadius.xl,
+            }}
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blur}
+            modal
+            radius={borderRadius.xl}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Theme</Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowThemeModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={{padding: spacing.md}}>
+              {/* Glass Option */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={async () => {
+                  setForceBlurAll(true);
+                  await BlurPreference.set(true);
+                  setShowThemeModal(false);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: borderRadius.md,
+                  backgroundColor: colors.modal.content,
+                  borderWidth: 1,
+                  borderColor: forceBlurAll
+                    ? colors.accent
+                    : colors.modal.border,
+                  marginBottom: spacing.md,
+                }}>
+                <View>
+                  <Text style={{color: colors.text.primary, ...typography.h3}}>
+                    Glass
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.text.secondary,
+                      ...typography.body2,
+                    }}>
+                    Beautiful blur effects throughout the app
+                  </Text>
+                </View>
+                {forceBlurAll && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={colors.accent}
+                  />
+                )}
+              </TouchableOpacity>
+
+              {/* Normal Option */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={async () => {
+                  setForceBlurAll(false);
+                  await BlurPreference.set(false);
+                  setShowThemeModal(false);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: borderRadius.md,
+                  backgroundColor: colors.modal.content,
+                  borderWidth: 1,
+                  borderColor: !forceBlurAll
+                    ? colors.accent
+                    : colors.modal.border,
+                }}>
+                <View>
+                  <Text style={{color: colors.text.primary, ...typography.h3}}>
+                    Normal
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.text.secondary,
+                      ...typography.body2,
+                    }}>
+                    Fallback theme (use if you notice performance issues)
+                  </Text>
+                </View>
+                {!forceBlurAll && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={colors.accent}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
+          </MaybeBlurView>
         </View>
       </Modal>
 
@@ -839,11 +972,9 @@ export const MySpaceScreen = React.memo(() => {
             backgroundColor: 'rgba(0, 0, 0, 0.14)',
           }}>
           <View style={styles.dialogOverlay}>
-            <BlurView
+            <MaybeBlurView
               blurAmount={10}
-              blurRadius={5}
               blurType="light"
-              overlayColor={colors.modal.blur}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -852,6 +983,7 @@ export const MySpaceScreen = React.memo(() => {
                 bottom: 0,
                 borderRadius: 50,
               }}
+              gradientColors={[colors.modal.blur, colors.modal.blur]}
             />
             <View style={styles.dialogCard}>
               <View style={styles.dialogHeader}>

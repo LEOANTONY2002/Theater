@@ -11,6 +11,7 @@ import {BlurView} from '@react-native-community/blur';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {modalStyles} from '../styles/styles';
+import {MaybeBlurView} from './MaybeBlurView';
 
 interface ServerModalProps {
   visible: boolean;
@@ -41,11 +42,13 @@ export const ServerModal: React.FC<ServerModalProps> = ({
             styles.halfScreenContent,
             {overflow: 'hidden'},
           ]}>
-          <BlurView
+          <MaybeBlurView
             style={StyleSheet.absoluteFill}
             blurType="dark"
-            blurAmount={20}
+            blurAmount={10}
             overlayColor={colors.modal.blur}
+            dialog
+            radius={borderRadius.xl}
           />
           <View style={modalStyles.modalHeader}>
             <Text style={modalStyles.modalTitle}>Select Server</Text>

@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useSpeechToText} from '../hooks/useSpeechToText';
 import {colors, borderRadius} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
+import {MaybeBlurView} from './MaybeBlurView';
 
 interface VoiceCaptureModalProps {
   visible: boolean;
@@ -132,7 +133,13 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
       onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <View style={{borderRadius: 50, overflow: 'hidden'}}>
-          <BlurView style={styles.blur} blurType={'dark'} blurAmount={10} />
+          <MaybeBlurView
+            style={styles.blur}
+            blurType={'dark'}
+            blurAmount={10}
+            radius={50}
+            dialog
+          />
           <View style={styles.card}>
             <TouchableOpacity
               activeOpacity={0.85}

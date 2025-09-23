@@ -11,6 +11,7 @@ import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {GradientSpinner} from './GradientSpinner';
+import {MaybeBlurView} from './MaybeBlurView';
 
 interface RegionModalProps {
   visible: boolean;
@@ -41,13 +42,12 @@ export const RegionModal: React.FC<RegionModalProps> = ({
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <BlurView
-            style={StyleSheet.absoluteFill}
-            blurType="dark"
-            blurAmount={20}
-            overlayColor={colors.modal.blurDark}
-          />
+        <MaybeBlurView
+          style={styles.modalContent}
+          modal={true}
+          blurType="dark"
+          blurAmount={20}
+          overlayColor={colors.modal.blurDark}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Region</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -109,7 +109,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
               )}
             />
           )}
-        </View>
+        </MaybeBlurView>
       </View>
     </Modal>
   );
@@ -122,8 +122,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    marginTop: 60,
-    backgroundColor: colors.background.primary,
+    marginTop: 80,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     overflow: 'hidden',

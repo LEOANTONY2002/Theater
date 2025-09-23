@@ -40,6 +40,7 @@ import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {generateFilterCode, parseFilterCode} from '../utils/shareCode';
 import {modalStyles} from '../styles/styles';
 import {ContentItem} from '../components/MovieList';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -1098,7 +1099,7 @@ export const MyFiltersScreen = () => {
           onRequestClose={() => setShowImportModal(false)}>
           <View style={styles.modalContainer}>
             <View style={styles.importModalContent}>
-              <BlurView
+              <MaybeBlurView
                 style={[
                   {
                     flex: 1,
@@ -1110,8 +1111,10 @@ export const MyFiltersScreen = () => {
                   },
                 ]}
                 blurType="dark"
-                blurAmount={50}
+                blurAmount={10}
                 overlayColor={colors.modal.blurDark}
+                dialog
+                radius={20}
               />
               <View style={modalStyles.modalHeader}>
                 <Text style={modalStyles.modalTitle}>Import Filter</Text>

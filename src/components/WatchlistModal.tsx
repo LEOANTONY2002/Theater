@@ -26,6 +26,7 @@ import {modalStyles} from '../styles/styles';
 import CreateButton from './createButton';
 import {useResponsive} from '../hooks/useResponsive';
 import {Chip} from './Chip';
+import {MaybeBlurView} from './MaybeBlurView';
 
 interface WatchlistModalProps {
   visible: boolean;
@@ -134,11 +135,12 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                 marginBottom: keyboardHeight,
               },
             ]}>
-            <BlurView
+            <MaybeBlurView
               style={StyleSheet.absoluteFill}
               blurType="dark"
-              blurRadius={10}
-              blurAmount={20}
+              blurAmount={10}
+              dialog
+              radius={borderRadius.xl}
               overlayColor={colors.modal.blurDark}
             />
 
