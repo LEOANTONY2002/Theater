@@ -571,6 +571,18 @@ export const SearchScreen = React.memo(() => {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={[colors.background.primary, 'transparent']}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 100,
+          zIndex: 1,
+        }}
+      />
+
       <View style={styles.header}>
         {isFocused && (
           <MaybeBlurView
@@ -627,7 +639,9 @@ export const SearchScreen = React.memo(() => {
           <Icon
             name="options-outline"
             size={24}
-            color={hasActiveFilters ? colors.text.primary : colors.modal.active}
+            color={
+              hasActiveFilters ? colors.background.primary : colors.modal.active
+            }
           />
         </TouchableOpacity>
         {hasActiveFilters && (
@@ -890,7 +904,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     margin: 20,
     borderRadius: borderRadius.round,
-    width: '80%',
+    width: '90%',
     alignSelf: 'center',
   },
   blurView: {
@@ -937,7 +951,7 @@ const styles = StyleSheet.create({
   filterButtonActive: {
     borderWidth: 1,
     borderColor: colors.modal.border,
-    backgroundColor: colors.modal.active,
+    backgroundColor: colors.modal.activeText,
   },
   clearFilterButton: {
     borderRadius: borderRadius.round,

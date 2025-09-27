@@ -935,7 +935,7 @@ export const MySpaceScreen = React.memo(() => {
                 }}>
                 <View>
                   <Text style={{color: colors.text.primary, ...typography.h3}}>
-                    Normal
+                    Solid
                   </Text>
                   <Text
                     style={{

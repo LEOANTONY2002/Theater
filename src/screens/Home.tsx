@@ -710,8 +710,7 @@ export const HomeScreen = React.memo(() => {
                 gap: 20,
                 width: '100%',
                 marginHorizontal: spacing.lg,
-                marginTop: spacing.xl,
-                marginBottom: spacing.lg,
+                marginBottom: spacing.xl,
                 flex: isTablet ? 1 : 0,
               }}>
               <View

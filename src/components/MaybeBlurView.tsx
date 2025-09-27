@@ -47,6 +47,8 @@ export const MaybeBlurView: React.FC<
   if (!useFallback) {
     return (
       <BlurView
+        downsampleFactor={20}
+        hitSlop={20}
         blurType={'dark'}
         blurAmount={blurAmount}
         style={style}
@@ -69,10 +71,11 @@ export const MaybeBlurView: React.FC<
         <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(1, 0, 3, 0.8)',
+            backgroundColor: colors.background.primary,
             borderWidth: 1.5,
             borderColor: 'rgba(0, 0, 0, 0.04)',
             borderRadius: radius,
+            opacity: 0.9,
           }}>
           {children}
         </View>

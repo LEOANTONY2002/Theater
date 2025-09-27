@@ -294,9 +294,9 @@ export const SharePoster: React.FC<SharePosterProps> = ({
             left: 50,
           }}>
           <QRCode
-            value={`https://lacurations.vercel.app/theater?redirect=${
-              isFilter ? 'filtercode' : 'watchlistcode'
-            }&code=${encodeURIComponent(importCode || '')}`}
+            value={`https://lacurations.vercel.app/theater/redirect/${
+              isFilter ? 'myfilter' : 'mywatchlist'
+            }/${encodeURIComponent(importCode || '')}`}
             size={150}
             enableLinearGradient={true}
             backgroundColor="rgb(252, 251, 255)"

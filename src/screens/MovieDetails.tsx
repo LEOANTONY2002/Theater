@@ -65,6 +65,8 @@ import {offlineCache} from '../services/offlineCache';
 import {HistoryManager} from '../store/history';
 import ShareLib from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
+import {MaybeBlurView} from '../components/MaybeBlurView';
+import {BlurPreference} from '../store/blurPreference';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -340,6 +342,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const {data: imdbRating, isLoading: isLoadingImdbRating} = useIMDBRating(
     movieDetails?.imdb_id?.toString() || '',
   );
+  const blurType = BlurPreference.getMode();
 
   // Use memoized AI similar movies hook
   const {data: aiSimilarMovies = [], isLoading: isLoadingAiSimilar} =
@@ -838,6 +841,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       fontWeight: '500',
       fontFamily: 'Inter_18pt-Regular',
     },
+    posterButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
   });
 
   // When not focused (another screen is on top), render an empty container to reduce load
@@ -925,10 +933,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         animationType="fade"
         transparent
         onRequestClose={() => setShowPosterModal(false)}>
-        <View
+        <MaybeBlurView
+          blurAmount={20}
+          blurType="dark"
           style={{
             flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.8)',
             alignItems: 'center',
             justifyContent: 'center',
             padding: spacing.md,
@@ -937,7 +946,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             style={{
               width: '92%',
               borderRadius: borderRadius.lg,
-              overflow: 'hidden',
               alignItems: 'center',
               padding: spacing.md,
             }}>
@@ -954,7 +962,24 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 </Text>
               </View>
             ) : posterUri ? (
-              <>
+              <View>
+                <TouchableOpacity
+                  onPress={() => setShowPosterModal(false)}
+                  style={{
+                    position: 'absolute',
+                    top: -48,
+                    right: -48,
+                    zIndex: 2,
+                    backgroundColor: 'rgba(156, 155, 155, 0.13)',
+                    borderRadius: borderRadius.round,
+                    padding: 8,
+                  }}>
+                  <Icon
+                    name="close-outline"
+                    size={30}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
                 <Image
                   source={{uri: posterUri}}
                   style={{
@@ -968,46 +993,48 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 <View
                   style={{
                     marginTop: spacing.md,
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    display: 'flex',
                     gap: spacing.lg,
+                    overflow: 'hidden',
+                    borderRadius: borderRadius.round,
+                    width: '70%',
+                    alignSelf: 'center',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}>
-                  <TouchableOpacity
-                    onPress={handleSharePoster}
-                    style={{alignItems: 'center'}}>
-                    <Icon
-                      name="share-social-outline"
-                      size={22}
-                      color={colors.text.primary}
-                    />
-                    <Text
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}>
+                    <TouchableOpacity
+                      onPress={handleSharePoster}
                       style={{
-                        color: colors.text.secondary,
-                        marginTop: 4,
-                        fontFamily: 'Inter_18pt-Regular',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: spacing.sm,
+                        borderRadius: borderRadius.round,
+                        paddingHorizontal: 20,
+                        paddingVertical: 16,
                       }}>
-                      Share
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setShowPosterModal(false)}
-                    style={{alignItems: 'center'}}>
-                    <Icon
-                      name="close-circle-outline"
-                      size={22}
-                      color={colors.text.primary}
-                    />
-                    <Text
-                      style={{
-                        color: colors.text.secondary,
-                        marginTop: 4,
-                        fontFamily: 'Inter_18pt-Regular',
-                      }}>
-                      Close
-                    </Text>
-                  </TouchableOpacity>
+                      <Icon
+                        name="share-social-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.primary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Share
+                      </Text>
+                    </TouchableOpacity>
+                  </LinearGradient>
                 </View>
-              </>
+              </View>
             ) : (
               <View style={{padding: spacing.lg}}>
                 <Text
@@ -1020,7 +1047,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               </View>
             )}
           </View>
-        </View>
+        </MaybeBlurView>
       </Modal>
       <FlashList
         data={[

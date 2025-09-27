@@ -28,6 +28,7 @@ import {AIReportFlag} from './AIReportFlag';
 import {HorizontalList} from './HorizontalList';
 import {ContentItem} from './MovieList';
 import {useNavigation} from '@react-navigation/native';
+import {BlurPreference} from '../store/blurPreference';
 
 type Message = {
   id: string;
@@ -94,6 +95,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   const {isTablet} = useResponsive();
   const androidInset = useAndroidKeyboardInset(10);
   const navigation = useNavigation<any>();
+  const themeMode = BlurPreference.getMode();
 
   // Animation values (matching OnlineAI screen)
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -588,8 +590,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                 bottom: 0,
               }}
               overlayColor={colors.modal.blur}
-              autoDisableOnLowTier
-              gradientColors={['rgba(14,14,24,0.85)', 'rgba(14,14,24,0.80)']}
+              modal
             />
             <TouchableOpacity
               activeOpacity={0.9}
@@ -622,7 +623,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                opacity: 0.8,
+                opacity: themeMode === 'normal' ? 1 : 0.8,
               }}
             />
             <View style={styles.container}>
