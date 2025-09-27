@@ -82,14 +82,6 @@
       "sha1": "bd1976c1f019853ab6143ef1246e25aa66fd990e"
     },
     {
-      "path": "src/assets/fonts/Inter_28pt-Black.ttf",
-      "sha1": "1a88281108c184915828226c768844e63e09b3f9"
-    },
-    {
-      "path": "src/assets/fonts/Inter_28pt-Bold.ttf",
-      "sha1": "f3a55daa485aea77a3225cdb628e025291b28f0b"
-    },
-    {
       "path": "src/assets/fonts/Inter_28pt-ExtraBold.ttf",
       "sha1": "0f4e77952476d538c57dc3cff12926581f82c3a8"
     }
