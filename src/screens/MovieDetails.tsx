@@ -67,6 +67,7 @@ import ShareLib from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
+import {getCriticRatings} from '../services/gemini';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -109,6 +110,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+  const [aiRatings, setAiRatings] = useState<{
+    imdb?: number | null;
+    rotten_tomatoes?: number | null;
+  } | null>(null);
 
   // Poster share state
   const [showPosterModal, setShowPosterModal] = useState(false);
@@ -310,6 +315,37 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       return () => clearTimeout(timer);
     }
   }, [movieDetails, isLoadingDetails]);
+
+  // Load AI critic ratings (used for RT and IMDb fallback)
+  useEffect(() => {
+    const loadRatings = async () => {
+      try {
+        const yearStr = (() => {
+          const d =
+            (movie as any).release_date || (movieDetails as any)?.release_date;
+          try {
+            return d ? new Date(d).getFullYear().toString() : undefined;
+          } catch {
+            return undefined;
+          }
+        })();
+        const res = await getCriticRatings({
+          title: movie.title,
+          year: yearStr,
+          type: 'movie',
+        });
+        if (__DEV__) {
+          console.log('[AI Ratings][Movie]', movie.title, yearStr, res);
+        }
+        setAiRatings(res);
+      } catch (e) {
+        if (__DEV__) {
+          console.warn('[AI Ratings][Movie] failed:', e);
+        }
+      }
+    };
+    loadRatings();
+  }, [movie.id, movie.title, movieDetails]);
 
   const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
     movie.id,
@@ -1340,40 +1376,76 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         <IMDBSkeleton />
                       </View>
                     </View>
-                  ) : imdbRating?.rating ? (
+                  ) : (
                     <View
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
                         flexDirection: 'row',
+                        gap: spacing.md,
                       }}>
-                      <Image
-                        source={require('../assets/imdb.webp')}
-                        style={{
-                          width: 50,
-                          height: 30,
-                          resizeMode: 'contain',
-                        }}
-                      />
-                      <Text
-                        style={{
-                          ...typography.body1,
-                          color: colors.text.primary,
-                          fontWeight: 'bold',
-                          marginLeft: spacing.sm,
-                        }}>
-                        {imdbRating?.rating}
-                      </Text>
-                      <Text
-                        style={{
-                          ...typography.body1,
-                          color: colors.text.muted,
-                          marginLeft: spacing.xs,
-                        }}>
-                        ({imdbRating?.voteCount})
-                      </Text>
+                      {imdbRating?.rating ? (
+                        <View
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flexDirection: 'row',
+                          }}>
+                          <Image
+                            source={require('../assets/imdb.webp')}
+                            style={{
+                              width: 50,
+                              height: 30,
+                              resizeMode: 'contain',
+                            }}
+                          />
+                          <Text
+                            style={{
+                              ...typography.body1,
+                              color: colors.text.primary,
+                              fontWeight: 'bold',
+                              marginLeft: spacing.sm,
+                            }}>
+                            {imdbRating?.rating}
+                          </Text>
+                          <Text
+                            style={{
+                              ...typography.body1,
+                              color: colors.text.muted,
+                              marginLeft: spacing.xs,
+                            }}>
+                            ({imdbRating?.voteCount})
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {aiRatings?.rotten_tomatoes != null && (
+                        <View
+                          style={{
+                            marginTop: spacing.xs,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                          }}>
+                          <Image
+                            source={require('../assets/tomato.png')}
+                            style={{
+                              width: 50,
+                              height: 30,
+                              resizeMode: 'contain',
+                            }}
+                          />
+                          <Text
+                            style={{
+                              ...typography.body1,
+                              color: colors.text.primary,
+                              fontWeight: '600',
+                            }}>
+                            {aiRatings.rotten_tomatoes}%
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                  ) : null}
+                  )}
+
                   <Text style={styles.overview}>
                     {(movie as any).overview ||
                       (movieDetails as any)?.overview ||

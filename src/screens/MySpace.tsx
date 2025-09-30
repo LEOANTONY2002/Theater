@@ -8,6 +8,7 @@ import {
   ScrollView,
   Image,
   Switch,
+  ImageBackground,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -19,6 +20,7 @@ import {useQueryClient, useQuery} from '@tanstack/react-query';
 import {BlurView} from '@react-native-community/blur';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {Chip} from '../components/Chip';
 import {LanguageSkeleton} from '../components/LoadingSkeleton';
 import {SavedFilter} from '../types/filters';
 import {FiltersManager} from '../store/filters';
@@ -342,18 +344,6 @@ export const MySpaceScreen = React.memo(() => {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    tagGradient: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: 75,
-      marginTop: 25,
-      zIndex: 1,
-      borderBottomLeftRadius: borderRadius.lg,
-      borderBottomRightRadius: borderRadius.lg,
-    },
     tagText: {
       color: colors.text.primary,
       ...typography.h2,
@@ -486,6 +476,143 @@ export const MySpaceScreen = React.memo(() => {
       ...typography.button,
       fontWeight: '600',
     },
+    // Tile grid styles
+    tile: {
+      backgroundColor: forceBlurAll
+        ? colors.background.tertiaryGlass
+        : colors.background.tertiarySolid,
+      borderRadius: isTablet ? 40 : borderRadius.lg,
+      padding: isTablet ? spacing.md : spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.background.border,
+      minHeight: isTablet ? 180 : 120,
+    },
+    tileTitle: {
+      // color: '#E8E9FC55',
+      color: colors.text.secondary,
+      fontFamily: 'Inter_18pt-Regular',
+      fontWeight: '400',
+      fontSize: isTablet ? 14 : 12,
+    },
+    chipsRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      overflow: 'hidden',
+      marginRight: isTablet ? -spacing.md : -spacing.sm,
+      position: 'relative',
+      width: '100%',
+    },
+    // Ask AI tile
+    aiBorder: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: isTablet ? 40 : borderRadius.xl,
+    },
+    aiTile: {
+      backgroundColor: '#070711',
+      borderRadius: isTablet ? 40 : borderRadius.xl,
+      padding: isTablet ? spacing.lg : spacing.sm,
+      borderWidth: 3,
+      borderColor: colors.modal.blur,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aiTitleSmall: {
+      color: colors.text.secondary,
+      ...typography.caption,
+      marginBottom: spacing.xs,
+    },
+    aiTitle: {
+      color: colors.accent,
+      ...typography.h3,
+      fontWeight: '800',
+    },
+    // Tile header with icon
+    tileHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      margin: isTablet ? spacing.sm : spacing.xs,
+    },
+    tileHeaderColumn: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: isTablet ? spacing.xl : spacing.lg,
+      marginTop: isTablet ? spacing.xl : spacing.md,
+    },
+    icon: {
+      width: isTablet ? 22 : 18,
+      height: isTablet ? 22 : 18,
+      objectFit: 'contain',
+      borderRadius: 4,
+      opacity: 0.8,
+    },
+    iconLarge: {
+      width: isTablet ? 80 : 50,
+      height: isTablet ? 80 : 50,
+      objectFit: 'contain',
+    },
+    smallTile: {
+      width: '50%',
+      minHeight: isTablet ? 220 : 120,
+    },
+    themeTall: {
+      minHeight: isTablet ? 300 : 180,
+      flex: 1,
+      justifyContent: 'space-between',
+    },
+    aiTall: {
+      minHeight: isTablet ? 300 : 180,
+    },
+    // Theme option cards
+    themeOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: isTablet ? spacing.md : spacing.xs,
+      paddingHorizontal: isTablet ? spacing.md : spacing.xs,
+      borderRadius: isTablet ? borderRadius.xl : borderRadius.md,
+      backgroundColor: forceBlurAll
+        ? colors.modal.blurDark
+        : colors.modal.blurDark,
+      borderWidth: 0.7,
+      borderColor: colors.modal.blur,
+    },
+    themeOptionActive: {
+      borderColor: forceBlurAll ? colors.modal.active : colors.modal.active,
+      backgroundColor: forceBlurAll
+        ? colors.modal.content
+        : colors.modal.header,
+    },
+    themeOptionLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    themeSwatch: {
+      width: isTablet ? 35 : 25,
+      height: isTablet ? 35 : 25,
+      borderRadius: isTablet ? 12 : 8,
+      overflow: 'hidden',
+    },
+    themeSwatchGlass: {
+      flex: 1,
+      backgroundColor: 'rgba(255,255,255,0.09)',
+    },
+    themeSwatchSolid: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
+    themeOptionText: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      fontSize: isTablet ? 14 : 12,
+    },
     // Dialog styles matching onboarding AI setup
     dialogOverlay: {
       top: 0,
@@ -544,6 +671,70 @@ export const MySpaceScreen = React.memo(() => {
       fontWeight: '600',
       color: colors.text.primary,
     },
+    chip: {
+      backgroundColor: '#0D0D17',
+      borderColor: '#13131D',
+      borderWidth: 1,
+      borderRadius: isTablet ? borderRadius.xl : borderRadius.lg,
+      width: isTablet ? 100 : 80,
+      height: isTablet ? 90 : 70,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+      padding: spacing.md,
+    },
+    label: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      textAlign: 'center',
+      zIndex: 1,
+      opacity: 0.5,
+    },
+    labelBG: {
+      position: 'absolute',
+      zIndex: 1,
+      color: colors.text.primary,
+      opacity: 0.05,
+      fontSize: isTablet ? 60 : 55,
+      fontWeight: '900',
+      fontFamily: 'Inter_28pt-ExtraBold',
+    },
+    region: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+      padding: spacing.md,
+    },
+    regionLabelBG: {
+      position: 'absolute',
+      color: colors.text.primary,
+      opacity: 0.05,
+      fontSize: isTablet ? 90 : 55,
+      fontWeight: '900',
+      fontFamily: 'Inter_28pt-ExtraBold',
+    },
+    regionLabel: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      fontSize: isTablet ? 14 : 12,
+      textAlign: 'center',
+      zIndex: 1,
+      opacity: 0.5,
+    },
+    emptyTextContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.md,
+    },
+    emptyText: {
+      color: colors.text.tertiary,
+      ...typography.caption,
+      opacity: 0.6,
+    },
   });
 
   return (
@@ -553,255 +744,317 @@ export const MySpaceScreen = React.memo(() => {
           style={{
             color: colors.text.primary,
             ...typography.h2,
-            marginBottom: 10,
+            marginBottom: spacing.md,
           }}>
           My Space
         </Text>
-      </View>
-      <TouchableOpacity
-        style={styles.headerContainer}
-        activeOpacity={0.9}
-        onPress={() => navigateWithLimit('WatchlistsScreen')}
-        testID="watchlistsHeader">
-        <Text style={styles.sectionTitle}>Watchlists</Text>
-        <Ionicons
-          name="chevron-forward"
-          size={14}
-          color={colors.text.primary}
-        />
-      </TouchableOpacity>
-
-      {isLoadingWatchlists ? (
-        <View style={{paddingBottom: spacing.md}}>
-          <LanguageSkeleton />
-        </View>
-      ) : watchlists.length > 0 ? (
-        <View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tagContainer}
-            contentContainerStyle={styles.tagContent}>
-            {watchlists.map(watchlist => (
-              <View key={watchlist.id} style={styles.tag}>
-                <LinearGradient
-                  colors={colors.gradient.primary}
-                  style={styles.tagGradient}
-                />
-                <Text style={styles.tagText} numberOfLines={1}>
-                  {watchlist.name}
-                </Text>
-                <Text style={styles.tagSubText} numberOfLines={1}>
-                  {watchlist.itemCount}{' '}
-                  {watchlist.itemCount === 1 ? 'item' : 'items'}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      <TouchableOpacity
-        style={styles.headerContainer}
-        activeOpacity={0.9}
-        onPress={() => navigateWithLimit('MyFiltersScreen')}
-        testID="myFiltersButton">
-        <Text style={styles.sectionTitle}>My Filters</Text>
-        <Ionicons
-          name="chevron-forward"
-          size={14}
-          color={colors.text.primary}
-        />
-      </TouchableOpacity>
-
-      {isLoadingFilters ? (
-        <View style={{paddingBottom: spacing.md}}>
-          <LanguageSkeleton />
-        </View>
-      ) : savedFilters.length > 0 ? (
+        {/* Two-column layout */}
         <View
           style={{
-            display: 'flex',
             flexDirection: 'row',
-            gap: 10,
-            flexWrap: 'nowrap',
-            overflow: 'scroll',
-            paddingHorizontal: spacing.md,
-            paddingBottom: spacing.md,
+            gap: isTablet ? spacing.md : spacing.sm,
           }}>
-          {savedFilters.map(filter => (
-            <View key={filter.id} style={styles.tag}>
-              <LinearGradient
-                colors={colors.gradient.primary}
-                style={styles.tagGradient}
-              />
-              <Text style={styles.tagText} numberOfLines={1}>
-                {filter.name}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {/* AI Settings Section */}
-      <TouchableOpacity
-        style={styles.headerContainer}
-        activeOpacity={0.9}
-        onPress={() => navigateWithLimit('AISettingsScreen')}
-        testID="aiSettingsButton">
-        <Text style={styles.sectionTitle}>AI Settings</Text>
-        <View style={styles.regionInfo}>
-          {aiSettings && (
-            <Text style={styles.regionText} numberOfLines={1}>
-              {aiSettings.model}
-            </Text>
-          )}
-          <Ionicons
-            name="chevron-forward"
-            size={14}
-            color={colors.text.primary}
-          />
-        </View>
-      </TouchableOpacity>
-
-      {/* Theme Preferences */}
-      <TouchableOpacity
-        style={styles.headerContainer}
-        activeOpacity={0.9}
-        onPress={() => setShowThemeModal(true)}
-        accessibilityRole="button"
-        testID="themeSelectorButton">
-        <Text style={styles.sectionTitle}>Theme</Text>
-        <View style={styles.regionInfo}>
-          <Text style={styles.regionText} numberOfLines={1}>
-            {forceBlurAll ? 'Glass' : 'Normal'}
-          </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={14}
-            color={colors.text.primary}
-          />
-        </View>
-      </TouchableOpacity>
-
-      {/* Ask AI Section */}
-      <View style={{position: 'relative', overflow: 'hidden'}}>
-        <LinearGradient
-          colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 0}}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: spacing.md,
-            right: spacing.md,
-            bottom: 15,
-            borderRadius: 12,
-            zIndex: -1,
-          }}
-        />
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[
-            styles.headerContainer,
-            {
-              backgroundColor: 'rgba(19, 19, 25, 0.7)',
-              borderRadius: borderRadius.md,
-              padding: spacing.md,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              borderWidth: 3,
-              borderColor: colors.modal.blur,
-            },
-          ]}
-          onPress={() => {
-            if (isAIEnabled) {
-              navigateWithLimit('OnlineAIScreen');
-            } else {
-              setShowAINotEnabledModal(true);
-            }
-          }}
-          testID="askAIHeader">
-          <Text style={[styles.sectionTitle, {color: colors.accent}]}>
-            Theater AI
-          </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.accent} />
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={styles.headerContainer}
-        activeOpacity={0.9}
-        onPress={() => setShowRegionModal(true)}>
-        <Text style={styles.sectionTitle}>Region</Text>
-        <View style={styles.regionInfo}>
-          <Text style={styles.regionText}>
-            {currentRegion?.english_name || 'Select Region'}
-          </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={14}
-            color={colors.text.primary}
-          />
-        </View>
-      </TouchableOpacity>
-
-      {/* <View>
-        <TouchableOpacity
-          style={styles.headerContainer}
-          activeOpacity={0.9}
-          onPress={() => setShowLanguageModal(true)}>
-          <Text style={styles.sectionTitle}>Languages</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={14}
-            color={colors.text.primary}
-          />
-        </TouchableOpacity>
-
-        {isLoadingLanguages ? (
-          <LanguageSkeleton />
-        ) : selectedLanguages && selectedLanguages.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tagContainer}
-            contentContainerStyle={styles.tagContent}>
-            {selectedLanguages.map(lang => (
-              <View key={lang.iso_639_1} style={styles.tag}>
-                <LinearGradient
-                  colors={colors.gradient.primary}
-                  style={styles.tagGradient}
+          {/* Left Column */}
+          <View
+            style={{
+              flex: 1.7,
+              gap: isTablet ? spacing.md : spacing.sm,
+            }}>
+            {/* My Filters */}
+            <TouchableOpacity
+              style={styles.tile}
+              activeOpacity={0.9}
+              onPress={() => navigateWithLimit('MyFiltersScreen')}
+              testID="myFiltersButton">
+              <View style={styles.tileHeaderRow}>
+                <Image
+                  source={require('../assets/myfilters.png')}
+                  style={styles.icon}
                 />
-                <Text style={styles.tagText} numberOfLines={1}>
-                  {lang.english_name}
-                </Text>
-                {lang.name && (
-                  <Text style={styles.tagSubText} numberOfLines={1}>
-                    {lang.name}
-                  </Text>
+                <Text style={styles.tileTitle}>My Filters</Text>
+              </View>
+
+              <View style={styles.chipsRow}>
+                <LinearGradient
+                  colors={[
+                    'transparent',
+                    'transparent',
+                    forceBlurAll
+                      ? colors.background.tertiaryGlass
+                      : colors.background.tertiarySolid,
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 100,
+                    zIndex: 1,
+                  }}
+                />
+                {isLoadingFilters ? (
+                  <LanguageSkeleton />
+                ) : savedFilters.length > 0 ? (
+                  savedFilters.slice(0, isTablet ? 6 : 4).map(filter => (
+                    <View key={filter.id} style={styles.chip}>
+                      <Text style={styles.labelBG}>
+                        {filter.name?.slice(0, 1).toString()}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.label}>
+                        {filter.name}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyTextContainer}>
+                    <Text style={styles.emptyText}>No filters yet</Text>
+                  </View>
                 )}
               </View>
-            ))}
-          </ScrollView>
-        ) : null}
-      </View> */}
+            </TouchableOpacity>
 
-      {/* About & Legal screen */}
-      <View style={{}}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => navigateWithLimit('AboutLegalScreen')}
-          style={styles.headerContainer}
-          testID="aboutLegalButton">
-          <Text style={styles.sectionTitle}>About & Legal</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={14}
-            color={colors.text.primary}
-          />
-        </TouchableOpacity>
+            {/* My Watchlists */}
+            <TouchableOpacity
+              style={styles.tile}
+              activeOpacity={0.9}
+              onPress={() => navigateWithLimit('WatchlistsScreen')}
+              testID="watchlistsHeader">
+              <View style={styles.tileHeaderRow}>
+                <Image
+                  source={require('../assets/mywatchlists.png')}
+                  style={styles.icon}
+                />
+                <Text style={styles.tileTitle}>My Watchlists</Text>
+              </View>
+              <View style={styles.chipsRow}>
+                <LinearGradient
+                  colors={[
+                    'transparent',
+                    'transparent',
+                    forceBlurAll
+                      ? colors.background.tertiaryGlass
+                      : colors.background.tertiarySolid,
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 100,
+                    zIndex: 1,
+                  }}
+                />
+                {isLoadingWatchlists ? (
+                  <LanguageSkeleton />
+                ) : watchlists.length > 0 ? (
+                  watchlists.slice(0, isTablet ? 6 : 4).map(w => (
+                    <View key={w.id} style={styles.chip}>
+                      <Text style={styles.labelBG}>
+                        {w.name?.slice(0, 1).toString()}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.label}>
+                        {w.name}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyTextContainer}>
+                    <Text style={styles.emptyText}>No watchlists yet</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {/* Region + AI Settings small tiles */}
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: isTablet ? spacing.md : spacing.sm,
+                width: '100%',
+                paddingRight: isTablet ? spacing.md : spacing.sm,
+              }}>
+              <TouchableOpacity
+                style={[styles.tile, styles.smallTile]}
+                activeOpacity={0.9}
+                onPress={() => setShowRegionModal(true)}>
+                <View style={styles.tileHeaderRow}>
+                  <Image
+                    source={require('../assets/region.png')}
+                    style={styles.icon}
+                  />
+                  <Text numberOfLines={1} style={styles.tileTitle}>
+                    Region
+                  </Text>
+                </View>
+                <View style={styles.region}>
+                  <Text style={styles.regionLabelBG}>
+                    {currentRegion?.english_name?.slice(0, 1).toString()}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.regionLabel}>
+                    {currentRegion?.english_name || 'Select Region'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.tile, styles.smallTile]}
+                activeOpacity={0.9}
+                onPress={() => navigateWithLimit('AISettingsScreen')}
+                testID="aiSettingsButton">
+                <View style={styles.tileHeaderRow}>
+                  <Image
+                    source={require('../assets/aisettings.png')}
+                    style={styles.icon}
+                  />
+                  <Text numberOfLines={1} style={styles.tileTitle}>
+                    AI Settings
+                  </Text>
+                </View>
+                {aiSettings?.model ? (
+                  <View style={styles.region}>
+                    <Text style={styles.regionLabelBG}>
+                      {aiSettings?.model?.slice(0, 1).toString().toUpperCase()}
+                    </Text>
+                    <Text numberOfLines={1} style={styles.regionLabel}>
+                      {aiSettings?.model || 'Select Model'}
+                    </Text>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Right Column */}
+          <View style={{flex: 0.9, gap: spacing.md}}>
+            {/* Theme - tall */}
+            <View style={[styles.tile, styles.themeTall]}>
+              <View style={styles.tileHeaderColumn}>
+                <Image
+                  source={require('../assets/theme.png')}
+                  style={styles.icon}
+                />
+                <Text numberOfLines={1} style={styles.tileTitle}>
+                  Theme
+                </Text>
+              </View>
+              <View style={{gap: isTablet ? spacing.md : spacing.sm}}>
+                {/* Glass option */}
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  activeOpacity={0.9}
+                  style={[
+                    styles.themeOption,
+                    forceBlurAll && styles.themeOptionActive,
+                  ]}
+                  onPress={async () => {
+                    if (!forceBlurAll) {
+                      setForceBlurAll(true);
+                      await BlurPreference.set(true);
+                    }
+                  }}>
+                  <View style={styles.themeOptionLeft}>
+                    <View style={styles.themeSwatch}>
+                      <LinearGradient
+                        colors={[
+                          colors.modal.active,
+                          colors.background.tertiarySolid,
+                        ]}
+                        start={{x: 0, y: 0}}
+                        end={{x: 0.5, y: 0.7}}
+                        style={styles.themeSwatchGlass}
+                      />
+                    </View>
+                    <Text numberOfLines={1} style={styles.themeOptionText}>
+                      Glass
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Solid option */}
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  activeOpacity={0.9}
+                  style={[
+                    styles.themeOption,
+                    !forceBlurAll && styles.themeOptionActive,
+                  ]}
+                  onPress={async () => {
+                    if (forceBlurAll) {
+                      setForceBlurAll(false);
+                      await BlurPreference.set(false);
+                    }
+                  }}>
+                  <View style={styles.themeOptionLeft}>
+                    <View style={styles.themeSwatch}>
+                      <View style={styles.themeSwatchSolid} />
+                    </View>
+                    <Text numberOfLines={1} style={styles.themeOptionText}>
+                      Solid
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Ask Theater AI - tall */}
+            <View style={{position: 'relative'}}>
+              <LinearGradient
+                colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={[styles.aiBorder, styles.aiTall]}
+              />
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[styles.aiTile, styles.aiTall]}
+                onPress={() => {
+                  if (isAIEnabled) {
+                    navigateWithLimit('OnlineAIScreen');
+                  } else {
+                    setShowAINotEnabledModal(true);
+                  }
+                }}
+                testID="askAIHeader">
+                <Image
+                  source={require('../assets/theater.webp')}
+                  style={[
+                    styles.iconLarge,
+                    {opacity: 0.9, marginBottom: spacing.sm},
+                  ]}
+                />
+                <Text numberOfLines={1} style={styles.aiTitleSmall}>
+                  Ask
+                </Text>
+                <Text numberOfLines={1} style={styles.aiTitle}>
+                  Theater AI
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* About & Legal full width */}
+        <View style={{marginTop: isTablet ? spacing.md : spacing.sm}}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => navigateWithLimit('AboutLegalScreen')}
+            style={[styles.tile, {paddingVertical: spacing.md, minHeight: 60}]}
+            testID="aboutLegalButton">
+            <View style={styles.tileHeaderRow}>
+              <Image
+                source={require('../assets/theaterai.webp')}
+                style={styles.icon}
+              />
+              <Text numberOfLines={1} style={styles.tileTitle}>
+                About & Legal
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Modal

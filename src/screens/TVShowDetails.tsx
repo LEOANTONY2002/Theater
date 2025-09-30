@@ -41,6 +41,7 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
   DetailScreenSkeleton,
   BannerSkeleton,
+  IMDBSkeleton,
 } from '../components/LoadingSkeleton';
 import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
@@ -69,6 +70,7 @@ import {HistoryManager} from '../store/history';
 import ShareLib from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
+import {getCriticRatings} from '../services/gemini';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -112,6 +114,37 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+  const [aiRatings, setAiRatings] = useState<{
+    imdb?: number | null;
+    rotten_tomatoes?: number | null;
+    imdb_votes?: number | null;
+  } | null>(null);
+  const [isLoadingAiImdb, setIsLoadingAiImdb] = useState(true);
+
+  console.log(isLoadingAiImdb);
+
+  // Format large numbers to compact form (e.g., 1.5K, 2.3M)
+  const formatCompact = (value?: number | null): string => {
+    if (value == null || isNaN(Number(value))) return '0';
+    const n = Number(value);
+    if (n < 1000) return `${n}`;
+    const units = [
+      {v: 1e9, s: 'B'},
+      {v: 1e6, s: 'M'},
+      {v: 1e3, s: 'K'},
+    ];
+    for (const u of units) {
+      if (n >= u.v) {
+        const num = n / u.v;
+        const str =
+          num % 1 === 0 ? `${num.toFixed(0)}${u.s}` : `${num.toFixed(1)}${u.s}`;
+        return str;
+      }
+    }
+    return `${n}`;
+  };
+
+  console.log(aiRatings);
 
   // Poster share state
   const [showPosterModal, setShowPosterModal] = useState(false);
@@ -179,6 +212,36 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     addToHistory();
   }, []);
 
+  // Load AI critic ratings for TV show
+  useEffect(() => {
+    const loadRatings = async () => {
+      try {
+        setIsLoadingAiImdb(true);
+        const yearStr = (() => {
+          const d =
+            (show as any).first_air_date ||
+            (showDetails as any)?.first_air_date;
+          try {
+            return d ? new Date(d).getFullYear().toString() : undefined;
+          } catch {
+            return undefined;
+          }
+        })();
+        const res = await getCriticRatings({
+          title: show.name,
+          year: yearStr,
+          type: 'tv',
+        });
+        setAiRatings(res);
+      } catch (e) {
+        // ignore
+      } finally {
+        setIsLoadingAiImdb(false);
+      }
+    };
+    loadRatings();
+  }, [show.id, show.name, showDetails]);
+
   // Check connectivity and cache status for this specific TV show
   useEffect(() => {
     const checkStatus = async () => {
@@ -195,6 +258,36 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     };
     checkStatus();
   }, [show.id]);
+
+  const retryAiRatings = useCallback(async () => {
+    try {
+      setIsLoadingAiImdb(true);
+      const yearStr = (() => {
+        const d =
+          (show as any).first_air_date || (showDetails as any)?.first_air_date;
+        try {
+          return d ? new Date(d).getFullYear().toString() : undefined;
+        } catch {
+          return undefined;
+        }
+      })();
+      const res = await getCriticRatings({
+        title: show.name,
+        year: yearStr,
+        type: 'tv',
+      });
+      if (__DEV__) {
+        console.log('[AI Ratings][TV]', show.name, yearStr, res);
+      }
+      setAiRatings(res);
+    } catch (e) {
+      if (__DEV__) {
+        console.warn('[AI Ratings][TV] retry failed:', e);
+      }
+    } finally {
+      setIsLoadingAiImdb(false);
+    }
+  }, [show.id, show.name, showDetails]);
 
   const handleRetry = async () => {
     if (retrying) return;
@@ -1236,6 +1329,38 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             }}
                           />
                         )}
+                        {isAIEnabled &&
+                          (!aiRatings ||
+                            (!aiRatings.imdb &&
+                              !aiRatings.rotten_tomatoes)) && (
+                            <View
+                              style={{
+                                marginTop: spacing.xs,
+                                alignItems: 'center',
+                                gap: spacing.xs,
+                              }}>
+                              <Text
+                                style={{
+                                  ...typography.caption,
+                                  color: colors.text.tertiary,
+                                  opacity: 0.7,
+                                }}>
+                                AI ratings unavailable.
+                              </Text>
+                              <TouchableOpacity
+                                onPress={retryAiRatings}
+                                activeOpacity={0.7}>
+                                <Text
+                                  style={{
+                                    ...typography.caption,
+                                    color: colors.accent,
+                                    textDecorationLine: 'underline',
+                                  }}>
+                                  Retry
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
                       </View>
                     )}
                   </View>
@@ -1378,6 +1503,113 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         </View>
                       ))}
                   </View>
+                  {isLoadingAiImdb ? (
+                    <View
+                      style={{
+                        width: 100,
+                        height: 30,
+                        borderRadius: 10,
+                        position: 'relative',
+                        paddingHorizontal: spacing.sm,
+                      }}>
+                      <Image
+                        source={require('../assets/imdb.webp')}
+                        style={{
+                          width: 50,
+                          height: 30,
+                          resizeMode: 'contain',
+                          opacity: 0.5,
+                        }}
+                      />
+                      <View
+                        style={{
+                          position: 'absolute',
+                          width: 70,
+                          height: 30,
+                          overflow: 'hidden',
+                          borderRadius: 10,
+                          top: 0,
+                          left: -10,
+                          opacity: 0.5,
+                        }}>
+                        <IMDBSkeleton />
+                      </View>
+                    </View>
+                  ) : null}
+                  {aiRatings &&
+                    (aiRatings.imdb != null ||
+                      aiRatings.rotten_tomatoes != null) && (
+                      <View
+                        style={{
+                          marginTop: spacing.xs,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: spacing.lg,
+                          flexWrap: 'wrap',
+                          justifyContent: 'center',
+                        }}>
+                        {aiRatings.imdb != null && (
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            }}>
+                            <Image
+                              source={require('../assets/imdb.webp')}
+                              style={{
+                                width: 50,
+                                height: 30,
+                                resizeMode: 'contain',
+                              }}
+                            />
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.primary,
+                                fontWeight: 'bold',
+                                marginLeft: spacing.sm,
+                              }}>
+                              {aiRatings.imdb}
+                            </Text>
+                            {aiRatings.imdb_votes != null && (
+                              <Text
+                                style={{
+                                  ...typography.body1,
+                                  color: colors.text.muted,
+                                  marginLeft: spacing.xs,
+                                }}>
+                                ({formatCompact(aiRatings.imdb_votes)})
+                              </Text>
+                            )}
+                          </View>
+                        )}
+                        {aiRatings.rotten_tomatoes != null && (
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: spacing.sm,
+                            }}>
+                            <Image
+                              source={require('../assets/tomato.png')}
+                              style={{
+                                width: 30,
+                                height: 30,
+                                resizeMode: 'contain',
+                              }}
+                            />
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.primary,
+                                fontWeight: '600',
+                              }}>
+                              {aiRatings.rotten_tomatoes}%
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
                   <LinearGradient
                     colors={[colors.primary, colors.secondary]}
                     start={{x: 0, y: 0}}
@@ -1394,7 +1626,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       <Text style={styles.aiButtonText}>Ask Theater AI</Text>
                     </TouchableOpacity>
                   </LinearGradient>
-                  <Text style={styles.overview}>{showDetails.overview}</Text>
+                  <Text style={styles.overview}>{showDetails?.overview}</Text>
                 </Animated.View>
               );
             case 'trivia':

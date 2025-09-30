@@ -118,7 +118,6 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
       visible={visible}
       animationType="slide"
       statusBarTranslucent={true}
-      transparent={true}
       onRequestClose={handleClose}>
       <TouchableOpacity
         style={styles.modalOverlay}
@@ -213,6 +212,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                   style={styles.watchlistList}>
                   {watchlists.map(watchlist => (
                     <Chip
+                      key={watchlist?.id}
                       label={watchlist.name}
                       onPress={() => handleAddToWatchlist(watchlist)}
                       selected={false}

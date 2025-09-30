@@ -10,7 +10,10 @@ export const colors = {
   background: {
     primary: '#000009',
     secondary: 'rgba(255, 255, 255, 0.08)',
-    tertiary: 'rgba(255, 255, 255, 0.03)',
+    tertiary: 'rgba(249, 244, 255, 0.03)',
+    tertiaryGlass: '#070711',
+    tertiarySolid: 'rgba(3, 3, 3, 0.05)',
+    border: '#13131D',
     card: 'rgba(255, 255, 255, 0.05)',
     tag: 'rgba(125, 118, 154, 0.08)',
   },

@@ -20,6 +20,7 @@ import {
   Easing,
   FlatList,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, typography, spacing, borderRadius} from '../styles/theme';
@@ -166,11 +167,12 @@ export const FeaturedBanner = memo(
     const [autoTransitioning, setAutoTransitioning] = useState(false);
     const [pendingIndex, setPendingIndex] = useState<number | null>(null);
     const userInteractingRef = useRef(false);
+    const loadedImagesRef = useRef<Set<string>>(new Set());
 
-    // Prefetch adjacent images to avoid decode during scroll
+    // Prefetch adjacent images to avoid decode during scroll (match render size: original)
     useEffect(() => {
       if (!slides || slides.length <= 1) return;
-      const size = isTablet ? 'w780' : 'w500';
+      const size = 'original';
       const indices = [
         (activeIndex + 1) % slides.length,
         (activeIndex + 2) % slides.length,
@@ -242,7 +244,7 @@ export const FeaturedBanner = memo(
         if (autoTransitioningRef.current) return;
         const baseIndex =
           typeof fromIndex === 'number' ? fromIndex : activeIndex;
-        autoplayRef.current = setTimeout(() => {
+        const runTransition = () => {
           const next = (baseIndex + 1) % slides.length;
           // Crossfade current and next without moving the list yet
           autoTransitioningRef.current = true;
@@ -271,6 +273,20 @@ export const FeaturedBanner = memo(
               setAutoTransitioning(false);
             });
           });
+        };
+        autoplayRef.current = setTimeout(() => {
+          const next = (baseIndex + 1) % slides.length;
+          const nextPath = (slides[next] as any)?.backdrop_path as
+            | string
+            | undefined;
+          if (nextPath && !loadedImagesRef.current.has(nextPath)) {
+            // Not loaded yet; prefetch and retry shortly
+            Image.prefetch(`https://image.tmdb.org/t/p/original${nextPath}`);
+            // Retry after a short delay to check if it got cached
+            autoplayRef.current = setTimeout(runTransition, 250);
+          } else {
+            runTransition();
+          }
         }, Math.max(2500, autoPlayIntervalMs));
       },
       [slides.length, activeIndex, autoPlayIntervalMs],
@@ -507,16 +523,36 @@ export const FeaturedBanner = memo(
               {transform: [{translateX: cancelTranslateX}]},
             ]}>
             {/* Background image fades independently so overlay UI is unaffected */}
-            <Animated.Image
-              onLoadEnd={() => setLoading(false)}
-              source={{
-                uri: `https://image.tmdb.org/t/p/original${
-                  (slide as any)?.backdrop_path
-                }`,
-              }}
-              style={[StyleSheet.absoluteFillObject, {opacity: imageOpacity}]}
-              resizeMode="cover"
-            />
+            {(() => {
+              const AnimatedFastImage = Animated.createAnimatedComponent(
+                FastImage as any,
+              );
+              return (
+                <AnimatedFastImage
+                  key={`${(slide as any)?.id}-${(slide as any)?.backdrop_path}`}
+                  onLoad={() => {
+                    const bp = (slide as any)?.backdrop_path as
+                      | string
+                      | undefined;
+                    if (bp) loadedImagesRef.current.add(bp);
+                  }}
+                  onLoadEnd={() => setLoading(false)}
+                  source={{
+                    uri: `https://image.tmdb.org/t/p/original${
+                      (slide as any)?.backdrop_path
+                    }`,
+                    priority: FastImage.priority.high,
+                    cache: FastImage.cacheControl.immutable,
+                  }}
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                  ]}
+                  renderToHardwareTextureAndroid
+                  shouldRasterizeIOS
+                  resizeMode={FastImage.resizeMode.cover}
+                />
+              );
+            })()}
             <LinearGradient
               colors={[
                 'transparent',
@@ -615,7 +651,7 @@ export const FeaturedBanner = memo(
           <Animated.FlatList
             ref={listRef}
             data={slides}
-            keyExtractor={(s, i) => `${s.id}-${i}`}
+            keyExtractor={s => `${s.id}`}
             renderItem={renderItem}
             horizontal
             pagingEnabled

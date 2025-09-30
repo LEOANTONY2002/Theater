@@ -33,6 +33,99 @@ interface GeminiMessage {
   parts: Array<{text: string}>;
 }
 
+// Fetch critic ratings (IMDb and Rotten Tomatoes) via AI with caching
+export async function getCriticRatings({
+  title,
+  year,
+  type,
+}: {
+  title: string;
+  year?: string;
+  type: 'movie' | 'tv';
+}): Promise<{
+  imdb?: number | null;
+  rotten_tomatoes?: number | null;
+  imdb_votes?: number | null;
+  source?: string;
+} | null> {
+  const cacheKey = `ratings:${type}:${title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')}${year ? `:${year}` : ''}`;
+
+  // Try cache first
+  try {
+    const cached = await cache.get(CACHE_KEYS.AI_TRIVIA, cacheKey);
+    if (cached) {
+      if (typeof cached === 'string') {
+        return JSON.parse(cached);
+      }
+      return cached as any;
+    }
+  } catch (e) {
+    // proceed to fetch fresh
+  }
+
+  const yearSuffix = year ? ` (${year})` : '';
+  const prompt = `Provide the latest critic ratings for the ${type} "${title}${yearSuffix}" as a strict JSON object with numeric values if available.
+Return ONLY this JSON, no prose:
+{"imdb": <0-10 scale as number or null>, "rotten_tomatoes": <0-100 as number or null>, "imdb_votes": <integer number of votes or null>}
+If a value is unknown, set it to null. Do not include extra fields.`;
+
+  try {
+    const response = await callGemini([{role: 'user', content: prompt}]);
+
+    let parsed: any = null;
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        parsed = JSON.parse(response);
+      }
+    } catch {
+      parsed = null;
+    }
+
+    const normalized =
+      parsed && typeof parsed === 'object'
+        ? {
+            imdb:
+              typeof parsed.imdb === 'number'
+                ? parsed.imdb
+                : parsed.imdb && !isNaN(Number(parsed.imdb))
+                ? Number(parsed.imdb)
+                : null,
+            rotten_tomatoes:
+              typeof parsed.rotten_tomatoes === 'number'
+                ? parsed.rotten_tomatoes
+                : parsed.rotten_tomatoes &&
+                  !isNaN(Number(parsed.rotten_tomatoes))
+                ? Number(parsed.rotten_tomatoes)
+                : null,
+            imdb_votes:
+              typeof parsed.imdb_votes === 'number'
+                ? parsed.imdb_votes
+                : parsed.imdb_votes && !isNaN(Number(parsed.imdb_votes))
+                ? Number(parsed.imdb_votes)
+                : null,
+            source: 'ai',
+          }
+        : null;
+
+    await cache.set(
+      CACHE_KEYS.AI_TRIVIA,
+      cacheKey,
+      JSON.stringify(normalized),
+      7 * 24 * 60 * 60 * 1000,
+    );
+
+    return normalized;
+  } catch (error) {
+    console.error('Error in getCriticRatings:', error);
+    return null;
+  }
+}
+
 interface OpenAIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -116,7 +209,7 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
   }
 
   // Simple retry with exponential backoff for transient 5xx errors
-  const maxRetries = 2;
+  const maxRetries = 4;
   let attempt = 0;
   let lastError: any = null;
 
@@ -142,7 +235,9 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
           attempt < maxRetries
         ) {
           attempt += 1;
-          const delay = 500 * Math.pow(2, attempt - 1);
+          const base = 600 * Math.pow(2, attempt - 1);
+          const jitter = Math.floor(Math.random() * 250);
+          const delay = base + jitter;
           console.warn(
             `[Gemini] Transient error ${response.status}. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
           );
@@ -173,7 +268,9 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
         ) && attempt < maxRetries;
       if (shouldRetry) {
         attempt += 1;
-        const delay = 500 * Math.pow(2, attempt - 1);
+        const base = 600 * Math.pow(2, attempt - 1);
+        const jitter = Math.floor(Math.random() * 250);
+        const delay = base + jitter;
         console.warn(
           `[Gemini] Network error. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
         );
@@ -344,7 +441,7 @@ export async function getMovieTrivia({
   }
 
   const yearSuffix = year ? ` (${year})` : '';
-  const prompt = `Provide 5 interesting pieces of trivia about the ${type} "${title}${yearSuffix}". Format your response as a JSON array of strings. Only return the JSON array, no other text or markdown formatting.`;
+  const prompt = `Provide 5 interesting pieces of trivia about the ${type} "${title}${yearSuffix}". Format your response as a JSON array of strings. Only return the JSON array, no other text or markdown formatting. If no trivia available ust return empty array, nothing more`;
 
   try {
     const response = await callGemini([
