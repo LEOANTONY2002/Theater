@@ -1025,11 +1025,12 @@ export const HomeScreen = React.memo(() => {
         <MaybeBlurView
           style={{
             flex: 1,
-            marginTop: 80,
+            paddingTop: 80,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
           }}
           blurType="dark"
           blurAmount={10}
-          modal={true}>
+          modal>
           <View
             style={[
               modalStyles.container,
