@@ -1062,7 +1062,7 @@ export const MySpaceScreen = React.memo(() => {
         animationType="slide"
         hardwareAccelerated
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowLanguageModal(false)}>
         <View style={styles.modalContainer}>
           <MaybeBlurView
@@ -1098,7 +1098,7 @@ export const MySpaceScreen = React.memo(() => {
         visible={showThemeModal}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowThemeModal(false)}>
         <View style={styles.modalContainer}>
           <MaybeBlurView

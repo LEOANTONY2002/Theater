@@ -449,8 +449,9 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
   return (
     <Modal
       animationType="slide"
-      navigationBarTranslucent={true}
-      transparent={true}
+      navigationBarTranslucent
+      statusBarTranslucent
+      backdropColor={colors.modal.blurDark}
       visible={visible}
       onRequestClose={onClose}>
       <View
@@ -459,6 +460,7 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
           borderTopLeftRadius: 50,
           borderTopRightRadius: 50,
           overflow: 'hidden',
+          marginTop: 60,
         }}>
         <Animated.View
           style={[
@@ -471,13 +473,14 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
           <MaybeBlurView
             blurType="dark"
             blurAmount={5}
-            style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0}}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
             overlayColor={colors.modal.blur}
-            autoDisableOnLowTier
-            gradientColors={[
-              'rgba(14,14,24,0.85)',
-              'rgba(14,14,24,0.80)'
-            ]}
           />
           <TouchableOpacity
             activeOpacity={0.9}

@@ -556,7 +556,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
       animationType="slide"
       navigationBarTranslucent
       statusBarTranslucent
-      transparent={true}
+      backdropColor={colors.modal.blurDark}
       visible={visible}
       onRequestClose={onClose}>
       <View

@@ -38,6 +38,7 @@ export const TVShowsScreen = React.memo(() => {
   const isFocused = useIsFocused();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
 
   useEffect(() => {
     const loadGenres = async () => {
@@ -506,6 +507,7 @@ export const TVShowsScreen = React.memo(() => {
               type="tv"
               slides={(popularShowsFlat || []).filter(Boolean).slice(0, 7)}
               autoPlayIntervalMs={5000}
+              autoplayEnabled={isBannerVisible}
             />
           );
         case 'featuredSkeleton':
@@ -543,10 +545,65 @@ export const TVShowsScreen = React.memo(() => {
           return null;
       }
     },
-    [popularShowsFlat],
+    [popularShowsFlat, isBannerVisible],
   );
 
-  const keyExtractor = useCallback((item: any) => item.id, []);
+  const keyExtractor = useCallback((item: any) => String(item.id), []);
+
+  // Estimate heights per section type to help FlatList skip measurements
+  const sectionHeights = useMemo<number[]>(() => {
+    const estimate = (t: string) => {
+      switch (t) {
+        case 'featured':
+        case 'featuredSkeleton':
+          return 580; // closer to actual banner height to avoid relayout
+        case 'genres':
+          return 140;
+        case 'horizontalList':
+          return 320;
+        case 'horizontalListSkeleton':
+          return 300;
+        default:
+          return 300;
+      }
+    };
+    return (sections as any[]).map(s => estimate(s.type));
+  }, [sections]);
+
+  const sectionOffsets = useMemo<number[]>(() => {
+    const offsets: number[] = [];
+    let acc = 0;
+    for (let i = 0; i < sectionHeights.length; i++) {
+      offsets.push(acc);
+      acc += sectionHeights[i];
+    }
+    return offsets;
+  }, [sectionHeights]);
+
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: sectionHeights[index] || 300,
+      offset: sectionOffsets[index] || 0,
+      index,
+    }),
+    [sectionHeights, sectionOffsets],
+  );
+
+  // Pause banner autoplay when it's offscreen
+  const viewabilityConfig = useMemo(
+    () => ({
+      minimumViewTime: 80,
+      viewAreaCoveragePercentThreshold: 25,
+    }),
+    [],
+  );
+
+  const onViewableItemsChanged = useCallback(({viewableItems}: any) => {
+    const visible = viewableItems?.some(
+      (vi: any) => vi?.item?.type === 'featured',
+    );
+    setIsBannerVisible(!!visible);
+  }, []);
 
   const isInitialLoading =
     !popularShows?.pages?.[0]?.results?.length ||
@@ -580,18 +637,15 @@ export const TVShowsScreen = React.memo(() => {
             keyExtractor={keyExtractor}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{paddingBottom: 100}}
-            // FlashList optimizations
-            removeClippedSubviews={true}
-            // Scroll optimizations
+            removeClippedSubviews={false}
             scrollEventThrottle={16}
-            // Performance optimizations
-            extraData={null}
-            onScrollBeginDrag={() => {}}
-            onScrollEndDrag={() => {}}
-            onMomentumScrollEnd={() => {}}
-            // Memory management
-            disableIntervalMomentum={false}
-            // initialNumToRender and windowSize removed, not supported by FlashList
+            initialNumToRender={4}
+            windowSize={7}
+            maxToRenderPerBatch={6}
+            updateCellsBatchingPeriod={50}
+            getItemLayout={getItemLayout}
+            viewabilityConfig={viewabilityConfig}
+            onViewableItemsChanged={onViewableItemsChanged}
           />
         ) : (
           <View />

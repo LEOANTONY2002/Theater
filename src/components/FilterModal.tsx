@@ -436,7 +436,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      backdropColor={colors.modal.blurDark}
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
@@ -1088,7 +1088,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         visible={showLanguageModal}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={async () => {
           setShowLanguageModal(false);
           setSelectedLanguages(tempLanguageSelection);
@@ -1150,7 +1150,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         visible={showAllGenresModal}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowAllGenresModal(false)}>
         <View style={styles.modalContainer}>
           <MaybeBlurView
@@ -1223,7 +1223,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         visible={showAllProvidersModal}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowAllProvidersModal(false)}>
         <View style={styles.modalContainer}>
           <MaybeBlurView

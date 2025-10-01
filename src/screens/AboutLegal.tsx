@@ -20,6 +20,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {GradientButton} from '../components/GradientButton';
+import {MaybeBlurView} from '../components/MaybeBlurView';
 
 const AboutLegalScreen: React.FC = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -173,15 +174,14 @@ const AboutLegalScreen: React.FC = () => {
       fontFamily: 'Inter_18pt-Regular',
     },
     modalContainer: {
+      marginTop: 60,
       flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    },
-    modalContent: {
       borderTopLeftRadius: borderRadius.xl,
       borderTopRightRadius: borderRadius.xl,
-      height: '90%',
       overflow: 'hidden',
+    },
+    modalContent: {
+      flex: 1,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -414,17 +414,16 @@ const AboutLegalScreen: React.FC = () => {
       <Modal
         visible={showPrivacyModal}
         animationType="slide"
+        backdropColor={colors.modal.blurDark}
         statusBarTranslucent
-        transparent
         onRequestClose={() => setShowPrivacyModal(false)}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-            />
+          <MaybeBlurView
+            style={[styles.modalContent]}
+            blurType="dark"
+            blurAmount={10}
+            modal
+            overlayColor={colors.modal.blurDark}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Privacy Policy</Text>
               <TouchableOpacity
@@ -495,7 +494,7 @@ const AboutLegalScreen: React.FC = () => {
                 </Text> */}
               </View>
             </ScrollView>
-          </View>
+          </MaybeBlurView>
         </View>
       </Modal>
 
@@ -507,13 +506,12 @@ const AboutLegalScreen: React.FC = () => {
         transparent
         onRequestClose={() => setShowTosModal(false)}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-            />
+          <MaybeBlurView
+            style={styles.modalContent}
+            blurType="dark"
+            blurAmount={10}
+            modal
+            overlayColor={colors.modal.blurDark}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Terms of Service</Text>
               <TouchableOpacity
@@ -592,7 +590,7 @@ const AboutLegalScreen: React.FC = () => {
                 </Text> */}
               </View>
             </ScrollView>
-          </View>
+          </MaybeBlurView>
         </View>
       </Modal>
     </View>

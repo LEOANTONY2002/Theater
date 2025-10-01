@@ -663,6 +663,45 @@ export const MoviesScreen = React.memo(() => {
 
   const keyExtractor = useCallback((item: any) => item.id, []);
 
+  // Estimate heights per section to help FlatList avoid measuring
+  const sectionHeights = useMemo<number[]>(() => {
+    const estimate = (t: string) => {
+      switch (t) {
+        case 'featured':
+        case 'featuredSkeleton':
+          return 580; // banner in movies is taller
+        case 'genres':
+          return 140;
+        case 'horizontalList':
+          return 320;
+        case 'horizontalListSkeleton':
+          return 300;
+        default:
+          return 300;
+      }
+    };
+    return (sections as any[]).map(s => estimate(s.type));
+  }, [sections]);
+
+  const sectionOffsets = useMemo<number[]>(() => {
+    const offsets: number[] = [];
+    let acc = 0;
+    for (let i = 0; i < sectionHeights.length; i++) {
+      offsets.push(acc);
+      acc += sectionHeights[i];
+    }
+    return offsets;
+  }, [sectionHeights]);
+
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: sectionHeights[index] || 300,
+      offset: sectionOffsets[index] || 0,
+      index,
+    }),
+    [sectionHeights, sectionOffsets],
+  );
+
   const isInitialLoading =
     !popularMovies?.pages?.[0]?.results?.length ||
     !topRatedMovies?.pages?.[0]?.results?.length ||
@@ -699,8 +738,14 @@ export const MoviesScreen = React.memo(() => {
           contentContainerStyle={{paddingBottom: 100}}
           removeClippedSubviews={true}
           keyboardShouldPersistTaps="handled"
+          initialNumToRender={6}
+          windowSize={7}
+          maxToRenderPerBatch={6}
+          updateCellsBatchingPeriod={50}
+          scrollEventThrottle={16}
+          getItemLayout={getItemLayout}
           // Keep mounted to preserve scroll; hide when not focused
-          style={{display: isFocused ? 'flex' as const : 'none' as const}}
+          style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
           pointerEvents={isFocused ? 'auto' : 'none'}
         />
       </View>

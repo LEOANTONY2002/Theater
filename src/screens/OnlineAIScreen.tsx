@@ -1289,7 +1289,7 @@ export const OnlineAIScreen: React.FC = () => {
         visible={showMenu}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowMenu(false)}>
         <View
           style={[

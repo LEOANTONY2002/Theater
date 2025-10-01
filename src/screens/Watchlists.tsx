@@ -805,7 +805,7 @@ export const WatchlistsScreen: React.FC = () => {
           visible={showImportModal}
           animationType="slide"
           statusBarTranslucent={true}
-          transparent={true}
+          backdropColor={colors.modal.blurDark}
           onRequestClose={() => setShowImportModal(false)}>
           <View style={styles.modalContainer}>
             <View style={styles.importModalContent}>

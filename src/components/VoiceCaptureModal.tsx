@@ -127,7 +127,7 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
   return (
     <Modal
       visible={visible}
-      transparent
+      backdropColor={colors.modal.blurDark}
       statusBarTranslucent
       animationType="fade"
       onRequestClose={onCancel}>

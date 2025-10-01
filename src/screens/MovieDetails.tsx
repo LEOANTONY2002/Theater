@@ -967,7 +967,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         statusBarTranslucent
         navigationBarTranslucent
         animationType="fade"
-        transparent
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowPosterModal(false)}>
         <MaybeBlurView
           blurAmount={20}

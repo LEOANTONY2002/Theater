@@ -399,7 +399,7 @@ const OnboardingAISettings: React.FC<{
       {/* App-wide message modal */}
       <Modal
         visible={modalVisible}
-        transparent
+        backdropColor={colors.modal.blurDark}
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}>
         <View
@@ -441,7 +441,7 @@ const OnboardingAISettings: React.FC<{
       {/* Skip confirmation modal */}
       <Modal
         visible={skipConfirmVisible}
-        transparent
+        backdropColor={colors.modal.blurDark}
         animationType="fade"
         onRequestClose={() => setSkipConfirmVisible(false)}>
         <View

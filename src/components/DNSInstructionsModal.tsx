@@ -97,7 +97,10 @@ export const DNSInstructionsModal = ({
   });
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal
+      visible={visible}
+      backdropColor={colors.modal.blurDark}
+      animationType="slide">
       <View style={styles.container}>
         <View style={styles.card}>
           <Image

@@ -489,7 +489,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      backdropColor={colors.modal.blurDark}
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>
@@ -1024,7 +1024,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         visible={showLanguageModal}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={async () => {
           setShowLanguageModal(false);
           // Use local temp selection; do not persist globally
@@ -1087,7 +1087,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         visible={showAllGenresModal}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowAllGenresModal(false)}>
         <View style={styles.modalContainer}>
           <MaybeBlurView
@@ -1160,7 +1160,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         visible={showAllProvidersModal}
         animationType="slide"
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowAllProvidersModal(false)}>
         <View style={styles.modalContainer}>
           <MaybeBlurView

@@ -117,6 +117,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
+      backdropColor={colors.modal.blurDark}
       statusBarTranslucent={true}
       onRequestClose={handleClose}>
       <TouchableOpacity

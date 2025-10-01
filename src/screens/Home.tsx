@@ -1020,7 +1020,7 @@ export const HomeScreen = React.memo(() => {
         presentationStyle="pageSheet"
         navigationBarTranslucent={true}
         statusBarTranslucent={true}
-        transparent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowMoodModal(false)}>
         <MaybeBlurView
           style={{

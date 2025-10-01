@@ -38,7 +38,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      backdropColor={colors.modal.blurDark}
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalContainer}>

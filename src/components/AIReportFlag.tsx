@@ -218,7 +218,7 @@ export const AIReportFlag: React.FC<AIReportFlagProps> = ({
       </View>
 
       <Modal
-        transparent
+        backdropColor={colors.modal.blurDark}
         visible={visible}
         onRequestClose={() => setVisible(false)}>
         <View style={styles.modalBackdrop}>

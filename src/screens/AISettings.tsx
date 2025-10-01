@@ -334,7 +334,7 @@ const AISettingsScreen: React.FC = () => {
       {/* App-wide message modal */}
       <Modal
         visible={modalVisible}
-        transparent
+        backdropColor={colors.modal.blurDark}
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}>
         <View

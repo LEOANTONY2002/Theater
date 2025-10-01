@@ -1,39 +1,14 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  memo,
-} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  Image,
-  TouchableOpacity,
-  Button,
-  Alert,
-  useWindowDimensions,
-  Animated,
-  Easing,
-  FlatList,
-} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useRef, useState, memo} from 'react';
+import {View, Text, StyleSheet, Image, TouchableOpacity, useWindowDimensions, FlatList} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, typography, spacing, borderRadius} from '../styles/theme';
 import {useUserContent} from '../hooks/useUserContent';
-import {BannerSkeleton} from './LoadingSkeleton';
 import {GradientButton} from './GradientButton';
-import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../types/navigation';
-// Animated version of ImageBackground for parallax transform
-const AnimatedImageBackground = Animated.createAnimatedComponent(
-  ImageBackground as any,
-);
+// Note: We avoid Animated APIs per user request.
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {WatchlistModal} from './WatchlistModal';
@@ -95,6 +70,7 @@ type FeaturedBannerProps = {
   // Slides provided by screen for carousel mode
   slides?: Array<Movie | TVShow>;
   autoPlayIntervalMs?: number;
+  autoplayEnabled?: boolean;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -105,6 +81,7 @@ export const FeaturedBanner = memo(
     type,
     slides: incomingSlides,
     autoPlayIntervalMs = 5000,
+    autoplayEnabled = true,
   }: FeaturedBannerProps) => {
     const [loading, setLoading] = useState(true);
     const [showWatchlistModal, setShowWatchlistModal] = useState(false);
@@ -128,18 +105,12 @@ export const FeaturedBanner = memo(
       }
       return [item];
     }, [incomingSlides, item]);
-    const title =
-      type === 'movie' ? (item as Movie).title : (item as TVShow).name;
-    const releaseDate =
-      type === 'movie'
-        ? (item as Movie).release_date
-        : (item as TVShow).first_air_date;
+    // Title/date available via slide items; no separate constants needed
     const {
       isItemInContent: checkInWatchlist,
       addItem: addToWatchlist,
       removeItem: removeFromWatchlist,
     } = useUserContent('WATCHLIST');
-    const navigation = useNavigation();
     const {navigateWithLimit} = useNavigationState();
     const [activeIndex, setActiveIndex] = useState(0);
     const current = slides[Math.min(activeIndex, slides.length - 1)] || item;
@@ -152,22 +123,10 @@ export const FeaturedBanner = memo(
     const removeFromWatchlistMutation = useRemoveFromWatchlist();
     const {isTablet} = useResponsive();
     const listRef = useRef<FlatList<Movie | TVShow>>(null);
-    const scrollX = useRef(new Animated.Value(0)).current;
     const autoplayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const autoFade = useRef(new Animated.Value(1)).current;
-    const autoFadeOpacity = useMemo(
-      () => autoFade.interpolate({inputRange: [0, 1], outputRange: [0.4, 1]}),
-      [autoFade],
-    );
-    const autoFadeInOpacity = useMemo(
-      () => autoFade.interpolate({inputRange: [0, 1], outputRange: [1, 0.4]}),
-      [autoFade],
-    );
-    const autoTransitioningRef = useRef(false);
-    const [autoTransitioning, setAutoTransitioning] = useState(false);
-    const [pendingIndex, setPendingIndex] = useState<number | null>(null);
     const userInteractingRef = useRef(false);
     const loadedImagesRef = useRef<Set<string>>(new Set());
+    const failedImagesRef = useRef<Set<string>>(new Set());
 
     // Prefetch adjacent images to avoid decode during scroll (match render size: original)
     useEffect(() => {
@@ -231,48 +190,19 @@ export const FeaturedBanner = memo(
         clearTimeout(autoplayRef.current);
         autoplayRef.current = null;
       }
-      // Stop any ongoing fade and ensure fully visible when user interacts
-      autoFade.stopAnimation(() => {
-        autoFade.setValue(1);
-      });
     };
     const scheduleAutoplay = useCallback(
       (fromIndex?: number) => {
         if (userInteractingRef.current) return;
         clearAutoplay();
         if (slides.length <= 1) return;
-        if (autoTransitioningRef.current) return;
-        const baseIndex =
-          typeof fromIndex === 'number' ? fromIndex : activeIndex;
+        const baseIndex = typeof fromIndex === 'number' ? fromIndex : activeIndex;
         const runTransition = () => {
           const next = (baseIndex + 1) % slides.length;
-          // Crossfade current and next without moving the list yet
-          autoTransitioningRef.current = true;
-          setAutoTransitioning(true);
-          setPendingIndex(next);
-          Animated.timing(autoFade, {
-            toValue: 0,
-            duration: 220,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: true,
-          }).start(() => {
-            // Switch logical active index, then fade UI back in
-            setActiveIndex(next);
-            Animated.timing(autoFade, {
-              toValue: 1,
-              duration: 240,
-              easing: Easing.inOut(Easing.quad),
-              useNativeDriver: true,
-            }).start(() => {
-              // After the fade completes, jump the list to the new index invisibly
-              listRef.current?.scrollToIndex({index: next, animated: false});
-              setPendingIndex(null);
-              // Chain next schedule to keep autoplay running
-              scheduleAutoplay(next);
-              autoTransitioningRef.current = false;
-              setAutoTransitioning(false);
-            });
-          });
+          setActiveIndex(next);
+          // Use FlatList built-in animated scroll only
+          listRef.current?.scrollToIndex({index: next, animated: true});
+          scheduleAutoplay(next);
         };
         autoplayRef.current = setTimeout(() => {
           const next = (baseIndex + 1) % slides.length;
@@ -306,6 +236,16 @@ export const FeaturedBanner = memo(
       scheduleAutoplay(activeIndex);
       return () => clearAutoplay();
     }, [scheduleAutoplay, width, height]);
+
+    // Pause/resume autoplay when parent toggles visibility
+    useEffect(() => {
+      if (autoplayEnabled) {
+        resumeAutoplay(activeIndex);
+      } else {
+        clearAutoplay();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoplayEnabled, activeIndex]);
 
     const styles = StyleSheet.create({
       skeletonContainer: {
@@ -357,8 +297,16 @@ export const FeaturedBanner = memo(
         borderRadius: 4,
         backgroundColor: 'rgba(255,255,255,0.35)',
       },
+      dotActiveWrap: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        overflow: 'hidden',
+      },
       dotActive: {
-        backgroundColor: colors.accent,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
       },
       typeContainer: {
         flexDirection: 'row',
@@ -466,35 +414,6 @@ export const FeaturedBanner = memo(
 
     const renderItem = useCallback(
       ({item: slide, index}: {item: Movie | TVShow; index: number}) => {
-        const inputRange = [
-          (index - 1) * width,
-          index * width,
-          (index + 1) * width,
-        ];
-        const titleOpacity = scrollX.interpolate({
-          inputRange,
-          outputRange: [0, 1, 0],
-          extrapolate: 'clamp',
-        });
-        // Cancel list's horizontal movement so visuals look stationary while swiping
-        // FlatList positions items at x = index*width - scrollX
-        // Apply inverse transform: scrollX - index*width => net 0
-        const cancelTranslateX = Animated.subtract(
-          scrollX,
-          Animated.multiply(index, width),
-        );
-        const isActive = index === activeIndex;
-        const isPending = pendingIndex !== null && index === pendingIndex;
-        // During autoplay crossfade, ignore scroll-driven titleOpacity to avoid flicker
-        const baseOpacity =
-          autoTransitioning && (isActive || isPending)
-            ? 1
-            : (titleOpacity as any);
-        const imageOpacity = isActive
-          ? Animated.multiply(baseOpacity as any, autoFadeOpacity)
-          : isPending
-          ? Animated.multiply(baseOpacity as any, autoFadeInOpacity)
-          : titleOpacity;
         // Local handlers bound to slide to avoid depending on `current`
         const onPress = () => {
           if (type === 'movie') {
@@ -516,42 +435,47 @@ export const FeaturedBanner = memo(
           }
         };
         return (
-          <Animated.View
-            style={[
-              styles.background,
-              {width},
-              {transform: [{translateX: cancelTranslateX}]},
-            ]}>
+          <View style={[styles.background, {width}]}> 
             {/* Background image fades independently so overlay UI is unaffected */}
             {(() => {
-              const AnimatedFastImage = Animated.createAnimatedComponent(
-                FastImage as any,
-              );
+              const bp = (slide as any)?.backdrop_path as string | undefined;
+              const showFallback = !bp || failedImagesRef.current.has(bp);
+              if (showFallback) return null;
               return (
-                <AnimatedFastImage
+                <FastImage
                   key={`${(slide as any)?.id}-${(slide as any)?.backdrop_path}`}
                   onLoad={() => {
-                    const bp = (slide as any)?.backdrop_path as
-                      | string
-                      | undefined;
-                    if (bp) loadedImagesRef.current.add(bp);
+                    const bp2 = (slide as any)?.backdrop_path as string | undefined;
+                    if (bp2) loadedImagesRef.current.add(bp2);
                   }}
                   onLoadEnd={() => setLoading(false)}
+                  onError={() => {
+                    const bp3 = (slide as any)?.backdrop_path as string | undefined;
+                    if (bp3) failedImagesRef.current.add(bp3);
+                  }}
                   source={{
-                    uri: `https://image.tmdb.org/t/p/original${
-                      (slide as any)?.backdrop_path
-                    }`,
+                    uri: `https://image.tmdb.org/t/p/original${bp}`,
                     priority: FastImage.priority.high,
                     cache: FastImage.cacheControl.immutable,
                   }}
-                  style={[
-                    StyleSheet.absoluteFillObject,
-                  ]}
-                  renderToHardwareTextureAndroid
-                  shouldRasterizeIOS
+                  style={[StyleSheet.absoluteFillObject]}
                   resizeMode={FastImage.resizeMode.cover}
                 />
               );
+            })()}
+            {/* Local fallback when backdrop missing or failed */}
+            {(() => {
+              const bp = (slide as any)?.backdrop_path as string | undefined;
+              if (!bp || failedImagesRef.current.has(bp)) {
+                return (
+                  <Image
+                    source={require('../assets/theater.webp')}
+                    style={[StyleSheet.absoluteFillObject]}
+                    resizeMode="cover"
+                  />
+                );
+              }
+              return null;
             })()}
             <LinearGradient
               colors={[
@@ -568,35 +492,25 @@ export const FeaturedBanner = memo(
                   gap: spacing.sm,
                   alignItems: 'center',
                 }}>
-                <Animated.Text
-                  style={[
-                    styles.title,
-                    {opacity: imageOpacity, textAlign: 'center'},
-                  ]}>
+                <Text style={[styles.title, {textAlign: 'center'}]}>
                   {type === 'movie'
                     ? (slide as Movie).title
                     : (slide as TVShow).name}
-                </Animated.Text>
-                <Animated.View style={{opacity: imageOpacity}}>
+                </Text>
+                <View>
                   <View style={styles.genreContainer}>
-                    {slide.genre_ids
-                      ?.slice(0, 3)
-                      .map((genreId: number, idx: number) => (
-                        <View
-                          key={`${genreId}-${idx}`}
-                          style={styles.genreWrapper}>
-                          <Text style={styles.genre}>
-                            {type === 'movie'
-                              ? movieGenres[genreId]
-                              : tvGenres[genreId]}
-                          </Text>
-                          {idx < Math.min(slide.genre_ids.length - 1, 2) && (
-                            <Text style={styles.genreDot}>•</Text>
-                          )}
-                        </View>
-                      ))}
+                    {slide.genre_ids?.slice(0, 3).map((genreId: number, idx: number) => (
+                      <View key={`${genreId}-${idx}`} style={styles.genreWrapper}>
+                        <Text style={styles.genre}>
+                          {type === 'movie' ? movieGenres[genreId] : tvGenres[genreId]}
+                        </Text>
+                        {idx < Math.min(slide.genre_ids.length - 1, 2) && (
+                          <Text style={styles.genreDot}>•</Text>
+                        )}
+                      </View>
+                    ))}
                   </View>
-                </Animated.View>
+                </View>
               </View>
               <View style={styles.buttonContainer}>
                 <GradientButton
@@ -610,21 +524,17 @@ export const FeaturedBanner = memo(
                   disabled={removeFromWatchlistMutation.isPending}>
                   <Ionicons
                     name={
-                      (
-                        isActive
-                          ? isInAnyWatchlist
-                          : checkInWatchlist((slide as any).id)
-                      )
+                      (index === activeIndex
+                        ? isInAnyWatchlist
+                        : checkInWatchlist((slide as any).id))
                         ? 'checkmark'
                         : 'add'
                     }
                     size={24}
                     color={
-                      (
-                        isActive
-                          ? isInAnyWatchlist
-                          : checkInWatchlist((slide as any).id)
-                      )
+                      (index === activeIndex
+                        ? isInAnyWatchlist
+                        : checkInWatchlist((slide as any).id))
                         ? colors.accent
                         : '#fff'
                     }
@@ -632,36 +542,25 @@ export const FeaturedBanner = memo(
                 </TouchableOpacity>
               </View>
             </View>
-          </Animated.View>
+          </View>
         );
       },
-      [
-        width,
-        scrollX,
-        isTablet,
-        type,
-        navigateWithLimit,
-        removeFromWatchlistMutation,
-      ],
+      [width, isTablet, type, navigateWithLimit, removeFromWatchlistMutation],
     );
 
     return (
       <View style={[styles.container, {height: bannerHeight, width: '100%'}]}>
         {slides.length > 1 ? (
-          <Animated.FlatList
+          <FlatList
             ref={listRef}
             data={slides}
             keyExtractor={s => `${s.id}`}
             renderItem={renderItem}
             horizontal
             pagingEnabled
-            scrollEnabled={!autoTransitioning}
+            scrollEnabled={true}
             showsHorizontalScrollIndicator={false}
             onScrollBeginDrag={pauseAutoplay}
-            onScroll={Animated.event(
-              [{nativeEvent: {contentOffset: {x: scrollX}}}],
-              {useNativeDriver: true},
-            )}
             onMomentumScrollEnd={e => {
               const idx = Math.round(e.nativeEvent.contentOffset.x / width);
               setActiveIndex(idx);
@@ -692,34 +591,18 @@ export const FeaturedBanner = memo(
         {slides.length > 1 && (
           <View style={styles.dots}>
             {slides.map((_, i) => {
-              const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-              const scale = scrollX.interpolate({
-                inputRange,
-                outputRange: [1, 1.4, 1],
-                extrapolate: 'clamp',
-              });
-              const opacity = scrollX.interpolate({
-                inputRange,
-                outputRange: [0.5, 1, 0.5],
-                extrapolate: 'clamp',
-              });
               const isActive = i === activeIndex;
               return isActive ? (
-                <Animated.View
-                  key={`dot-${i}`}
-                  style={{transform: [{scale}], opacity}}>
+                <View key={`dot-${i}`} style={styles.dotActiveWrap}>
                   <LinearGradient
                     colors={[colors.primary, colors.secondary]}
                     start={{x: 0, y: 0}}
                     end={{x: 1, y: 0}}
-                    style={styles.dot}
+                    style={styles.dotActive}
                   />
-                </Animated.View>
+                </View>
               ) : (
-                <Animated.View
-                  key={`dot-${i}`}
-                  style={[styles.dot, {transform: [{scale}]}, {opacity}]}
-                />
+                <View key={`dot-${i}`} style={styles.dot} />
               );
             })}
           </View>

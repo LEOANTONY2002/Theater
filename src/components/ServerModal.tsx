@@ -33,7 +33,7 @@ export const ServerModal: React.FC<ServerModalProps> = ({
       visible={visible}
       animationType="slide"
       statusBarTranslucent={true}
-      transparent={true}
+      backdropColor={colors.modal.blurDark}
       onRequestClose={onClose}>
       <View style={[modalStyles.modalContainer, {justifyContent: 'flex-end'}]}>
         <View

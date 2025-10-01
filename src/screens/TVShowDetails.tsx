@@ -614,7 +614,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const renderEpisodeItem = useCallback(
     ({item: episode}: {item: Episode}) => (
       <TouchableOpacity
-        key={episode.id}
+        key={episode.episode_number}
         style={styles.episodeCard}
         activeOpacity={0.9}
         onPress={() => setEpisode(episode.episode_number)}>
@@ -1136,7 +1136,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         statusBarTranslucent
         navigationBarTranslucent
         animationType="fade"
-        transparent
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowPosterModal(false)}>
         <View
           style={{
@@ -1494,7 +1494,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     {showDetails?.genres
                       ?.slice(0, 3)
                       .map((genre: Genre, index: number) => (
-                        <View key={genre?.id} style={styles.genreWrapper}>
+                        <View key={index} style={styles.genreWrapper}>
                           <Text style={styles.genre}>{genre?.name}</Text>
                           {index <
                             Math.min(showDetails.genres.length - 1, 2) && (
@@ -1666,6 +1666,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     data={showDetails.credits.cast.slice(0, 10)}
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    estimatedItemSize={200}
                     contentContainerStyle={{paddingHorizontal: spacing.md}}
                     renderItem={({item: person}: {item: Cast}) => (
                       <TouchableOpacity
@@ -1753,7 +1754,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
                   <Modal
                     visible={showSeasonModal}
-                    transparent
+                    backdropColor={colors.modal.blurDark}
                     animationType="slide"
                     statusBarTranslucent={true}
                     onRequestClose={() => setShowSeasonModal(false)}>
@@ -1786,7 +1787,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           {showDetails.seasons.map(
                             (s: TVShowDetailsType['seasons'][0]) => (
                               <TouchableOpacity
-                                key={s.id}
+                                key={s.season_number}
                                 activeOpacity={0.9}
                                 style={[
                                   styles.seasonItem,
