@@ -366,8 +366,11 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
               onPress={onUpdateMood}
               style={styles.updateMoodButton}
               activeOpacity={0.8}>
-              <Ionicons name="happy" size={16} color={colors.accent} />
-              <Text style={styles.updateMoodText}>Update Mood</Text>
+              <Ionicons
+                name="pencil-outline"
+                size={16}
+                color={colors.text.secondary}
+              />
             </TouchableOpacity>
           ) : (
             <View style={styles.placeholder} />

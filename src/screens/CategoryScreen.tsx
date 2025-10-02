@@ -6,8 +6,14 @@ import {
   TouchableOpacity,
   Animated,
   useWindowDimensions,
+  FlatList,
 } from 'react-native';
-import {useNavigation, useRoute, RouteProp, useIsFocused} from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  RouteProp,
+  useIsFocused,
+} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {
   MoviesStackParamList,
@@ -26,6 +32,8 @@ import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
+import LinearGradient from 'react-native-linear-gradient';
+import {BlurPreference} from '../store/blurPreference';
 
 type CategoryScreenNavigationProp = NativeStackNavigationProp<
   MoviesStackParamList | TVShowsStackParamList | SearchStackParamList,
@@ -166,6 +174,9 @@ export const CategoryScreen = () => {
   const perCardGap = cardMargin * 2;
   const minCardWidth = isTablet ? 150 : 110;
 
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
+
   const columns = useMemo(() => {
     const available = Math.max(0, width - horizontalPadding);
     const perCardTotal = minCardWidth + perCardGap;
@@ -253,7 +264,23 @@ export const CategoryScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, animatedHeaderStyle]}>
+      <View style={styles.header}>
+        {isSolid ? (
+          <LinearGradient
+            colors={['transparent', colors.background.primary]}
+            style={{
+              position: 'absolute',
+              left: -50,
+              right: 0,
+              bottom: -20,
+              height: 100,
+              zIndex: 1,
+              width: '150%',
+              transform: [{rotate: '-5deg'}],
+              pointerEvents: 'none',
+            }}
+          />
+        ) : null}
         <View
           style={{
             display: 'flex',
@@ -264,8 +291,13 @@ export const CategoryScreen = () => {
             width: '100%',
             height: 60,
             borderRadius: borderRadius.lg,
+            borderColor: colors.modal.content,
+            borderWidth: isSolid ? 1 : 0,
+            backgroundColor: isSolid
+              ? colors.background.primary
+              : 'rgba(0, 0, 0, 0.6)',
+            elevation: 50,
           }}>
-          <View style={styles.blurView} />
           <TouchableOpacity
             onPress={() => {
               if (fromSearch) {
@@ -285,9 +317,9 @@ export const CategoryScreen = () => {
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
         </View>
-      </Animated.View>
+      </View>
       <View style={styles.contentContainer}>
-        <Animated.FlatList
+        <FlatList
           key={`cols-${columns}`}
           data={flattenedData}
           renderItem={renderItem}
@@ -354,11 +386,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.xxl,
+    marginTop: spacing.xl,
     overflow: 'hidden',
     position: 'absolute',
     top: 0,
     zIndex: 1,
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -391,6 +425,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     marginLeft: -50,
+    zIndex: 2,
   },
   contentContainer: {
     flex: 1,

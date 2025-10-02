@@ -480,6 +480,7 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
               right: 0,
               bottom: 0,
             }}
+            modal
             overlayColor={colors.modal.blur}
           />
           <TouchableOpacity
