@@ -41,6 +41,7 @@ import {generateFilterCode, parseFilterCode} from '../utils/shareCode';
 import {modalStyles} from '../styles/styles';
 import {ContentItem} from '../components/MovieList';
 import {MaybeBlurView} from '../components/MaybeBlurView';
+import {GradientButton} from '../components/GradientButton';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -51,6 +52,10 @@ export const MyFiltersScreen = () => {
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
   const navigation = useNavigation();
   const {isTablet, orientation} = useResponsive();
+  const todayStr = React.useMemo(
+    () => new Date().toISOString().split('T')[0],
+    [],
+  );
 
   // Animated values for scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -97,6 +102,169 @@ export const MyFiltersScreen = () => {
     extrapolate: 'clamp',
   });
 
+  // Quick Add buttons block (reusable)
+  const QuickAddBlock: React.FC = () => (
+    <View style={{paddingHorizontal: spacing.md, marginTop: spacing.md}}>
+      <Text style={[styles.emptyStateTitle, {textAlign: 'center'}]}>
+        Quick add
+      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          marginTop: spacing.sm,
+          justifyContent: 'center',
+          paddingHorizontal: spacing.md,
+        }}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'Sci‑Fi Series',
+              {with_genres: '10765', sort_by: 'popularity.desc'},
+              'tv',
+            )
+          }>
+          <Ionicons
+            name="planet-outline"
+            size={16}
+            color={colors.text.primary}
+          />
+          <Text style={styles.cardText}>Sci‑Fi Series</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'K‑Drama',
+              {with_original_language: 'ko', sort_by: 'popularity.desc'},
+              'tv',
+            )
+          }>
+          <Ionicons
+            name="heart-outline"
+            size={16}
+            color={colors.text.primary}
+          />
+          <Text style={styles.cardText}>K‑Drama</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'C‑Drama',
+              {with_original_language: 'zh', sort_by: 'popularity.desc'},
+              'tv',
+            )
+          }>
+          <Ionicons
+            name="sparkles-outline"
+            size={16}
+            color={colors.text.primary}
+          />
+          <Text style={styles.cardText}>C‑Drama</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'Anime Series',
+              {
+                with_original_language: 'ja',
+                with_genres: '16',
+                sort_by: 'popularity.desc',
+              },
+              'tv',
+            )
+          }>
+          <Ionicons
+            name="aperture-outline"
+            size={16}
+            color={colors.text.primary}
+          />
+          <Text style={styles.cardText}>Anime Series</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'Mystery Thriller Movies',
+              {with_genres: '9648,53', sort_by: 'popularity.desc'},
+              'movie',
+            )
+          }>
+          <Ionicons
+            name="help-buoy-outline"
+            size={16}
+            color={colors.text.primary}
+          />
+          <Text style={styles.cardText}>Mystery Thriller Movies</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'Top Rated Netflix Series',
+              {
+                with_watch_providers: '8',
+                sort_by: 'vote_average.desc',
+                'vote_count.gte': 200,
+              },
+              'tv',
+            )
+          }>
+          <Ionicons name="tv-outline" size={16} color={colors.text.primary} />
+          <Text style={styles.cardText}>Top Rated Netflix Series</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'Popular Tamil Movies',
+              {with_original_language: 'ta', sort_by: 'popularity.desc'},
+              'movie',
+            )
+          }>
+          <Ionicons
+            name="flame-outline"
+            size={16}
+            color={colors.text.primary}
+          />
+          <Text style={styles.cardText}>Popular Tamil Movies</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardSmall}
+          onPress={() =>
+            handleQuickAdd(
+              'Latest Animation Movies',
+              {
+                with_genres: '16',
+                sort_by: 'primary_release_date.desc',
+                'primary_release_date.lte': todayStr,
+              },
+              'movie',
+            )
+          }>
+          <Ionicons
+            name="sparkles-outline"
+            size={16}
+            color={colors.text.primary}
+          />
+          <Text style={styles.cardText}>Latest Animation Movies</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const {data: savedFilters = [], isLoading} = useQuery({
     queryKey: ['savedFilters'],
     queryFn: FiltersManager.getSavedFilters,
@@ -112,6 +280,23 @@ export const MyFiltersScreen = () => {
   const handleDelete = useCallback(
     (id: string) => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
+    },
+    [queryClient],
+  );
+
+  // Quick add filters: create a filter in one tap
+  const handleQuickAdd = useCallback(
+    async (
+      name: string,
+      params: Record<string, any>,
+      type: 'movie' | 'tv' | 'all' = 'tv',
+    ) => {
+      try {
+        await FiltersManager.saveFilter(name, params as any, type);
+        queryClient.invalidateQueries({queryKey: ['savedFilters']});
+      } catch (e) {
+        console.warn('Quick add failed', e);
+      }
     },
     [queryClient],
   );
@@ -252,6 +437,8 @@ export const MyFiltersScreen = () => {
     emptyStateText: {
       ...typography.body1,
       color: colors.text.secondary,
+      textAlign: 'center',
+      maxWidth: isTablet ? '70%' : '90%',
     },
     filterItem: {
       backgroundColor: colors.background.tertiary,
@@ -300,9 +487,8 @@ export const MyFiltersScreen = () => {
       gap: spacing.sm,
       backgroundColor: colors.background.card,
       borderRadius: borderRadius.sm,
-      width: 80,
       height: 35,
-      padding: spacing.xs,
+      paddingHorizontal: spacing.lg,
     },
     cardText: {
       color: colors.text.secondary,
@@ -1044,6 +1230,7 @@ export const MyFiltersScreen = () => {
           </View>
         </View>
       </Animated.View>
+
       <Animated.ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -1057,117 +1244,122 @@ export const MyFiltersScreen = () => {
             <HorizontalListSkeleton />
           </View>
         ) : savedFilters.length > 0 ? (
-          <View style={styles.content}>
-            {savedFilters.map(filter => (
-              <MyFilterItemWithResults
-                key={filter.id}
-                filter={filter}
-                allGenres={allGenres}
-                onEdit={setEditingFilter}
-              />
-            ))}
-          </View>
+          <>
+            <View style={styles.content}>
+              {savedFilters.map(filter => (
+                <MyFilterItemWithResults
+                  key={filter.id}
+                  filter={filter}
+                  allGenres={allGenres}
+                  onEdit={setEditingFilter}
+                />
+              ))}
+            </View>
+            <QuickAddBlock />
+            <View style={{height: 200}} />
+          </>
         ) : (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
             <Text style={styles.emptyStateText}>
-              Create your first filter to apply on the search
+              customize the app content with your filters. You can see your
+              filter contents in Home and Explore screen. You can Quick add the
+              filter in the search.
             </Text>
-            <CreateButton
+            <GradientButton
               onPress={() => setShowAddModal(true)}
               title="Create Your First Filter"
-              icon="add"
+              isIcon={false}
+              style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
             />
+            <QuickAddBlock />
           </View>
         )}
-        <MyFiltersModal
-          visible={showAddModal || !!editingFilter}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditingFilter(null);
-          }}
-          onSave={handleSaveFilter}
-          editingFilter={editingFilter}
-          onDelete={handleDelete}
-        />
-        {/* Import Filter Modal (UI mirrored from Watchlists) */}
-        <Modal
-          visible={showImportModal}
-          animationType="slide"
-          statusBarTranslucent={true}
-          backdropColor={colors.modal.blurDark}
-          onRequestClose={() => setShowImportModal(false)}>
-          <View style={styles.modalContainer}>
-            <View style={styles.importModalContent}>
-              <MaybeBlurView
+      </Animated.ScrollView>
+
+      <MyFiltersModal
+        visible={showAddModal || !!editingFilter}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingFilter(null);
+        }}
+        onSave={handleSaveFilter}
+        editingFilter={editingFilter}
+        onDelete={handleDelete}
+      />
+
+      {/* Import Filter Modal */}
+      <Modal
+        visible={showImportModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        onRequestClose={() => setShowImportModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.importModalContent}>
+            <MaybeBlurView
+              style={[
+                {
+                  flex: 1,
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                },
+              ]}
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+              dialog
+              radius={20}
+            />
+            <View style={modalStyles.modalHeader}>
+              <Text style={modalStyles.modalTitle}>Import Filter</Text>
+              <TouchableOpacity onPress={() => setShowImportModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={{padding: spacing.md}}>
+              <Text style={modalStyles.sectionTitle}>Paste Code</Text>
+              <TextInput
                 style={[
-                  {
-                    flex: 1,
-                    position: 'absolute',
-                    top: 0,
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                  },
+                  modalStyles.input,
+                  {height: 100, marginTop: spacing.sm},
                 ]}
-                blurType="dark"
-                blurAmount={10}
-                overlayColor={colors.modal.blurDark}
-                dialog
-                radius={20}
+                value={importCode}
+                onChangeText={setImportCode}
+                placeholder="THTRF:..."
+                placeholderTextColor={colors.text.muted}
+                multiline
               />
-              <View style={modalStyles.modalHeader}>
-                <Text style={modalStyles.modalTitle}>Import Filter</Text>
-                <TouchableOpacity onPress={() => setShowImportModal(false)}>
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={colors.text.primary}
-                  />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginTop: spacing.md,
+                  gap: spacing.md,
+                  width: isTablet ? '50%' : '100%',
+                }}>
+                <TouchableOpacity
+                  style={[modalStyles.footerButton, modalStyles.resetButton]}
+                  onPress={() => setShowImportModal(false)}>
+                  <Text style={modalStyles.resetButtonText}>Cancel</Text>
                 </TouchableOpacity>
-              </View>
-              <View style={{padding: spacing.md}}>
-                <Text style={modalStyles.sectionTitle}>Paste Code</Text>
-                <TextInput
-                  style={[
-                    modalStyles.input,
-                    {height: 100, marginTop: spacing.sm},
-                  ]}
-                  value={importCode}
-                  onChangeText={setImportCode}
-                  placeholder="THTRF:..."
-                  placeholderTextColor={colors.text.muted}
-                  multiline
-                />
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginTop: spacing.md,
-                    gap: spacing.md,
-                    width: isTablet ? '50%' : '100%',
-                  }}>
-                  <TouchableOpacity
-                    style={[modalStyles.footerButton, modalStyles.resetButton]}
-                    onPress={() => setShowImportModal(false)}>
-                    <Text style={modalStyles.resetButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[modalStyles.footerButton, modalStyles.applyButton]}
-                    onPress={handleImportFilterSubmit}
-                    disabled={isImporting}>
-                    {isImporting ? (
-                      <ActivityIndicator color={colors.background.primary} />
-                    ) : (
-                      <Text style={modalStyles.applyButtonText}>Import</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[modalStyles.footerButton, modalStyles.applyButton]}
+                  onPress={handleImportFilterSubmit}
+                  disabled={isImporting}>
+                  {isImporting ? (
+                    <ActivityIndicator color={colors.background.primary} />
+                  ) : (
+                    <Text style={modalStyles.applyButtonText}>Import</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             </View>
           </View>
-        </Modal>
-      </Animated.ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 };

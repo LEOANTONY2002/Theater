@@ -18,6 +18,7 @@ import {getPersonalizedRecommendation} from '../services/gemini';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import FastImage from 'react-native-fast-image';
+import {useResponsive} from '../hooks/useResponsive';
 
 type RootStackParamList = {
   MovieDetails: {movie: any};
@@ -96,6 +97,7 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
   // Keep mood answers for recommendation logic only.
   const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
   const [isPending, startTransition] = useTransition();
+  const {isTablet} = useResponsive();
 
   // Initialize component
   useEffect(() => {
@@ -317,6 +319,330 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
     }
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.border,
+      borderTopLeftRadius: borderRadius.xl,
+      borderTopRightRadius: borderRadius.xl,
+      padding: spacing.md,
+      position: 'relative',
+      height: 320,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.xl,
+      marginBottom: 80,
+      overflow: 'visible',
+    },
+    backgroundGradient: {
+      width: '270%',
+      height: isTablet ? '180%' : '100%',
+      position: 'absolute',
+      bottom: -5,
+      left: -100,
+      zIndex: 0,
+      transform: [{rotate: '-20deg'}],
+      pointerEvents: 'none',
+    },
+    loadingContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 200,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+      gap: 10,
+    },
+    headerTitle: {
+      color: colors.text.primary,
+      ...typography.h3,
+    },
+    content: {},
+    titleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    title: {
+      fontSize: typography.h3.fontSize,
+      fontWeight: 'bold',
+      color: colors.text.primary,
+      marginLeft: spacing.xs,
+    },
+    titleSmall: {
+      fontSize: typography.body1.fontSize,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginLeft: spacing.xs,
+    },
+    subtitle: {
+      fontSize: typography.body2.fontSize,
+      color: colors.text.secondary,
+      marginBottom: spacing.lg,
+      textAlign: 'center',
+    },
+    genresContainer: {
+      maxHeight: 200,
+      marginBottom: spacing.lg,
+    },
+    genresGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    genreChip: {
+      backgroundColor: colors.background.primary,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.text.tertiary,
+    },
+    genreChipSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    genreText: {
+      fontSize: typography.caption.fontSize,
+      color: colors.text.primary,
+      fontWeight: '500',
+    },
+    genreTextSelected: {
+      color: '#fff',
+    },
+    buttonContainer: {
+      marginTop: spacing.md,
+    },
+    getStartedButton: {
+      width: '100%',
+    },
+    resetButton: {},
+    loadingRecommendation: {
+      alignItems: 'center',
+      paddingTop: 100,
+    },
+    loadingText: {
+      fontSize: typography.body2.fontSize,
+      color: colors.text.secondary,
+      marginTop: spacing.md,
+    },
+    recommendationContainer: {
+      gap: spacing.lg,
+    },
+    contentCard: {
+      flexDirection: 'row',
+      backgroundColor: colors.background.primary,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    poster: {
+      width: 80,
+      height: 120,
+      borderRadius: borderRadius.sm,
+    },
+    contentInfo: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    contentTitle: {
+      fontSize: typography.body1.fontSize,
+      fontWeight: 'bold',
+      color: colors.text.primary,
+    },
+    contentMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    ratingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    rating: {
+      fontSize: typography.caption.fontSize,
+      color: colors.text.primary,
+      fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    mediaType: {
+      fontSize: typography.caption.fontSize,
+      color: colors.text.secondary,
+      fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    overview: {
+      fontSize: typography.caption.fontSize,
+      color: colors.text.secondary,
+      lineHeight: typography.caption.fontSize * 1.4,
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    feedbackContainer: {
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    feedbackTitle: {
+      fontSize: 12,
+      color: colors.text.primary,
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    feedbackButtons: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    feedbackButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.round,
+      gap: spacing.xs,
+      zIndex: 2,
+    },
+    okButton: {
+      backgroundColor: colors.modal.blur,
+      borderWidth: 1,
+      borderColor: colors.modal.blur,
+    },
+    notOkButton: {
+      backgroundColor: colors.modal.blurDark,
+      borderWidth: 1,
+      borderColor: colors.modal.blur,
+    },
+    alreadyWatchedButton: {
+      backgroundColor: '#6B7280', // Gray color for "already watched"
+    },
+    feedbackButtonText: {
+      fontSize: 12,
+      color: colors.text.primary,
+      fontWeight: '600',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+      gap: spacing.md,
+    },
+    emptyText: {
+      fontSize: typography.body1.fontSize,
+      color: colors.text.secondary,
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    retryButton: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.accent,
+      borderRadius: borderRadius.md,
+    },
+    retryText: {
+      fontSize: typography.body2.fontSize,
+      color: '#000',
+      fontWeight: '600',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    // New mood onboarding styles
+    questionContainer: {
+      flex: 1,
+      gap: spacing.lg,
+    },
+    progressContainer: {
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    progressText: {
+      fontSize: typography.caption.fontSize,
+      color: colors.text.secondary,
+      fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    progressBar: {
+      width: '100%',
+      height: 4,
+      backgroundColor: colors.background.primary,
+      borderRadius: 2,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.accent,
+      borderRadius: 2,
+    },
+    questionTitle: {
+      fontSize: typography.h3.fontSize,
+      fontWeight: 'bold',
+      color: colors.text.primary,
+      textAlign: 'center',
+      marginVertical: spacing.md,
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    optionsContainer: {
+      flex: 1,
+      marginVertical: spacing.md,
+    },
+    moodOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background.primary,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      borderRadius: borderRadius.md,
+      gap: spacing.md,
+    },
+    moodEmoji: {
+      fontSize: 24,
+    },
+    moodText: {
+      flex: 1,
+      fontSize: typography.body1.fontSize,
+      color: colors.text.primary,
+      fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      gap: spacing.xs,
+    },
+    backText: {
+      fontSize: typography.body2.fontSize,
+      color: colors.text.secondary,
+      fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    backHeaderButton: {
+      padding: spacing.sm,
+    },
+    placeholder: {
+      width: 32,
+    },
+    headerButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    updateMoodButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      backgroundColor: colors.background.primary,
+      borderRadius: borderRadius.sm,
+      gap: spacing.xs,
+    },
+    updateMoodText: {
+      fontSize: typography.caption.fontSize,
+      color: colors.accent,
+      fontWeight: '500',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+  });
+
   if (!isInitialized) {
     return (
       <View style={styles.loadingContainer}>
@@ -463,329 +789,6 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.modal.border,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    position: 'relative',
-    height: 320,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xl,
-    marginBottom: 80,
-    overflow: 'visible',
-  },
-  backgroundGradient: {
-    width: '270%',
-    height: '200%',
-    position: 'absolute',
-    bottom: -75,
-    left: -50,
-    zIndex: 0,
-    transform: [{rotate: '-30deg'}],
-    pointerEvents: 'none',
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 200,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    gap: 10,
-  },
-  headerTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-  },
-  content: {},
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  title: {
-    fontSize: typography.h3.fontSize,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    marginLeft: spacing.xs,
-  },
-  titleSmall: {
-    fontSize: typography.body1.fontSize,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginLeft: spacing.xs,
-  },
-  subtitle: {
-    fontSize: typography.body2.fontSize,
-    color: colors.text.secondary,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-  },
-  genresContainer: {
-    maxHeight: 200,
-    marginBottom: spacing.lg,
-  },
-  genresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  genreChip: {
-    backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.text.tertiary,
-  },
-  genreChipSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  genreText: {
-    fontSize: typography.caption.fontSize,
-    color: colors.text.primary,
-    fontWeight: '500',
-  },
-  genreTextSelected: {
-    color: '#fff',
-  },
-  buttonContainer: {
-    marginTop: spacing.md,
-  },
-  getStartedButton: {
-    width: '100%',
-  },
-  resetButton: {},
-  loadingRecommendation: {
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  loadingText: {
-    fontSize: typography.body2.fontSize,
-    color: colors.text.secondary,
-    marginTop: spacing.md,
-  },
-  recommendationContainer: {
-    gap: spacing.lg,
-  },
-  contentCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  poster: {
-    width: 80,
-    height: 120,
-    borderRadius: borderRadius.sm,
-  },
-  contentInfo: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  contentTitle: {
-    fontSize: typography.body1.fontSize,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  contentMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  rating: {
-    fontSize: typography.caption.fontSize,
-    color: colors.text.primary,
-    fontWeight: '500',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  mediaType: {
-    fontSize: typography.caption.fontSize,
-    color: colors.text.secondary,
-    fontWeight: '500',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  overview: {
-    fontSize: typography.caption.fontSize,
-    color: colors.text.secondary,
-    lineHeight: typography.caption.fontSize * 1.4,
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  feedbackContainer: {
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  feedbackTitle: {
-    fontSize: 12,
-    color: colors.text.primary,
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  feedbackButtons: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  feedbackButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.round,
-    gap: spacing.xs,
-    zIndex: 2,
-  },
-  okButton: {
-    backgroundColor: colors.modal.blur,
-    borderWidth: 1,
-    borderColor: colors.modal.blur,
-  },
-  notOkButton: {
-    backgroundColor: colors.modal.blurDark,
-    borderWidth: 1,
-    borderColor: colors.modal.blur,
-  },
-  alreadyWatchedButton: {
-    backgroundColor: '#6B7280', // Gray color for "already watched"
-  },
-  feedbackButtonText: {
-    fontSize: 12,
-    color: colors.text.primary,
-    fontWeight: '600',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    gap: spacing.md,
-  },
-  emptyText: {
-    fontSize: typography.body1.fontSize,
-    color: colors.text.secondary,
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  retryButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-  },
-  retryText: {
-    fontSize: typography.body2.fontSize,
-    color: '#000',
-    fontWeight: '600',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  // New mood onboarding styles
-  questionContainer: {
-    flex: 1,
-    gap: spacing.lg,
-  },
-  progressContainer: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  progressText: {
-    fontSize: typography.caption.fontSize,
-    color: colors.text.secondary,
-    fontWeight: '500',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  progressBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: colors.background.primary,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-    borderRadius: 2,
-  },
-  questionTitle: {
-    fontSize: typography.h3.fontSize,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginVertical: spacing.md,
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  optionsContainer: {
-    flex: 1,
-    marginVertical: spacing.md,
-  },
-  moodOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.primary,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.md,
-    gap: spacing.md,
-  },
-  moodEmoji: {
-    fontSize: 24,
-  },
-  moodText: {
-    flex: 1,
-    fontSize: typography.body1.fontSize,
-    color: colors.text.primary,
-    fontWeight: '500',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-  },
-  backText: {
-    fontSize: typography.body2.fontSize,
-    color: colors.text.secondary,
-    fontWeight: '500',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  backHeaderButton: {
-    padding: spacing.sm,
-  },
-  placeholder: {
-    width: 32,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  updateMoodButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.sm,
-    gap: spacing.xs,
-  },
-  updateMoodText: {
-    fontSize: typography.caption.fontSize,
-    color: colors.accent,
-    fontWeight: '500',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-});
 
 // Prevent unnecessary re-renders when parent changes
 export const MyNextWatch = React.memo(MyNextWatchComponent);
