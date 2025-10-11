@@ -43,6 +43,7 @@ const fetchLanguages = async () => {
 };
 
 interface LanguageSettingsProps {
+  isTitle?: boolean;
   singleSelect?: boolean;
   disablePersistence?: boolean;
   initialSelectedIso?: string[]; // array of iso codes to preselect
@@ -50,6 +51,7 @@ interface LanguageSettingsProps {
 }
 
 export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
+  isTitle = true,
   singleSelect = false,
   disablePersistence = false,
   initialSelectedIso = [],
@@ -210,9 +212,11 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
         </View>
       ) : (
         <>
-          <Text style={styles.sectionTitle}>
-            Choose your preferred content languages
-          </Text>
+          {isTitle && (
+            <Text style={styles.sectionTitle}>
+              Choose your preferred content languages
+            </Text>
+          )}
           {/* Suggested languages (virtualized) */}
           <View style={styles.suggestedSection}>
             <ScrollView>

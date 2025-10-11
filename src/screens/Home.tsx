@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
-import {useMoviesList, useTop10MoviesTodayByRegion} from '../hooks/useMovies';
-import {useTop10ShowsTodayByRegion, useTVShowsList} from '../hooks/useTVShows';
+import {useMoviesList, useTop10MoviesTodayByRegion, useDiscoverMovies} from '../hooks/useMovies';
+import {useTop10ShowsTodayByRegion, useTVShowsList, useDiscoverTVShows} from '../hooks/useTVShows';
 import {ContentItem} from '../components/MovieList';
 import {HorizontalList} from '../components/HorizontalList';
 import {Movie} from '../types/movie';
@@ -45,6 +45,8 @@ import FastImage from 'react-native-fast-image';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {cache, CACHE_KEYS} from '../utils/cache';
+import {useMyOTTs, useMyLanguage, useMoviesByLanguageSimpleHook, useTVByLanguageSimpleHook} from '../hooks/usePersonalization';
+import {OttRowMovies} from '../components/OttRowMovies';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -85,26 +87,11 @@ export const HomeScreen = React.memo(() => {
     isFetchingNextPage: isFetchingPopularMovies,
   } = useMoviesList('popular');
 
-  const {
-    data: topRatedMovies,
-    fetchNextPage: fetchNextTopRatedMovies,
-    hasNextPage: hasNextTopRatedMovies,
-    isFetchingNextPage: isFetchingTopRatedMovies,
-  } = useMoviesList('top_rated');
+  // Removed Top Rated Movies hook
 
-  const {
-    data: upcomingMovies,
-    fetchNextPage: fetchNextUpcomingMovies,
-    hasNextPage: hasNextUpcomingMovies,
-    isFetchingNextPage: isFetchingUpcomingMovies,
-  } = useMoviesList('upcoming');
+  // Removed Upcoming Movies hook
 
-  const {
-    data: upcomingMoviesByRegion,
-    fetchNextPage: fetchNextUpcomingMoviesByRegion,
-    hasNextPage: hasNextUpcomingMoviesByRegion,
-    isFetchingNextPage: isFetchingUpcomingMoviesByRegion,
-  } = useMoviesList('upcoming_by_region');
+  // Removed Upcoming Movies by Region hook
 
   const {
     data: popularTVShows,
@@ -113,12 +100,7 @@ export const HomeScreen = React.memo(() => {
     isFetchingNextPage: isFetchingPopularTV,
   } = useTVShowsList('popular');
 
-  const {
-    data: topRatedTVShows,
-    fetchNextPage: fetchNextTopRatedTV,
-    hasNextPage: hasNextTopRatedTV,
-    isFetchingNextPage: isFetchingTopRatedTV,
-  } = useTVShowsList('top_rated');
+  // Removed Top Rated TV Shows hook
 
   // Recent Movies (Now Playing)
   const {
@@ -135,6 +117,14 @@ export const HomeScreen = React.memo(() => {
     hasNextPage: hasNextRecentTV,
     isFetchingNextPage: isFetchingRecentTV,
   } = useTVShowsList('latest');
+
+  // Upcoming Movies by Region (only)
+  const {
+    data: upcomingMoviesByRegion,
+    fetchNextPage: fetchNextUpcomingMoviesByRegion,
+    hasNextPage: hasNextUpcomingMoviesByRegion,
+    isFetchingNextPage: isFetchingUpcomingMoviesByRegion,
+  } = useMoviesList('upcoming_by_region');
 
   // // Trending Movies
   // const {
@@ -161,18 +151,15 @@ export const HomeScreen = React.memo(() => {
 
     const latestList = recentMovies?.pages?.[0]?.results || [];
     const popularList = popularMovies?.pages?.[0]?.results || [];
-    const topRatedList = topRatedMovies?.pages?.[0]?.results || [];
 
     const latest = pickFirstWithPoster(latestList);
     const popular = pickFirstWithPoster(popularList);
-    const topRated = pickFirstWithPoster(topRatedList);
 
     const next: Array<{item: any; type: 'movie' | 'tv'; title: string}> = [];
     if (latest) next.push({item: latest, type: 'movie', title: 'Latest'});
     if (popular) next.push({item: popular, type: 'movie', title: 'Popular'});
-    if (topRated) next.push({item: topRated, type: 'movie', title: 'Top'});
     return next;
-  }, [recentMovies, popularMovies, topRatedMovies]);
+  }, [recentMovies, popularMovies]);
 
   const {
     data: top10MoviesTodayByRegion,
@@ -204,6 +191,77 @@ export const HomeScreen = React.memo(() => {
       setTop10ContentByRegion(sortedContent.slice(0, 10));
     }
   }, [top10MoviesTodayByRegion, top10ShowsTodayByRegion]);
+
+  // My OTTs (Home): get first 3 or fallback to Netflix/Prime/Disney
+  const {data: myOTTs = []} = useMyOTTs();
+  const {data: myLanguage} = useMyLanguage();
+  const defaultOTTs = region?.iso_3166_1 === 'IN'
+    ? [
+        {id: 8, provider_name: 'Netflix'},
+        {id: 2336, provider_name: 'JioHotstar'},
+        {id: 119, provider_name: 'Amazon Prime Video'},
+      ]
+    : [
+      {id: 8, provider_name: 'Netflix'},
+      {id: 10, provider_name: 'Amazon Video'},
+      {id: 337, provider_name: 'Disney+'},
+    ];
+  const baseOTTs = myOTTs && myOTTs.length ? myOTTs : defaultOTTs;
+  const normalizeProvider = (p: any) => {
+    const nameRaw = p?.provider_name ?? p?.name ?? '';
+    let id = p?.id ?? p?.provider_id;
+    let provider_name = nameRaw || 'Provider';
+    // Prime mapping
+    if (/prime\s*video/i.test(provider_name) || id === 9 || id === 119) {
+      if (region?.iso_3166_1 === 'IN') {
+        id = 119; // Amazon Prime Video (India)
+        if (!nameRaw) provider_name = 'Amazon Prime Video';
+      } else {
+        id = 10; // Amazon Video (global)
+        if (!nameRaw) provider_name = 'Amazon Video';
+      }
+    }
+    // Disney/Hotstar mapping
+    if (/disney|hotstar|jio\s*hotstar/i.test(provider_name) || id === 337 || id === 122 || id === 2336) {
+      if (region?.iso_3166_1 === 'IN') {
+        id = 2336; // JioHotstar (India per TMDB)
+        if (!nameRaw) provider_name = 'JioHotstar';
+      } else {
+        id = 337; // Disney+ (global)
+        if (!nameRaw) provider_name = 'Disney+';
+      }
+    }
+    return {id, provider_name};
+  };
+  const allOttsNormalized = baseOTTs.map(normalizeProvider);
+  // no fixed hooks here; each provider will be rendered by its own OttRowMovies component
+
+  // My Language rows (Home)
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  // Movies: Popular (simple) and Latest (discover)
+  const langMoviesSimple = useMoviesByLanguageSimpleHook(myLanguage?.iso_639_1);
+  const {
+    data: latestLangMovies,
+    hasNextPage: hasNextLatestLangMovies,
+    isFetchingNextPage: isFetchingLatestLangMovies,
+    fetchNextPage: fetchNextLatestLangMovies,
+  } = useDiscoverMovies(
+    myLanguage?.iso_639_1
+      ? {with_original_language: myLanguage.iso_639_1, sort_by: 'release_date.desc', 'release_date.lte': todayStr}
+      : ({} as any),
+  );
+  // TV: Popular (simple) and Latest (discover)
+  const langTVSimple = useTVByLanguageSimpleHook(myLanguage?.iso_639_1);
+  const {
+    data: latestLangTV,
+    hasNextPage: hasNextLatestLangTV,
+    isFetchingNextPage: isFetchingLatestLangTV,
+    fetchNextPage: fetchNextLatestLangTV,
+  } = useDiscoverTVShows(
+    myLanguage?.iso_639_1
+      ? {with_original_language: myLanguage.iso_639_1, sort_by: 'first_air_date.desc'}
+      : ({} as any),
+  );
 
   const {data: savedFilters, isLoading: isLoadingSavedFilters} = useQuery({
     queryKey: ['savedFilters'],
@@ -396,9 +454,7 @@ export const HomeScreen = React.memo(() => {
     } else if (
       isFetchingRecentMovies ||
       isFetchingRecentTV ||
-      isFetchingPopularMovies ||
-      isFetchingTopRatedMovies ||
-      isFetchingTopRatedTV
+      isFetchingPopularMovies
     ) {
       sectionsList.push({
         id: 'featuredSkeleton',
@@ -545,67 +601,90 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
-    // Top Rated Movies section
-    if (topRatedMovies?.pages?.[0]?.results?.length) {
-      sectionsList.push({
-        id: 'topRatedMovies',
-        type: 'horizontalList',
-        title: 'Top Rated Movies',
-        data: getMoviesFromData(topRatedMovies),
-        isLoading: isFetchingTopRatedMovies,
-        onEndReached: hasNextTopRatedMovies
-          ? fetchNextTopRatedMovies
-          : undefined,
-        onSeeAllPress: () =>
-          handleSeeAllPress('Top Rated Movies', 'top_rated', 'movie'),
-      });
-    } else if (isFetchingTopRatedMovies) {
-      sectionsList.push({
-        id: 'topRatedMoviesSkeleton',
-        type: 'horizontalListSkeleton',
-      });
+    // My Language rows
+    if (myLanguage?.iso_639_1) {
+      // Latest Movies in your language
+      const latestMoviesMyLang = getMoviesFromData(latestLangMovies);
+      if (latestMoviesMyLang?.length) {
+        sectionsList.push({
+          id: 'home_myLangMoviesLatest',
+          type: 'horizontalList',
+          title: 'Latest Movies in your language',
+          data: latestMoviesMyLang,
+          isLoading: isFetchingLatestLangMovies,
+          onEndReached: hasNextLatestLangMovies ? fetchNextLatestLangMovies : undefined,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Latest Movies in your language',
+              contentType: 'movie',
+              filter: {with_original_language: myLanguage.iso_639_1, sort_by: 'release_date.desc', 'release_date.lte': todayStr},
+            }),
+        });
+      }
+
+      // Popular Movies in your language
+      const popularMoviesMyLang = getMoviesFromData(langMoviesSimple?.data);
+      if (popularMoviesMyLang?.length) {
+        sectionsList.push({
+          id: 'home_myLangMoviesPopular',
+          type: 'horizontalList',
+          title: 'Popular Movies in your language',
+          data: popularMoviesMyLang,
+          isLoading: langMoviesSimple?.isLoading,
+          onEndReached: langMoviesSimple?.hasNextPage ? langMoviesSimple.fetchNextPage : undefined,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Popular Movies in your language',
+              contentType: 'movie',
+              filter: {with_original_language: myLanguage.iso_639_1},
+            }),
+        });
+      }
+
+      // Latest Shows in your language
+      const latestTVMyLang = getTVShowsFromData(latestLangTV);
+      if (latestTVMyLang?.length) {
+        sectionsList.push({
+          id: 'home_myLangTVLatest',
+          type: 'horizontalList',
+          title: 'Latest Shows in your language',
+          data: latestTVMyLang,
+          isLoading: isFetchingLatestLangTV,
+          onEndReached: hasNextLatestLangTV ? fetchNextLatestLangTV : undefined,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Latest Shows in your language',
+              contentType: 'tv',
+              filter: {with_original_language: myLanguage.iso_639_1, sort_by: 'first_air_date.desc'},
+            }),
+        });
+      }
+
+      // Popular Shows in your language
+      const popularTVMyLang = getTVShowsFromData(langTVSimple?.data);
+      if (popularTVMyLang?.length) {
+        sectionsList.push({
+          id: 'home_myLangTVPopular',
+          type: 'horizontalList',
+          title: 'Popular Shows in your language',
+          data: popularTVMyLang,
+          isLoading: langTVSimple?.isLoading,
+          onEndReached: langTVSimple?.hasNextPage ? langTVSimple.fetchNextPage : undefined,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Popular Shows in your language',
+              contentType: 'tv',
+              filter: {with_original_language: myLanguage.iso_639_1},
+            }),
+        });
+      }
     }
 
-    // Top Rated TV Shows section
-    if (topRatedTVShows?.pages?.[0]?.results?.length) {
-      sectionsList.push({
-        id: 'topRatedTVShows',
-        type: 'horizontalList',
-        title: 'Top Rated TV Shows',
-        data: getTVShowsFromData(topRatedTVShows),
-        isLoading: isFetchingTopRatedTV,
-        onEndReached: hasNextTopRatedTV ? fetchNextTopRatedTV : undefined,
-        onSeeAllPress: () =>
-          handleSeeAllPress('Top Rated TV Shows', 'top_rated', 'tv'),
-      });
-    } else if (isFetchingTopRatedTV) {
-      sectionsList.push({
-        id: 'topRatedTVShowsSkeleton',
-        type: 'horizontalListSkeleton',
-      });
-    }
-
-    // Upcoming Movies section
-    if (upcomingMovies?.pages?.[0]?.results?.length) {
-      sectionsList.push({
-        id: 'upcomingMovies',
-        type: 'horizontalList',
-        title: 'Upcoming Movies',
-        data: getMoviesFromData(upcomingMovies),
-        isLoading: isFetchingUpcomingMovies,
-        onEndReached: hasNextUpcomingMovies
-          ? fetchNextUpcomingMovies
-          : undefined,
-        onSeeAllPress: () =>
-          handleSeeAllPress('Upcoming Movies', 'upcoming', 'movie'),
-      });
-    } else if (isFetchingUpcomingMovies) {
-      sectionsList.push({
-        id: 'upcomingMoviesSkeleton',
-        type: 'horizontalListSkeleton',
-      });
-    }
-
+    // Upcoming Movies in Region (only)
     if (upcomingMoviesByRegion?.pages?.[0]?.results?.length) {
       sectionsList.push({
         id: 'upcomingMoviesByRegion',
@@ -616,7 +695,7 @@ export const HomeScreen = React.memo(() => {
         onEndReached: hasNextUpcomingMoviesByRegion
           ? fetchNextUpcomingMoviesByRegion
           : undefined,
-        isSeeAll: true,
+        isSeeAll: false,
       });
     } else if (isFetchingUpcomingMoviesByRegion) {
       sectionsList.push({
@@ -624,6 +703,16 @@ export const HomeScreen = React.memo(() => {
         type: 'horizontalListSkeleton',
       });
     }
+
+    // My OTTs sections (movies): one row per provider (rendered via OttRowMovies)
+    allOttsNormalized.forEach(prov => {
+      sectionsList.push({
+        id: `home_ott_${prov.id}_movies_row`,
+        type: 'ottMoviesRow',
+        providerId: prov.id,
+        providerName: prov.provider_name,
+      });
+    });
 
     // Saved Filters section
     if (!isLoadingSavedFilters && savedFilters && savedFilters.length > 0) {
@@ -639,39 +728,46 @@ export const HomeScreen = React.memo(() => {
     featuredItems,
     renderPhase,
     recentMovies,
-    latestMoviesByRegion,
     recentTVShows,
     showMoreContent,
     top10ContentByRegion,
     popularTVShows,
-    topRatedMovies,
-    topRatedTVShows,
-    upcomingMovies,
     savedFilters,
     isLoadingSavedFilters,
     isFetchingRecentMovies,
     isFetchingRecentTV,
     isFetchingPopularTV,
-    isFetchingTopRatedMovies,
-    isFetchingTopRatedTV,
-    isFetchingUpcomingMovies,
+    region,
+    latestMoviesByRegion,
+    // MyLang deps
+    myLanguage,
+    langMoviesSimple?.data,
+    langMoviesSimple?.isLoading,
+    langMoviesSimple?.hasNextPage,
+    latestLangMovies,
+    isFetchingLatestLangMovies,
+    hasNextLatestLangMovies,
+    langTVSimple?.data,
+    langTVSimple?.isLoading,
+    langTVSimple?.hasNextPage,
+    latestLangTV,
+    isFetchingLatestLangTV,
+    hasNextLatestLangTV,
+    todayStr,
     hasNextRecentMovies,
     hasNextRecentTV,
     hasNextPopularTV,
-    hasNextTopRatedMovies,
-    hasNextTopRatedTV,
-    hasNextUpcomingMovies,
     fetchNextRecentMovies,
     fetchNextRecentTV,
     fetchNextPopularTV,
-    fetchNextTopRatedMovies,
-    fetchNextTopRatedTV,
-    fetchNextUpcomingMovies,
     handleSeeAllPress,
     moodLoaded,
     moodAnswers,
     isAIEnabled,
     moodVersion,
+    // OTT deps
+    baseOTTs,
+    allOttsNormalized,
   ]);
 
   // Render all sections without batching
@@ -852,6 +948,13 @@ export const HomeScreen = React.memo(() => {
                 <HomeFilterRow key={filter.id} savedFilter={filter} />
               ))}
             </View>
+          );
+        case 'ottMoviesRow':
+          return (
+            <OttRowMovies
+              providerId={item.providerId}
+              providerName={item.providerName}
+            />
           );
 
         default:

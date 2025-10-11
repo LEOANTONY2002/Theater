@@ -14,6 +14,7 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MySpaceStackParamList} from '../types/navigation';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
+import {modalStyles} from '../styles/styles';
 import {LanguageSettings} from '../components/LanguageSettings';
 import {SettingsManager} from '../store/settings';
 import {useQueryClient, useQuery} from '@tanstack/react-query';
@@ -61,10 +62,13 @@ export const MySpaceScreen = React.memo(() => {
   const [showAINotEnabledModal, setShowAINotEnabledModal] = useState(false);
   const [moodAnswers, setMoodAnswers] = useState<{[key: string]: string}>({});
   const [lastMoodUpdate, setLastMoodUpdate] = useState<string>('');
-  const {isTablet} = useResponsive();
+  const {isTablet, orientation} = useResponsive();
   // Blur preference toggle state
   const [forceBlurAll, setForceBlurAll] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  // My Language & My OTTs state
+  const [showMyLanguageModal, setShowMyLanguageModal] = useState(false);
+  const [showOTTsModal, setShowOTTsModal] = useState(false);
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -97,6 +101,24 @@ export const MySpaceScreen = React.memo(() => {
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
+  });
+
+  // My Language & My OTTs
+  const {data: myLanguage} = useQuery({
+    queryKey: ['my_language'],
+    queryFn: SettingsManager.getMyLanguage,
+  });
+  const {data: myOTTs = []} = useQuery({
+    queryKey: ['my_otts'],
+    queryFn: SettingsManager.getMyOTTs,
+  });
+  const {data: availableProviders = []} = useQuery({
+    queryKey: ['available_watch_providers', 'movie'],
+    queryFn: () =>
+      import('../services/tmdbWithCache').then(m =>
+        m.getAvailableWatchProviders(),
+      ),
+    staleTime: 1000 * 60 * 60,
   });
 
   // Load mood answers on component mount
@@ -1026,15 +1048,125 @@ export const MySpaceScreen = React.memo(() => {
                     {opacity: 0.9, marginBottom: spacing.sm},
                   ]}
                 />
-                <Text numberOfLines={1} style={styles.aiTitleSmall}>
-                  Ask
-                </Text>
-                <Text numberOfLines={1} style={styles.aiTitle}>
-                  Theater AI
-                </Text>
+                <View>
+                  <Text numberOfLines={1} style={styles.aiTitleSmall}>
+                    Ask
+                  </Text>
+                  <Text numberOfLines={1} style={styles.aiTitle}>
+                    Theater AI
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+
+        {/* Row: My Language + My OTTs */}
+        <View
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: isTablet ? spacing.md : spacing.sm,
+            marginTop: spacing.sm,
+          }}>
+          {/* My Language */}
+          <TouchableOpacity
+            style={[
+              styles.tile,
+              styles.smallTile,
+              {width: isTablet ? '35%' : 'auto'},
+            ]}
+            activeOpacity={0.9}
+            onPress={() => setShowMyLanguageModal(true)}>
+            <View style={styles.tileHeaderRow}>
+              <Image
+                source={require('../assets/region.png')}
+                style={styles.icon}
+              />
+              <Text numberOfLines={1} style={styles.tileTitle}>
+                My Language
+              </Text>
+            </View>
+            <View style={styles.region}>
+              <Text style={styles.regionLabelBG}>
+                {(myLanguage?.english_name || 'L').slice(0, 1)}
+              </Text>
+              <Text numberOfLines={1} style={styles.regionLabel}>
+                {myLanguage?.english_name || 'Select Language'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* My OTTs */}
+          <TouchableOpacity
+            style={[styles.tile, styles.smallTile, {width: 'auto', flex: 1}]}
+            activeOpacity={0.9}
+            onPress={() => setShowOTTsModal(true)}>
+            <View style={styles.tileHeaderRow}>
+              <Image
+                source={require('../assets/mywatchlists.png')}
+                style={styles.icon}
+              />
+              <Text numberOfLines={1} style={styles.tileTitle}>
+                My OTTs
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.chipsRow,
+                {
+                  marginTop: isTablet ? spacing.xl : spacing.md,
+                },
+              ]}>
+              <LinearGradient
+                colors={[
+                  'transparent',
+                  forceBlurAll
+                    ? colors.background.tertiaryGlass
+                    : colors.background.primary,
+                ]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: isTablet ? 150 : 100,
+                  zIndex: 1,
+                }}
+              />
+              {myOTTs && myOTTs.length > 0 ? (
+                myOTTs.map((p: any) => (
+                  <Image
+                    key={p.id}
+                    source={{
+                      uri: p.logo_path
+                        ? `https://image.tmdb.org/t/p/${
+                            isTablet ? 'w185' : 'w92'
+                          }${p.logo_path}`
+                        : undefined,
+                    }}
+                    style={{
+                      width: isTablet ? 70 : 35,
+                      height: isTablet ? 70 : 35,
+                      borderRadius: 6,
+                      backgroundColor: '#151525',
+                    }}
+                    resizeMode="contain"
+                  />
+                ))
+              ) : (
+                <View
+                  style={[
+                    styles.emptyTextContainer,
+                    {paddingVertical: spacing.sm},
+                  ]}>
+                  <Text style={styles.emptyText}>Select providers</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* About & Legal full width */}
@@ -1055,32 +1187,171 @@ export const MySpaceScreen = React.memo(() => {
             </View>
           </TouchableOpacity>
         </View>
+        <View
+          style={{height: isTablet && orientation === 'landscape' ? 200 : 100}}
+        />
       </View>
-
+      {/* My Language Modal - single select using LanguageSettings in local mode */}
       <Modal
-        visible={showLanguageModal}
+        visible={showMyLanguageModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMyLanguageModal(false)}>
+        <View style={modalStyles.modalContainer}>
+          <MaybeBlurView
+            style={modalStyles.modalContent}
+            modal
+            blurType="dark"
+            blurAmount={20}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Select your language to show personalized content
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowMyLanguageModal(false)}>
+                <Ionicons name="close" size={22} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={{flex: 1}}>
+              <LanguageSettings
+                isTitle={false}
+                singleSelect
+                disablePersistence
+                initialSelectedIso={
+                  myLanguage?.iso_639_1 ? [myLanguage.iso_639_1] : []
+                }
+                onChangeSelected={langs => {
+                  SettingsManager.setMyLanguage(langs?.[0] || null);
+                }}
+              />
+            </View>
+          </MaybeBlurView>
+        </View>
+      </Modal>
+
+      {/* My OTTs Modal - multi select providers (grid UI like All Watch Providers) */}
+      <Modal
+        visible={showOTTsModal}
         animationType="slide"
-        hardwareAccelerated
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
-        onRequestClose={() => setShowLanguageModal(false)}>
-        <View style={styles.modalContainer}>
+        onRequestClose={() => setShowOTTsModal(false)}>
+        <View style={modalStyles.modalContainer}>
           <MaybeBlurView
             blurType="dark"
             blurAmount={10}
-            style={styles.modalContent}
-            gradientColors={[colors.modal.blur, colors.modal.blur]}>
+            style={modalStyles.modalContent}
+            modal>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Language Settings</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setShowLanguageModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
+              <Text style={styles.modalTitle}>All Watch Providers</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                {!!(myOTTs && myOTTs.length) && (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={async () => {
+                      await SettingsManager.setMyOTTs([]);
+                    }}
+                    style={{marginRight: spacing.md}}>
+                    <Text style={{color: colors.text.muted}}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => setShowOTTsModal(false)}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.modalBody}>
-              <LanguageSettings />
-            </View>
+            {availableProviders?.length ? (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                key={availableProviders.length}
+                style={modalStyles.scrollContent}>
+                <View style={modalStyles.allProvidersGrid}>
+                  {availableProviders.map((p: any, index: number) => (
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      key={`myspace-provider-${p.provider_id}-${index}`}
+                      onPress={async () => {
+                        let next = Array.isArray(myOTTs) ? [...myOTTs] : [];
+                        if (myOTTs?.some((s: any) => s.id === p.provider_id)) {
+                          next = next.filter(
+                            (x: any) => x.id !== p.provider_id,
+                          );
+                        } else {
+                          next.push({
+                            id: p.provider_id,
+                            provider_name: p.provider_name,
+                            logo_path: p.logo_path,
+                          });
+                        }
+                        await SettingsManager.setMyOTTs(next);
+                      }}
+                      style={{
+                        borderRadius: 16,
+                        margin: 3,
+                        opacity: myOTTs?.some(
+                          (s: any) => s.id === p.provider_id,
+                        )
+                          ? 1
+                          : 0.7,
+                        backgroundColor: myOTTs?.some(
+                          (s: any) => s.id === p.provider_id,
+                        )
+                          ? colors.modal.active
+                          : colors.modal.blur,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderWidth: myOTTs?.some(
+                          (s: any) => s.id === p.provider_id,
+                        )
+                          ? 2
+                          : 0,
+                        borderColor: myOTTs?.some(
+                          (s: any) => s.id === p.provider_id,
+                        )
+                          ? colors.modal.activeBorder
+                          : 'transparent',
+                      }}>
+                      <Image
+                        source={{
+                          uri: p.logo_path
+                            ? `https://image.tmdb.org/t/p/w154${p.logo_path}`
+                            : undefined,
+                        }}
+                        style={{width: 70, height: 70, borderRadius: 16}}
+                        resizeMode="contain"
+                      />
+                      {myOTTs?.some((s: any) => s.id === p.provider_id) && (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            borderRadius: 10,
+                            padding: 2,
+                          }}>
+                          <Ionicons name="checkmark" size={14} color="#fff" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={{height: 100}} />
+              </ScrollView>
+            ) : (
+              <View style={{padding: spacing.lg, alignItems: 'center'}}>
+                <Text style={{color: colors.text.secondary}}>
+                  Loading watch providers...
+                </Text>
+              </View>
+            )}
           </MaybeBlurView>
         </View>
       </Modal>

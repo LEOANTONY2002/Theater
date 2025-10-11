@@ -27,6 +27,55 @@ class TMDBWithCacheService {
     setInterval(() => this.checkConnectivity(), 30000);
   }
 
+  // Simple helpers per instruction
+  async getMoviesByOTT(providerId: number, page = 1): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'movies_by_ott',
+      identifier: `${providerId}_${page}`,
+    };
+    return this.tryOnlineFirst(
+      () => tmdbService.getMoviesByOTT(providerId, page) as any,
+      cacheKey,
+      offlineCache['TTL_CONFIG'].discover,
+    );
+  }
+
+  async getShowsByOTT(providerId: number, page = 1): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'shows_by_ott',
+      identifier: `${providerId}_${page}`,
+    };
+    return this.tryOnlineFirst(
+      () => tmdbService.getShowsByOTT(providerId, page) as any,
+      cacheKey,
+      offlineCache['TTL_CONFIG'].discover,
+    );
+  }
+
+  async getMoviesByLanguageSimple(iso6391: string, page = 1): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'movies_by_language_simple',
+      identifier: `${iso6391}_${page}`,
+    };
+    return this.tryOnlineFirst(
+      () => tmdbService.getMoviesByLanguageSimple(iso6391, page) as any,
+      cacheKey,
+      offlineCache['TTL_CONFIG'].discover,
+    );
+  }
+
+  async getShowsByLanguageSimple(iso6391: string, page = 1): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'shows_by_language_simple',
+      identifier: `${iso6391}_${page}`,
+    };
+    return this.tryOnlineFirst(
+      () => tmdbService.getShowsByLanguageSimple(iso6391, page) as any,
+      cacheKey,
+      offlineCache['TTL_CONFIG'].discover,
+    );
+  }
+
   private async checkConnectivity(): Promise<void> {
     this.isOnline = await checkInternet();
   }
@@ -531,6 +580,14 @@ export const discoverMovies = (filters?: any, page?: number) =>
   tmdbWithCache.discoverMovies(filters, page);
 export const discoverTVShows = (filters?: any, page?: number) =>
   tmdbWithCache.discoverTVShows(filters, page);
+export const getMoviesByOTT = (providerId: number, page?: number) =>
+  tmdbWithCache.getMoviesByOTT(providerId, page);
+export const getShowsByOTT = (providerId: number, page?: number) =>
+  tmdbWithCache.getShowsByOTT(providerId, page);
+export const getMoviesByLanguageSimple = (iso6391: string, page?: number) =>
+  tmdbWithCache.getMoviesByLanguageSimple(iso6391, page);
+export const getShowsByLanguageSimple = (iso6391: string, page?: number) =>
+  tmdbWithCache.getShowsByLanguageSimple(iso6391, page);
 export const getContentByGenre = (
   genreId: any,
   contentType: 'movie' | 'tv',

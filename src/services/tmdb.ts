@@ -595,6 +595,61 @@ export const discoverTVShows = async (filters: any = {}, page = 1) => {
   return response.data;
 };
 
+// New simplified helpers per instruction
+export const getMoviesByOTT = async (providerId: number, page = 1) => {
+  if (!providerId) return {results: [], page: 1, total_pages: 1};
+  const region = await SettingsManager.getRegion();
+  const params: any = {
+    page,
+    sort_by: 'popularity.desc',
+    include_adult: false,
+    with_watch_providers: providerId.toString(),
+    watch_region: region?.iso_3166_1 || 'US',
+    with_watch_monetization_types: 'flatrate|ads|free',
+  };
+  const response = await tmdbApi.get('/discover/movie', {params});
+  return response.data;
+};
+
+export const getShowsByOTT = async (providerId: number, page = 1) => {
+  if (!providerId) return {results: [], page: 1, total_pages: 1};
+  const region = await SettingsManager.getRegion();
+  const params: any = {
+    page,
+    sort_by: 'popularity.desc',
+    include_adult: false,
+    with_watch_providers: providerId.toString(),
+    watch_region: region?.iso_3166_1 || 'US',
+    with_watch_monetization_types: 'flatrate|ads|free',
+  };
+  const response = await tmdbApi.get('/discover/tv', {params});
+  return response.data;
+};
+
+export const getMoviesByLanguageSimple = async (iso6391: string, page = 1) => {
+  if (!iso6391) return {results: [], page: 1, total_pages: 1};
+  const params: any = {
+    page,
+    sort_by: 'popularity.desc',
+    include_adult: false,
+    with_original_language: iso6391,
+  };
+  const response = await tmdbApi.get('/discover/movie', {params});
+  return response.data;
+};
+
+export const getShowsByLanguageSimple = async (iso6391: string, page = 1) => {
+  if (!iso6391) return {results: [], page: 1, total_pages: 1};
+  const params: any = {
+    page,
+    sort_by: 'popularity.desc',
+    include_adult: false,
+    with_original_language: iso6391,
+  };
+  const response = await tmdbApi.get('/discover/tv', {params});
+  return response.data;
+};
+
 export const discoverContent = async (savedFilters: any = []) => {
   return await Promise.all(
     savedFilters.map(async (filter: SavedFilter) => {

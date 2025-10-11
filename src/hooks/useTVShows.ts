@@ -9,7 +9,6 @@ import {
   getTrendingTVShows,
   getSeasonDetails,
   getTop10TVShowsTodayByRegion,
-  getContentByGenre,
   fetchContentFromAI,
 } from '../services/tmdbWithCache';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
@@ -63,8 +62,7 @@ export const useTVShowSearch = (query: string, filters: FilterParams = {}) => {
 export const useDiscoverTVShows = (params: FilterParams) => {
   return useInfiniteQuery({
     queryKey: ['discover_tv', params],
-    queryFn: ({pageParam = 1}) =>
-      getContentByGenre(params?.with_genres, 'tv', pageParam),
+    queryFn: ({pageParam = 1}) => discoverTVShows(params, pageParam as number),
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,

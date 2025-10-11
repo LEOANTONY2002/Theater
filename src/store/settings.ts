@@ -9,6 +9,8 @@ export interface Language {
 
 const STORAGE_KEY = '@settings_content_languages';
 const LANGUAGES_CACHE_KEY = '@languages_cache';
+const MY_LANGUAGE_KEY = '@settings/my_language';
+const MY_OTTS_KEY = '@settings/my_otts';
 
 type SettingsChangeListener = () => void;
 const listeners = new Set<SettingsChangeListener>();
@@ -33,6 +35,64 @@ export const SettingsManager = {
   async getRegions(): Promise<any> {
     const regions = await AsyncStorage.getItem(KEYS.REGIONS);
     return regions ? JSON.parse(regions) : [];
+  },
+
+  // My Language (single selection)
+  async getMyLanguage(): Promise<Language | null> {
+    try {
+      const raw = await AsyncStorage.getItem(MY_LANGUAGE_KEY);
+      return raw ? (JSON.parse(raw) as Language) : null;
+    } catch (e) {
+      console.error('Error reading My Language:', e);
+      return null;
+    }
+  },
+
+  async setMyLanguage(lang: Language | null): Promise<void> {
+    try {
+      if (lang) {
+        await AsyncStorage.setItem(MY_LANGUAGE_KEY, JSON.stringify(lang));
+      } else {
+        await AsyncStorage.removeItem(MY_LANGUAGE_KEY);
+      }
+      debounce(async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({queryKey: ['my_language']}),
+          queryClient.invalidateQueries({queryKey: ['my_language_movies']}),
+          queryClient.invalidateQueries({queryKey: ['my_language_tv']}),
+        ]);
+        listeners.forEach(listener => listener());
+      }, 300)();
+    } catch (e) {
+      console.error('Error saving My Language:', e);
+    }
+  },
+
+  // My OTTs (multi-select of providers)
+  async getMyOTTs(): Promise<Array<{id: number; provider_name: string; logo_path?: string}>> {
+    try {
+      const raw = await AsyncStorage.getItem(MY_OTTS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.error('Error reading My OTTs:', e);
+      return [];
+    }
+  },
+
+  async setMyOTTs(providers: Array<{id: number; provider_name: string; logo_path?: string}>): Promise<void> {
+    try {
+      await AsyncStorage.setItem(MY_OTTS_KEY, JSON.stringify(providers || []));
+      debounce(async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({queryKey: ['my_otts']}),
+          queryClient.invalidateQueries({queryKey: ['my_otts_movies']}),
+          queryClient.invalidateQueries({queryKey: ['my_otts_tv']}),
+        ]);
+        listeners.forEach(listener => listener());
+      }, 300)();
+    } catch (e) {
+      console.error('Error saving My OTTs:', e);
+    }
   },
 
   async setRegions(regions: any): Promise<void> {

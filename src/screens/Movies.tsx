@@ -27,6 +27,8 @@ import {HorizontalGenreList} from '../components/HorizontalGenreList';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {FlatList} from 'react-native-gesture-handler';
 import {GestureHandlerRootView as RNGestureHandlerRootView} from 'react-native-gesture-handler';
+import {useMyLanguage, useMyOTTs, useMoviesByLanguageSimpleHook} from '../hooks/usePersonalization';
+import {OttRowMovies} from '../components/OttRowMovies';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -206,13 +208,70 @@ export const MoviesScreen = React.memo(() => {
     [navigateWithLimit],
   );
 
-  const handleGenrePress = (genre: Genre) => {
+  const handleGenrePress = useCallback((genre: Genre) => {
     navigateWithLimit('Genre', {
       genreId: genre.id,
       genreName: genre.name,
       contentType: 'movie',
     });
+  }, [navigateWithLimit]);
+
+  // Personalization (simple APIs)
+  const {data: myLanguage} = useMyLanguage();
+  const {data: myOTTs = []} = useMyOTTs();
+  const defaultOTTs = region?.iso_3166_1 === 'IN'
+    ? [
+        {id: 8, provider_name: 'Netflix'},
+        {id: 2336, provider_name: 'JioHotstar'},
+        {id: 119, provider_name: 'Amazon Prime Video'},
+      ]
+    : [
+      {id: 8, provider_name: 'Netflix'},
+      {id: 10, provider_name: 'Amazon Video'},
+      {id: 337, provider_name: 'Disney+'},
+    ];
+  const baseOTTs = myOTTs && myOTTs.length ? myOTTs : defaultOTTs;
+  const normalizeProvider = (p: any) => {
+    const nameRaw = p?.provider_name ?? p?.name ?? '';
+    let id = p?.id ?? p?.provider_id;
+    let provider_name = nameRaw || 'Provider';
+    // Prime mapping
+    if (/prime\s*video/i.test(provider_name) || id === 9 || id === 119) {
+      if (region?.iso_3166_1 === 'IN') {
+        id = 119;
+        if (!nameRaw) provider_name = 'Amazon Prime Video';
+      } else {
+        id = 10;
+        if (!nameRaw) provider_name = 'Amazon Video';
+      }
+    }
+    // Disney/Hotstar mapping
+    if (/disney|hotstar|jio\s*hotstar/i.test(provider_name) || id === 337 || id === 122 || id === 2336) {
+      if (region?.iso_3166_1 === 'IN') {
+        id = 2336;
+        if (!nameRaw) provider_name = 'JioHotstar';
+      } else {
+        id = 337;
+        if (!nameRaw) provider_name = 'Disney+';
+      }
+    }
+    return {id, provider_name};
   };
+  const allOttsNormalized = baseOTTs.map(normalizeProvider);
+  const langSimple = useMoviesByLanguageSimpleHook(myLanguage?.iso_639_1);
+  // Today string for date filters
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  // Latest Movies in My Language (separate from Popular)
+  const {
+    data: latestLangMovies,
+    fetchNextPage: fetchNextLatestLangMovies,
+    hasNextPage: hasNextLatestLangMovies,
+    isFetchingNextPage: isFetchingLatestLangMovies,
+  } = useDiscoverMovies(
+    myLanguage?.iso_639_1
+      ? {with_original_language: myLanguage.iso_639_1, sort_by: 'release_date.desc', 'release_date.lte': todayStr}
+      : ({} as any),
+  );
 
   // 1. Memoize getMoviesFromData results per paginated data
   const recentMoviesFlat = useMemo(
@@ -480,6 +539,49 @@ export const MoviesScreen = React.memo(() => {
       });
     }
 
+    // My Language simple list
+    if (myLanguage?.iso_639_1) {
+      // Latest Movies in your language
+      const latestMovies = getMoviesFromData(latestLangMovies);
+      if (latestMovies?.length) {
+        sectionsList.push({
+          id: 'myLangMoviesLatest',
+          type: 'horizontalList',
+          title: 'Latest Movies in your language',
+          data: latestMovies,
+          onItemPress: handleMoviePress,
+          onEndReached: hasNextLatestLangMovies ? fetchNextLatestLangMovies : undefined,
+          isLoading: isFetchingLatestLangMovies,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Latest Movies in your language',
+              contentType: 'movie',
+              filter: {with_original_language: myLanguage.iso_639_1, sort_by: 'release_date.desc', 'release_date.lte': todayStr},
+            }),
+        });
+      }
+      const langMovies = getMoviesFromData(langSimple?.data);
+      if (langMovies?.length) {
+        sectionsList.push({
+          id: 'myLangMoviesSimple',
+          type: 'horizontalList',
+          title: 'Popular Movies in your language',
+          data: langMovies,
+          onItemPress: handleMoviePress,
+          onEndReached: langSimple?.hasNextPage ? langSimple.fetchNextPage : undefined,
+          isLoading: langSimple?.isLoading,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Popular Movies in your language',
+              contentType: 'movie',
+              filter: {with_original_language: myLanguage.iso_639_1},
+            }),
+        });
+      }
+    }
+
     // Kids Movies
     if (kidsMoviesFlat.length) {
       sectionsList.push({
@@ -553,62 +655,35 @@ export const MoviesScreen = React.memo(() => {
       });
     }
 
+    // My OTTs sections (movies): one row per provider using OttRowMovies
+    allOttsNormalized.forEach(prov => {
+      sectionsList.push({
+        id: `ott_${prov.id}_movies_row`,
+        type: 'ottMoviesRow',
+        providerId: prov.id,
+        providerName: prov.provider_name,
+      });
+    });
+
     return sectionsList;
   }, [
     featuredMovie,
     genres,
     isLoadingGenres,
-    renderPhase,
-    recentMoviesFlat,
-    popularMoviesFlat,
-    topRatedMoviesFlat,
-    nowPlayingMoviesFlat,
-    upcomingMoviesFlat,
-    top10MoviesTodayByRegionData,
-    region,
     handleGenrePress,
-    handleMoviePress,
-    isFetchingRecent,
-    isFetchingPopular,
-    isFetchingTopRated,
-    isFetchingNowPlaying,
-    isFetchingUpcoming,
-    isFetchingTop10MoviesTodayByRegion,
-    hasNextRecent,
-    hasNextPopular,
-    hasNextTopRated,
-    hasNextNowPlaying,
-    hasNextUpcoming,
-    fetchNextRecent,
-    fetchNextPopular,
-    fetchNextTopRated,
-    fetchNextNowPlaying,
-    fetchNextUpcoming,
-    kidsMoviesFlat,
-    isFetchingKids,
-    hasNextKids,
-    fetchNextKids,
-    familyMoviesFlat,
-    isFetchingFamily,
-    hasNextFamily,
-    fetchNextFamily,
-    comedyMoviesFlat,
-    isFetchingComedy,
-    hasNextComedy,
-    fetchNextComedy,
-    actionMoviesFlat,
-    isFetchingAction,
-    hasNextAction,
-    fetchNextAction,
-    onSeeAllRecent,
-    onSeeAllPopular,
-    onSeeAllTopRated,
-    onSeeAllNowPlaying,
-    onSeeAllUpcoming,
-    onSeeAllKids,
-    onSeeAllFamily,
     onSeeAllComedy,
     onSeeAllAction,
+    myLanguage,
+    langSimple?.data,
+    langSimple?.isLoading,
+    langSimple,
+    latestLangMovies,
+    hasNextLatestLangMovies,
+    isFetchingLatestLangMovies,
+    fetchNextLatestLangMovies,
+    // OTT deps
+    baseOTTs,
+    allOttsNormalized,
   ]);
 
   // Render all sections without batching
@@ -624,23 +699,21 @@ export const MoviesScreen = React.memo(() => {
             autoPlayIntervalMs={5000}
           />
         );
-
-      case 'featuredSkeleton':
-        return (
-          <View style={{width: '100%', height: 580, alignSelf: 'center'}}>
-            <BannerSkeleton />
-          </View>
-        );
-
       case 'genres':
         return (
           <HorizontalGenreList
             title="Genres"
             data={item.data}
-            onItemPress={item.onItemPress}
+            onItemPress={handleGenrePress}
             isLoading={item.isLoading}
           />
         );
+      case 'ottMoviesRow':
+        return (
+          <OttRowMovies providerId={item.providerId} providerName={item.providerName} />
+        );
+      case 'featuredSkeleton':
+        return <BannerSkeleton />;
 
       case 'horizontalList':
         return (
@@ -651,7 +724,6 @@ export const MoviesScreen = React.memo(() => {
             onEndReached={item.onEndReached}
             isLoading={item.isLoading}
             onSeeAllPress={item.onSeeAllPress}
-            isSeeAll={item.isSeeAll}
             isTop10={item.isTop10}
           />
         );

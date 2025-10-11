@@ -28,6 +28,12 @@ import {HorizontalGenreList} from '../components/HorizontalGenreList';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {Movie} from '../types/movie';
 import {FlatList, RotationGestureHandler} from 'react-native-gesture-handler';
+import {
+  useMyLanguage,
+  useMyOTTs,
+  useTVByLanguageSimpleHook,
+} from '../hooks/usePersonalization';
+import {OttRowTV} from '../components/OttRowTV';
 
 type TVShowsScreenNavigationProp =
   NativeStackNavigationProp<TVShowsStackParamList>;
@@ -274,6 +280,70 @@ export const TVShowsScreen = React.memo(() => {
     [navigateWithLimit],
   );
 
+  // Personalization (simple APIs)
+  const {data: myLanguage} = useMyLanguage();
+  const {data: myOTTs = []} = useMyOTTs();
+  const defaultOTTs =
+    region?.iso_3166_1 === 'IN'
+      ? [
+          {id: 8, provider_name: 'Netflix'},
+          {id: 2336, provider_name: 'JioHotstar'},
+          {id: 119, provider_name: 'Amazon Prime Video'},
+        ]
+      : [
+          {id: 8, provider_name: 'Netflix'},
+          {id: 10, provider_name: 'Amazon Video'},
+          {id: 337, provider_name: 'Disney+'},
+        ];
+  const baseOTTs = myOTTs && myOTTs.length ? myOTTs : defaultOTTs;
+  const normalizeProvider = (p: any) => {
+    const nameRaw = p?.provider_name ?? p?.name ?? '';
+    let id = p?.id ?? p?.provider_id;
+    let provider_name = nameRaw || 'Provider';
+    // Prime mapping
+    if (/prime\s*video/i.test(provider_name) || id === 9 || id === 119) {
+      if (region?.iso_3166_1 === 'IN') {
+        id = 119;
+        if (!nameRaw) provider_name = 'Amazon Prime Video';
+      } else {
+        id = 10;
+        if (!nameRaw) provider_name = 'Amazon Video';
+      }
+    }
+    // Disney/Hotstar mapping
+    if (
+      /disney|hotstar|jio\s*hotstar/i.test(provider_name) ||
+      id === 337 ||
+      id === 122 ||
+      id === 2336
+    ) {
+      if (region?.iso_3166_1 === 'IN') {
+        id = 2336;
+        if (!nameRaw) provider_name = 'JioHotstar';
+      } else {
+        id = 337;
+        if (!nameRaw) provider_name = 'Disney+';
+      }
+    }
+    return {id, provider_name};
+  };
+  const allOttsNormalized = baseOTTs.map(normalizeProvider);
+  const langSimpleTV = useTVByLanguageSimpleHook(myLanguage?.iso_639_1);
+  // Latest Shows in My Language (separate from Popular)
+  const {
+    data: latestLangTV,
+    fetchNextPage: fetchNextLatestLangTV,
+    hasNextPage: hasNextLatestLangTV,
+    isFetchingNextPage: isFetchingLatestLangTV,
+  } = useDiscoverTVShows(
+    myLanguage?.iso_639_1
+      ? {
+          with_original_language: myLanguage.iso_639_1,
+          sort_by: 'first_air_date.desc',
+        }
+      : ({} as any),
+  );
+
   // 3. Optimize useMemo for sections
   const sections = useMemo(() => {
     const sectionsList = [];
@@ -378,6 +448,57 @@ export const TVShowsScreen = React.memo(() => {
       });
     }
 
+    // My Language Latest TV list
+    if (myLanguage?.iso_639_1) {
+      const latestTV = getShowsFromData(latestLangTV);
+      if (latestTV?.length) {
+        sectionsList.push({
+          id: 'myLangTVLatest',
+          type: 'horizontalList',
+          title: 'Latest Shows in your language',
+          data: latestTV,
+          onItemPress: handleShowPress,
+          onEndReached: hasNextLatestLangTV ? fetchNextLatestLangTV : undefined,
+          isLoading: isFetchingLatestLangTV,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Latest Shows in your language',
+              contentType: 'tv',
+              filter: {
+                with_original_language: myLanguage.iso_639_1,
+                sort_by: 'first_air_date.desc',
+              },
+            }),
+        });
+      }
+    }
+
+    // My Language simple TV list
+    if (myLanguage?.iso_639_1) {
+      const langTV = getShowsFromData(langSimpleTV?.data);
+      if (langTV?.length) {
+        sectionsList.push({
+          id: 'myLangTVSimple',
+          type: 'horizontalList',
+          title: 'Popular Shows in your language',
+          data: langTV,
+          onItemPress: handleShowPress,
+          onEndReached: langSimpleTV?.hasNextPage
+            ? langSimpleTV.fetchNextPage
+            : undefined,
+          isLoading: langSimpleTV?.isLoading,
+          isSeeAll: true,
+          onSeeAllPress: () =>
+            navigateWithLimit('Category', {
+              title: 'Popular Shows in your language',
+              contentType: 'tv',
+              filter: {with_original_language: myLanguage.iso_639_1},
+            }),
+        });
+      }
+    }
+
     // Add after main lists
     // Kids Shows
     if (kidsShowsFlat.length) {
@@ -445,6 +566,16 @@ export const TVShowsScreen = React.memo(() => {
       });
     }
 
+    // My OTTs sections (TV): one row per provider using OttRowTV
+    allOttsNormalized.forEach(prov => {
+      sectionsList.push({
+        id: `ott_${prov.id}_tv_row`,
+        type: 'ottTVRow',
+        providerId: prov.id,
+        providerName: prov.provider_name,
+      });
+    });
+
     return sectionsList;
   }, [
     featuredShow,
@@ -495,6 +626,13 @@ export const TVShowsScreen = React.memo(() => {
     onSeeAllComedy,
     onSeeAllRomance,
     onSeeAllAction,
+    myLanguage,
+    langSimpleTV?.data,
+    langSimpleTV?.isLoading,
+    langSimpleTV?.hasNextPage,
+    // OTT deps
+    baseOTTs,
+    allOttsNormalized,
   ]);
 
   const renderSection = useCallback(
@@ -541,6 +679,14 @@ export const TVShowsScreen = React.memo(() => {
               <HorizontalListSkeleton />
             </View>
           );
+        case 'ottTVRow':
+          return (
+            <OttRowTV
+              providerId={item.providerId}
+              providerName={item.providerName}
+            />
+          );
+
         default:
           return null;
       }
@@ -630,26 +776,24 @@ export const TVShowsScreen = React.memo(() => {
   return (
     <RNGestureHandlerRootView style={{flex: 1}}>
       <View style={styles.container}>
-        {isFocused ? (
-          <FlatList
-            data={sections}
-            renderItem={renderSection}
-            keyExtractor={keyExtractor}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{paddingBottom: 100}}
-            removeClippedSubviews={false}
-            scrollEventThrottle={16}
-            initialNumToRender={4}
-            windowSize={7}
-            maxToRenderPerBatch={6}
-            updateCellsBatchingPeriod={50}
-            getItemLayout={getItemLayout}
-            viewabilityConfig={viewabilityConfig}
-            onViewableItemsChanged={onViewableItemsChanged}
-          />
-        ) : (
-          <View />
-        )}
+        <FlatList
+          data={sections}
+          renderItem={renderSection}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={
+            isFocused ? {paddingBottom: 100} : {opacity: 0}
+          }
+          removeClippedSubviews={false}
+          scrollEventThrottle={16}
+          initialNumToRender={4}
+          windowSize={7}
+          maxToRenderPerBatch={6}
+          updateCellsBatchingPeriod={50}
+          getItemLayout={getItemLayout}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
+        />
       </View>
     </RNGestureHandlerRootView>
   );

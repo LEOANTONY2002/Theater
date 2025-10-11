@@ -8,7 +8,7 @@ import {
   getMovieRecommendations,
   getTrendingMovies,
   getTop10MoviesTodayByRegion,
-  getContentByGenre,
+  discoverMovies,
   fetchContentFromAI,
 } from '../services/tmdbWithCache';
 import {Movie, MovieDetails, MoviesResponse} from '../types/movie';
@@ -121,8 +121,7 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
 export const useDiscoverMovies = (params: FilterParams) => {
   return useInfiniteQuery({
     queryKey: ['discover_movies', params],
-    queryFn: ({pageParam = 1}) =>
-      getContentByGenre(params.with_genres, 'movie', pageParam as number),
+    queryFn: ({pageParam = 1}) => discoverMovies(params, pageParam as number),
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
