@@ -827,21 +827,18 @@ export const MoviesScreen = React.memo(() => {
 
   if (isInitialLoading) {
     return (
-      <RNGestureHandlerRootView style={{flex: 1}}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: colors.background.primary,
-            paddingTop: 0,
-            paddingBottom: 100,
-          }}>
-          <BannerSkeleton />
-          <HeadingSkeleton />
-          <GenreListSkeleton />
-          <HeadingSkeleton />
-          <HorizontalListSkeleton />
-        </View>
-      </RNGestureHandlerRootView>
+      <View
+        style={{
+          backgroundColor: colors.background.primary,
+          marginTop: -20,
+          paddingBottom: 100,
+        }}>
+        <BannerSkeleton />
+        <HeadingSkeleton />
+        <GenreListSkeleton />
+        <HeadingSkeleton />
+        <HorizontalListSkeleton />
+      </View>
     );
   }
 

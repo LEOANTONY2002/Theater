@@ -73,7 +73,6 @@ export const MaybeBlurView: React.FC<
             borderWidth: 1.5,
             borderColor: 'rgba(0, 0, 0, 0.04)',
             borderRadius: radius,
-            opacity: 0.9,
           }}>
           {children}
         </View>

@@ -189,7 +189,7 @@ export const GenreListSkeleton = () => (
     showsHorizontalScrollIndicator={false}
     contentContainerStyle={styles.horizontalListContent}
     style={{marginBottom: spacing.xl, position: 'relative'}}>
-    {[...Array(5)].map((_, i) => (
+    {[...Array(8)].map((_, i) => (
       <View key={i} style={styles.horizontalCardContainer}>
         <AnimatedShimmer width={120} height={100} radius={16} />
       </View>

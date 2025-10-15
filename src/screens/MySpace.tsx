@@ -506,7 +506,7 @@ export const MySpaceScreen = React.memo(() => {
       borderRadius: isTablet ? 40 : borderRadius.lg,
       padding: isTablet ? spacing.md : spacing.sm,
       borderWidth: 1,
-      borderColor: colors.background.border,
+      borderColor: forceBlurAll ? colors.modal.blur : colors.background.border,
       minHeight: isTablet ? 180 : 120,
     },
     tileTitle: {
@@ -535,7 +535,9 @@ export const MySpaceScreen = React.memo(() => {
       borderRadius: isTablet ? 40 : borderRadius.xl,
     },
     aiTile: {
-      backgroundColor: '#070711',
+      backgroundColor: forceBlurAll
+        ? colors.background.tertiaryGlass
+        : colors.background.tertiarySolid,
       borderRadius: isTablet ? 40 : borderRadius.xl,
       padding: isTablet ? spacing.lg : spacing.sm,
       borderWidth: 3,
@@ -695,8 +697,10 @@ export const MySpaceScreen = React.memo(() => {
       color: colors.text.primary,
     },
     chip: {
-      backgroundColor: '#0D0D17',
-      borderColor: '#13131D',
+      backgroundColor: forceBlurAll
+        ? colors.modal.blurDark
+        : colors.modal.blurDark,
+      borderColor: colors.modal.background,
       borderWidth: 1,
       borderRadius: isTablet ? borderRadius.xl : borderRadius.lg,
       width: isTablet ? 100 : 80,
@@ -982,10 +986,7 @@ export const MySpaceScreen = React.memo(() => {
                   <View style={styles.themeOptionLeft}>
                     <View style={styles.themeSwatch}>
                       <LinearGradient
-                        colors={[
-                          colors.modal.active,
-                          colors.background.tertiarySolid,
-                        ]}
+                        colors={[colors.modal.active, colors.modal.blurDark]}
                         start={{x: 0, y: 0}}
                         end={{x: 0.5, y: 0.7}}
                         style={styles.themeSwatchGlass}
