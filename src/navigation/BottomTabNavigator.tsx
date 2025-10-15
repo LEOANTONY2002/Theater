@@ -116,7 +116,7 @@ const TabBarBackground = () => {
         },
       ]}>
       <MaybeBlurView
-        blurType="dark"
+        blurType="light"
         blurAmount={10}
         style={styles.blurContainer}
         overlayColor={colors.modal.blurDark}

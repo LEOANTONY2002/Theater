@@ -27,7 +27,11 @@ import {HorizontalGenreList} from '../components/HorizontalGenreList';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {FlatList} from 'react-native-gesture-handler';
 import {GestureHandlerRootView as RNGestureHandlerRootView} from 'react-native-gesture-handler';
-import {useMyLanguage, useMyOTTs, useMoviesByLanguageSimpleHook} from '../hooks/usePersonalization';
+import {
+  useMyLanguage,
+  useMyOTTs,
+  useMoviesByLanguageSimpleHook,
+} from '../hooks/usePersonalization';
 import {OttRowMovies} from '../components/OttRowMovies';
 
 type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -40,6 +44,7 @@ export const MoviesScreen = React.memo(() => {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [renderPhase, setRenderPhase] = useState(0);
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
 
   // Staggered loading to reduce initial render load
   useEffect(() => {
@@ -208,28 +213,32 @@ export const MoviesScreen = React.memo(() => {
     [navigateWithLimit],
   );
 
-  const handleGenrePress = useCallback((genre: Genre) => {
-    navigateWithLimit('Genre', {
-      genreId: genre.id,
-      genreName: genre.name,
-      contentType: 'movie',
-    });
-  }, [navigateWithLimit]);
+  const handleGenrePress = useCallback(
+    (genre: Genre) => {
+      navigateWithLimit('Genre', {
+        genreId: genre.id,
+        genreName: genre.name,
+        contentType: 'movie',
+      });
+    },
+    [navigateWithLimit],
+  );
 
   // Personalization (simple APIs)
   const {data: myLanguage} = useMyLanguage();
   const {data: myOTTs = []} = useMyOTTs();
-  const defaultOTTs = region?.iso_3166_1 === 'IN'
-    ? [
-        {id: 8, provider_name: 'Netflix'},
-        {id: 2336, provider_name: 'JioHotstar'},
-        {id: 119, provider_name: 'Amazon Prime Video'},
-      ]
-    : [
-      {id: 8, provider_name: 'Netflix'},
-      {id: 10, provider_name: 'Amazon Video'},
-      {id: 337, provider_name: 'Disney+'},
-    ];
+  const defaultOTTs =
+    region?.iso_3166_1 === 'IN'
+      ? [
+          {id: 8, provider_name: 'Netflix'},
+          {id: 2336, provider_name: 'JioHotstar'},
+          {id: 119, provider_name: 'Amazon Prime Video'},
+        ]
+      : [
+          {id: 8, provider_name: 'Netflix'},
+          {id: 10, provider_name: 'Amazon Video'},
+          {id: 337, provider_name: 'Disney+'},
+        ];
   const baseOTTs = myOTTs && myOTTs.length ? myOTTs : defaultOTTs;
   const normalizeProvider = (p: any) => {
     const nameRaw = p?.provider_name ?? p?.name ?? '';
@@ -246,7 +255,12 @@ export const MoviesScreen = React.memo(() => {
       }
     }
     // Disney/Hotstar mapping
-    if (/disney|hotstar|jio\s*hotstar/i.test(provider_name) || id === 337 || id === 122 || id === 2336) {
+    if (
+      /disney|hotstar|jio\s*hotstar/i.test(provider_name) ||
+      id === 337 ||
+      id === 122 ||
+      id === 2336
+    ) {
       if (region?.iso_3166_1 === 'IN') {
         id = 2336;
         if (!nameRaw) provider_name = 'JioHotstar';
@@ -269,7 +283,11 @@ export const MoviesScreen = React.memo(() => {
     isFetchingNextPage: isFetchingLatestLangMovies,
   } = useDiscoverMovies(
     myLanguage?.iso_639_1
-      ? {with_original_language: myLanguage.iso_639_1, sort_by: 'release_date.desc', 'release_date.lte': todayStr}
+      ? {
+          with_original_language: myLanguage.iso_639_1,
+          sort_by: 'release_date.desc',
+          'release_date.lte': todayStr,
+        }
       : ({} as any),
   );
 
@@ -540,7 +558,7 @@ export const MoviesScreen = React.memo(() => {
     }
 
     // My Language simple list
-    if (myLanguage?.iso_639_1) {
+    if (renderPhase >= 2 && myLanguage?.iso_639_1) {
       // Latest Movies in your language
       const latestMovies = getMoviesFromData(latestLangMovies);
       if (latestMovies?.length) {
@@ -550,14 +568,20 @@ export const MoviesScreen = React.memo(() => {
           title: 'Latest Movies in your language',
           data: latestMovies,
           onItemPress: handleMoviePress,
-          onEndReached: hasNextLatestLangMovies ? fetchNextLatestLangMovies : undefined,
+          onEndReached: hasNextLatestLangMovies
+            ? fetchNextLatestLangMovies
+            : undefined,
           isLoading: isFetchingLatestLangMovies,
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
               title: 'Latest Movies in your language',
               contentType: 'movie',
-              filter: {with_original_language: myLanguage.iso_639_1, sort_by: 'release_date.desc', 'release_date.lte': todayStr},
+              filter: {
+                with_original_language: myLanguage.iso_639_1,
+                sort_by: 'release_date.desc',
+                'release_date.lte': todayStr,
+              },
             }),
         });
       }
@@ -569,7 +593,9 @@ export const MoviesScreen = React.memo(() => {
           title: 'Popular Movies in your language',
           data: langMovies,
           onItemPress: handleMoviePress,
-          onEndReached: langSimple?.hasNextPage ? langSimple.fetchNextPage : undefined,
+          onEndReached: langSimple?.hasNextPage
+            ? langSimple.fetchNextPage
+            : undefined,
           isLoading: langSimple?.isLoading,
           isSeeAll: true,
           onSeeAllPress: () =>
@@ -695,8 +721,9 @@ export const MoviesScreen = React.memo(() => {
           <FeaturedBanner
             item={item.data}
             type="movie"
-            slides={featuredSlides}
+            slides={(popularMoviesFlat || []).filter(Boolean).slice(0, 7)}
             autoPlayIntervalMs={5000}
+            autoplayEnabled={isBannerVisible}
           />
         );
       case 'genres':
@@ -710,7 +737,10 @@ export const MoviesScreen = React.memo(() => {
         );
       case 'ottMoviesRow':
         return (
-          <OttRowMovies providerId={item.providerId} providerName={item.providerName} />
+          <OttRowMovies
+            providerId={item.providerId}
+            providerName={item.providerName}
+          />
         );
       case 'featuredSkeleton':
         return <BannerSkeleton />;
@@ -733,7 +763,7 @@ export const MoviesScreen = React.memo(() => {
     }
   }, []);
 
-  const keyExtractor = useCallback((item: any) => item.id, []);
+  const keyExtractor = useCallback((item: any) => String(item.id), []);
 
   // Estimate heights per section to help FlatList avoid measuring
   const sectionHeights = useMemo<number[]>(() => {
@@ -774,6 +804,22 @@ export const MoviesScreen = React.memo(() => {
     [sectionHeights, sectionOffsets],
   );
 
+  // Match TVShows: pause banner autoplay when offscreen
+  const viewabilityConfig = useMemo(
+    () => ({
+      minimumViewTime: 80,
+      viewAreaCoveragePercentThreshold: 25,
+    }),
+    [],
+  );
+
+  const onViewableItemsChanged = useCallback(({viewableItems}: any) => {
+    const visible = viewableItems?.some(
+      (vi: any) => vi?.item?.type === 'featured',
+    );
+    setIsBannerVisible(!!visible);
+  }, []);
+
   const isInitialLoading =
     !popularMovies?.pages?.[0]?.results?.length ||
     !topRatedMovies?.pages?.[0]?.results?.length ||
@@ -809,16 +855,14 @@ export const MoviesScreen = React.memo(() => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{paddingBottom: 100}}
           removeClippedSubviews={true}
-          keyboardShouldPersistTaps="handled"
-          initialNumToRender={6}
-          windowSize={7}
-          maxToRenderPerBatch={6}
-          updateCellsBatchingPeriod={50}
           scrollEventThrottle={16}
-          getItemLayout={getItemLayout}
-          // Keep mounted to preserve scroll; hide when not focused
+          initialNumToRender={4}
+          windowSize={7}
+          maxToRenderPerBatch={4}
           style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
-          pointerEvents={isFocused ? 'auto' : 'none'}
+          getItemLayout={getItemLayout}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
         />
       </View>
     </RNGestureHandlerRootView>

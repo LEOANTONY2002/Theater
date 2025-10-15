@@ -226,7 +226,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             windowSize={5}
             maxToRenderPerBatch={6}
             updateCellsBatchingPeriod={50}
-            removeClippedSubviews={Platform.OS === 'android'}
+            removeClippedSubviews={false}
             getItemLayout={getItemLayout}
             decelerationRate={Platform.OS === 'ios' ? 'fast' : 0.98}
             ListFooterComponent={

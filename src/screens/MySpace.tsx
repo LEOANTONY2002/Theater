@@ -547,6 +547,7 @@ export const MySpaceScreen = React.memo(() => {
       color: colors.text.secondary,
       ...typography.caption,
       marginBottom: spacing.xs,
+      textAlign: 'center',
     },
     aiTitle: {
       color: colors.accent,
@@ -1080,7 +1081,7 @@ export const MySpaceScreen = React.memo(() => {
             onPress={() => setShowMyLanguageModal(true)}>
             <View style={styles.tileHeaderRow}>
               <Image
-                source={require('../assets/region.png')}
+                source={require('../assets/mylanguage.png')}
                 style={styles.icon}
               />
               <Text numberOfLines={1} style={styles.tileTitle}>
@@ -1104,7 +1105,7 @@ export const MySpaceScreen = React.memo(() => {
             onPress={() => setShowOTTsModal(true)}>
             <View style={styles.tileHeaderRow}>
               <Image
-                source={require('../assets/mywatchlists.png')}
+                source={require('../assets/myott.png')}
                 style={styles.icon}
               />
               <Text numberOfLines={1} style={styles.tileTitle}>

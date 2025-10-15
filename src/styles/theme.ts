@@ -61,7 +61,7 @@ export const colors = {
 
     background: 'rgba(1, 19, 46, 0.1)',
     blur: 'rgba(255, 255, 255, 0.08)',
-    blurDark: 'rgba(28, 28, 28, 0.25)',
+    blurDark: 'rgba(37, 37, 37, 0.3)',
     header: 'rgba(147, 146, 146, 0.24)',
     content: 'rgba(255, 255, 255, 0.1)',
     border: 'rgba(171, 170, 170, 0.29)',

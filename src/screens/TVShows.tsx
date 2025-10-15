@@ -45,6 +45,17 @@ export const TVShowsScreen = React.memo(() => {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
+  const [renderPhase, setRenderPhase] = useState(0);
+
+  // Stagger phases to reduce initial work
+  useEffect(() => {
+    const timer1 = setTimeout(() => setRenderPhase(1), 100);
+    const timer2 = setTimeout(() => setRenderPhase(2), 300);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
 
   useEffect(() => {
     const loadGenres = async () => {
@@ -448,8 +459,8 @@ export const TVShowsScreen = React.memo(() => {
       });
     }
 
-    // My Language Latest TV list
-    if (myLanguage?.iso_639_1) {
+    // My Language Latest TV list (defer to later phase)
+    if (renderPhase >= 2 && myLanguage?.iso_639_1) {
       const latestTV = getShowsFromData(latestLangTV);
       if (latestTV?.length) {
         sectionsList.push({
@@ -474,8 +485,8 @@ export const TVShowsScreen = React.memo(() => {
       }
     }
 
-    // My Language simple TV list
-    if (myLanguage?.iso_639_1) {
+    // My Language simple TV list (defer to later phase)
+    if (renderPhase >= 2 && myLanguage?.iso_639_1) {
       const langTV = getShowsFromData(langSimpleTV?.data);
       if (langTV?.length) {
         sectionsList.push({
@@ -633,6 +644,7 @@ export const TVShowsScreen = React.memo(() => {
     // OTT deps
     baseOTTs,
     allOttsNormalized,
+    renderPhase,
   ]);
 
   const renderSection = useCallback(
@@ -781,15 +793,13 @@ export const TVShowsScreen = React.memo(() => {
           renderItem={renderSection}
           keyExtractor={keyExtractor}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={
-            isFocused ? {paddingBottom: 100} : {opacity: 0}
-          }
-          removeClippedSubviews={false}
+          contentContainerStyle={{paddingBottom: 100}}
+          removeClippedSubviews={true}
           scrollEventThrottle={16}
           initialNumToRender={4}
           windowSize={7}
-          maxToRenderPerBatch={6}
-          updateCellsBatchingPeriod={50}
+          maxToRenderPerBatch={4}
+          style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
           getItemLayout={getItemLayout}
           viewabilityConfig={viewabilityConfig}
           onViewableItemsChanged={onViewableItemsChanged}
