@@ -104,7 +104,12 @@ export const MyFiltersScreen = () => {
 
   // Quick Add buttons block (reusable)
   const QuickAddBlock: React.FC = () => (
-    <View style={{paddingHorizontal: spacing.md, marginTop: spacing.md}}>
+    <View
+      style={{
+        paddingHorizontal: spacing.md,
+        marginTop: spacing.md,
+        marginBottom: 200,
+      }}>
       <Text style={[styles.emptyStateTitle, {textAlign: 'center'}]}>
         Quick add
       </Text>

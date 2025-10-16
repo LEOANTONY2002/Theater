@@ -1,12 +1,11 @@
-import React, {useState, useEffect, useCallback, useMemo, useRef} from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {
   View,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
-  Animated,
-  Easing,
+  FlatList,
   Platform,
 } from 'react-native';
 import {RouteProp, useNavigation, useIsFocused} from '@react-navigation/native';
@@ -16,7 +15,7 @@ import {getContentByGenre} from '../services/tmdb';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {MovieCard} from '../components/MovieCard';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {ContentItem} from '../components/MovieList';
@@ -81,63 +80,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     orientation,
   ]);
 
-  // Animation refs
-  const scrollY = useRef(new Animated.Value(0));
-  const headerAnim = useRef(new Animated.Value(0));
-  const animationConfig = useMemo(
-    () => ({
-      duration: 200,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }),
-    [],
-  );
-
-  // Create interpolated styles
-  const headerInterpolation = useMemo(() => {
-    const inputRange = [0, 40];
-
-    return {
-      marginHorizontal: headerAnim.current.interpolate({
-        inputRange,
-        outputRange: [0, spacing.lg],
-        extrapolate: 'clamp',
-      }),
-      marginTop: headerAnim.current.interpolate({
-        inputRange,
-        outputRange: [40, 60],
-        extrapolate: 'clamp',
-      }),
-      borderRadius: headerAnim.current.interpolate({
-        inputRange,
-        outputRange: [16, 24],
-        extrapolate: 'clamp',
-      }),
-    };
-  }, [spacing.lg]);
-
-  const blurOpacity = useMemo(
-    () =>
-      headerAnim.current.interpolate({
-        inputRange: [0, 40],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
-      }),
-    [],
-  );
-
-  const animatedHeaderStyle = headerInterpolation;
-
-  // Animate header on scroll
-  useEffect(() => {
-    const id = scrollY.current.addListener(({value}) => {
-      Animated.timing(headerAnim.current, {
-        toValue: value,
-        ...animationConfig,
-      }).start();
-    });
-    return () => scrollY.current.removeListener(id);
-  }, [animationConfig]);
+  // Removed animated header and scroll-driven interpolation
 
   // Optimize initial render and cleanup
   useEffect(() => {
@@ -148,7 +91,6 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
     return () => {
       clearTimeout(timer);
-      scrollY.current.removeAllListeners();
     };
   }, []);
 
@@ -294,7 +236,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     });
 
     return (
-      <Animated.FlatList<ContentItem>
+      <FlatList
         key={`genre-list-${columns}`}
         data={allItems}
         renderItem={renderItem}
@@ -318,11 +260,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
         ListEmptyComponent={
           !isLoading && !isFetching ? (
             <View style={styles.emptyContainer}>
-              <Icon
-                name="alert-circle-outline"
-                size={48}
-                color={colors.text.muted}
-              />
+              <Icon name="alert-circle" size={48} color={colors.text.muted} />
               <Text style={styles.emptyText}>
                 No {contentType === 'movie' ? 'movies' : 'TV shows'} found in
                 this genre
@@ -337,10 +275,6 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
           ) : null
         }
         getItemLayout={getItemLayout}
-        onScroll={Animated.event<{y: number}>(
-          [{nativeEvent: {contentOffset: {y: scrollY.current}}}],
-          {useNativeDriver: true},
-        )}
         // Keep mounted to preserve scroll; hide when not focused
         style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
         pointerEvents={isFocused ? 'auto' : 'none'}
@@ -358,22 +292,11 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     refetch,
     rowHeight,
     renderFooter,
-    isFocused,
   ]);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, animatedHeaderStyle]}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              opacity: blurOpacity,
-              zIndex: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            },
-          ]}
-        />
+      <View style={styles.header}>
         <View
           style={{
             gap: 20,
@@ -381,6 +304,12 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
             flexDirection: 'row',
             alignItems: 'center',
             width: '100%',
+            paddingHorizontal: spacing.md,
+            height: 60,
+            borderRadius: 16,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            borderColor: colors.modal.content,
+            borderWidth: 0,
           }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -391,11 +320,11 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
               display: 'flex',
               alignItems: 'center',
             }}>
-            <Icon name="chevron-left" size={24} color={colors.text.primary} />
+            <Icon name="chevron-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>{genreName}</Text>
         </View>
-      </Animated.View>
+      </View>
       <View style={styles.contentContainer}>{renderContent}</View>
       {(isInitialLoading || isNavigating) && (
         <View style={styles.loadingContainer}>
@@ -420,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    marginTop: spacing.xxl,
+    marginTop: spacing.xl,
     height: 60,
     backgroundColor: colors.modal.background,
     overflow: 'hidden',
