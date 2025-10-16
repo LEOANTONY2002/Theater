@@ -7,7 +7,6 @@ import {
   useDiscoverTVShows,
 } from '../hooks/useTVShows';
 import {TVShow} from '../types/tvshow';
-import {useNavigation, useIsFocused} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
@@ -41,7 +40,6 @@ type TVShowsScreenNavigationProp =
 export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
   const {navigateWithLimit} = useNavigationState();
-  const isFocused = useIsFocused();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
@@ -578,13 +576,18 @@ export const TVShowsScreen = React.memo(() => {
     }
 
     // My OTTs sections (TV): one row per provider using OttRowTV
+    // Use a Set to ensure unique provider IDs and avoid duplicate sections
+    const uniqueProviderIds = new Set<number>();
     allOttsNormalized.forEach(prov => {
-      sectionsList.push({
-        id: `ott_${prov.id}_tv_row`,
-        type: 'ottTVRow',
-        providerId: prov.id,
-        providerName: prov.provider_name,
-      });
+      if (!uniqueProviderIds.has(prov.id)) {
+        uniqueProviderIds.add(prov.id);
+        sectionsList.push({
+          id: `ott_${prov.id}_tv_row`,
+          type: 'ottTVRow',
+          providerId: prov.id,
+          providerName: prov.provider_name,
+        });
+      }
     });
 
     return sectionsList;
@@ -794,12 +797,6 @@ export const TVShowsScreen = React.memo(() => {
           keyExtractor={keyExtractor}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{paddingBottom: 100}}
-          removeClippedSubviews={true}
-          scrollEventThrottle={16}
-          initialNumToRender={4}
-          windowSize={7}
-          maxToRenderPerBatch={4}
-          style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
           getItemLayout={getItemLayout}
           viewabilityConfig={viewabilityConfig}
           onViewableItemsChanged={onViewableItemsChanged}

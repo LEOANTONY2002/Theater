@@ -113,6 +113,8 @@ const TabBarBackground = () => {
         {
           height: isTablet ? 90 : 70,
           marginBottom: isTablet ? 15 : 10,
+          borderWidth: 1,
+          borderColor: colors.modal.blur,
         },
       ]}>
       <MaybeBlurView

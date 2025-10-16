@@ -251,9 +251,150 @@ export const CategoryScreen = () => {
     };
   }, [queryClient]);
 
-  // Do not early return on unfocused; we will hide the list to preserve scroll
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    cardContainer: {
+      flex: 1,
+      margin: spacing.xs,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: spacing.xl,
+      overflow: 'hidden',
+      position: 'absolute',
+      top: 0,
+      zIndex: 2,
+      borderRadius: borderRadius.round,
+      marginHorizontal:
+        isTablet && orientation === 'portrait'
+          ? '18%'
+          : isTablet && orientation === 'landscape'
+          ? '27%'
+          : 24,
+    },
+    titleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      overflow: 'hidden',
+      height: 60,
+    },
+    blurView: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 60,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    },
+    titleIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.round,
+      backgroundColor: colors.background.tertiary + '80',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.sm,
+    },
+    title: {
+      ...typography.h2,
+      color: colors.text.primary,
+      flex: 1,
+      textAlign: 'center',
+      marginLeft: -50,
+      zIndex: 2,
+    },
+    contentContainer: {
+      flex: 1,
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    listContent: {
+      paddingVertical: 120,
+      // flex: 1,
+    },
+    footerLoader: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    footerSpace: {
+      height: 100,
+    },
+    loadingIndicatorContainer: {
+      height: 50,
+      alignItems: 'center',
+      width: '100%',
+    },
+    loadingText: {
+      color: colors.text.primary,
+      marginTop: spacing.md,
+      ...typography.body1,
+    },
+    emptyContainer: {
+      padding: spacing.xxl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyText: {
+      ...typography.body1,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+    },
+    retryButton: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: colors.primary + '22',
+      borderRadius: borderRadius.round,
+      borderWidth: 1,
+      borderColor: colors.primary + '44',
+    },
+    retryText: {
+      color: colors.primary,
+      ...typography.body2,
+    },
+    fullScreenLoader: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.background.primary + 'CC',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadingTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginTop: spacing.lg,
+    },
+    loadingSubtitle: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      marginTop: spacing.sm,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background.primary,
+    },
+    loadingOverlay: {
+      backgroundColor: colors.background.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flex: 1,
+      paddingTop: 100,
+    },
+    row: {
+      flexDirection: 'row',
+    },
+  });
 
-  // Show loading screen until content can be rendered
   if (!canRenderContent) {
     return (
       <View style={styles.loadingOverlay}>
@@ -264,6 +405,18 @@ export const CategoryScreen = () => {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={[colors.background.primary, 'transparent']}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: 200,
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
       <View style={styles.header}>
         {isSolid ? (
           <LinearGradient
@@ -290,13 +443,12 @@ export const CategoryScreen = () => {
             paddingHorizontal: spacing.md,
             width: '100%',
             height: 60,
-            borderRadius: borderRadius.lg,
+            borderRadius: borderRadius.round,
             borderColor: colors.modal.content,
             borderWidth: isSolid ? 1 : 0,
             backgroundColor: isSolid
               ? colors.background.primary
-              : 'rgba(0, 0, 0, 0.6)',
-            elevation: 50,
+              : 'rgba(122, 122, 122, 0.31)',
           }}>
           <TouchableOpacity
             onPress={() => {
@@ -372,142 +524,3 @@ export const CategoryScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  cardContainer: {
-    flex: 1,
-    margin: spacing.xs,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.xl,
-    overflow: 'hidden',
-    position: 'absolute',
-    top: 0,
-    zIndex: 1,
-    marginHorizontal: spacing.lg,
-    borderRadius: borderRadius.lg,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-    height: 60,
-  },
-  blurView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 60,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  titleIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.round,
-    backgroundColor: colors.background.tertiary + '80',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  title: {
-    ...typography.h2,
-    color: colors.text.primary,
-    flex: 1,
-    textAlign: 'center',
-    marginLeft: -50,
-    zIndex: 2,
-  },
-  contentContainer: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listContent: {
-    paddingVertical: 120,
-    // flex: 1,
-  },
-  footerLoader: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  footerSpace: {
-    height: 100,
-  },
-  loadingIndicatorContainer: {
-    height: 50,
-    alignItems: 'center',
-    width: '100%',
-  },
-  loadingText: {
-    color: colors.text.primary,
-    marginTop: spacing.md,
-    ...typography.body1,
-  },
-  emptyContainer: {
-    padding: spacing.xxl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    ...typography.body1,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-  },
-  retryButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: colors.primary + '22',
-    borderRadius: borderRadius.round,
-    borderWidth: 1,
-    borderColor: colors.primary + '44',
-  },
-  retryText: {
-    color: colors.primary,
-    ...typography.body2,
-  },
-  fullScreenLoader: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.background.primary + 'CC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginTop: spacing.lg,
-  },
-  loadingSubtitle: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    marginTop: spacing.sm,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background.primary,
-  },
-  loadingOverlay: {
-    backgroundColor: colors.background.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingTop: 100,
-  },
-  row: {
-    flexDirection: 'row',
-  },
-});

@@ -41,6 +41,7 @@ import {generateWatchlistCode, parseWatchlistCode} from '../utils/shareCode';
 import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
+import {BlurPreference} from '../store/blurPreference';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -59,6 +60,8 @@ export const WatchlistsScreen: React.FC = () => {
   const navigation = useNavigation<WatchlistsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const {isTablet, orientation} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   // Animated values for scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -155,6 +158,8 @@ export const WatchlistsScreen: React.FC = () => {
       padding: spacing.md,
       overflow: 'hidden',
       marginTop: 50,
+      borderRadius: borderRadius.round,
+      marginHorizontal: spacing.md,
     },
     title: {
       flex: 1,
@@ -720,14 +725,19 @@ export const WatchlistsScreen: React.FC = () => {
 
   return (
     <View style={{flex: 1}}>
-      <Animated.View style={[styles.header, animatedHeaderStyle]}>
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            {backgroundColor: 'rgba(0, 0, 0, 0.7)'},
-          ]}
-          pointerEvents="none"
-        />
+      <LinearGradient
+        colors={[colors.background.primary, 'transparent']}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: 150,
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
+      <View style={styles.header}>
         <View
           style={{
             flexDirection: 'row',
@@ -735,34 +745,45 @@ export const WatchlistsScreen: React.FC = () => {
             justifyContent: 'space-between',
             zIndex: 1,
           }}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: isSolid
+                ? colors.background.primary
+                : 'rgba(122, 122, 122, 0.25)',
+              padding: isTablet ? 12 : 10,
+              borderRadius: borderRadius.round,
+              borderColor: colors.modal.blur,
+              borderWidth: 1,
+            }}
+            onPress={() => navigation.goBack()}>
             <Ionicons
               name="chevron-back-outline"
-              size={24}
+              size={isTablet ? 20 : 16}
               color={colors.text.primary}
             />
           </TouchableOpacity>
           <Text style={styles.title}>Watchlists</Text>
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity
-              style={styles.addButton}
+              style={{
+                backgroundColor: isSolid
+                  ? colors.background.primary
+                  : 'rgba(122, 122, 122, 0.25)',
+                padding: isTablet ? 12 : 10,
+                borderRadius: borderRadius.round,
+                borderColor: colors.modal.blur,
+                borderWidth: 1,
+              }}
               onPress={() => setShowImportModal(true)}>
               <Ionicons
                 name="download-outline"
-                size={22}
+                size={isTablet ? 20 : 16}
                 color={colors.text.primary}
               />
             </TouchableOpacity>
-            {watchlists.length > 0 && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowCreateModal(true)}>
-                <Ionicons name="add" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            )}
           </View>
         </View>
-      </Animated.View>
+      </View>
       <Animated.ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}

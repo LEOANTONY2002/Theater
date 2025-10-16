@@ -183,19 +183,11 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       <View style={styles.container}>
         {title !== 'V2' ? (
           <View style={styles.headerContainer}>
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
             {data?.length > 0 && isSeeAll ? (
-              <TouchableOpacity
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-                onPress={onSeeAllPress}>
-                <Text style={styles.title} numberOfLines={1}>
-                  {title}
-                </Text>
+              <TouchableOpacity onPress={onSeeAllPress}>
                 <Ionicon
                   name="chevron-forward-outline"
                   size={20}
@@ -203,11 +195,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
                   color={colors.text.muted}
                 />
               </TouchableOpacity>
-            ) : (
-              <Text style={styles.title} numberOfLines={1}>
-                {title}
-              </Text>
-            )}
+            ) : null}
           </View>
         ) : null}
 

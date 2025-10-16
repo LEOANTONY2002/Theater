@@ -41,7 +41,6 @@ import {FiltersManager} from '../store/filters';
 import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
 import {HomeFilterRow} from '../components/HomeFilterRow';
-import {useNavigation, useIsFocused} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
@@ -61,13 +60,12 @@ import {
   useTVByLanguageSimpleHook,
 } from '../hooks/usePersonalization';
 import {OttRowMovies} from '../components/OttRowMovies';
+import {useNavigation} from '@react-navigation/native';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
-  const isFocused = useIsFocused();
-  const [showMoodQuestionnaire, setShowMoodQuestionnaire] = useState(false);
   const {isAIEnabled} = useAIEnabled();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
@@ -765,13 +763,18 @@ export const HomeScreen = React.memo(() => {
     }
 
     // My OTTs sections (movies): one row per provider (rendered via OttRowMovies)
+    // Use a Set to ensure unique provider IDs and avoid duplicate sections
+    const uniqueProviderIds = new Set<number>();
     allOttsNormalized.forEach(prov => {
-      sectionsList.push({
-        id: `home_ott_${prov.id}_movies_row`,
-        type: 'ottMoviesRow',
-        providerId: prov.id,
-        providerName: prov.provider_name,
-      });
+      if (!uniqueProviderIds.has(prov.id)) {
+        uniqueProviderIds.add(prov.id);
+        sectionsList.push({
+          id: `home_ott_${prov.id}_movies_row`,
+          type: 'ottMoviesRow',
+          providerId: prov.id,
+          providerName: prov.provider_name,
+        });
+      }
     });
 
     // Saved Filters section
@@ -1166,13 +1169,9 @@ export const HomeScreen = React.memo(() => {
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
-        removeClippedSubviews={true}
-        windowSize={7}
-        initialNumToRender={4}
-        maxToRenderPerBatch={4}
         ListFooterComponent={<View style={{height: 100}} />}
         // Keep mounted to preserve scroll; hide when not focused
-        style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
+        // style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
         // pointerEvents={isFocused ? 'auto' : 'none'}
       />
 

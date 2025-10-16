@@ -42,6 +42,7 @@ import {modalStyles} from '../styles/styles';
 import {ContentItem} from '../components/MovieList';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {GradientButton} from '../components/GradientButton';
+import {BlurPreference} from '../store/blurPreference';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -56,6 +57,8 @@ export const MyFiltersScreen = () => {
     () => new Date().toISOString().split('T')[0],
     [],
   );
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   // Animated values for scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -390,9 +393,11 @@ export const MyFiltersScreen = () => {
       padding: spacing.md,
       overflow: 'hidden',
       marginTop: 50,
+      borderRadius: borderRadius.round,
+      marginHorizontal: spacing.md,
     },
     title: {
-      flex: 1, // <-- Add this
+      flex: 1,
       textAlign: 'center',
       color: colors.text.primary,
       ...typography.h2,
@@ -410,12 +415,11 @@ export const MyFiltersScreen = () => {
       overflow: 'hidden',
       paddingBottom: spacing.md,
     },
-    addRow: {flexDirection: 'row', alignItems: 'center'},
+    addRow: {flexDirection: 'row', alignItems: 'center', gap: spacing.md},
     addButton: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'flex-end',
-      gap: spacing.sm,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.md,
       height: 40,
@@ -1188,14 +1192,19 @@ export const MyFiltersScreen = () => {
 
   return (
     <View style={{flex: 1}}>
-      <Animated.View style={[styles.header, animatedHeaderStyle]}>
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            {backgroundColor: 'rgba(0, 0, 0, 0.7)'},
-          ]}
-          pointerEvents="none"
-        />
+      <LinearGradient
+        colors={[colors.background.primary, 'transparent']}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: 150,
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
+      <View style={styles.header}>
         <View
           style={{
             flexDirection: 'row',
@@ -1205,10 +1214,19 @@ export const MyFiltersScreen = () => {
           }}>
           <TouchableOpacity
             activeOpacity={0.9}
+            style={{
+              backgroundColor: isSolid
+                ? colors.background.primary
+                : 'rgba(122, 122, 122, 0.25)',
+              padding: isTablet ? 12 : 10,
+              borderRadius: borderRadius.round,
+              borderColor: colors.modal.blur,
+              borderWidth: 1,
+            }}
             onPress={() => navigation.goBack()}>
             <Ionicons
               name="chevron-back-outline"
-              size={24}
+              size={isTablet ? 20 : 16}
               color={colors.text.primary}
             />
           </TouchableOpacity>
@@ -1216,25 +1234,45 @@ export const MyFiltersScreen = () => {
           <View style={styles.addRow}>
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.addButton}
+              style={{
+                backgroundColor: isSolid
+                  ? colors.background.primary
+                  : 'rgba(122, 122, 122, 0.25)',
+                padding: isTablet ? 12 : 10,
+                borderRadius: borderRadius.round,
+                borderColor: colors.modal.blur,
+                borderWidth: 1,
+              }}
               onPress={() => setShowImportModal(true)}>
               <Ionicons
                 name="download-outline"
-                size={22}
+                size={isTablet ? 20 : 16}
                 color={colors.text.primary}
               />
             </TouchableOpacity>
             {savedFilters.length > 0 && (
               <TouchableOpacity
                 activeOpacity={0.9}
-                style={styles.addButton}
+                style={{
+                  backgroundColor: isSolid
+                    ? colors.background.primary
+                    : 'rgba(122, 122, 122, 0.25)',
+                  padding: isTablet ? 12 : 10,
+                  borderRadius: borderRadius.round,
+                  borderColor: colors.modal.blur,
+                  borderWidth: 1,
+                }}
                 onPress={() => setShowAddModal(true)}>
-                <Ionicons name="add" size={24} color={colors.text.primary} />
+                <Ionicons
+                  name="add"
+                  size={isTablet ? 20 : 16}
+                  color={colors.text.primary}
+                />
               </TouchableOpacity>
             )}
           </View>
         </View>
-      </Animated.View>
+      </View>
 
       <Animated.ScrollView
         style={styles.container}

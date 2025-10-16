@@ -24,6 +24,8 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import {useResponsive} from '../hooks/useResponsive';
 import {SettingsManager} from '../store/settings';
 import {GradientSpinner} from '../components/GradientSpinner';
+import LinearGradient from 'react-native-linear-gradient';
+import {BlurPreference} from '../store/blurPreference';
 
 type GenreScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 type GenreScreenRouteProp = RouteProp<HomeStackParamList, 'Genre'>;
@@ -42,6 +44,8 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
   const {isNavigating, navigateWithLimit} = useNavigationState();
   const {isTablet, orientation} = useResponsive();
   const {width} = useWindowDimensions();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   // Spacing and sizing - memoize calculations
   const {horizontalPadding, perCardGap, minCardWidth} = useMemo(
@@ -171,6 +175,145 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    contentContainer: {
+      flex: 1,
+    },
+    itemContainer: {},
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: spacing.xl,
+      overflow: 'hidden',
+      position: 'absolute',
+      top: 0,
+      zIndex: 2,
+      borderRadius: borderRadius.round,
+      marginHorizontal:
+        isTablet && orientation === 'portrait'
+          ? '18%'
+          : isTablet && orientation === 'landscape'
+          ? '27%'
+          : 24,
+    },
+    titleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    titleIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.round,
+      backgroundColor: `${colors.background.tertiary}80`,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.sm,
+    },
+    title: {
+      ...typography.h2,
+      color: colors.text.primary,
+      flex: 1,
+      textAlign: 'center',
+      marginLeft: -50,
+    },
+    listContent: {
+      paddingVertical: 120,
+      alignItems: 'center',
+    },
+    columnWrapper: {
+      justifyContent: 'center',
+    },
+    footerLoader: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    footerSpace: {
+      height: 100,
+    },
+    loadingContainer: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 100,
+    },
+    loadingIndicatorContainer: {
+      height: 50,
+      alignItems: 'center',
+      width: '100%',
+    },
+    loadingText: {
+      marginTop: spacing.sm,
+      color: colors.text.primary,
+      ...typography.body2,
+    },
+    emptyListContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingBottom: 0,
+    },
+    emptyContainer: {
+      flex: 1,
+      minHeight: 400,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    emptyText: {
+      ...typography.body1,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+    },
+    retryButton: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: `${colors.primary}22`,
+      borderRadius: borderRadius.round,
+      borderWidth: 1,
+      borderColor: `${colors.primary}44`,
+    },
+    retryText: {
+      color: colors.primary,
+      ...typography.button,
+    },
+    loadingTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginTop: spacing.md,
+    },
+    loadingSubtitle: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      marginTop: spacing.xs,
+    },
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.background.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    blurView: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+  });
+
   const renderItem = useCallback(
     ({item}: {item: ContentItem}) => (
       <View style={styles.itemContainer}>
@@ -296,7 +439,35 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={[colors.background.primary, 'transparent']}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: 200,
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
       <View style={styles.header}>
+        {isSolid ? (
+          <LinearGradient
+            colors={['transparent', colors.background.primary]}
+            style={{
+              position: 'absolute',
+              left: -50,
+              right: 0,
+              bottom: -20,
+              height: 100,
+              zIndex: 1,
+              width: '150%',
+              transform: [{rotate: '-5deg'}],
+              pointerEvents: 'none',
+            }}
+          />
+        ) : null}
         <View
           style={{
             gap: 20,
@@ -307,7 +478,9 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
             paddingHorizontal: spacing.md,
             height: 60,
             borderRadius: 16,
-            backgroundColor: 'rgba(0,0,0,0.6)',
+            backgroundColor: isSolid
+              ? colors.background.primary
+              : 'rgba(122, 122, 122, 0.31)',
             borderColor: colors.modal.content,
             borderWidth: 0,
           }}>
@@ -334,140 +507,3 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  contentContainer: {
-    flex: 1,
-  },
-  itemContainer: {},
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.xl,
-    height: 60,
-    backgroundColor: colors.modal.background,
-    overflow: 'hidden',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  titleIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.round,
-    backgroundColor: `${colors.background.tertiary}80`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  title: {
-    ...typography.h2,
-    color: colors.text.primary,
-    flex: 1,
-    textAlign: 'center',
-    marginLeft: -50,
-  },
-  listContent: {
-    paddingVertical: 120,
-    alignItems: 'center',
-  },
-  columnWrapper: {
-    justifyContent: 'center',
-  },
-  footerLoader: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  footerSpace: {
-    height: 100,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  loadingIndicatorContainer: {
-    height: 50,
-    alignItems: 'center',
-    width: '100%',
-  },
-  loadingText: {
-    marginTop: spacing.sm,
-    color: colors.text.primary,
-    ...typography.body2,
-  },
-  emptyListContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 0,
-  },
-  emptyContainer: {
-    flex: 1,
-    minHeight: 400,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  emptyText: {
-    ...typography.body1,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-  },
-  retryButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: `${colors.primary}22`,
-    borderRadius: borderRadius.round,
-    borderWidth: 1,
-    borderColor: `${colors.primary}44`,
-  },
-  retryText: {
-    color: colors.primary,
-    ...typography.button,
-  },
-  loadingTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginTop: spacing.md,
-  },
-  loadingSubtitle: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.background.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  blurView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-});

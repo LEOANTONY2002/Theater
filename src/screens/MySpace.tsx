@@ -1152,7 +1152,7 @@ export const MySpaceScreen = React.memo(() => {
                     style={{
                       width: isTablet ? 70 : 35,
                       height: isTablet ? 70 : 35,
-                      borderRadius: 6,
+                      borderRadius: borderRadius.lg,
                       backgroundColor: '#151525',
                     }}
                     resizeMode="contain"
