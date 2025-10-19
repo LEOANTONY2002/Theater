@@ -97,6 +97,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       height: 270,
       marginBottom: spacing.lg,
       overflow: 'visible',
+      zIndex: 0,
     },
     backgroundGradient: {
       width: '270%',

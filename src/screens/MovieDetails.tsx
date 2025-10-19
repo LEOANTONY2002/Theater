@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  FlatList,
 } from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -321,8 +322,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     const loadRatings = async () => {
       try {
         const yearStr = (() => {
-          const d =
-            (movie as any).release_date || (movieDetails as any)?.release_date;
+          const d = (movie as any).release_date;
           try {
             return d ? new Date(d).getFullYear().toString() : undefined;
           } catch {
@@ -345,7 +345,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       }
     };
     loadRatings();
-  }, [movie.id, movie.title, movieDetails]);
+  }, [movie.id, movie.title]);
 
   const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
     movie.id,
@@ -1085,7 +1085,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           </View>
         </MaybeBlurView>
       </Modal>
-      <FlashList
+      <FlatList
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
@@ -1486,7 +1486,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     ],
                   }}>
                   <Text style={styles.sectionTitle}>Cast</Text>
-                  <FlashList
+                  <FlatList
                     data={movieDetails.credits.cast.slice(0, 10)}
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -1512,7 +1512,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       </TouchableOpacity>
                     )}
                     keyExtractor={(person: Cast) => person.id.toString()}
-                    estimatedItemSize={200}
                   />
                 </Animated.View>
               ) : null;
@@ -1539,6 +1538,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               return (
                 <Animated.View
                   style={{
+                    zIndex: 2,
                     opacity: similarFadeAnim,
                     transform: [
                       {
@@ -1548,22 +1548,19 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         }),
                       },
                     ],
+                    minHeight: 200, // Ensure minimum height
                   }}>
                   {isAIEnabled && (
                     <>
                       {isLoadingAiSimilar ? (
                         <View
                           style={{
-                            marginVertical: isTablet ? 150 : 50,
+                            height: 200,
+                            justifyContent: 'center',
                             alignItems: 'center',
-                            alignSelf: 'center',
                           }}>
                           <GradientSpinner
                             size={24}
-                            style={{
-                              alignItems: 'center',
-                              alignSelf: 'center',
-                            }}
                             colors={[colors.primary, colors.secondary]}
                           />
                           <Text
@@ -1571,12 +1568,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                               fontStyle: 'italic',
                               color: colors.modal.activeBorder,
                               marginTop: spacing.md,
+                              textAlign: 'center',
                             }}>
                             Theater AI is curating similar movies...
                           </Text>
                         </View>
                       ) : (
-                        <>
+                        <View style={{minHeight: 200}}>
                           {Array.isArray(aiSimilarMovies) &&
                             aiSimilarMovies.length > 0 && (
                               <HorizontalList
@@ -1586,12 +1584,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                                 isSeeAll={false}
                               />
                             )}
-                        </>
+                        </View>
                       )}
                     </>
                   )}
                   {similarMoviesData.length > 0 ? (
-                    <View>
+                    <View style={{marginTop: spacing.md}}>
                       <HorizontalList
                         title="Similar movies"
                         data={similarMoviesData}
@@ -1608,29 +1606,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         }}
         keyExtractor={(item: any) => item.id}
         removeClippedSubviews={true}
-        getItemType={(item: any) => item.type}
-        overrideItemLayout={(layout, item) => {
-          // Provide rough heights to avoid layout thrash
-          const map: Record<string, number> = {
-            header: 600,
-            content: 500,
-            cast: 260,
-            providers: 200,
-            similar: 500,
-            recommendations: 500,
-            trivia: 400,
-          };
-          const h = map[item.type] || 400;
-          layout.size = h;
-        }}
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={500}
-        contentContainerStyle={{paddingBottom: 120}}
-        // ListHeaderComponent={
-        //   <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-        //     <Icon name="chevron-back" size={24} color="#fff" />
-        //   </TouchableOpacity>
-        // }
+        contentContainerStyle={{paddingBottom: 150}}
+        alwaysBounceVertical
       />
       <WatchlistModal
         visible={showWatchlistModal}

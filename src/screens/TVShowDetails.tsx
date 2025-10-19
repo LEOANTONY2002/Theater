@@ -13,6 +13,7 @@ import {
   Animated,
   Easing,
   ImageBackground,
+  FlatList,
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
@@ -1235,7 +1236,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           </View>
         </View>
       </Modal>
-      <FlashList
+      <FlatList
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
@@ -1662,11 +1663,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     ],
                   }}>
                   <Text style={styles.sectionTitle}>Cast</Text>
-                  <FlashList
+                  <FlatList
                     data={showDetails.credits.cast.slice(0, 10)}
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    estimatedItemSize={200}
                     contentContainerStyle={{paddingHorizontal: spacing.md}}
                     renderItem={({item: person}: {item: Cast}) => (
                       <TouchableOpacity
@@ -1723,12 +1723,11 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   {selectedSeason &&
                   episodes &&
                   episodes.episodes.length > 0 ? (
-                    <FlashList
+                    <FlatList
                       data={episodes.episodes}
                       horizontal
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={styles.episodesContainer}
-                      estimatedItemSize={280}
                       keyExtractor={(ep: Episode) => ep.id.toString()}
                       removeClippedSubviews={true}
                       renderItem={renderEpisodeItem}
@@ -1895,10 +1894,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
               return null;
           }
         }}
-        estimatedItemSize={200}
         keyExtractor={(item: any) => item.id}
-        getItemType={(item: any) => item.type}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews
         ListFooterComponent={<View style={{height: 200}} />}
       />
 

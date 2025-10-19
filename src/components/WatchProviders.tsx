@@ -223,6 +223,12 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
     ...(providers.flatrate || []),
   ];
 
+  // Remove duplicates based on provider_id
+  const uniqueStreamingProviders = streamingProviders.filter(
+    (provider, index, self) =>
+      index === self.findIndex(p => p.provider_id === provider.provider_id),
+  );
+
   return (
     <View>
       {scrapedProviders.length > 0 ? (
@@ -232,7 +238,7 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
             {scrapedProviders.map((p, idx) => {
               return (
                 <TouchableOpacity
-                  key={idx}
+                  key={`${p.icon}-${p.link}-${idx}`}
                   style={styles.providerItem}
                   onPress={() => handleProviderPress('Unknown', p?.link)}>
                   <Image
@@ -247,8 +253,8 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
           </View>
         </View>
       ) : (
-        streamingProviders.length > 0 &&
-        renderProviderSection(streamingProviders, 'Streaming Now')
+        uniqueStreamingProviders.length > 0 &&
+        renderProviderSection(uniqueStreamingProviders, 'Streaming Now')
       )}
     </View>
   );

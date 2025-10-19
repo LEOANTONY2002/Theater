@@ -27,7 +27,7 @@ import {GridListSkeleton, HeadingSkeleton} from '../components/LoadingSkeleton';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {PersonAIChatModal} from '../components/PersonAIChatModal';
-import {FlashList, ListRenderItemInfo} from '@shopify/flash-list';
+import {FlatList} from 'react-native';
 
 type PersonCreditsScreenRouteProp = RouteProp<
   HomeStackParamList,
@@ -109,7 +109,7 @@ export const PersonCreditsScreen = () => {
   );
 
   const renderItem = useCallback(
-    ({item}: ListRenderItemInfo<ContentItem>) => (
+    ({item}: {item: ContentItem}) => (
       <View style={styles.cardContainer}>
         <MovieCard
           item={item}
@@ -366,7 +366,7 @@ export const PersonCreditsScreen = () => {
         />
       </View>
 
-      <FlashList
+      <FlatList
         data={transformedData}
         renderItem={renderItem}
         keyExtractor={item => `${item.type}-${item.id}`}

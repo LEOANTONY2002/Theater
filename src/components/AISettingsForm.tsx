@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {colors, spacing, borderRadius} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {FlashList} from '@shopify/flash-list';
+import {FlatList} from 'react-native';
 
 interface GeminiModel {
   id: string;
@@ -160,11 +160,10 @@ export const AISettingsForm: React.FC<AISettingsFormProps> = ({
             <Text style={styles.loadingText}>Loading available models...</Text>
           </View>
         ) : (
-          <FlashList
+          <FlatList
             data={availableModels}
             renderItem={renderModelItem}
             keyExtractor={item => item.id}
-            estimatedItemSize={80}
             ListEmptyComponent={
               <Text style={styles.emptyText}>No models available</Text>
             }

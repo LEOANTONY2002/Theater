@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {AISettingsManager} from '../store/aiSettings';
 import {GradientSpinner} from '../components/GradientSpinner';
-import {FlashList} from '@shopify/flash-list';
+import {FlatList} from 'react-native';
 import {useQueryClient} from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -512,7 +512,7 @@ const AISettingsScreen: React.FC = () => {
                     zIndex: 1,
                   }}
                 />
-                <FlashList
+                <FlatList
                   keyExtractor={item => item.id}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={true}
