@@ -564,7 +564,9 @@ export const MoviesScreen = React.memo(() => {
         sectionsList.push({
           id: 'myLangMoviesLatest',
           type: 'horizontalList',
-          title: 'Latest Movies in your language',
+          title: `Latest Movies in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: latestMovies,
           onItemPress: handleMoviePress,
           onEndReached: hasNextLatestLangMovies
@@ -574,7 +576,9 @@ export const MoviesScreen = React.memo(() => {
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Latest Movies in your language',
+              title: `Latest Movies in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'movie',
               filter: {
                 with_original_language: myLanguage.iso_639_1,
@@ -589,7 +593,9 @@ export const MoviesScreen = React.memo(() => {
         sectionsList.push({
           id: 'myLangMoviesSimple',
           type: 'horizontalList',
-          title: 'Popular Movies in your language',
+          title: `Popular Movies in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: langMovies,
           onItemPress: handleMoviePress,
           onEndReached: langSimple?.hasNextPage
@@ -599,7 +605,9 @@ export const MoviesScreen = React.memo(() => {
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Popular Movies in your language',
+              title: `Popular Movies in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'movie',
               filter: {with_original_language: myLanguage.iso_639_1},
             }),
@@ -680,17 +688,30 @@ export const MoviesScreen = React.memo(() => {
       });
     }
 
-    // My OTTs sections (movies): one row per provider using OttRowMovies
+    // My OTTs sections (movies): one row per provider using OttRowMovies (both popular and latest)
     // Use a Set to ensure unique provider IDs and avoid duplicate sections
     const uniqueProviderIds = new Set<number>();
+    const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
     allOttsNormalized.forEach(prov => {
       if (!uniqueProviderIds.has(prov.id)) {
         uniqueProviderIds.add(prov.id);
+        // Add popular OTT row
         sectionsList.push({
-          id: `ott_${prov.id}_movies_row`,
+          id: `ott_${prov.id}_movies_popular_row`,
           type: 'ottMoviesRow',
           providerId: prov.id,
           providerName: prov.provider_name,
+          kind: 'popular',
+          isPersonalized: isPersonalizedOTTs,
+        });
+        // Add latest OTT row
+        sectionsList.push({
+          id: `ott_${prov.id}_movies_latest_row`,
+          type: 'ottMoviesRow',
+          providerId: prov.id,
+          providerName: prov.provider_name,
+          kind: 'latest',
+          isPersonalized: isPersonalizedOTTs,
         });
       }
     });
@@ -744,6 +765,8 @@ export const MoviesScreen = React.memo(() => {
           <OttRowMovies
             providerId={item.providerId}
             providerName={item.providerName}
+            kind={item.kind || 'popular'}
+            isPersonalized={item.isPersonalized}
           />
         );
       case 'featuredSkeleton':

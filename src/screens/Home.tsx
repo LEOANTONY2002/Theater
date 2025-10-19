@@ -171,28 +171,62 @@ export const HomeScreen = React.memo(() => {
 
   // Featured banner items: compute from available sources (up to 3) and refresh as data arrives
   const featuredItems = useMemo(() => {
-    const pickFirstWithPoster = (arr: any[]) =>
-      (arr || []).find(x => x?.poster_path) || (arr || [])[0] || null;
-
     const latestList = recentMovies?.pages?.[0]?.results || [];
     const popularList = popularMovies?.pages?.[0]?.results || [];
     const trendingList = trendingMoviesData?.pages?.[0]?.results || [];
     const upcomingList = upcomingMoviesByRegion?.pages?.[0]?.results || [];
     const top10MoviesList = top10MoviesTodayByRegion || [];
 
-    const latest = pickFirstWithPoster(latestList);
-    const popular = pickFirstWithPoster(popularList);
-    const trending = pickFirstWithPoster(trendingList);
-    const upcoming = pickFirstWithPoster(upcomingList);
-    const top10Movies = pickFirstWithPoster(top10MoviesList);
+    // Helper function to pick first item with poster that hasn't been added yet
+    const pickUniqueFirstWithPoster = (arr: any[], addedIds: Set<number>) => {
+      for (const item of arr || []) {
+        const id = item?.id;
+        if (id && !addedIds.has(id) && item?.poster_path) {
+          return item;
+        }
+      }
+      // If no unique item found, return null
+      return null;
+    };
 
+    const addedIds = new Set<number>();
     const next: Array<{item: any; type: 'movie' | 'tv'; title: string}> = [];
-    if (latest) next.push({item: latest, type: 'movie', title: 'Latest'});
-    if (trending) next.push({item: trending, type: 'movie', title: 'Trending'});
-    if (popular) next.push({item: popular, type: 'movie', title: 'Popular'});
-    if (top10Movies)
-      next.push({item: top10Movies, type: 'movie', title: 'Top'});
-    if (upcoming) next.push({item: upcoming, type: 'movie', title: 'Upcoming'});
+
+    // Try to add one item from each category, avoiding duplicates
+    // Latest
+    const latestItem = pickUniqueFirstWithPoster(latestList, addedIds);
+    if (latestItem) {
+      addedIds.add(latestItem.id);
+      next.push({item: latestItem, type: 'movie', title: 'Latest'});
+    }
+
+    // Trending
+    const trendingItem = pickUniqueFirstWithPoster(trendingList, addedIds);
+    if (trendingItem) {
+      addedIds.add(trendingItem.id);
+      next.push({item: trendingItem, type: 'movie', title: 'Trending'});
+    }
+
+    // Popular
+    const popularItem = pickUniqueFirstWithPoster(popularList, addedIds);
+    if (popularItem) {
+      addedIds.add(popularItem.id);
+      next.push({item: popularItem, type: 'movie', title: 'Popular'});
+    }
+
+    // Top 10
+    const top10Item = pickUniqueFirstWithPoster(top10MoviesList, addedIds);
+    if (top10Item) {
+      addedIds.add(top10Item.id);
+      next.push({item: top10Item, type: 'movie', title: 'Top'});
+    }
+
+    // Upcoming
+    const upcomingItem = pickUniqueFirstWithPoster(upcomingList, addedIds);
+    if (upcomingItem) {
+      addedIds.add(upcomingItem.id);
+      next.push({item: upcomingItem, type: 'movie', title: 'Upcoming'});
+    }
 
     return next;
   }, [
@@ -654,7 +688,9 @@ export const HomeScreen = React.memo(() => {
         sectionsList.push({
           id: 'home_myLangMoviesLatest',
           type: 'horizontalList',
-          title: 'Latest Movies in your language',
+          title: `Latest Movies in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: latestMoviesMyLang,
           isLoading: isFetchingLatestLangMovies,
           onEndReached: hasNextLatestLangMovies
@@ -663,7 +699,9 @@ export const HomeScreen = React.memo(() => {
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Latest Movies in your language',
+              title: `Latest Movies in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'movie',
               filter: {
                 with_original_language: myLanguage.iso_639_1,
@@ -680,7 +718,9 @@ export const HomeScreen = React.memo(() => {
         sectionsList.push({
           id: 'home_myLangMoviesPopular',
           type: 'horizontalList',
-          title: 'Popular Movies in your language',
+          title: `Popular Movies in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: popularMoviesMyLang,
           isLoading: langMoviesSimple?.isLoading,
           onEndReached: langMoviesSimple?.hasNextPage
@@ -689,7 +729,9 @@ export const HomeScreen = React.memo(() => {
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Popular Movies in your language',
+              title: `Popular Movies in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'movie',
               filter: {with_original_language: myLanguage.iso_639_1},
             }),
@@ -702,14 +744,18 @@ export const HomeScreen = React.memo(() => {
         sectionsList.push({
           id: 'home_myLangTVLatest',
           type: 'horizontalList',
-          title: 'Latest Shows in your language',
+          title: `Latest Shows in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: latestTVMyLang,
           isLoading: isFetchingLatestLangTV,
           onEndReached: hasNextLatestLangTV ? fetchNextLatestLangTV : undefined,
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Latest Shows in your language',
+              title: `Latest Shows in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'tv',
               filter: {
                 with_original_language: myLanguage.iso_639_1,
@@ -725,7 +771,9 @@ export const HomeScreen = React.memo(() => {
         sectionsList.push({
           id: 'home_myLangTVPopular',
           type: 'horizontalList',
-          title: 'Popular Shows in your language',
+          title: `Popular Shows in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: popularTVMyLang,
           isLoading: langTVSimple?.isLoading,
           onEndReached: langTVSimple?.hasNextPage
@@ -734,7 +782,9 @@ export const HomeScreen = React.memo(() => {
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Popular Shows in your language',
+              title: `Popular Shows in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'tv',
               filter: {with_original_language: myLanguage.iso_639_1},
             }),
@@ -765,6 +815,7 @@ export const HomeScreen = React.memo(() => {
     // My OTTs sections (movies): one row per provider (rendered via OttRowMovies)
     // Use a Set to ensure unique provider IDs and avoid duplicate sections
     const uniqueProviderIds = new Set<number>();
+    const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
     allOttsNormalized.forEach(prov => {
       if (!uniqueProviderIds.has(prov.id)) {
         uniqueProviderIds.add(prov.id);
@@ -773,6 +824,7 @@ export const HomeScreen = React.memo(() => {
           type: 'ottMoviesRow',
           providerId: prov.id,
           providerName: prov.provider_name,
+          isPersonalized: isPersonalizedOTTs,
         });
       }
     });
@@ -783,6 +835,17 @@ export const HomeScreen = React.memo(() => {
         id: 'savedFilters',
         type: 'savedFilters',
         data: savedFilters,
+      });
+    }
+
+    // No saved filters section - show when no filters exist
+    if (
+      !isLoadingSavedFilters &&
+      (!savedFilters || savedFilters.length === 0)
+    ) {
+      sectionsList.push({
+        id: 'noSavedFilters',
+        type: 'noSavedFilters',
       });
     }
 
@@ -997,8 +1060,8 @@ export const HomeScreen = React.memo(() => {
 
         case 'savedFilters':
           return (
-            <View style={{marginTop: spacing.xxl}}>
-              <View style={styles.heading}>
+            <View>
+              {/* <View style={styles.heading}>
                 <LinearGradient
                   colors={['transparent', colors.background.primary]}
                   start={{x: 0.5, y: 0}}
@@ -1006,10 +1069,67 @@ export const HomeScreen = React.memo(() => {
                   style={[styles.gradient, {height: isTablet ? 200 : 100}]}
                 />
                 <Text style={styles.headingText}>My Filters</Text>
-              </View>
+              </View> */}
               {item.data?.map((filter: SavedFilter) => (
                 <HomeFilterRow key={filter.id} savedFilter={filter} />
               ))}
+            </View>
+          );
+        case 'noSavedFilters':
+          return (
+            <View
+              style={{
+                padding: spacing.lg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: spacing.xl,
+                marginBottom: spacing.xxl,
+              }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: colors.text.primary,
+                  textAlign: 'center',
+                  marginBottom: spacing.md,
+                  fontFamily: 'Inter_18pt-SemiBold',
+                }}>
+                This is not the end...
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: colors.text.muted,
+                  textAlign: 'center',
+                  marginBottom: spacing.xl,
+                  lineHeight: 20,
+                  fontFamily: 'Inter_18pt-Regular',
+                }}>
+                Create your own personalized filters to discover movies and
+                shows tailored just for you!
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Main', {
+                    screen: 'MySpace',
+                    params: {screen: 'MyFiltersScreen'},
+                  })
+                }
+                style={{
+                  paddingHorizontal: spacing.md,
+                  borderRadius: borderRadius.round,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                }}>
+                <FastImage
+                  source={require('../assets/next.webp')}
+                  style={{
+                    width: isTablet ? 40 : 30,
+                    height: isTablet ? 40 : 30,
+                  }}
+                />
+              </TouchableOpacity>
             </View>
           );
         case 'ottMoviesRow':
@@ -1017,6 +1137,8 @@ export const HomeScreen = React.memo(() => {
             <OttRowMovies
               providerId={item.providerId}
               providerName={item.providerName}
+              kind="latest"
+              isPersonalized={item.isPersonalized}
             />
           );
 

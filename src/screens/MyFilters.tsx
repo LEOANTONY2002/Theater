@@ -51,6 +51,9 @@ export const MyFiltersScreen = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
+  const [deletingFilter, setDeletingFilter] = useState<SavedFilter | null>(
+    null,
+  );
   const navigation = useNavigation();
   const {isTablet, orientation} = useResponsive();
   const todayStr = React.useMemo(
@@ -292,6 +295,18 @@ export const MyFiltersScreen = () => {
     [queryClient],
   );
 
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deletingFilter) return;
+    try {
+      await FiltersManager.deleteFilter(deletingFilter.id);
+      queryClient.invalidateQueries({queryKey: ['savedFilters']});
+      setDeletingFilter(null);
+    } catch (error) {
+      console.error('Failed to delete filter:', error);
+      setDeletingFilter(null);
+    }
+  }, [deletingFilter, queryClient]);
+
   // Quick add filters: create a filter in one tap
   const handleQuickAdd = useCallback(
     async (
@@ -332,8 +347,13 @@ export const MyFiltersScreen = () => {
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const [movieGenresData] = await Promise.all([getGenres('movie')]);
-        const uniqueGenres = [...movieGenresData].filter(
+        const [movieGenresData, tvGenresData] = await Promise.all([
+          getGenres('movie'),
+          getGenres('tv'),
+        ]);
+        // Combine and deduplicate genres from both movie and TV
+        const allGenresData = [...movieGenresData, ...tvGenresData];
+        const uniqueGenres = allGenresData.filter(
           (genre, index, self) =>
             index === self.findIndex(t => t.id === genre.id),
         );
@@ -406,7 +426,6 @@ export const MyFiltersScreen = () => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.9)',
     },
     importModalContent: {
       width: '90%',
@@ -505,8 +524,11 @@ export const MyFiltersScreen = () => {
     },
     genreContainer: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: spacing.xs,
+      marginTop: spacing.xs,
+      paddingHorizontal: 2,
+      width: '100%',
     },
     genreText: {
       color: colors.text.muted,
@@ -590,8 +612,12 @@ export const MyFiltersScreen = () => {
       : null;
     const genres = filter?.params?.with_genres;
     const genreNames = genres
-      ?.split(',')
-      .map(id => allGenres.find(genre => genre.id === parseInt(id))?.name)
+      ?.split('|')
+      .map(id => {
+        const genreId = parseInt(id.trim());
+        return allGenres.find(genre => genre.id === genreId)?.name;
+      })
+      .filter(Boolean) // Remove undefined values
       .join(', ');
     const fromDate =
       filter?.params?.['primary_release_date.gte'] ||
@@ -766,11 +792,25 @@ export const MyFiltersScreen = () => {
                     color={colors.text.muted}
                   />
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={{alignItems: 'center', padding: 5, marginLeft: 6}}
+                  activeOpacity={0.9}
+                  onPress={() => setDeletingFilter(filter)}>
+                  <Ionicons
+                    name="trash-outline"
+                    size={15}
+                    color={colors.text.muted}
+                  />
+                </TouchableOpacity>
               </View>
             </View>
             {genreNames && (
-              <View style={styles.genreContainer}>
-                <Text style={styles.genreText} numberOfLines={1}>
+              <View style={[styles.genreContainer, {minHeight: 20}]}>
+                <Text
+                  style={[
+                    styles.genreText,
+                    {flex: 1, flexWrap: 'wrap', lineHeight: 18},
+                  ]}>
                   {genreNames}
                 </Text>
               </View>
@@ -1033,10 +1073,10 @@ export const MyFiltersScreen = () => {
                 data={flattenedData}
                 isLoading={isFetchingNextFilterPage}
                 onItemPress={handleItemPress}
+                isSeeAll={false}
                 onEndReached={
                   hasNextFilterPage ? fetchNextFilterPage : undefined
                 }
-                isSeeAll={false}
                 isFilter={true}
                 isHeadingSkeleton={false}
               />
@@ -1330,6 +1370,94 @@ export const MyFiltersScreen = () => {
         editingFilter={editingFilter}
         onDelete={handleDelete}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={!!deletingFilter}
+        animationType="fade"
+        transparent
+        statusBarTranslucent={true}
+        onRequestClose={() => setDeletingFilter(null)}>
+        <View
+          style={[
+            styles.modalContainer,
+            {
+              margin: spacing.md,
+            },
+          ]}>
+          <View
+            style={{
+              paddingVertical: spacing.xl,
+              paddingHorizontal: spacing.md,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+            }}>
+            <MaybeBlurView
+              style={[
+                {
+                  flex: 1,
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  borderRadius: borderRadius.xl,
+                },
+              ]}
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+              dialog
+              radius={20}
+            />
+            <View style={{position: 'absolute', top: 16, right: 16}}>
+              <TouchableOpacity onPress={() => setDeletingFilter(null)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={{padding: spacing.md}}>
+              <Text style={modalStyles.sectionTitle}>
+                Are you sure you want to delete "{deletingFilter?.name}"?
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginTop: spacing.lg,
+                  gap: spacing.md,
+                }}>
+                <TouchableOpacity
+                  style={[modalStyles.contentTypeButton]}
+                  onPress={() => setDeletingFilter(null)}>
+                  <Text
+                    style={[
+                      modalStyles.saveButtonText,
+                      {color: colors.text.primary, fontWeight: 'bold'},
+                    ]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    modalStyles.contentTypeButton,
+                    {backgroundColor: colors.button.delete},
+                  ]}
+                  onPress={handleConfirmDelete}>
+                  <Text
+                    style={[
+                      modalStyles.saveButtonText,
+                      {color: colors.text.primary, fontWeight: 'bold'},
+                    ]}>
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Import Filter Modal */}
       <Modal

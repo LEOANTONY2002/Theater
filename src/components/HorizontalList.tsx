@@ -1,5 +1,12 @@
 import React, {useCallback, memo, useMemo} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, FlatList, Platform} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Platform,
+} from 'react-native';
 import {ContentItem} from './MovieList';
 import {ContentCard} from './ContentCard';
 import {colors, spacing, typography} from '../styles/theme';
@@ -20,6 +27,7 @@ interface HorizontalListProps {
   isFilter?: boolean;
   isHeadingSkeleton?: boolean;
   ai?: boolean;
+  prefix?: string;
 }
 
 // Ensure ContentCard is memoized
@@ -28,6 +36,7 @@ const MemoContentCard = memo(ContentCard);
 export const HorizontalList: React.FC<HorizontalListProps> = memo(
   ({
     title,
+    prefix,
     data,
     onItemPress,
     onEndReached,
@@ -54,11 +63,20 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             alignItems: 'center',
             paddingHorizontal: isFilter ? 0 : spacing.md,
           },
+          headerTitle: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: isFilter ? 0 : spacing.sm,
+          },
+          prefix: {
+            ...typography.body1,
+            color: colors.text.muted,
+            marginRight: spacing.sm,
+          },
           title: {
             ...typography.h3,
             color: colors.text.primary,
-            marginBottom: isFilter ? 0 : spacing.sm,
-            flex: 1,
           },
           seeAll: {
             ...typography.body2,
@@ -183,9 +201,16 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
       <View style={styles.container}>
         {title !== 'V2' ? (
           <View style={styles.headerContainer}>
-            <Text style={styles.title} numberOfLines={1}>
-              {title}
-            </Text>
+            <View style={styles.headerTitle}>
+              {prefix && (
+                <Text style={styles.prefix} numberOfLines={1}>
+                  {prefix}
+                </Text>
+              )}
+              <Text style={styles.title} numberOfLines={1}>
+                {title}
+              </Text>
+            </View>
             {data?.length > 0 && isSeeAll ? (
               <TouchableOpacity onPress={onSeeAllPress}>
                 <Ionicon

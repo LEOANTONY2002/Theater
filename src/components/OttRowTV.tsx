@@ -2,7 +2,7 @@ import React, {useCallback, useMemo} from 'react';
 import {View} from 'react-native';
 import {useRegion} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useTVByOTTSimple} from '../hooks/usePersonalization';
+import {useTVByOTTSimple, useTVByProvider} from '../hooks/usePersonalization';
 import {HorizontalList} from './HorizontalList';
 import {TVShow} from '../types/tvshow';
 import {ContentItem} from './MovieList';
@@ -10,33 +10,49 @@ import {ContentItem} from './MovieList';
 interface Props {
   providerId: number;
   providerName: string;
+  kind?: 'popular' | 'latest';
+  isPersonalized?: boolean;
 }
 
-export const OttRowTV: React.FC<Props> = ({providerId, providerName}) => {
+export const OttRowTV: React.FC<Props> = ({
+  providerId,
+  providerName,
+  kind = 'popular',
+  isPersonalized = false,
+}) => {
   const {data: region} = useRegion();
   const {navigateWithLimit} = useNavigationState();
-  const hook = useTVByOTTSimple(providerId);
+
+  // Use the appropriate hook based on kind
+  const hook = kind === 'latest'
+    ? useTVByProvider(providerId, 'latest', region?.iso_3166_1)
+    : useTVByOTTSimple(providerId);
 
   const data = useMemo(() => {
     const pages = hook?.data?.pages || [];
     return (
       pages.flatMap((page: any) =>
-        (page?.results || []).map((s: any) => ({...s, type: 'tv' as const}))
+        (page?.results || []).map((s: any) => ({...s, type: 'tv' as const})),
       ) || []
     );
   }, [hook?.data]);
 
   const onSeeAllPress = useCallback(() => {
+    const title =
+      kind === 'latest'
+        ? `Latest on ${providerName}`
+        : `Popular on ${providerName}`;
     navigateWithLimit('Category', {
-      title: `Popular on ${providerName}`,
+      title,
       contentType: 'tv',
       filter: {
         with_watch_providers: String(providerId),
         watch_region: region?.iso_3166_1 || 'US',
         with_watch_monetization_types: 'flatrate|ads|free',
+        sort_by: kind === 'latest' ? 'first_air_date.desc' : 'popularity.desc',
       },
     });
-  }, [navigateWithLimit, providerId, providerName, region?.iso_3166_1]);
+  }, [navigateWithLimit, providerId, providerName, region?.iso_3166_1, kind]);
 
   const onItemPress = useCallback(
     (item: ContentItem) => {
@@ -57,15 +73,21 @@ export const OttRowTV: React.FC<Props> = ({providerId, providerName}) => {
     return <View />;
   }
 
+  const title =
+    kind === 'latest'
+      ? `Latest on ${providerName}`
+      : `Popular on ${providerName}`;
+
   return (
     <HorizontalList
-      title={`Popular on ${providerName}`}
+      title={title}
       data={data}
       onItemPress={onItemPress}
       isLoading={hook?.isLoading}
       onEndReached={hook?.hasNextPage ? hook.fetchNextPage : undefined}
       onSeeAllPress={onSeeAllPress}
       isSeeAll
+      prefix={isPersonalized ? 'My OTT:' : undefined}
     />
   );
 };

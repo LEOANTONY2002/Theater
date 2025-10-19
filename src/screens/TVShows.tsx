@@ -464,7 +464,9 @@ export const TVShowsScreen = React.memo(() => {
         sectionsList.push({
           id: 'myLangTVLatest',
           type: 'horizontalList',
-          title: 'Latest Shows in your language',
+          title: `Latest Shows in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: latestTV,
           onItemPress: handleShowPress,
           onEndReached: hasNextLatestLangTV ? fetchNextLatestLangTV : undefined,
@@ -472,7 +474,9 @@ export const TVShowsScreen = React.memo(() => {
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Latest Shows in your language',
+              title: `Latest Shows in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'tv',
               filter: {
                 with_original_language: myLanguage.iso_639_1,
@@ -490,7 +494,9 @@ export const TVShowsScreen = React.memo(() => {
         sectionsList.push({
           id: 'myLangTVSimple',
           type: 'horizontalList',
-          title: 'Popular Shows in your language',
+          title: `Popular Shows in ${
+            myLanguage.name || myLanguage.english_name
+          }`,
           data: langTV,
           onItemPress: handleShowPress,
           onEndReached: langSimpleTV?.hasNextPage
@@ -500,7 +506,9 @@ export const TVShowsScreen = React.memo(() => {
           isSeeAll: true,
           onSeeAllPress: () =>
             navigateWithLimit('Category', {
-              title: 'Popular Shows in your language',
+              title: `Popular Shows in ${
+                myLanguage.name || myLanguage.english_name
+              }`,
               contentType: 'tv',
               filter: {with_original_language: myLanguage.iso_639_1},
             }),
@@ -575,17 +583,30 @@ export const TVShowsScreen = React.memo(() => {
       });
     }
 
-    // My OTTs sections (TV): one row per provider using OttRowTV
+    // My OTTs sections (TV): one row per provider using OttRowTV (both popular and latest)
     // Use a Set to ensure unique provider IDs and avoid duplicate sections
     const uniqueProviderIds = new Set<number>();
+    const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
     allOttsNormalized.forEach(prov => {
       if (!uniqueProviderIds.has(prov.id)) {
         uniqueProviderIds.add(prov.id);
+        // Add popular OTT row
         sectionsList.push({
-          id: `ott_${prov.id}_tv_row`,
+          id: `ott_${prov.id}_tv_popular_row`,
           type: 'ottTVRow',
           providerId: prov.id,
           providerName: prov.provider_name,
+          kind: 'popular',
+          isPersonalized: isPersonalizedOTTs,
+        });
+        // Add latest OTT row
+        sectionsList.push({
+          id: `ott_${prov.id}_tv_latest_row`,
+          type: 'ottTVRow',
+          providerId: prov.id,
+          providerName: prov.provider_name,
+          kind: 'latest',
+          isPersonalized: isPersonalizedOTTs,
         });
       }
     });
@@ -699,6 +720,8 @@ export const TVShowsScreen = React.memo(() => {
             <OttRowTV
               providerId={item.providerId}
               providerName={item.providerName}
+              kind={item.kind || 'popular'}
+              isPersonalized={item.isPersonalized}
             />
           );
 

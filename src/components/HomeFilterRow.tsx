@@ -53,6 +53,7 @@ export const HomeFilterRow = ({
       {flattenedData.length > 0 && (
         <HorizontalList
           title={savedFilter.name}
+          prefix="My Filter:"
           data={flattenedData}
           isLoading={isFetchingNextFilterPage}
           onItemPress={handleItemPress}

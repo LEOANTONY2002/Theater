@@ -923,32 +923,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               </View>
             </View>
           )}
-          {/* Delete Confirmation Modal Overlay */}
-          {showDeleteConfirm && pendingDeleteFilter && (
-            <View style={styles.confirmOverlay}>
-              <View style={styles.confirmModal}>
-                <Text style={styles.confirmTitle}>Delete Filter</Text>
-                <Text style={styles.confirmMessage}>
-                  Are you sure you want to delete "{pendingDeleteFilter.name}"?
-                </Text>
-                <View style={styles.confirmActions}>
-                  <TouchableOpacity
-                    style={[styles.confirmButton, styles.cancelButton]}
-                    onPress={() => {
-                      setShowDeleteConfirm(false);
-                      setPendingDeleteFilter(null);
-                    }}>
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.confirmButton, styles.deleteButton]}
-                    onPress={confirmDelete}>
-                    <Text style={styles.deleteButtonText}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
 
           {/* Date Pickers */}
           {showFromDate && (
@@ -1005,17 +979,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 </Text>
               )}
             </TouchableOpacity>
-            {editingFilter && (
-              <TouchableOpacity
-                style={[
-                  styles.footerButton,
-                  styles.resetButton,
-                  {backgroundColor: colors.button.delete},
-                ]}
-                onPress={() => handleDelete(editingFilter)}>
-                <Text style={styles.resetButtonText}>Delete</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </MaybeBlurView>
       </View>
