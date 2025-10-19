@@ -432,14 +432,6 @@ export const MySpaceScreen = React.memo(() => {
       marginBottom: 150,
       gap: spacing.xs,
     },
-    footerText: {
-      color: colors.text.tertiary || '#aaa',
-      fontSize: 12,
-      flex: 1,
-      textAlign: 'center',
-      marginRight: 8,
-      fontFamily: 'Inter_18pt-Regular',
-    },
     tmdbLogoWrapper: {
       padding: 2,
       borderRadius: 4,
@@ -450,12 +442,6 @@ export const MySpaceScreen = React.memo(() => {
     },
     privacyLink: {
       marginTop: 2,
-    },
-    privacyText: {
-      color: colors.text.secondary,
-      fontSize: 13,
-      textAlign: 'center',
-      fontFamily: 'Inter_18pt-Regular',
     },
     privacyContent: {
       padding: spacing.md,
@@ -1206,7 +1192,11 @@ export const MySpaceScreen = React.memo(() => {
             blurType="dark"
             blurAmount={20}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  {width: '80%', fontSize: isTablet ? 16 : 12},
+                ]}>
                 Select your language to show personalized content
               </Text>
               <TouchableOpacity
@@ -1225,6 +1215,7 @@ export const MySpaceScreen = React.memo(() => {
                 }
                 onChangeSelected={langs => {
                   SettingsManager.setMyLanguage(langs?.[0] || null);
+                  setShowMyLanguageModal(false);
                 }}
               />
             </View>
@@ -1255,7 +1246,17 @@ export const MySpaceScreen = React.memo(() => {
                       await SettingsManager.setMyOTTs([]);
                     }}
                     style={{marginRight: spacing.md}}>
-                    <Text style={{color: colors.text.muted}}>Clear</Text>
+                    <Text
+                      style={{
+                        ...typography.body2,
+                        color: colors.text.muted,
+                        backgroundColor: colors.background.card,
+                        padding: spacing.sm,
+                        paddingHorizontal: spacing.md,
+                        borderRadius: borderRadius.md,
+                      }}>
+                      clear
+                    </Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity

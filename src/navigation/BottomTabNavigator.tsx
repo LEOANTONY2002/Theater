@@ -1,14 +1,8 @@
-import React, {useState, useEffect} from 'react';
-import {
-  View,
-  StyleSheet,
-  Platform,
-  Animated,
-  TouchableOpacity,
-} from 'react-native';
+import React from 'react';
+import {View, StyleSheet, TouchableOpacity} from 'react-native';
 import type {BottomTabBarButtonProps} from '@react-navigation/bottom-tabs';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {useNavigation, useNavigationState} from '@react-navigation/native';
+import {useNavigationState, NavigationState} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import {TabParamList} from '../types/navigation';
 import {
@@ -18,17 +12,11 @@ import {
   TVShowsStackNavigator,
   MySpaceStackNavigator,
 } from './TabStacks';
-import {colors, spacing, borderRadius, shadows} from '../styles/theme';
+import {colors, spacing, borderRadius} from '../styles/theme';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {useResponsive} from '../hooks/useResponsive';
 
 const Tab = createBottomTabNavigator<TabParamList>();
-
-interface TabIconProps {
-  focused: boolean;
-  name: string;
-  color: string;
-}
 
 const styles = StyleSheet.create({
   container: {
@@ -60,7 +48,17 @@ const styles = StyleSheet.create({
 });
 
 // Custom tab icon with animation
-const TabIcon = ({focused, name, color}: TabIconProps) => {
+const TabIcon = ({
+  focused,
+  color,
+  size,
+  name,
+}: {
+  focused: boolean;
+  color: string;
+  size?: number;
+  name: string;
+}) => {
   return (
     <View style={styles.iconContainer}>
       <View
@@ -70,7 +68,12 @@ const TabIcon = ({focused, name, color}: TabIconProps) => {
             opacity: focused ? 1 : 0.7,
           },
         ]}>
-        <Icon name={name} size={20} color={color} suppressHighlighting={true} />
+        <Icon
+          name={name}
+          size={size || 20}
+          color={color}
+          suppressHighlighting={true}
+        />
       </View>
     </View>
   );
@@ -96,7 +99,7 @@ const TabBarButton = ({
       activeOpacity={0.7}
       onPress={onPress ?? undefined}
       onLongPress={onLongPress ?? undefined}
-      style={style as any}>
+      style={style}>
       {children}
     </TouchableOpacity>
   );
@@ -130,12 +133,12 @@ const TabBarBackground = () => {
 };
 
 export const BottomTabNavigator = () => {
-  const navigationState = useNavigationState(state => state);
+  const navigationState = useNavigationState((state: NavigationState) => state);
   // Use inside so rotation triggers rerenders
   const {isTablet, orientation} = useResponsive();
 
   // Function to check if we're currently on OnlineAI screen
-  const isOnOnlineAIScreen = () => {
+  const isOnOnlineAIScreen = (): boolean => {
     try {
       if (!navigationState) return false;
       const tabIndex = navigationState.index ?? 0;
@@ -143,11 +146,11 @@ export const BottomTabNavigator = () => {
       if (!currentTab || typeof currentTab !== 'object') return false;
 
       // MySpace tab is the 5th tab (index 4)
-      const tabState: any = (currentTab as any).state;
+      const tabState = (currentTab as any).state;
       if (!tabState || tabState.index !== 4) return false;
 
       const mySpaceStack = tabState.routes?.[tabState.index];
-      const mySpaceState: any = mySpaceStack?.state;
+      const mySpaceState = mySpaceStack?.state;
       if (!mySpaceState || typeof mySpaceState.index !== 'number') return false;
 
       const currentMySpaceRoute = mySpaceState.routes?.[mySpaceState.index];
@@ -162,7 +165,9 @@ export const BottomTabNavigator = () => {
       <Tab.Navigator
         screenOptions={{
           // Use a custom button to avoid Android ripple/highlight around icons
-          tabBarButton: props => <TabBarButton {...props} />,
+          tabBarButton: (props: BottomTabBarButtonProps) => (
+            <TabBarButton {...props} />
+          ),
           tabBarActiveBackgroundColor: 'transparent',
           tabBarInactiveBackgroundColor: 'transparent',
           tabBarStyle: {
@@ -179,10 +184,13 @@ export const BottomTabNavigator = () => {
                 ? '18%'
                 : isTablet && orientation === 'landscape'
                 ? '27%'
+                : !isTablet && orientation === 'landscape'
+                ? '24%'
                 : 24,
             borderRadius: borderRadius.round,
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent:
+              orientation === 'landscape' ? 'space-between' : 'center',
             display: isOnOnlineAIScreen() ? 'none' : 'flex',
           },
           // Keep label under icon even on tablets (avoids beside-icon layout)
@@ -218,7 +226,7 @@ export const BottomTabNavigator = () => {
           component={HomeStackNavigator}
           options={{
             title: 'Home',
-            tabBarIcon: ({focused, color}) => (
+            tabBarIcon: ({focused, color}: any) => (
               <TabIcon focused={focused} name="home" color={color} />
             ),
             tabBarLabel: 'Home',
@@ -228,7 +236,7 @@ export const BottomTabNavigator = () => {
           name="Search"
           component={SearchStackNavigator}
           options={{
-            tabBarIcon: ({focused, color}) => (
+            tabBarIcon: ({focused, color}: any) => (
               <TabIcon focused={focused} name="search" color={color} />
             ),
             tabBarLabel: 'Explore',
@@ -238,7 +246,7 @@ export const BottomTabNavigator = () => {
           name="Movies"
           component={MoviesStackNavigator}
           options={{
-            tabBarIcon: ({focused, color}) => (
+            tabBarIcon: ({focused, color}: any) => (
               <TabIcon focused={focused} name="film" color={color} />
             ),
             tabBarLabel: 'Movies',
@@ -249,7 +257,7 @@ export const BottomTabNavigator = () => {
           component={TVShowsStackNavigator}
           options={{
             title: 'TV Shows',
-            tabBarIcon: ({focused, color}) => (
+            tabBarIcon: ({focused, color}: any) => (
               <TabIcon focused={focused} name="tv" color={color} />
             ),
             tabBarLabel: 'Shows',
@@ -258,8 +266,8 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="MySpace"
           component={MySpaceStackNavigator}
-          listeners={({navigation}) => ({
-            tabPress: e => {
+          listeners={({navigation}: any) => ({
+            tabPress: (e: any) => {
               // Reset the MySpace stack to initial screen when tab is pressed
               navigation.reset({
                 index: 0,
@@ -269,7 +277,7 @@ export const BottomTabNavigator = () => {
           })}
           options={{
             title: 'Profile',
-            tabBarIcon: ({focused, color}) => (
+            tabBarIcon: ({focused, color}: any) => (
               <TabIcon focused={focused} name="user" color={color} />
             ),
             tabBarLabel: 'My space',

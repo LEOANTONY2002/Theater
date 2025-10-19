@@ -13,7 +13,6 @@ import {
   Easing,
   FlatList,
 } from 'react-native';
-import {FlashList} from '@shopify/flash-list';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
   useMovieDetails,

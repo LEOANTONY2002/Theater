@@ -48,7 +48,7 @@ export const MaybeBlurView: React.FC<
     return (
       <BlurView
         blurType={'light'}
-        blurAmount={blurAmount}
+        blurAmount={5}
         style={style}
         overlayColor={colors.modal.blurDark}
         pointerEvents={pointerEvents}>

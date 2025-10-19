@@ -7,9 +7,9 @@ import {useResponsive} from '../hooks/useResponsive';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const shimmerColors = [
-  'rgba(16, 16, 22, 0.62)',
-  'rgba(13, 13, 20, 0.86)',
-  'rgb(12, 12, 19)',
+  'rgba(10, 10, 18, 0.62)',
+  'rgba(8, 8, 19, 0.45)',
+  'rgb(0, 0, 1)',
 ];
 
 const shimmerColors2 = ['rgba(49, 2, 106, 0.12)', 'rgba(69, 1, 61, 0.11)'];

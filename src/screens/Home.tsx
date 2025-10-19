@@ -1030,8 +1030,8 @@ export const HomeScreen = React.memo(() => {
             </View>
           );
 
-        case 'becauseYouWatched':
-          return <BecauseYouWatched />;
+        // case 'becauseYouWatched':
+        //   return <BecauseYouWatched />;
 
         case 'horizontalList':
           return (

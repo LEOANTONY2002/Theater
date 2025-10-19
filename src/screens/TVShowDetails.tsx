@@ -63,7 +63,6 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
 import {MovieAIChatModal} from '../components/MovieAIChatModal';
 import {useAIEnabled} from '../hooks/useAIEnabled';
-import {FlashList} from '@shopify/flash-list';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {offlineCache} from '../services/offlineCache';

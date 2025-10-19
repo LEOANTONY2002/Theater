@@ -424,7 +424,7 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
       paddingTop: 100,
     },
     loadingText: {
-      fontSize: typography.body2.fontSize,
+      ...typography.body2,
       color: colors.text.secondary,
       marginTop: spacing.md,
     },
@@ -715,7 +715,9 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
         <View style={styles.loadingRecommendation}>
           {/* <ActivityIndicator size="small" color={colors.accent} /> */}
           <GradientSpinner color={colors.text.primary} size={30} />
-          <Text style={styles.loadingText}>Finding your next watch...</Text>
+          <Text style={styles.loadingText} numberOfLines={2}>
+            Finding your next watch...
+          </Text>
         </View>
       ) : currentRecommendation ? (
         <View style={styles.recommendationContainer}>
