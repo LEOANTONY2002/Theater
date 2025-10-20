@@ -28,6 +28,8 @@ interface HorizontalListProps {
   isHeadingSkeleton?: boolean;
   ai?: boolean;
   prefix?: string;
+  showSeeAllText?: boolean;
+  hideTitle?: boolean;
 }
 
 // Ensure ContentCard is memoized
@@ -47,6 +49,8 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
     isFilter = false,
     isHeadingSkeleton = true,
     ai = false,
+    showSeeAllText = false,
+    hideTitle = false,
   }) => {
     const {isTablet} = useResponsive();
     // Memoize styles to avoid recreation on each render
@@ -81,6 +85,16 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
           seeAll: {
             ...typography.body2,
             color: colors.text.muted,
+          },
+          seeAllContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.xs,
+          },
+          seeAllText: {
+            ...typography.body2,
+            color: colors.text.muted,
+            fontWeight: '500',
           },
           listContent: {
             paddingHorizontal: isFilter ? 0 : spacing.md,
@@ -199,7 +213,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
 
     return (
       <View style={styles.container}>
-        {title !== 'V2' ? (
+        {title !== 'V2' && !hideTitle ? (
           <View style={styles.headerContainer}>
             <View style={styles.headerTitle}>
               {prefix && (
@@ -212,15 +226,30 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
               </Text>
             </View>
             {data?.length > 0 && isSeeAll ? (
-              <TouchableOpacity onPress={onSeeAllPress}>
+              <TouchableOpacity onPress={onSeeAllPress} style={showSeeAllText ? styles.seeAllContainer : undefined}>
+                {showSeeAllText && (
+                  <Text style={styles.seeAllText}>See All</Text>
+                )}
                 <Ionicon
                   name="chevron-forward-outline"
                   size={20}
-                  style={{marginTop: -spacing.xs}}
+                  style={showSeeAllText ? {} : {marginTop: -spacing.xs}}
                   color={colors.text.muted}
                 />
               </TouchableOpacity>
             ) : null}
+          </View>
+        ) : hideTitle && data?.length > 0 && isSeeAll ? (
+          <View style={styles.headerContainer}>
+            <View style={styles.headerTitle} />
+            <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllContainer}>
+              <Text style={styles.seeAllText}>See All</Text>
+              <Ionicon
+                name="chevron-forward-outline"
+                size={20}
+                color={colors.text.muted}
+              />
+            </TouchableOpacity>
           </View>
         ) : null}
 

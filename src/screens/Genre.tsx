@@ -380,13 +380,11 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
     return (
       <FlatList
-        key={`genre-list-${columns}`}
         data={allItems}
         renderItem={renderItem}
         keyExtractor={item => `${item.id}-${item.type}`}
         showsVerticalScrollIndicator={false}
         numColumns={columns}
-        columnWrapperStyle={styles.columnWrapper}
         contentContainerStyle={[
           styles.listContent,
           allItems.length === 0 && styles.emptyListContent,
@@ -394,11 +392,7 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
         ]}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        updateCellsBatchingPeriod={100}
-        maxToRenderPerBatch={6}
-        windowSize={5}
-        initialNumToRender={6}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews
         ListFooterComponent={renderFooter}
         ListEmptyComponent={
           !isLoading && !isFetching ? (
@@ -417,10 +411,6 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
             </View>
           ) : null
         }
-        getItemLayout={getItemLayout}
-        // Keep mounted to preserve scroll; hide when not focused
-        style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
-        pointerEvents={isFocused ? 'auto' : 'none'}
       />
     );
   }, [

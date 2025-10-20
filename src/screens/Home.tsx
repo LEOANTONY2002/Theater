@@ -60,6 +60,8 @@ import {
   useTVByLanguageSimpleHook,
 } from '../hooks/usePersonalization';
 import {OttRowMovies} from '../components/OttRowMovies';
+import {OttTabbedSection} from '../components/OttTabbedSection';
+import {MoviesTabbedSection} from '../components/MoviesTabbedSection';
 import {useNavigation} from '@react-navigation/native';
 
 export const HomeScreen = React.memo(() => {
@@ -644,22 +646,11 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
-    if (popularMovies?.pages?.[0]?.results?.length) {
-      sectionsList.push({
-        id: 'popularMovies',
-        type: 'horizontalList',
-        title: 'Popular Movies',
-        data: getMoviesFromData(popularMovies),
-        isLoading: isFetchingPopularMovies,
-        onEndReached: hasNextPopularMovies ? fetchNextPopularMovies : undefined,
-        isSeeAll: true,
-      });
-    } else if (isFetchingPopularMovies) {
-      sectionsList.push({
-        id: 'popularMoviesSkeleton',
-        type: 'horizontalListSkeleton',
-      });
-    }
+    // Movies Tabbed Section (Popular & Top Rated)
+    sectionsList.push({
+      id: 'moviesTabbedSection',
+      type: 'moviesTabbedSection',
+    });
 
     // Popular Shows section
     if (popularTVShows?.pages?.[0]?.results?.length) {
@@ -792,6 +783,17 @@ export const HomeScreen = React.memo(() => {
       }
     }
 
+    // My OTTs sections (movies): single unified section with tabs
+    const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
+    if (allOttsNormalized.length > 0) {
+      sectionsList.push({
+        id: 'home_ott_tabbed_section',
+        type: 'ottTabbedSection',
+        providers: allOttsNormalized,
+        isPersonalized: isPersonalizedOTTs,
+      });
+    }
+
     // Upcoming Movies in Region (only)
     if (upcomingMoviesByRegion?.pages?.[0]?.results?.length) {
       sectionsList.push({
@@ -811,23 +813,6 @@ export const HomeScreen = React.memo(() => {
         type: 'horizontalListSkeleton',
       });
     }
-
-    // My OTTs sections (movies): one row per provider (rendered via OttRowMovies)
-    // Use a Set to ensure unique provider IDs and avoid duplicate sections
-    const uniqueProviderIds = new Set<number>();
-    const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
-    allOttsNormalized.forEach(prov => {
-      if (!uniqueProviderIds.has(prov.id)) {
-        uniqueProviderIds.add(prov.id);
-        sectionsList.push({
-          id: `home_ott_${prov.id}_movies_row`,
-          type: 'ottMoviesRow',
-          providerId: prov.id,
-          providerName: prov.provider_name,
-          isPersonalized: isPersonalizedOTTs,
-        });
-      }
-    });
 
     // Saved Filters section
     if (!isLoadingSavedFilters && savedFilters && savedFilters.length > 0) {
@@ -1075,6 +1060,16 @@ export const HomeScreen = React.memo(() => {
               ))}
             </View>
           );
+        case 'ottTabbedSection':
+          return (
+            <OttTabbedSection
+              providers={item.providers}
+              isPersonalized={item.isPersonalized}
+            />
+          );
+
+        case 'moviesTabbedSection':
+          return <MoviesTabbedSection />;
         case 'noSavedFilters':
           return (
             <View
@@ -1131,15 +1126,6 @@ export const HomeScreen = React.memo(() => {
                 />
               </TouchableOpacity>
             </View>
-          );
-        case 'ottMoviesRow':
-          return (
-            <OttRowMovies
-              providerId={item.providerId}
-              providerName={item.providerName}
-              kind="latest"
-              isPersonalized={item.isPersonalized}
-            />
           );
 
         default:

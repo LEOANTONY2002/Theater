@@ -67,7 +67,6 @@ export const useSavedFilterContent = (savedFilter: SavedFilter) => {
     staleTime: STALE_TIME,
   });
 };
-
 // Dynamically select the correct data source for content lists
 export function useDynamicContentSource({
   categoryType,
@@ -82,12 +81,17 @@ export function useDynamicContentSource({
   if (filter && filter.type && filter.params) {
     return useSavedFilterContent(filter);
   }
-  // If filter is a plain filter params object, use discover logic
-  if (filter && !filter.type) {
+  if (filter?.genreId) {
     if (contentType === 'movie') {
-      return useDiscoverMovies(filter);
+      return useDiscoverMovies({
+        with_genres: filter.genreId.toString(),
+        ...(filter.sortBy && {sort_by: filter.sortBy}),
+      });
     } else if (contentType === 'tv') {
-      return useDiscoverTVShows(filter);
+      return useDiscoverTVShows({
+        with_genres: filter.genreId.toString(),
+        ...(filter.sortBy && {sort_by: filter.sortBy}),
+      });
     }
   }
   // If categoryType is present, use category logic

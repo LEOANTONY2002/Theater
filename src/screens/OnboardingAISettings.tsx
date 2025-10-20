@@ -519,30 +519,38 @@ const OnboardingAISettings: React.FC<{
           </View>
         </View>
       </Modal>
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>AI Assistant Setup</Text>
         <View />
       </View>
 
-      {/* API Key Section */}
       <View
-        style={[
-          styles.section,
-          {
-            width: isTablet ? '50%' : '100%',
-            alignSelf: 'center',
-            marginTop: spacing.xxl,
-          },
-        ]}>
-        <Text style={styles.sectionTitle}>API Key</Text>
-        <Text style={styles.sectionDescription}>
-          {apiKey
-            ? 'Your API key is saved securely'
-            : 'Add your Google Gemini API key to enable AI features'}
-        </Text>
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+        {/* API Key Section */}
+        <View
+          style={[
+            styles.section,
+            {
+              width: isTablet ? '50%' : '100%',
+              alignSelf: 'center',
+              marginTop: spacing.xxl,
+            },
+          ]}>
+          <Text style={styles.sectionTitle}>API Key</Text>
+          <Text style={styles.sectionDescription}>
+            {apiKey
+              ? 'Your API key is saved securely'
+              : 'Add your Google Gemini API key to enable AI features'}
+          </Text>
 
-        {showApiKeyInput ? (
-          <View>
+          {showApiKeyInput ? (
             <View style={styles.inputContainer}>
               <TextInput
                 style={[styles.input, {paddingRight: 40}]}
@@ -567,107 +575,99 @@ const OnboardingAISettings: React.FC<{
                 />
               </TouchableOpacity>
             </View>
+          ) : (
             <TouchableOpacity
-              onPress={() =>
-                Linking.openURL('https://aistudio.google.com/app/apikey')
-              }
+              style={styles.apiKeyButton}
+              onPress={toggleApiKeyInput}
               activeOpacity={0.8}>
-              {/* <Text style={styles.inputHint}>
-                  Get your API key from Google AI Studio
-                </Text>
-                <Text
-                  style={{
-                    color: colors.text.tertiary,
-                    fontStyle: 'italic',
-                    textDecorationLine: 'underline',
-                    textDecorationColor: colors.text.primary,
-                    textDecorationStyle: 'solid',
-                  }}>
-                  https://aistudio.google.com/app/apikey
-                </Text> */}
+              <Icon
+                name={apiKey ? 'key-outline' : 'add-circle-outline'}
+                size={20}
+                color={colors.text.primary}
+                style={styles.apiKeyButtonIcon}
+              />
+              <Text style={styles.apiKeyButtonText}>
+                {apiKey ? 'Edit API Key' : 'Add API Key'}
+              </Text>
             </TouchableOpacity>
-          </View>
-        ) : (
+          )}
+
           <TouchableOpacity
-            style={styles.apiKeyButton}
-            onPress={toggleApiKeyInput}
+            onPress={() =>
+              Linking.openURL('https://aistudio.google.com/app/apikey')
+            }
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'flex-start',
+            }}
             activeOpacity={0.8}>
-            <Icon
-              name={apiKey ? 'key-outline' : 'add-circle-outline'}
-              size={20}
-              color={colors.text.primary}
-              style={styles.apiKeyButtonIcon}
-            />
-            <Text style={styles.apiKeyButtonText}>
-              {apiKey ? 'Edit API Key' : 'Add API Key'}
+            <Text
+              style={{
+                color: colors.background.primary,
+                paddingHorizontal: spacing.md,
+                paddingVertical: 12,
+                fontWeight: 'bold',
+                borderRadius: borderRadius.md,
+                borderWidth: 1,
+                borderColor: colors.modal.blur,
+                backgroundColor: colors.text.primary,
+                fontFamily: 'Inter_18pt-Regular',
+                fontSize: 12,
+              }}>
+              Get your API key
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
 
-      {/* Instructions to get Gemini API key */}
-      <View
-        style={{
-          marginBottom: spacing.md,
-          display: 'flex',
-          flexDirection: 'column',
-          // alignItems: 'center',
-          justifyContent: 'center',
-          width: isTablet ? '50%' : '100%',
-          alignSelf: 'center',
-        }}>
-        <TouchableOpacity
-          onPress={() =>
-            Linking.openURL('https://aistudio.google.com/app/apikey')
-          }
-          style={{marginBottom: spacing.md}}
-          activeOpacity={0.8}>
-          <Text
+          {/* Instructions to get Gemini API key */}
+          <View
             style={{
-              color: colors.background.primary,
-              fontWeight: 'bold',
-              paddingVertical: spacing.sm,
-              paddingHorizontal: spacing.md,
-              borderRadius: borderRadius.md,
-              borderWidth: 1,
-              borderColor: colors.modal.blur,
-              backgroundColor: colors.text.primary,
-              textAlign: 'center',
-              fontFamily: 'Inter_18pt-Regular',
+              marginVertical: spacing.md,
             }}>
-            Get your API key
-          </Text>
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.sectionDescription}>
-            1. Go to Google AI Studio
-          </Text>
+            <Text
+              style={[
+                styles.sectionDescription,
+                {
+                  marginBottom: spacing.sm,
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                  color: colors.text.primary,
+                },
+              ]}>
+              How to get your API key:
+            </Text>
+            <Text style={styles.sectionDescription}>
+              1. Go to Google AI Studio
+            </Text>
+            <Text style={styles.sectionDescription}>
+              2. Click on "Create API key"
+            </Text>
+            <Text style={styles.sectionDescription}>
+              3. Type a name for your API key
+            </Text>
+            <Text style={styles.sectionDescription}>
+              4. Select a project if you have one or create a new one
+            </Text>
+            <Text style={styles.sectionDescription}>5. Copy the API key</Text>
+            <Text style={styles.sectionDescription}>
+              6. Paste the API key above
+            </Text>
+          </View>
         </View>
-        <Text style={styles.sectionDescription}>
-          2. Click on "Create API key"
-        </Text>
-        <Text style={styles.sectionDescription}>3. Copy the API key</Text>
-        <Text style={styles.sectionDescription}>
-          4. Paste the API key above
-        </Text>
       </View>
-
       <View
         style={{
-          position: 'absolute',
-          bottom: 30,
-          left: 0,
-          right: 0,
-          zIndex: 2,
-          flex: 1,
-          justifyContent: 'flex-end',
           alignItems: 'center',
+          justifyContent: 'center',
+          marginVertical: spacing.md,
+          marginBottom: spacing.xxl,
+          zIndex: 2,
         }}>
         <Text
           style={{
             color: colors.text.muted,
-            marginVertical: spacing.md,
             textAlign: 'center',
+            marginBottom: spacing.md,
             fontSize: 10,
             marginHorizontal: spacing.md,
             fontFamily: 'Inter_18pt-Regular',
@@ -734,6 +734,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
     paddingHorizontal: spacing.lg,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   backgroundGradient: {
     position: 'absolute',
@@ -792,7 +796,7 @@ const styles = StyleSheet.create({
   },
   sectionDescription: {
     ...typography.body2,
-    color: colors.text.secondary,
+    color: colors.text.muted,
   },
   modelsLoadingContainer: {
     flexDirection: 'row',
@@ -851,7 +855,9 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginVertical: spacing.sm,
-    position: 'relative',
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   input: {
     ...typography.body1,
@@ -861,7 +867,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: colors.text.primary,
-    paddingRight: 40, // Space for clipboard button
+    flex: 1,
   },
   clipboardButton: {
     position: 'absolute',

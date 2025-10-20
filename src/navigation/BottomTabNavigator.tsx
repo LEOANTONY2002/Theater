@@ -258,7 +258,7 @@ export const BottomTabNavigator = () => {
           options={{
             title: 'TV Shows',
             tabBarIcon: ({focused, color}: any) => (
-              <TabIcon focused={focused} name="tv" color={color} />
+              <TabIcon focused={focused} name="monitor" color={color} />
             ),
             tabBarLabel: 'Shows',
           }}
