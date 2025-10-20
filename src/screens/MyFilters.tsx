@@ -43,6 +43,7 @@ import {ContentItem} from '../components/MovieList';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {GradientButton} from '../components/GradientButton';
 import {BlurPreference} from '../store/blurPreference';
+import {QuickAddFilters} from '../components/QuickAddFilters';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -107,174 +108,6 @@ export const MyFiltersScreen = () => {
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
-
-  // Quick Add buttons block (reusable)
-  const QuickAddBlock: React.FC = () => (
-    <View
-      style={{
-        paddingHorizontal: spacing.md,
-        marginTop: spacing.md,
-        marginBottom: 200,
-      }}>
-      <Text style={[styles.emptyStateTitle, {textAlign: 'center'}]}>
-        Quick add
-      </Text>
-      <View
-        style={{
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: spacing.sm,
-          marginTop: spacing.sm,
-          justifyContent: 'center',
-          paddingHorizontal: spacing.md,
-        }}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'Sci‑Fi Series',
-              {with_genres: '10765', sort_by: 'popularity.desc'},
-              'tv',
-            )
-          }>
-          <Ionicons
-            name="planet-outline"
-            size={16}
-            color={colors.text.primary}
-          />
-          <Text style={styles.cardText}>Sci‑Fi Series</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'K‑Drama',
-              {with_original_language: 'ko', sort_by: 'popularity.desc'},
-              'tv',
-            )
-          }>
-          <Ionicons
-            name="heart-outline"
-            size={16}
-            color={colors.text.primary}
-          />
-          <Text style={styles.cardText}>K‑Drama</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'C‑Drama',
-              {with_original_language: 'zh', sort_by: 'popularity.desc'},
-              'tv',
-            )
-          }>
-          <Ionicons
-            name="sparkles-outline"
-            size={16}
-            color={colors.text.primary}
-          />
-          <Text style={styles.cardText}>C‑Drama</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'Anime Series',
-              {
-                with_original_language: 'ja',
-                with_genres: '16',
-                sort_by: 'popularity.desc',
-              },
-              'tv',
-            )
-          }>
-          <Ionicons
-            name="aperture-outline"
-            size={16}
-            color={colors.text.primary}
-          />
-          <Text style={styles.cardText}>Anime Series</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'Mystery Thriller Movies',
-              {with_genres: '9648,53', sort_by: 'popularity.desc'},
-              'movie',
-            )
-          }>
-          <Ionicons
-            name="help-buoy-outline"
-            size={16}
-            color={colors.text.primary}
-          />
-          <Text style={styles.cardText}>Mystery Thriller Movies</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'Top Rated Netflix Series',
-              {
-                with_watch_providers: '8',
-                sort_by: 'vote_average.desc',
-                'vote_count.gte': 200,
-              },
-              'tv',
-            )
-          }>
-          <Ionicons name="tv-outline" size={16} color={colors.text.primary} />
-          <Text style={styles.cardText}>Top Rated Netflix Series</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'Popular Tamil Movies',
-              {with_original_language: 'ta', sort_by: 'popularity.desc'},
-              'movie',
-            )
-          }>
-          <Ionicons
-            name="flame-outline"
-            size={16}
-            color={colors.text.primary}
-          />
-          <Text style={styles.cardText}>Popular Tamil Movies</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardSmall}
-          onPress={() =>
-            handleQuickAdd(
-              'Latest Animation Movies',
-              {
-                with_genres: '16',
-                sort_by: 'primary_release_date.desc',
-                'primary_release_date.lte': todayStr,
-              },
-              'movie',
-            )
-          }>
-          <Ionicons
-            name="sparkles-outline"
-            size={16}
-            color={colors.text.primary}
-          />
-          <Text style={styles.cardText}>Latest Animation Movies</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   const {data: savedFilters = [], isLoading} = useQuery({
     queryKey: ['savedFilters'],
@@ -1338,7 +1171,7 @@ export const MyFiltersScreen = () => {
                 />
               ))}
             </View>
-            <QuickAddBlock />
+            <QuickAddFilters onQuickAdd={handleQuickAdd} />
             <View style={{height: 200}} />
           </>
         ) : (
@@ -1355,7 +1188,7 @@ export const MyFiltersScreen = () => {
               isIcon={false}
               style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
             />
-            <QuickAddBlock />
+            <QuickAddFilters onQuickAdd={handleQuickAdd} />
           </View>
         )}
       </Animated.ScrollView>

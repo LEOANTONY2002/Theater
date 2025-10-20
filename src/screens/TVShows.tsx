@@ -10,8 +10,7 @@ import {TVShow} from '../types/tvshow';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
-import {TVShowsStackParamList, TVShowCategoryType} from '../types/navigation';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {TVShowCategoryType} from '../types/navigation';
 import {colors, spacing, typography} from '../styles/theme';
 import {GestureHandlerRootView as RNGestureHandlerRootView} from 'react-native-gesture-handler';
 import {
@@ -33,9 +32,6 @@ import {
   useTVByLanguageSimpleHook,
 } from '../hooks/usePersonalization';
 import {OttRowTV} from '../components/OttRowTV';
-
-type TVShowsScreenNavigationProp =
-  NativeStackNavigationProp<TVShowsStackParamList>;
 
 export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -812,7 +808,7 @@ export const TVShowsScreen = React.memo(() => {
   }
 
   return (
-    <RNGestureHandlerRootView style={{flex: 1}}>
+    <RNGestureHandlerRootView style={{flex: 1, backgroundColor: 'transparent'}}>
       <View style={styles.container}>
         <FlatList
           data={sections}
@@ -832,7 +828,7 @@ export const TVShowsScreen = React.memo(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: 'transparent',
   },
   header: {
     padding: spacing.md,

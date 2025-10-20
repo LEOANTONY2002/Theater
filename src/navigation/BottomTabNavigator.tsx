@@ -8,8 +8,8 @@ import {TabParamList} from '../types/navigation';
 import {
   HomeStackNavigator,
   SearchStackNavigator,
-  MoviesStackNavigator,
-  TVShowsStackNavigator,
+  MoviesAndSeriesStackNavigator,
+  FiltersStackNavigator,
   MySpaceStackNavigator,
 } from './TabStacks';
 import {colors, spacing, borderRadius} from '../styles/theme';
@@ -243,24 +243,23 @@ export const BottomTabNavigator = () => {
           }}
         />
         <Tab.Screen
-          name="Movies"
-          component={MoviesStackNavigator}
+          name="MoviesAndSeries"
+          component={MoviesAndSeriesStackNavigator}
           options={{
             tabBarIcon: ({focused, color}: any) => (
               <TabIcon focused={focused} name="film" color={color} />
             ),
-            tabBarLabel: 'Movies',
+            tabBarLabel: 'Browse',
           }}
         />
         <Tab.Screen
-          name="TVShows"
-          component={TVShowsStackNavigator}
+          name="Filters"
+          component={FiltersStackNavigator}
           options={{
-            title: 'TV Shows',
             tabBarIcon: ({focused, color}: any) => (
-              <TabIcon focused={focused} name="monitor" color={color} />
+              <TabIcon focused={focused} name="filter" color={color} />
             ),
-            tabBarLabel: 'Shows',
+            tabBarLabel: 'Filters',
           }}
         />
         <Tab.Screen

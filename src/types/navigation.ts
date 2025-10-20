@@ -55,20 +55,21 @@ export type SearchStackParamList = {
   };
 };
 
-export type MoviesStackParamList = {
-  MoviesScreen: undefined;
+export type MoviesAndSeriesStackParamList = {
+  MoviesAndSeriesScreen: undefined;
   MovieDetails: {movie: Movie};
+  TVShowDetails: {show: TVShow};
   Category: {
     title: string;
-    categoryType?: MovieCategoryType;
-    contentType: 'movie';
+    categoryType?: MovieCategoryType | TVShowCategoryType;
+    contentType: 'movie' | 'tv';
     filter?: SavedFilter;
     fromSearch?: boolean;
   };
   Genre: {
     genreId: number;
     genreName: string;
-    contentType: 'movie';
+    contentType: 'movie' | 'tv';
   };
   PersonCredits: {
     personId: number;
@@ -77,20 +78,21 @@ export type MoviesStackParamList = {
   };
 };
 
-export type TVShowsStackParamList = {
-  TVShowsScreen: undefined;
+export type FiltersStackParamList = {
+  FiltersScreen: undefined;
+  MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
   Category: {
     title: string;
-    categoryType?: TVShowCategoryType;
-    contentType: 'tv';
-    filter?: FilterParams;
+    categoryType?: MovieCategoryType | TVShowCategoryType;
+    contentType: 'movie' | 'tv';
+    filter?: SavedFilter;
     fromSearch?: boolean;
   };
   Genre: {
     genreId: number;
     genreName: string;
-    contentType: 'tv';
+    contentType: 'movie' | 'tv';
   };
   PersonCredits: {
     personId: number;
@@ -124,8 +126,8 @@ export type MySpaceStackParamList = {
 export type TabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>;
   Search: NavigatorScreenParams<SearchStackParamList>;
-  Movies: NavigatorScreenParams<MoviesStackParamList>;
-  TVShows: NavigatorScreenParams<TVShowsStackParamList>;
+  MoviesAndSeries: NavigatorScreenParams<MoviesAndSeriesStackParamList>;
+  Filters: NavigatorScreenParams<FiltersStackParamList>;
   MySpace: NavigatorScreenParams<MySpaceStackParamList>;
 };
 

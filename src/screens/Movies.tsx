@@ -10,8 +10,7 @@ import {useNavigation} from '@react-navigation/native';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
-import {RootStackParamList, MovieCategoryType} from '../types/navigation';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {MovieCategoryType} from '../types/navigation';
 import {colors, spacing, typography} from '../styles/theme';
 import {
   BannerSkeleton,
@@ -34,11 +33,9 @@ import {
 } from '../hooks/usePersonalization';
 import {OttRowMovies} from '../components/OttRowMovies';
 
-type MoviesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
 export const MoviesScreen = React.memo(() => {
   const {data: region} = useRegion();
-  const navigation = useNavigation<MoviesScreenNavigationProp>();
+  const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
@@ -870,7 +867,7 @@ export const MoviesScreen = React.memo(() => {
   }
 
   return (
-    <RNGestureHandlerRootView style={{flex: 1}}>
+    <RNGestureHandlerRootView style={{flex: 1, backgroundColor: 'transparent'}}>
       <View style={styles.container}>
         <FlatList
           data={sections}
@@ -890,7 +887,7 @@ export const MoviesScreen = React.memo(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: 'transparent',
   },
   header: {
     padding: spacing.md,
