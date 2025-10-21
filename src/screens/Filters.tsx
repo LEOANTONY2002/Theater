@@ -12,7 +12,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {QuickAddFilters} from '../components/QuickAddFilters';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useSavedFilterContent} from '../hooks/useApp';
-import {FeaturedBanner} from '../components/FeaturedBanner';
+import {FiltersBanner} from '../components/FiltersBanner';
 import {ContentItem} from '../components/MovieList';
 import {
   BannerSkeleton,
@@ -110,14 +110,33 @@ export const FiltersScreen = React.memo(() => {
     // Calculate how many items to take from each filter
     const itemsPerFilter = Math.ceil(5 / filterCount);
 
-    queries.slice(0, filterCount).forEach(query => {
+    queries.slice(0, filterCount).forEach((query, index) => {
       if (query.data?.pages?.[0]?.results) {
         const results = query.data.pages[0].results;
+        const filterType = selectedFilters[index]?.type;
         if (results.length > 0) {
           // Pick random items from this filter's results
           const count = Math.min(itemsPerFilter, results.length);
           const shuffled = [...results].sort(() => Math.random() - 0.5);
-          allContent.push(...shuffled.slice(0, count));
+          // Add metadata to track the filter type
+          const itemsWithType = shuffled.slice(0, count).map(item => {
+            // Determine actual type for each item
+            let actualType: 'movie' | 'tv' = 'movie';
+            if (filterType === 'tv') {
+              actualType = 'tv';
+            } else if (filterType === 'movie') {
+              actualType = 'movie';
+            } else {
+              // filterType is 'all', detect from item properties
+              actualType = (item as any).first_air_date ? 'tv' : 'movie';
+            }
+            
+            return {
+              ...item,
+              _filterType: actualType,
+            };
+          });
+          allContent.push(...itemsWithType);
         }
       }
     });
@@ -136,6 +155,7 @@ export const FiltersScreen = React.memo(() => {
     filter4.data,
     filter5.data,
     selectedFilters.length,
+    selectedFilters,
   ]);
 
   const handleQuickAdd = useCallback(
@@ -248,17 +268,8 @@ export const FiltersScreen = React.memo(() => {
     if (isLoading || savedFilters.length === 0 || bannerContent.length === 0) {
       return null;
     }
-    return (
-      <View style={styles.bannerContainer}>
-        <FeaturedBanner
-          item={bannerContent[0] as any}
-          type={(bannerContent[0] as any).first_air_date ? 'tv' : 'movie'}
-          slides={bannerContent as any[]}
-          autoplayEnabled={true}
-          autoPlayIntervalMs={4000}
-        />
-      </View>
-    );
+    
+    return <FiltersBanner items={bannerContent} />;
   }, [isLoading, savedFilters.length, bannerContent]);
 
   const renderFilterRow = useCallback(

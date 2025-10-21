@@ -1,5 +1,21 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState, memo} from 'react';
-import {View, Text, StyleSheet, Image, TouchableOpacity, useWindowDimensions, FlatList} from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  memo,
+} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  useWindowDimensions,
+  FlatList,
+  Animated,
+} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -122,11 +138,12 @@ export const FeaturedBanner = memo(
     );
     const removeFromWatchlistMutation = useRemoveFromWatchlist();
     const {isTablet} = useResponsive();
-    const listRef = useRef<FlatList<Movie | TVShow>>(null);
+    const listRef = useRef<any>(null);
     const autoplayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const userInteractingRef = useRef(false);
     const loadedImagesRef = useRef<Set<string>>(new Set());
     const failedImagesRef = useRef<Set<string>>(new Set());
+    const scrollX = useRef(new Animated.Value(0)).current;
 
     // Prefetch adjacent images to avoid decode during scroll (match render size: original)
     useEffect(() => {
@@ -170,9 +187,7 @@ export const FeaturedBanner = memo(
             watchlistId: watchlistContainingItem,
             itemId: current.id,
           });
-        } catch (error) {
-          Alert.alert('Error', 'Failed to remove from watchlist');
-        }
+        } catch (error) {}
       } else {
         // If item is not in any watchlist, show modal to add it
         setShowWatchlistModal(true);
@@ -196,12 +211,26 @@ export const FeaturedBanner = memo(
         if (userInteractingRef.current) return;
         clearAutoplay();
         if (slides.length <= 1) return;
-        const baseIndex = typeof fromIndex === 'number' ? fromIndex : activeIndex;
+        const baseIndex =
+          typeof fromIndex === 'number' ? fromIndex : activeIndex;
         const runTransition = () => {
           const next = (baseIndex + 1) % slides.length;
-          setActiveIndex(next);
-          // Use FlatList built-in animated scroll only
-          listRef.current?.scrollToIndex({index: next, animated: true});
+          const targetOffset = next * width;
+
+          // Animate scrollX value smoothly for visible transitions
+          Animated.timing(scrollX, {
+            toValue: targetOffset,
+            duration: 500,
+            useNativeDriver: true,
+          }).start(() => {
+            setActiveIndex(next);
+            // Sync FlatList position after animation
+            listRef.current?.scrollToOffset({
+              offset: targetOffset,
+              animated: false,
+            });
+          });
+
           scheduleAutoplay(next);
         };
         autoplayRef.current = setTimeout(() => {
@@ -219,7 +248,7 @@ export const FeaturedBanner = memo(
           }
         }, Math.max(2500, autoPlayIntervalMs));
       },
-      [slides.length, activeIndex, autoPlayIntervalMs],
+      [slides.length, activeIndex, autoPlayIntervalMs, width, scrollX],
     );
     const pauseAutoplay = useCallback(() => {
       userInteractingRef.current = true;
@@ -324,16 +353,14 @@ export const FeaturedBanner = memo(
       },
       title: {
         ...typography.h1,
+        fontSize: isTablet ? 28 : 20,
         color: colors.text.primary,
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: {width: 0, height: 1},
-        textShadowRadius: 4,
       },
       infoContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: spacing.md,
+        gap: spacing.sm,
       },
       ratingContainer: {
         flexDirection: 'row',
@@ -414,6 +441,46 @@ export const FeaturedBanner = memo(
 
     const renderItem = useCallback(
       ({item: slide, index}: {item: Movie | TVShow; index: number}) => {
+        // Animation input range for this slide - smooth transitions with gesture tracking
+        const inputRange = [
+          (index - 1) * width,
+          (index - 0.7) * width, // Earlier fade start for smoother transition
+          (index - 0.3) * width, // Gradual fade in
+          index * width, // Fully active
+          (index + 0.3) * width, // Gradual fade out
+          (index + 0.7) * width, // Earlier fade end
+          (index + 1) * width,
+        ];
+
+        // Background image fade animation - complete fade out/in for clean transitions
+        const imageOpacity = scrollX.interpolate({
+          inputRange,
+          outputRange: [0, 0, 0.3, 1, 0.3, 0, 0],
+          extrapolate: 'clamp',
+        });
+
+        // Content fade animation - synchronized with background for cohesive feel
+        const contentOpacity = scrollX.interpolate({
+          inputRange,
+          outputRange: [0, 0, 0.4, 1, 0.4, 0, 0],
+          extrapolate: 'clamp',
+        });
+
+        // Content translateX animation - subtle movement that feels connected to swipe
+        const contentTranslateX = scrollX.interpolate({
+          inputRange,
+          outputRange: [
+            width * 0.15, // Incoming from right
+            width * 0.1,
+            width * 0.02,
+            0, // Centered when active
+            -width * 0.02,
+            -width * 0.1,
+            -width * 0.15, // Exiting to left
+          ],
+          extrapolate: 'clamp',
+        });
+
         // Local handlers bound to slide to avoid depending on `current`
         const onPress = () => {
           if (type === 'movie') {
@@ -435,32 +502,44 @@ export const FeaturedBanner = memo(
           }
         };
         return (
-          <View style={[styles.background, {width}]}> 
+          <View style={[styles.background, {width}]}>
             {/* Background image fades independently so overlay UI is unaffected */}
             {(() => {
               const bp = (slide as any)?.backdrop_path as string | undefined;
               const showFallback = !bp || failedImagesRef.current.has(bp);
               if (showFallback) return null;
               return (
-                <FastImage
-                  key={`${(slide as any)?.id}-${(slide as any)?.backdrop_path}`}
-                  onLoad={() => {
-                    const bp2 = (slide as any)?.backdrop_path as string | undefined;
-                    if (bp2) loadedImagesRef.current.add(bp2);
-                  }}
-                  onLoadEnd={() => setLoading(false)}
-                  onError={() => {
-                    const bp3 = (slide as any)?.backdrop_path as string | undefined;
-                    if (bp3) failedImagesRef.current.add(bp3);
-                  }}
-                  source={{
-                    uri: `https://image.tmdb.org/t/p/original${bp}`,
-                    priority: FastImage.priority.high,
-                    cache: FastImage.cacheControl.immutable,
-                  }}
-                  style={[StyleSheet.absoluteFillObject]}
-                  resizeMode={FastImage.resizeMode.cover}
-                />
+                <Animated.View
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {opacity: imageOpacity},
+                  ]}>
+                  <FastImage
+                    key={`${(slide as any)?.id}-${
+                      (slide as any)?.backdrop_path
+                    }`}
+                    onLoad={() => {
+                      const bp2 = (slide as any)?.backdrop_path as
+                        | string
+                        | undefined;
+                      if (bp2) loadedImagesRef.current.add(bp2);
+                    }}
+                    onLoadEnd={() => setLoading(false)}
+                    onError={() => {
+                      const bp3 = (slide as any)?.backdrop_path as
+                        | string
+                        | undefined;
+                      if (bp3) failedImagesRef.current.add(bp3);
+                    }}
+                    source={{
+                      uri: `https://image.tmdb.org/t/p/original${bp}`,
+                      priority: FastImage.priority.high,
+                      cache: FastImage.cacheControl.immutable,
+                    }}
+                    style={[StyleSheet.absoluteFillObject]}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                </Animated.View>
               );
             })()}
             {/* Local fallback when backdrop missing or failed */}
@@ -485,7 +564,14 @@ export const FeaturedBanner = memo(
               ]}
               style={styles.gradient}
             />
-            <View style={styles.content}>
+            <Animated.View
+              style={[
+                styles.content,
+                {
+                  opacity: contentOpacity,
+                  transform: [{translateX: contentTranslateX}],
+                },
+              ]}>
               <View
                 style={{
                   flexDirection: 'column',
@@ -499,16 +585,22 @@ export const FeaturedBanner = memo(
                 </Text>
                 <View>
                   <View style={styles.genreContainer}>
-                    {slide.genre_ids?.slice(0, 3).map((genreId: number, idx: number) => (
-                      <View key={`${genreId}-${idx}`} style={styles.genreWrapper}>
-                        <Text style={styles.genre}>
-                          {type === 'movie' ? movieGenres[genreId] : tvGenres[genreId]}
-                        </Text>
-                        {idx < Math.min(slide.genre_ids.length - 1, 2) && (
-                          <Text style={styles.genreDot}>•</Text>
-                        )}
-                      </View>
-                    ))}
+                    {slide.genre_ids
+                      ?.slice(0, 3)
+                      .map((genreId: number, idx: number) => (
+                        <View
+                          key={`${genreId}-${idx}`}
+                          style={styles.genreWrapper}>
+                          <Text style={styles.genre}>
+                            {type === 'movie'
+                              ? movieGenres[genreId]
+                              : tvGenres[genreId]}
+                          </Text>
+                          {idx < Math.min(slide.genre_ids.length - 1, 2) && (
+                            <Text style={styles.genreDot}>•</Text>
+                          )}
+                        </View>
+                      ))}
                   </View>
                 </View>
               </View>
@@ -524,34 +616,45 @@ export const FeaturedBanner = memo(
                   disabled={removeFromWatchlistMutation.isPending}>
                   <Ionicons
                     name={
-                      (index === activeIndex
-                        ? isInAnyWatchlist
-                        : checkInWatchlist((slide as any).id))
+                      (
+                        index === activeIndex
+                          ? isInAnyWatchlist
+                          : checkInWatchlist((slide as any).id)
+                      )
                         ? 'checkmark'
                         : 'add'
                     }
                     size={24}
                     color={
-                      (index === activeIndex
-                        ? isInAnyWatchlist
-                        : checkInWatchlist((slide as any).id))
+                      (
+                        index === activeIndex
+                          ? isInAnyWatchlist
+                          : checkInWatchlist((slide as any).id)
+                      )
                         ? colors.accent
                         : '#fff'
                     }
                   />
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           </View>
         );
       },
-      [width, isTablet, type, navigateWithLimit, removeFromWatchlistMutation],
+      [
+        width,
+        isTablet,
+        type,
+        navigateWithLimit,
+        removeFromWatchlistMutation,
+        scrollX,
+      ],
     );
 
     return (
       <View style={[styles.container, {height: bannerHeight, width: '100%'}]}>
         {slides.length > 1 ? (
-          <FlatList
+          <Animated.FlatList
             ref={listRef}
             data={slides}
             keyExtractor={s => `${s.id}`}
@@ -560,6 +663,11 @@ export const FeaturedBanner = memo(
             pagingEnabled
             scrollEnabled={true}
             showsHorizontalScrollIndicator={false}
+            decelerationRate={0.98}
+            onScroll={Animated.event(
+              [{nativeEvent: {contentOffset: {x: scrollX}}}],
+              {useNativeDriver: true},
+            )}
             onScrollBeginDrag={pauseAutoplay}
             onMomentumScrollEnd={e => {
               const idx = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -570,7 +678,7 @@ export const FeaturedBanner = memo(
             onTouchMove={pauseAutoplay}
             onTouchEnd={() => resumeAutoplay()}
             onTouchCancel={() => resumeAutoplay()}
-            scrollEventThrottle={16}
+            scrollEventThrottle={8}
             windowSize={3}
             initialNumToRender={1}
             maxToRenderPerBatch={2}
