@@ -296,6 +296,38 @@ class TMDBWithCacheService {
     );
   }
 
+  async getTrendingMovies(
+    timeWindow: 'day' | 'week' = 'day',
+    page = 1,
+  ): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'trending_movies',
+      identifier: `${timeWindow}_${page}`,
+    };
+
+    return this.tryOnlineFirst(
+      () => tmdbService.getTrendingMovies(timeWindow, page),
+      cacheKey,
+      offlineCache['TTL_CONFIG'].trending,
+    );
+  }
+
+  async getTrendingTVShows(
+    timeWindow: 'day' | 'week' = 'day',
+    page = 1,
+  ): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'trending_tv',
+      identifier: `${timeWindow}_${page}`,
+    };
+
+    return this.tryOnlineFirst(
+      () => tmdbService.getTrendingTVShows(timeWindow, page),
+      cacheKey,
+      offlineCache['TTL_CONFIG'].trending,
+    );
+  }
+
   async discoverMovies(
     filters: any = {},
     page = 1,
@@ -584,6 +616,7 @@ export const getMoviesByOTT = (providerId: number, page?: number) =>
   tmdbWithCache.getMoviesByOTT(providerId, page);
 export const getShowsByOTT = (providerId: number, page?: number) =>
   tmdbWithCache.getShowsByOTT(providerId, page);
+export const buildOTTFilters = tmdbService.buildOTTFilters;
 export const getMoviesByLanguageSimple = (iso6391: string, page?: number) =>
   tmdbWithCache.getMoviesByLanguageSimple(iso6391, page);
 export const getShowsByLanguageSimple = (iso6391: string, page?: number) =>
@@ -625,10 +658,10 @@ export const getLanguage = tmdbService.getLanguage;
 export const getRegions = tmdbService.getRegions;
 export const checkTMDB = tmdbService.checkTMDB;
 export const getTrendingMovies = (timeWindow?: 'day' | 'week', page?: number) =>
-  tmdbWithCache.getTrending(timeWindow, page);
+  tmdbWithCache.getTrendingMovies(timeWindow, page);
 export const getTrendingTVShows = (
   timeWindow?: 'day' | 'week',
   page?: number,
-) => tmdbWithCache.getTrending(timeWindow, page);
+) => tmdbWithCache.getTrendingTVShows(timeWindow, page);
 export const getSeasonDetails = (tvId: number, seasonNumber: number) =>
   tmdbWithCache.getSeasonDetails(tvId, seasonNumber);

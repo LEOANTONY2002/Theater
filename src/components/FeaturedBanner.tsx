@@ -663,7 +663,7 @@ export const FeaturedBanner = memo(
             pagingEnabled
             scrollEnabled={true}
             showsHorizontalScrollIndicator={false}
-            decelerationRate={0.98}
+            decelerationRate={0.989}
             onScroll={Animated.event(
               [{nativeEvent: {contentOffset: {x: scrollX}}}],
               {useNativeDriver: true},

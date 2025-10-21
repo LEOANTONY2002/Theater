@@ -7,16 +7,16 @@ import {
   StyleSheet,
 } from 'react-native';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useMoviesList, useTrendingMovies} from '../hooks/useMovies';
+import {useTVShowsList, useTrendingTVShows} from '../hooks/useTVShows';
 import {HorizontalList} from './HorizontalList';
-import {Movie} from '../types/movie';
+import {TVShow} from '../types/tvshow';
 import {ContentItem} from './MovieList';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 
-type MovieCategory = 'popular' | 'top_rated' | 'trending';
+type TVShowCategory = 'popular' | 'top_rated' | 'trending';
 
 interface CategoryTab {
-  key: MovieCategory;
+  key: TVShowCategory;
   label: string;
 }
 
@@ -26,15 +26,15 @@ const CATEGORIES: CategoryTab[] = [
   {key: 'trending', label: 'Trending'},
 ];
 
-export const MoviesTabbedSection: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<MovieCategory>('popular');
+export const TVShowsTabbedSection: React.FC = () => {
+  const [activeCategory, setActiveCategory] = useState<TVShowCategory>('popular');
   const {navigateWithLimit} = useNavigationState();
 
   // Get data for the active category
-  const regularQuery = useMoviesList(
+  const regularQuery = useTVShowsList(
     activeCategory === 'trending' ? 'popular' : activeCategory
   );
-  const trendingQuery = useTrendingMovies('week');
+  const trendingQuery = useTrendingTVShows('week');
 
   // Use trending query if trending is selected, otherwise use regular
   const {
@@ -45,10 +45,10 @@ export const MoviesTabbedSection: React.FC = () => {
     isLoading,
   } = activeCategory === 'trending' ? trendingQuery : regularQuery;
 
-  const movies = useMemo(() => {
+  const shows = useMemo(() => {
     const pages = data?.pages || [];
     return pages.flatMap((page: any) =>
-      (page?.results || []).map((m: any) => ({...m, type: 'movie' as const})),
+      (page?.results || []).map((s: any) => ({...s, type: 'tv' as const})),
     );
   }, [data]);
 
@@ -58,8 +58,8 @@ export const MoviesTabbedSection: React.FC = () => {
       navigateWithLimit('Explore', {initialTab: 'trending'});
     } else {
       navigateWithLimit('Category', {
-        title: `${categoryLabel} Movies`,
-        contentType: 'movie',
+        title: `${categoryLabel} Shows`,
+        contentType: 'tv',
         categoryType: activeCategory,
       });
     }
@@ -67,8 +67,8 @@ export const MoviesTabbedSection: React.FC = () => {
 
   const onItemPress = useCallback(
     (item: ContentItem) => {
-      if (item.type !== 'tv') {
-        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      if (item.type === 'tv') {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
     },
     [navigateWithLimit],
@@ -95,7 +95,7 @@ export const MoviesTabbedSection: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Title */}
-      <Text style={styles.sectionTitle}>Movies in</Text>
+      <Text style={styles.sectionTitle}>Shows in</Text>
 
       {/* Horizontal Tabs */}
       <ScrollView
@@ -106,10 +106,10 @@ export const MoviesTabbedSection: React.FC = () => {
       </ScrollView>
 
       {/* Content List */}
-      {movies.length > 0 || isLoading ? (
+      {shows.length > 0 || isLoading ? (
         <HorizontalList
           title=""
-          data={movies}
+          data={shows}
           onItemPress={onItemPress}
           isLoading={isLoading}
           onEndReached={hasNextPage ? fetchNextPage : undefined}
@@ -121,7 +121,7 @@ export const MoviesTabbedSection: React.FC = () => {
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            No movies available in this category
+            No shows available in this category
           </Text>
         </View>
       )}

@@ -20,6 +20,7 @@ import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {SettingsManager} from '../store/settings';
 import {useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {buildOTTFilters} from '../services/tmdbWithCache';
 
 interface OttProvider {
   id: number;
@@ -62,15 +63,19 @@ export const OttTabbedSection: React.FC<Props> = ({
 
   const onSeeAllPress = useCallback(() => {
     const title = `Latest on ${activeProvider?.provider_name}`;
+    
+    // Use centralized filter builder - single source of truth
+    const filter = buildOTTFilters(
+      activeProviderId,
+      'latest',
+      'movie',
+      region?.iso_3166_1,
+    );
+    
     navigateWithLimit('Category', {
       title,
       contentType: 'movie',
-      filter: {
-        with_watch_providers: String(activeProviderId),
-        watch_region: region?.iso_3166_1 || 'US',
-        with_watch_monetization_types: 'flatrate|ads|free',
-        sort_by: 'release_date.desc',
-      },
+      filter,
     });
   }, [
     navigateWithLimit,

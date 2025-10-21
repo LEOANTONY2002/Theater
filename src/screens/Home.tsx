@@ -62,6 +62,9 @@ import {
 import {OttRowMovies} from '../components/OttRowMovies';
 import {OttTabbedSection} from '../components/OttTabbedSection';
 import {MoviesTabbedSection} from '../components/MoviesTabbedSection';
+import {TVShowsTabbedSection} from '../components/TVShowsTabbedSection';
+import {LanguageMoviesTabbedSection} from '../components/LanguageMoviesTabbedSection';
+import {LanguageTVShowsTabbedSection} from '../components/LanguageTVShowsTabbedSection';
 import {useNavigation} from '@react-navigation/native';
 
 export const HomeScreen = React.memo(() => {
@@ -107,12 +110,7 @@ export const HomeScreen = React.memo(() => {
 
   // Removed Upcoming Movies by Region hook
 
-  const {
-    data: popularTVShows,
-    fetchNextPage: fetchNextPopularTV,
-    hasNextPage: hasNextPopularTV,
-    isFetchingNextPage: isFetchingPopularTV,
-  } = useTVShowsList('popular');
+  // Removed Popular TV Shows hook (now using TVShowsTabbedSection)
 
   // Removed Top Rated TV Shows hook
 
@@ -652,135 +650,27 @@ export const HomeScreen = React.memo(() => {
       type: 'moviesTabbedSection',
     });
 
-    // Popular Shows section
-    if (popularTVShows?.pages?.[0]?.results?.length) {
-      sectionsList.push({
-        id: 'popularShows',
-        type: 'horizontalList',
-        title: 'Popular Shows',
-        data: getTVShowsFromData(popularTVShows),
-        isLoading: isFetchingPopularTV,
-        onEndReached: hasNextPopularTV ? fetchNextPopularTV : undefined,
-        onSeeAllPress: () =>
-          handleSeeAllPress('Popular Shows', 'popular', 'tv'),
-      });
-    } else if (isFetchingPopularTV) {
-      sectionsList.push({
-        id: 'popularShowsSkeleton',
-        type: 'horizontalListSkeleton',
-      });
-    }
+    // TV Shows Tabbed Section (Popular & Top Rated)
+    sectionsList.push({
+      id: 'tvShowsTabbedSection',
+      type: 'tvShowsTabbedSection',
+    });
 
-    // My Language rows
+    // My Language tabbed sections
     if (myLanguage?.iso_639_1) {
-      // Latest Movies in your language
-      const latestMoviesMyLang = getMoviesFromData(latestLangMovies);
-      if (latestMoviesMyLang?.length) {
-        sectionsList.push({
-          id: 'home_myLangMoviesLatest',
-          type: 'horizontalList',
-          title: `Latest Movies in ${
-            myLanguage.name || myLanguage.english_name
-          }`,
-          data: latestMoviesMyLang,
-          isLoading: isFetchingLatestLangMovies,
-          onEndReached: hasNextLatestLangMovies
-            ? fetchNextLatestLangMovies
-            : undefined,
-          isSeeAll: true,
-          onSeeAllPress: () =>
-            navigateWithLimit('Category', {
-              title: `Latest Movies in ${
-                myLanguage.name || myLanguage.english_name
-              }`,
-              contentType: 'movie',
-              filter: {
-                with_original_language: myLanguage.iso_639_1,
-                sort_by: 'release_date.desc',
-                'release_date.lte': todayStr,
-              },
-            }),
-        });
-      }
+      sectionsList.push({
+        id: 'languageMoviesTabbedSection',
+        type: 'languageMoviesTabbedSection',
+        languageIso: myLanguage.iso_639_1,
+        languageName: myLanguage.name || myLanguage.english_name,
+      });
 
-      // Popular Movies in your language
-      const popularMoviesMyLang = getMoviesFromData(langMoviesSimple?.data);
-      if (popularMoviesMyLang?.length) {
-        sectionsList.push({
-          id: 'home_myLangMoviesPopular',
-          type: 'horizontalList',
-          title: `Popular Movies in ${
-            myLanguage.name || myLanguage.english_name
-          }`,
-          data: popularMoviesMyLang,
-          isLoading: langMoviesSimple?.isLoading,
-          onEndReached: langMoviesSimple?.hasNextPage
-            ? langMoviesSimple.fetchNextPage
-            : undefined,
-          isSeeAll: true,
-          onSeeAllPress: () =>
-            navigateWithLimit('Category', {
-              title: `Popular Movies in ${
-                myLanguage.name || myLanguage.english_name
-              }`,
-              contentType: 'movie',
-              filter: {with_original_language: myLanguage.iso_639_1},
-            }),
-        });
-      }
-
-      // Latest Shows in your language
-      const latestTVMyLang = getTVShowsFromData(latestLangTV);
-      if (latestTVMyLang?.length) {
-        sectionsList.push({
-          id: 'home_myLangTVLatest',
-          type: 'horizontalList',
-          title: `Latest Shows in ${
-            myLanguage.name || myLanguage.english_name
-          }`,
-          data: latestTVMyLang,
-          isLoading: isFetchingLatestLangTV,
-          onEndReached: hasNextLatestLangTV ? fetchNextLatestLangTV : undefined,
-          isSeeAll: true,
-          onSeeAllPress: () =>
-            navigateWithLimit('Category', {
-              title: `Latest Shows in ${
-                myLanguage.name || myLanguage.english_name
-              }`,
-              contentType: 'tv',
-              filter: {
-                with_original_language: myLanguage.iso_639_1,
-                sort_by: 'first_air_date.desc',
-              },
-            }),
-        });
-      }
-
-      // Popular Shows in your language
-      const popularTVMyLang = getTVShowsFromData(langTVSimple?.data);
-      if (popularTVMyLang?.length) {
-        sectionsList.push({
-          id: 'home_myLangTVPopular',
-          type: 'horizontalList',
-          title: `Popular Shows in ${
-            myLanguage.name || myLanguage.english_name
-          }`,
-          data: popularTVMyLang,
-          isLoading: langTVSimple?.isLoading,
-          onEndReached: langTVSimple?.hasNextPage
-            ? langTVSimple.fetchNextPage
-            : undefined,
-          isSeeAll: true,
-          onSeeAllPress: () =>
-            navigateWithLimit('Category', {
-              title: `Popular Shows in ${
-                myLanguage.name || myLanguage.english_name
-              }`,
-              contentType: 'tv',
-              filter: {with_original_language: myLanguage.iso_639_1},
-            }),
-        });
-      }
+      sectionsList.push({
+        id: 'languageTVShowsTabbedSection',
+        type: 'languageTVShowsTabbedSection',
+        languageIso: myLanguage.iso_639_1,
+        languageName: myLanguage.name || myLanguage.english_name,
+      });
     }
 
     // My OTTs sections (movies): single unified section with tabs
@@ -842,12 +732,10 @@ export const HomeScreen = React.memo(() => {
     recentTVShows,
     showMoreContent,
     top10ContentByRegion,
-    popularTVShows,
     savedFilters,
     isLoadingSavedFilters,
     isFetchingRecentMovies,
     isFetchingRecentTV,
-    isFetchingPopularTV,
     region,
     latestMoviesByRegion,
     // MyLang deps
@@ -867,10 +755,8 @@ export const HomeScreen = React.memo(() => {
     todayStr,
     hasNextRecentMovies,
     hasNextRecentTV,
-    hasNextPopularTV,
     fetchNextRecentMovies,
     fetchNextRecentTV,
-    fetchNextPopularTV,
     handleSeeAllPress,
     moodLoaded,
     moodAnswers,
@@ -1070,6 +956,26 @@ export const HomeScreen = React.memo(() => {
 
         case 'moviesTabbedSection':
           return <MoviesTabbedSection />;
+        
+        case 'tvShowsTabbedSection':
+          return <TVShowsTabbedSection />;
+        
+        case 'languageMoviesTabbedSection':
+          return (
+            <LanguageMoviesTabbedSection
+              languageIso={item.languageIso}
+              languageName={item.languageName}
+            />
+          );
+        
+        case 'languageTVShowsTabbedSection':
+          return (
+            <LanguageTVShowsTabbedSection
+              languageIso={item.languageIso}
+              languageName={item.languageName}
+            />
+          );
+        
         case 'noSavedFilters':
           return (
             <View

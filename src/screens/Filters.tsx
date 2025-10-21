@@ -50,60 +50,60 @@ export const FiltersScreen = React.memo(() => {
   }, []);
 
   // Select up to 5 random filters for banner
-  const selectedFilters = useMemo(() => {
+  const bannerFilters = useMemo(() => {
     if (!savedFilters || savedFilters.length === 0) return [];
     const count = Math.min(5, savedFilters.length);
     const shuffled = [...savedFilters].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count);
   }, [savedFilters]);
 
-  // Fetch content from up to 5 filters (call hooks unconditionally)
+  // Fetch content from up to 5 filters for banner (call hooks unconditionally)
   const filter1 = useSavedFilterContent(
-    selectedFilters[0]
+    bannerFilters[0]
       ? {
-          ...selectedFilters[0],
-          params: normalizeWithGenres(selectedFilters[0].params),
+          ...bannerFilters[0],
+          params: normalizeWithGenres(bannerFilters[0].params),
         }
       : (null as any),
   );
   const filter2 = useSavedFilterContent(
-    selectedFilters[1]
+    bannerFilters[1]
       ? {
-          ...selectedFilters[1],
-          params: normalizeWithGenres(selectedFilters[1].params),
+          ...bannerFilters[1],
+          params: normalizeWithGenres(bannerFilters[1].params),
         }
       : (null as any),
   );
   const filter3 = useSavedFilterContent(
-    selectedFilters[2]
+    bannerFilters[2]
       ? {
-          ...selectedFilters[2],
-          params: normalizeWithGenres(selectedFilters[2].params),
+          ...bannerFilters[2],
+          params: normalizeWithGenres(bannerFilters[2].params),
         }
       : (null as any),
   );
   const filter4 = useSavedFilterContent(
-    selectedFilters[3]
+    bannerFilters[3]
       ? {
-          ...selectedFilters[3],
-          params: normalizeWithGenres(selectedFilters[3].params),
+          ...bannerFilters[3],
+          params: normalizeWithGenres(bannerFilters[3].params),
         }
       : (null as any),
   );
   const filter5 = useSavedFilterContent(
-    selectedFilters[4]
+    bannerFilters[4]
       ? {
-          ...selectedFilters[4],
-          params: normalizeWithGenres(selectedFilters[4].params),
+          ...bannerFilters[4],
+          params: normalizeWithGenres(bannerFilters[4].params),
         }
       : (null as any),
   );
 
-  // Combine random content from each filter
+  // Combine random content from each filter for banner
   useEffect(() => {
     const queries = [filter1, filter2, filter3, filter4, filter5];
     const allContent: ContentItem[] = [];
-    const filterCount = selectedFilters.length;
+    const filterCount = bannerFilters.length;
 
     if (filterCount === 0) return;
 
@@ -113,7 +113,7 @@ export const FiltersScreen = React.memo(() => {
     queries.slice(0, filterCount).forEach((query, index) => {
       if (query.data?.pages?.[0]?.results) {
         const results = query.data.pages[0].results;
-        const filterType = selectedFilters[index]?.type;
+        const filterType = bannerFilters[index]?.type;
         if (results.length > 0) {
           // Pick random items from this filter's results
           const count = Math.min(itemsPerFilter, results.length);
@@ -154,8 +154,8 @@ export const FiltersScreen = React.memo(() => {
     filter3.data,
     filter4.data,
     filter5.data,
-    selectedFilters.length,
-    selectedFilters,
+    bannerFilters.length,
+    bannerFilters,
   ]);
 
   const handleQuickAdd = useCallback(
@@ -272,38 +272,41 @@ export const FiltersScreen = React.memo(() => {
     return <FiltersBanner items={bannerContent} />;
   }, [isLoading, savedFilters.length, bannerContent]);
 
-  const renderFilterRow = useCallback(
-    ({item, index}: {item: SavedFilter; index: number}) => {
-      // Get the corresponding filter query data
-      const queries = [filter1, filter2, filter3, filter4, filter5];
-      const query = queries[index];
-      const data = query?.data?.pages?.[0]?.results || [];
+  // Component to render each filter row with its own query
+  const FilterRow = React.memo(({item}: {item: SavedFilter}) => {
+    const normalizedFilter = useMemo(
+      () => ({
+        ...item,
+        params: normalizeWithGenres(item.params),
+      }),
+      [item],
+    );
 
-      return (
-        <HorizontalList
-          title={item.name}
-          data={data}
-          onItemPress={(content: ContentItem) => {
-            if ((content as any).first_air_date) {
-              (navigation as any).navigate('TVShowDetails', {show: content});
-            } else {
-              (navigation as any).navigate('MovieDetails', {movie: content});
-            }
-          }}
-          onSeeAllPress={() => handleFilterPress(item)}
-          isLoading={query?.isLoading}
-        />
-      );
+    const query = useSavedFilterContent(normalizedFilter);
+    const data = query?.data?.pages?.[0]?.results || [];
+
+    return (
+      <HorizontalList
+        title={item.name}
+        data={data}
+        onItemPress={(content: ContentItem) => {
+          if ((content as any).first_air_date) {
+            (navigation as any).navigate('TVShowDetails', {show: content});
+          } else {
+            (navigation as any).navigate('MovieDetails', {movie: content});
+          }
+        }}
+        onSeeAllPress={() => handleFilterPress(item)}
+        isLoading={query?.isLoading}
+      />
+    );
+  });
+
+  const renderFilterRow = useCallback(
+    ({item}: {item: SavedFilter}) => {
+      return <FilterRow item={item} />;
     },
-    [
-      handleFilterPress,
-      filter1,
-      filter2,
-      filter3,
-      filter4,
-      filter5,
-      navigation,
-    ],
+    [handleFilterPress, navigation],
   );
 
   const renderEmpty = useCallback(() => {

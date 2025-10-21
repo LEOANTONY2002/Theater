@@ -242,9 +242,11 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
     },
     title: {
       ...typography.h3,
+      fontSize: isTablet ? 24 : 16,
       color: colors.text.primary,
       marginBottom: spacing.xs,
       fontWeight: '700',
+      textAlign: 'center',
     },
     overview: {
       ...typography.body2,
@@ -303,7 +305,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: isTablet ? spacing.xl : spacing.md,
     },
     watchlistButton: {
       width: isTablet ? 60 : 45,
@@ -451,12 +453,6 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
                     </View>
                   ))}
                 </View>
-              )}
-
-              {(item as any).overview && isTablet && (
-                <Text style={styles.overview} numberOfLines={2}>
-                  {(item as any).overview}
-                </Text>
               )}
 
               {/* Action Buttons - only show for active card */}

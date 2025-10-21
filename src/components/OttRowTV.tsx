@@ -6,6 +6,7 @@ import {useTVByOTTSimple, useTVByProvider} from '../hooks/usePersonalization';
 import {HorizontalList} from './HorizontalList';
 import {TVShow} from '../types/tvshow';
 import {ContentItem} from './MovieList';
+import {buildOTTFilters} from '../services/tmdbWithCache';
 
 interface Props {
   providerId: number;
@@ -42,15 +43,19 @@ export const OttRowTV: React.FC<Props> = ({
       kind === 'latest'
         ? `Latest on ${providerName}`
         : `Popular on ${providerName}`;
+    
+    // Use centralized filter builder - single source of truth
+    const filter = buildOTTFilters(
+      providerId,
+      kind,
+      'tv',
+      region?.iso_3166_1,
+    );
+    
     navigateWithLimit('Category', {
       title,
       contentType: 'tv',
-      filter: {
-        with_watch_providers: String(providerId),
-        watch_region: region?.iso_3166_1 || 'US',
-        with_watch_monetization_types: 'flatrate|ads|free',
-        sort_by: kind === 'latest' ? 'first_air_date.desc' : 'popularity.desc',
-      },
+      filter,
     });
   }, [navigateWithLimit, providerId, providerName, region?.iso_3166_1, kind]);
 

@@ -548,8 +548,7 @@ export const getTrendingMovies = async (
   timeWindow: 'day' | 'week' = 'day',
   page = 1,
 ) => {
-  const with_original_language = await getLanguageParam();
-  const response = await tmdbApi.get(`/discover/movie/${timeWindow}`, {
+  const response = await tmdbApi.get(`/trending/movie/${timeWindow}`, {
     params: {page, with_adult: false, include_adult: false},
   });
   return response.data;
@@ -559,8 +558,7 @@ export const getTrendingTVShows = async (
   timeWindow: 'day' | 'week' = 'day',
   page = 1,
 ) => {
-  const with_original_language = await getLanguageParam();
-  const response = await tmdbApi.get(`/discover/tv/${timeWindow}`, {
+  const response = await tmdbApi.get(`/trending/tv/${timeWindow}`, {
     params: {page, with_adult: false, include_adult: false},
   });
   return response.data;
@@ -595,17 +593,41 @@ export const discoverTVShows = async (filters: any = {}, page = 1) => {
   return response.data;
 };
 
+// Centralized OTT filter builder - single source of truth
+export const buildOTTFilters = (
+  providerId: number,
+  kind: 'popular' | 'latest',
+  contentType: 'movie' | 'tv',
+  region?: string,
+) => {
+  const filters: any = {
+    sort_by:
+      kind === 'latest'
+        ? contentType === 'movie'
+          ? 'release_date.desc'
+          : 'first_air_date.desc'
+        : 'popularity.desc',
+    include_adult: false,
+    with_watch_providers: providerId.toString(),
+    watch_region: region || 'US',
+    with_watch_monetization_types: 'flatrate|ads|free',
+  };
+
+  // Latest queries use searchMovies/searchTVShows which add vote_count filter
+  if (kind === 'latest') {
+    filters['vote_count.gte'] = 10;
+  }
+
+  return filters;
+};
+
 // New simplified helpers per instruction
 export const getMoviesByOTT = async (providerId: number, page = 1) => {
   if (!providerId) return {results: [], page: 1, total_pages: 1};
   const region = await SettingsManager.getRegion();
   const params: any = {
     page,
-    sort_by: 'popularity.desc',
-    include_adult: false,
-    with_watch_providers: providerId.toString(),
-    watch_region: region?.iso_3166_1 || 'US',
-    with_watch_monetization_types: 'flatrate|ads|free',
+    ...buildOTTFilters(providerId, 'popular', 'movie', region?.iso_3166_1),
   };
   const response = await tmdbApi.get('/discover/movie', {params});
   return response.data;
@@ -616,11 +638,7 @@ export const getShowsByOTT = async (providerId: number, page = 1) => {
   const region = await SettingsManager.getRegion();
   const params: any = {
     page,
-    sort_by: 'popularity.desc',
-    include_adult: false,
-    with_watch_providers: providerId.toString(),
-    watch_region: region?.iso_3166_1 || 'US',
-    with_watch_monetization_types: 'flatrate|ads|free',
+    ...buildOTTFilters(providerId, 'popular', 'tv', region?.iso_3166_1),
   };
   const response = await tmdbApi.get('/discover/tv', {params});
   return response.data;

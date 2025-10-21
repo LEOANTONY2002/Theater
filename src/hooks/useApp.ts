@@ -72,10 +72,12 @@ export function useDynamicContentSource({
   categoryType,
   contentType,
   filter,
+  queryKey,
 }: {
   categoryType?: string;
   contentType: 'movie' | 'tv';
   filter?: any;
+  queryKey?: string; // Special key to identify which hook to use
 }) {
   // If filter is a SavedFilter, use saved filter logic
   if (filter && filter.type && filter.params) {
@@ -92,6 +94,15 @@ export function useDynamicContentSource({
         with_genres: filter.genreId.toString(),
         ...(filter.sortBy && {sort_by: filter.sortBy}),
       });
+    }
+  }
+  // If filter is a plain object with filter params (e.g., from OTT sections, Popular/Top Rated)
+  // Use discover APIs with the filter params AS-IS (don't modify them)
+  if (filter && typeof filter === 'object' && !filter.type && !filter.genreId) {
+    if (contentType === 'movie') {
+      return useDiscoverMovies(filter);
+    } else if (contentType === 'tv') {
+      return useDiscoverTVShows(filter);
     }
   }
   // If categoryType is present, use category logic

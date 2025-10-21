@@ -7,43 +7,45 @@ import {
   StyleSheet,
 } from 'react-native';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useMoviesList, useTrendingMovies} from '../hooks/useMovies';
+import {useMoviesByLanguage} from '../hooks/usePersonalization';
 import {HorizontalList} from './HorizontalList';
 import {Movie} from '../types/movie';
 import {ContentItem} from './MovieList';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 
-type MovieCategory = 'popular' | 'top_rated' | 'trending';
+type LanguageMovieCategory = 'latest' | 'popular' | 'top_rated';
 
 interface CategoryTab {
-  key: MovieCategory;
+  key: LanguageMovieCategory;
   label: string;
 }
 
 const CATEGORIES: CategoryTab[] = [
+  {key: 'latest', label: 'Latest'},
   {key: 'popular', label: 'Popular'},
   {key: 'top_rated', label: 'Top Rated'},
-  {key: 'trending', label: 'Trending'},
 ];
 
-export const MoviesTabbedSection: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<MovieCategory>('popular');
+interface Props {
+  languageIso: string;
+  languageName: string;
+}
+
+export const LanguageMoviesTabbedSection: React.FC<Props> = ({
+  languageIso,
+  languageName,
+}) => {
+  const [activeCategory, setActiveCategory] = useState<LanguageMovieCategory>('latest');
   const {navigateWithLimit} = useNavigationState();
 
   // Get data for the active category
-  const regularQuery = useMoviesList(
-    activeCategory === 'trending' ? 'popular' : activeCategory
-  );
-  const trendingQuery = useTrendingMovies('week');
-
-  // Use trending query if trending is selected, otherwise use regular
   const {
     data,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = activeCategory === 'trending' ? trendingQuery : regularQuery;
+  } = useMoviesByLanguage(activeCategory, languageIso);
 
   const movies = useMemo(() => {
     const pages = data?.pages || [];
@@ -54,16 +56,23 @@ export const MoviesTabbedSection: React.FC = () => {
 
   const onSeeAllPress = useCallback(() => {
     const categoryLabel = CATEGORIES.find(c => c.key === activeCategory)?.label;
-    if (activeCategory === 'trending') {
-      navigateWithLimit('Explore', {initialTab: 'trending'});
-    } else {
-      navigateWithLimit('Category', {
-        title: `${categoryLabel} Movies`,
-        contentType: 'movie',
-        categoryType: activeCategory,
-      });
-    }
-  }, [navigateWithLimit, activeCategory]);
+    const sortBy =
+      activeCategory === 'latest'
+        ? 'release_date.desc'
+        : activeCategory === 'top_rated'
+        ? 'vote_average.desc'
+        : 'popularity.desc';
+
+    navigateWithLimit('Category', {
+      title: `${categoryLabel} Movies in ${languageName}`,
+      contentType: 'movie',
+      filter: {
+        with_original_language: languageIso,
+        sort_by: sortBy,
+        ...(activeCategory === 'top_rated' && {'vote_count.gte': 100}),
+      },
+    });
+  }, [navigateWithLimit, activeCategory, languageName, languageIso]);
 
   const onItemPress = useCallback(
     (item: ContentItem) => {
@@ -95,7 +104,7 @@ export const MoviesTabbedSection: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Title */}
-      <Text style={styles.sectionTitle}>Movies in</Text>
+      <Text style={styles.sectionTitle}>{languageName} Movies in</Text>
 
       {/* Horizontal Tabs */}
       <ScrollView
@@ -121,7 +130,7 @@ export const MoviesTabbedSection: React.FC = () => {
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            No movies available in this category
+            No {CATEGORIES.find(c => c.key === activeCategory)?.label.toLowerCase()} movies available in {languageName}
           </Text>
         </View>
       )}
@@ -171,12 +180,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 250,
+    minHeight: 200,
   },
   emptyText: {
     color: colors.text.secondary,
     ...typography.body2,
     textAlign: 'center',
-    marginBottom: spacing.md,
   },
 });
