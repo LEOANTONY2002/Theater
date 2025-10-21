@@ -21,8 +21,8 @@ import {MyFiltersModal} from '../components/MyFiltersModal';
 import LinearGradient from 'react-native-linear-gradient';
 import languageData from '../utils/language.json';
 import {Genre} from '../types/movie';
+import {useGenres} from '../hooks/useGenres';
 import {
-  getGenres,
   getOptimizedImageUrl,
   getAvailableWatchProviders,
 } from '../services/tmdb';
@@ -157,7 +157,17 @@ export const MyFiltersScreen = () => {
     [queryClient],
   );
 
-  const [allGenres, setAllGenres] = useState<Genre[]>([]);
+  // Use cached genres hooks
+  const {data: movieGenres = []} = useGenres('movie');
+  const {data: tvGenres = []} = useGenres('tv');
+  
+  // Combine and deduplicate genres
+  const allGenres = React.useMemo(() => {
+    const combined = [...movieGenres, ...tvGenres];
+    return combined.filter(
+      (genre, index, self) => index === self.findIndex(t => t.id === genre.id)
+    );
+  }, [movieGenres, tvGenres]);
 
   // Fetch provider catalog (movie) and build id -> logo map
   const {data: availableProviders = []} = useQuery({
@@ -177,27 +187,6 @@ export const MyFiltersScreen = () => {
     return map;
   }, [availableProviders]);
 
-  useEffect(() => {
-    const fetchGenres = async () => {
-      try {
-        const [movieGenresData, tvGenresData] = await Promise.all([
-          getGenres('movie'),
-          getGenres('tv'),
-        ]);
-        // Combine and deduplicate genres from both movie and TV
-        const allGenresData = [...movieGenresData, ...tvGenresData];
-        const uniqueGenres = allGenresData.filter(
-          (genre, index, self) =>
-            index === self.findIndex(t => t.id === genre.id),
-        );
-        setAllGenres(uniqueGenres);
-      } catch (error) {
-        console.error('Error loading genres:', error);
-      }
-    };
-
-    fetchGenres();
-  }, []);
 
   // Import Filter submit (same UX as Watchlists)
   const handleImportFilterSubmit = useCallback(async () => {

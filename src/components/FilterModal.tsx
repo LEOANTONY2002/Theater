@@ -20,13 +20,14 @@ import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterParams, SORT_OPTIONS} from '../types/filters';
 import {
   getLanguages,
-  getGenres,
   searchFilterContent,
   getAvailableWatchProviders,
 } from '../services/tmdb';
+import {useGenres} from '../hooks/useGenres';
 import {Chip} from './Chip';
 import {FiltersManager} from '../store/filters';
 import type {SavedFilter} from '../types/filters';
+import {useQuery} from '@tanstack/react-query';
 import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
 import {LanguageSettings} from './LanguageSettings';
@@ -76,9 +77,17 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [showToDate, setShowToDate] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
-  const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
-  const [tvGenres, setTvGenres] = useState<Genre[]>([]);
-  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
+  // Use cached genres hooks
+  const {data: movieGenres = []} = useGenres('movie');
+  const {data: tvGenres = []} = useGenres('tv');
+  
+  // Use cached watch providers
+  const {data: watchProviders = []} = useQuery({
+    queryKey: ['available_watch_providers', 'movie'],
+    queryFn: () => getAvailableWatchProviders(),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: visible, // Only fetch when modal is visible
+  });
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isApplyingSavedFilter, setIsApplyingSavedFilter] = useState(false);
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
@@ -177,27 +186,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     }
   }, [visible, filters.with_original_language]);
 
-  useEffect(() => {
-    const fetchGenres = async () => {
-      try {
-        const [movieGenresData, tvGenresData, watchProvidersData] =
-          await Promise.all([
-            getGenres('movie'),
-            getGenres('tv'),
-            getAvailableWatchProviders(),
-          ]);
-        setMovieGenres(movieGenresData);
-        setTvGenres(tvGenresData);
-        setWatchProviders(watchProvidersData);
-      } catch (error) {
-        console.error('Error loading genres:', error);
-      }
-    };
-
-    if (visible) {
-      fetchGenres();
-    }
-  }, [visible]);
 
   useEffect(() => {
     // Only clear genres when content type changes naturally, not when applying saved filter
@@ -591,7 +579,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 showsHorizontalScrollIndicator={false}
                 scrollEnabled={true}
                 nestedScrollEnabled={true}
-                renderItem={({item: genre}) => (
+                renderItem={({item: genre}: {item: Genre}) => (
                   <Chip
                     key={genre.id}
                     label={genre.name}
@@ -615,7 +603,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     onPress={() => handleGenreToggle(genre.id, genre.name)}
                   />
                 )}
-                keyExtractor={genre => genre.id.toString()}
+                keyExtractor={(genre: Genre) => genre.id.toString()}
                 contentContainerStyle={{
                   paddingHorizontal: 16,
                   paddingRight: 32,
@@ -761,7 +749,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 showsHorizontalScrollIndicator={false}
                 scrollEnabled={true}
                 nestedScrollEnabled={true}
-                renderItem={({item: provider, index}) => {
+                renderItem={({item: provider, index}: {item: WatchProvider; index: number}) => {
                   const selected = (() => {
                     if (!filters.with_watch_providers) return false;
                     return filters.with_watch_providers
@@ -820,7 +808,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     </TouchableOpacity>
                   );
                 }}
-                keyExtractor={(provider, index) =>
+                keyExtractor={(provider: WatchProvider, index: number) =>
                   `provider-${provider.provider_id}-${index}`
                 }
                 contentContainerStyle={{
@@ -1255,7 +1243,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             </View>
             <ScrollView style={styles.scrollContent}>
               <View style={styles.allProvidersGrid}>
-                {watchProviders.map((provider, index) => {
+                {watchProviders.map((provider: WatchProvider, index: number) => {
                   const selected = (() => {
                     if (!filters.with_watch_providers) return false;
                     return filters.with_watch_providers

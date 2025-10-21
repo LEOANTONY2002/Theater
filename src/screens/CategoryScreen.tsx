@@ -51,8 +51,7 @@ export const CategoryScreen = () => {
   const {title, categoryType, contentType, filter, fromSearch} =
     (route.params as any) || {};
   const isFocused = useIsFocused();
-  const [canRenderContent, setCanRenderContent] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const {isTablet, orientation} = useResponsive();
   const {width} = useWindowDimensions();
 
@@ -84,14 +83,6 @@ export const CategoryScreen = () => {
       extrapolate: 'clamp',
     }),
   };
-
-  // Defer heavy rendering to prevent FPS drops
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCanRenderContent(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Ensure system back/gesture also returns to Search when opened from Search
   useEffect(() => {
@@ -130,14 +121,6 @@ export const CategoryScreen = () => {
     return unsubscribe;
   }, [navigation, fromSearch]);
 
-  useEffect(() => {
-    // Set loading to false after a short delay to allow smooth transition
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
   // Define internal item press handler
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -167,6 +150,16 @@ export const CategoryScreen = () => {
     return (data?.pages?.flatMap(page => page?.results || []) ??
       []) as ContentItem[];
   }, [data]);
+
+  // Track when data has loaded at least once
+  useEffect(() => {
+    if (flattenedData.length > 0 || !isLoading) {
+      setHasLoadedOnce(true);
+    }
+  }, [flattenedData.length, isLoading]);
+
+  // Show skeleton overlay only on first load before any data
+  const showLoadingSkeleton = !hasLoadedOnce && isLoading;
 
   // Spacing and sizing
   const horizontalPadding = (spacing?.sm ?? 8) * 2; // list content padding matches styles
@@ -395,10 +388,29 @@ export const CategoryScreen = () => {
     },
   });
 
-  if (!canRenderContent) {
+  if (showLoadingSkeleton) {
     return (
-      <View style={styles.loadingOverlay}>
-        <GridListSkeleton />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View
+            style={{
+              display: 'flex',
+              gap: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: spacing.md,
+              width: '100%',
+              height: 60,
+            }}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Icon name="chevron-back" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={styles.title}>{title}</Text>
+          </View>
+        </View>
+        <View style={{position: 'absolute', top: 100, left: 0, right: 0}}>
+          <GridListSkeleton />
+        </View>
       </View>
     );
   }
@@ -496,12 +508,10 @@ export const CategoryScreen = () => {
             ) : null
           }
           ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.emptyContainer}>
-                <Icon name="alert-circle" size={48} color={colors.text.muted} />
-                <Text style={styles.emptyText}>No content found</Text>
-              </View>
-            ) : null
+            <View style={styles.emptyContainer}>
+              <Icon name="alert-circle" size={48} color={colors.text.muted} />
+              <Text style={styles.emptyText}>No content found</Text>
+            </View>
           }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.listContent, {paddingVertical: 100}]}
@@ -516,11 +526,6 @@ export const CategoryScreen = () => {
           pointerEvents={isFocused ? 'auto' : 'none'}
         />
       </View>
-      {isInitialLoading && (
-        <View style={styles.loadingOverlay}>
-          <GridListSkeleton />
-        </View>
-      )}
     </View>
   );
 };

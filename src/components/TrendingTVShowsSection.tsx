@@ -1,95 +1,69 @@
-import React, {useState, useCallback, useMemo} from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
+import React, {useState, useCallback, useMemo, memo} from 'react';
+import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useTVByLanguage} from '../hooks/usePersonalization';
+import {useTrendingTVShows} from '../hooks/useTVShows';
 import {HorizontalList} from './HorizontalList';
+import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {ContentItem} from './MovieList';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 
-type LanguageTVCategory = 'latest' | 'popular' | 'top_rated';
-
-interface CategoryTab {
-  key: LanguageTVCategory;
-  label: string;
-}
-
-const CATEGORIES: CategoryTab[] = [
-  {key: 'latest', label: 'Latest'},
-  {key: 'popular', label: 'Popular'},
-  {key: 'top_rated', label: 'Top Rated'},
-];
-
-interface Props {
-  languageIso: string;
-  languageName: string;
-}
-
-export const LanguageTVShowsTabbedSection: React.FC<Props> = ({
-  languageIso,
-  languageName,
-}) => {
-  const [activeCategory, setActiveCategory] = useState<LanguageTVCategory>('latest');
+export const TrendingTVShowsSection: React.FC = memo(() => {
+  const [timeWindow, setTimeWindow] = useState<'day' | 'week'>('day');
   const {navigateWithLimit} = useNavigationState();
 
-  // Get data for the active category
+  // Get trending data based on active time window
   const {
-    data,
+    data: trendingData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useTVByLanguage(activeCategory, languageIso);
+  } = useTrendingTVShows(timeWindow);
 
-  const shows = useMemo(() => {
-    const pages = data?.pages || [];
-    return pages.flatMap((page: any) =>
-      (page?.results || []).map((s: any) => ({...s, type: 'tv' as const})),
+  const data = useMemo(() => {
+    const pages = trendingData?.pages || [];
+    return (
+      pages.flatMap((page: any) =>
+        (page?.results || []).map((show: any) => ({...show, type: 'tv' as const})),
+      ) || []
     );
-  }, [data]);
+  }, [trendingData]);
 
   const onSeeAllPress = useCallback(() => {
-    const categoryLabel = CATEGORIES.find(c => c.key === activeCategory)?.label;
-
+    const title = `Trending TV Shows - ${timeWindow === 'day' ? 'Today' : 'This Week'}`;
     navigateWithLimit('Category', {
-      title: `${categoryLabel} Shows in ${languageName}`,
+      title,
       contentType: 'tv',
-      filter: {
-        languageCategory: activeCategory,
-        languageIso: languageIso,
-      },
+      categoryType: timeWindow === 'day' ? 'trending_day' : 'trending_week',
     });
-  }, [navigateWithLimit, activeCategory, languageName, languageIso]);
+  }, [navigateWithLimit, timeWindow]);
 
   const onItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'tv') {
         navigateWithLimit('TVShowDetails', {show: item as TVShow});
+      } else {
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
       }
     },
     [navigateWithLimit],
   );
 
-  const renderTabButton = (category: CategoryTab) => (
+  const renderTabButton = (tab: 'day' | 'week', label: string) => (
     <TouchableOpacity
-      key={category.key}
+      key={tab}
       style={[
         styles.tabButton,
-        activeCategory === category.key && styles.activeTabButton,
+        timeWindow === tab && styles.activeTabButton,
       ]}
-      onPress={() => setActiveCategory(category.key)}>
+      onPress={() => setTimeWindow(tab)}>
       <Text
         style={[
           styles.tabText,
-          activeCategory === category.key && styles.activeTabText,
+          timeWindow === tab && styles.activeTabText,
         ]}>
-        {category.label}
+        {label}
       </Text>
     </TouchableOpacity>
   );
@@ -97,22 +71,20 @@ export const LanguageTVShowsTabbedSection: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       {/* Title */}
-      <Text style={styles.sectionTitle}>{languageName} Shows in</Text>
+      <Text style={styles.sectionTitle}>Trending in</Text>
 
-      {/* Horizontal Tabs */}
-      <ScrollView
-        style={styles.tabContainer}
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}>
-        {CATEGORIES.map(renderTabButton)}
-      </ScrollView>
+      {/* Day/Week Tabs */}
+      <View style={styles.tabContainer}>
+        {renderTabButton('day', 'Today')}
+        {renderTabButton('week', 'This Week')}
+      </View>
 
       {/* Content List */}
-      {shows.length > 0 || isLoading ? (
+      {data.length > 0 || isLoading ? (
         <HorizontalList
-          key={`lang-shows-${languageIso}-${activeCategory}`}
+          key={`trending-shows-${timeWindow}`}
           title=""
-          data={shows}
+          data={data}
           onItemPress={onItemPress}
           isLoading={isLoading}
           onEndReached={hasNextPage ? fetchNextPage : undefined}
@@ -124,13 +96,13 @@ export const LanguageTVShowsTabbedSection: React.FC<Props> = ({
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            No {CATEGORIES.find(c => c.key === activeCategory)?.label.toLowerCase()} shows available in {languageName}
+            No trending TV shows available
           </Text>
         </View>
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -145,12 +117,13 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     padding: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
   tabButton: {
-    padding: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderRadius: borderRadius.sm,
-    marginHorizontal: spacing.xs,
     alignItems: 'center',
     backgroundColor: colors.modal.blur,
     borderWidth: 1,
@@ -174,7 +147,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 200,
+    height: 250,
   },
   emptyText: {
     color: colors.text.secondary,

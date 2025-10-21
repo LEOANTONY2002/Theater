@@ -12,9 +12,11 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import {
   useMoviesByOTTSimple,
   useMoviesByProvider,
+  useTVByProvider,
 } from '../hooks/usePersonalization';
 import {HorizontalList} from './HorizontalList';
 import {Movie} from '../types/movie';
+import {TVShow} from '../types/tvshow';
 import {ContentItem} from './MovieList';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {SettingsManager} from '../store/settings';
@@ -30,11 +32,15 @@ interface OttProvider {
 interface Props {
   providers: OttProvider[];
   isPersonalized?: boolean;
+  kind?: 'latest' | 'popular';
+  contentType?: 'movie' | 'tv';
 }
 
 export const OttTabbedSection: React.FC<Props> = ({
   providers,
   isPersonalized = false,
+  kind = 'latest',
+  contentType = 'movie',
 }) => {
   const [activeProviderId, setActiveProviderId] = useState<number>(
     providers[0]?.id || 0,
@@ -43,53 +49,78 @@ export const OttTabbedSection: React.FC<Props> = ({
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
 
-  // Get data for the active provider
-  const hook = useMoviesByProvider(
-    activeProviderId,
-    'latest',
+  // Get data for the active provider - conditionally enable based on contentType
+  const movieHook = useMoviesByProvider(
+    contentType === 'movie' ? activeProviderId : undefined,
+    kind,
     region?.iso_3166_1,
   );
+  const tvHook = useTVByProvider(
+    contentType === 'tv' ? activeProviderId : undefined,
+    kind,
+    region?.iso_3166_1,
+  );
+  
+  const hook = contentType === 'movie' ? movieHook : tvHook;
 
   const data = useMemo(() => {
     const pages = hook?.data?.pages || [];
-    return (
-      pages.flatMap((page: any) =>
-        (page?.results || []).map((m: any) => ({...m, type: 'movie' as const})),
-      ) || []
-    );
-  }, [hook?.data]);
+    const results = pages.flatMap((page: any) =>
+      (page?.results || []).map((m: any) => ({
+        ...m,
+        type: contentType === 'movie' ? ('movie' as const) : ('tv' as const),
+      })),
+    ) || [];
+    
+    // Debug: log if we have items without poster_path
+    if (results.length > 0) {
+      const missingPosters = results.filter((item: any) => !item.poster_path);
+      if (missingPosters.length > 0) {
+        console.log(`[OTT ${contentType}] ${missingPosters.length}/${results.length} items missing poster_path for provider ${activeProviderId}`);
+      }
+    }
+    
+    return results;
+  }, [hook?.data, contentType, activeProviderId]);
 
   const activeProvider = providers.find(p => p.id === activeProviderId);
 
   const onSeeAllPress = useCallback(() => {
-    const title = `Latest on ${activeProvider?.provider_name}`;
+    const kindLabel = kind === 'latest' ? 'Latest' : 'Popular';
+    const title = `${kindLabel} on ${activeProvider?.provider_name}`;
     
     // Use centralized filter builder - single source of truth
     const filter = buildOTTFilters(
       activeProviderId,
-      'latest',
-      'movie',
+      kind,
+      contentType,
       region?.iso_3166_1,
     );
     
     navigateWithLimit('Category', {
       title,
-      contentType: 'movie',
-      filter,
+      contentType,
+      filter: {
+        ...filter,
+        providerId: activeProviderId,
+        ottKind: kind,
+        watchRegion: region?.iso_3166_1,
+      },
     });
   }, [
     navigateWithLimit,
     activeProviderId,
     activeProvider?.provider_name,
     region?.iso_3166_1,
+    kind,
   ]);
 
   const onItemPress = useCallback(
     (item: ContentItem) => {
-      if (item.type !== 'tv') {
+      if (item.type === 'movie') {
         navigateWithLimit('MovieDetails', {movie: item as Movie});
       } else {
-        navigateWithLimit('TVShowDetails', {tv: item as any});
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
     },
     [navigateWithLimit],
@@ -165,7 +196,9 @@ export const OttTabbedSection: React.FC<Props> = ({
     <View style={styles.container}>
       {/* Title */}
       <Text style={styles.sectionTitle}>
-        {isPersonalized ? 'Latest releases on My OTTs' : 'Latest releases on'}
+        {isPersonalized 
+          ? (kind === 'latest' ? 'Latest releases on My OTTs' : 'Popular on My OTTs')
+          : (kind === 'latest' ? 'Latest releases on' : 'Popular on')}
       </Text>
 
       {/* Horizontal Tabs */}
@@ -176,9 +209,10 @@ export const OttTabbedSection: React.FC<Props> = ({
         {providers.map(renderTabButton)}
       </ScrollView>
 
-      {/* Content List */}
+      {/* Content List - Key forces remount when switching providers */}
       {hook?.isLoading ? (
         <HorizontalList
+          key={`${activeProviderId}-${kind}-${contentType}-loading`}
           title=""
           data={data}
           onItemPress={onItemPress}
@@ -191,6 +225,7 @@ export const OttTabbedSection: React.FC<Props> = ({
         />
       ) : data.length > 0 ? (
         <HorizontalList
+          key={`${activeProviderId}-${kind}-${contentType}`}
           title=""
           data={data}
           onItemPress={onItemPress}

@@ -69,7 +69,6 @@ const NoResults = ({query}: {query: string}) => (
 );
 
 type TabType = 'trending' | 'filters' | 'watchlists' | 'history';
-type TrendingTimeWindow = 'day' | 'week';
 
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
@@ -82,7 +81,6 @@ export const SearchScreen = React.memo(() => {
   const [activeFilters, setActiveFilters] = useState<FilterParams>({});
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
   const [activeTab, setActiveTab] = useState<TabType>('trending');
-  const [trendingTimeWindow, setTrendingTimeWindow] = useState<TrendingTimeWindow>('day');
   const [historyItems, setHistoryItems] = useState<ContentItem[]>([]);
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
@@ -144,7 +142,7 @@ export const SearchScreen = React.memo(() => {
     fetchNextPage: fetchNextTrendingPage,
     hasNextPage: hasNextTrendingPage,
     isFetchingNextPage: isFetchingTrendingPage,
-  } = useTrending(trendingTimeWindow);
+  } = useTrending('day');
 
   // Load recent items on mount
   useEffect(() => {
@@ -385,55 +383,22 @@ export const SearchScreen = React.memo(() => {
     </TouchableOpacity>
   );
 
-  const renderTrendingTimeWindowTab = (
-    window: TrendingTimeWindow,
-    label: string,
-  ) => (
-    <TouchableOpacity
-      key={window}
-      style={[
-        styles.timeWindowButton,
-        trendingTimeWindow === window && styles.activeTimeWindowButton,
-      ]}
-      onPress={() => setTrendingTimeWindow(window)}>
-      <Text
-        style={[
-          styles.timeWindowText,
-          trendingTimeWindow === window && styles.activeTimeWindowText,
-        ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
   const renderTrendingContent = () => (
-    <View>
-      {/* Time Window Sub-Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.timeWindowContainer}
-        contentContainerStyle={styles.timeWindowContentContainer}>
-        {renderTrendingTimeWindowTab('day', 'Today')}
-        {renderTrendingTimeWindowTab('week', 'This Week')}
-      </ScrollView>
-
-      <TrendingGrid
-        data={
-          trendingData?.pages?.flatMap((page: any) =>
-            page.results.map((item: any) => ({
-              ...item,
-              type: item.media_type === 'movie' ? 'movie' : 'tv',
-            })),
-          ) || []
-        }
-        onItemPress={handleItemPress}
-        isLoading={isLoadingTrending}
-        fetchNextPage={fetchNextTrendingPage}
-        hasNextPage={hasNextTrendingPage}
-        isFetchingNextPage={isFetchingTrendingPage}
-      />
-    </View>
+    <TrendingGrid
+      data={
+        trendingData?.pages?.flatMap((page: any) =>
+          page.results.map((item: any) => ({
+            ...item,
+            type: item.media_type === 'movie' ? 'movie' : 'tv',
+          })),
+        ) || []
+      }
+      onItemPress={handleItemPress}
+      isLoading={isLoadingTrending}
+      fetchNextPage={fetchNextTrendingPage}
+      hasNextPage={hasNextTrendingPage}
+      isFetchingNextPage={isFetchingTrendingPage}
+    />
   );
 
   const renderFiltersContent = () => {
@@ -1109,36 +1074,6 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     padding: spacing.md,
-  },
-  // Time window sub-tab styles
-  timeWindowContainer: {
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.sm,
-  },
-  timeWindowContentContainer: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
-  },
-  timeWindowButton: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.modal.blur,
-    borderWidth: 1,
-    borderColor: colors.modal.content,
-  },
-  activeTimeWindowButton: {
-    backgroundColor: colors.modal.border,
-    borderColor: colors.modal.active,
-  },
-  timeWindowText: {
-    color: colors.text.secondary,
-    ...typography.caption,
-    fontWeight: '500',
-  },
-  activeTimeWindowText: {
-    color: colors.text.primary,
   },
   sectionSubtitle: {
     color: colors.text.secondary,

@@ -56,20 +56,13 @@ export const LanguageMoviesTabbedSection: React.FC<Props> = ({
 
   const onSeeAllPress = useCallback(() => {
     const categoryLabel = CATEGORIES.find(c => c.key === activeCategory)?.label;
-    const sortBy =
-      activeCategory === 'latest'
-        ? 'release_date.desc'
-        : activeCategory === 'top_rated'
-        ? 'vote_average.desc'
-        : 'popularity.desc';
 
     navigateWithLimit('Category', {
       title: `${categoryLabel} Movies in ${languageName}`,
       contentType: 'movie',
       filter: {
-        with_original_language: languageIso,
-        sort_by: sortBy,
-        ...(activeCategory === 'top_rated' && {'vote_count.gte': 100}),
+        languageCategory: activeCategory,
+        languageIso: languageIso,
       },
     });
   }, [navigateWithLimit, activeCategory, languageName, languageIso]);
@@ -117,6 +110,7 @@ export const LanguageMoviesTabbedSection: React.FC<Props> = ({
       {/* Content List */}
       {movies.length > 0 || isLoading ? (
         <HorizontalList
+          key={`lang-movies-${languageIso}-${activeCategory}`}
           title=""
           data={movies}
           onItemPress={onItemPress}

@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useEffect, useState, useRef} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {View, StyleSheet} from 'react-native';
 import {
   useMoviesList,
@@ -7,6 +7,7 @@ import {
 } from '../hooks/useMovies';
 import {Movie} from '../types/movie';
 import {useNavigation} from '@react-navigation/native';
+import {useGenres} from '../hooks/useGenres';
 import {HorizontalList} from '../components/HorizontalList';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {ContentItem} from '../components/MovieList';
@@ -18,7 +19,6 @@ import {
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
-import {getGenres} from '../services/tmdb';
 import {Genre} from '../types/movie';
 import {useRegion} from '../hooks/useApp';
 import {TVShow} from '../types/tvshow';
@@ -31,41 +31,17 @@ import {
   useMyOTTs,
   useMoviesByLanguageSimpleHook,
 } from '../hooks/usePersonalization';
-import {OttRowMovies} from '../components/OttRowMovies';
+import {OttTabbedSection} from '../components/OttTabbedSection';
+import {TrendingMoviesSection} from '../components/TrendingMoviesSection';
 
 export const MoviesScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
-  const [genres, setGenres] = useState<Genre[]>([]);
-  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
-  const [renderPhase, setRenderPhase] = useState(0);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
 
-  // Staggered loading to reduce initial render load
-  useEffect(() => {
-    const timer1 = setTimeout(() => setRenderPhase(1), 100);
-    const timer2 = setTimeout(() => setRenderPhase(2), 300);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, []);
-
-  useEffect(() => {
-    const loadGenres = async () => {
-      try {
-        const movieGenres = await getGenres('movie');
-        setGenres(movieGenres);
-        setIsLoadingGenres(false);
-      } catch (error) {
-        console.error('Error loading genres:', error);
-        setIsLoadingGenres(false);
-      }
-    };
-    loadGenres();
-  }, []);
+  // Use cached genres hook
+  const {data: genres = [], isLoading: isLoadingGenres} = useGenres('movie');
 
   // Recent Movies (Now Playing)
   const {
@@ -267,7 +243,10 @@ export const MoviesScreen = React.memo(() => {
     }
     return {id, provider_name};
   };
-  const allOttsNormalized = baseOTTs.map(normalizeProvider);
+  const allOttsNormalized = useMemo(
+    () => baseOTTs.map(normalizeProvider),
+    [baseOTTs, region?.iso_3166_1],
+  );
   const langSimple = useMoviesByLanguageSimpleHook(myLanguage?.iso_639_1);
   // Today string for date filters
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -439,8 +418,14 @@ export const MoviesScreen = React.memo(() => {
       onItemPress: handleGenrePress,
     });
 
+    // Trending Movies section
+    sectionsList.push({
+      id: 'trendingMovies',
+      type: 'trendingMovies',
+    });
+
     // Recent Movies section
-    if (renderPhase >= 1 && recentMoviesFlat.length) {
+    if (recentMoviesFlat.length) {
       sectionsList.push({
         id: 'recentMovies',
         type: 'horizontalList',
@@ -459,7 +444,7 @@ export const MoviesScreen = React.memo(() => {
     }
 
     // Popular Movies section
-    if (renderPhase >= 2 && popularMoviesFlat.length) {
+    if (popularMoviesFlat.length) {
       sectionsList.push({
         id: 'popularMovies',
         type: 'horizontalList',
@@ -478,7 +463,7 @@ export const MoviesScreen = React.memo(() => {
     }
 
     // Top Rated Movies section
-    if (renderPhase >= 1 && topRatedMoviesFlat.length) {
+    if (topRatedMoviesFlat.length) {
       sectionsList.push({
         id: 'topRatedMovies',
         type: 'horizontalList',
@@ -497,7 +482,7 @@ export const MoviesScreen = React.memo(() => {
     }
 
     // Now Playing section
-    if (renderPhase >= 2 && nowPlayingMoviesFlat.length) {
+    if (nowPlayingMoviesFlat.length) {
       sectionsList.push({
         id: 'nowPlaying',
         type: 'horizontalList',
@@ -516,7 +501,7 @@ export const MoviesScreen = React.memo(() => {
     }
 
     // Upcoming Movies section
-    if (renderPhase >= 2 && upcomingMoviesFlat.length) {
+    if (upcomingMoviesFlat.length) {
       sectionsList.push({
         id: 'upcomingMovies',
         type: 'horizontalList',
@@ -554,7 +539,7 @@ export const MoviesScreen = React.memo(() => {
     }
 
     // My Language simple list
-    if (renderPhase >= 2 && myLanguage?.iso_639_1) {
+    if (myLanguage?.iso_639_1) {
       // Latest Movies in your language
       const latestMovies = getMoviesFromData(latestLangMovies);
       if (latestMovies?.length) {
@@ -685,33 +670,29 @@ export const MoviesScreen = React.memo(() => {
       });
     }
 
-    // My OTTs sections (movies): one row per provider using OttRowMovies (both popular and latest)
-    // Use a Set to ensure unique provider IDs and avoid duplicate sections
-    const uniqueProviderIds = new Set<number>();
+    // My OTTs sections: Tabbed sections for Latest and Popular
     const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
-    allOttsNormalized.forEach(prov => {
-      if (!uniqueProviderIds.has(prov.id)) {
-        uniqueProviderIds.add(prov.id);
-        // Add popular OTT row
-        sectionsList.push({
-          id: `ott_${prov.id}_movies_popular_row`,
-          type: 'ottMoviesRow',
-          providerId: prov.id,
-          providerName: prov.provider_name,
-          kind: 'popular',
-          isPersonalized: isPersonalizedOTTs,
-        });
-        // Add latest OTT row
-        sectionsList.push({
-          id: `ott_${prov.id}_movies_latest_row`,
-          type: 'ottMoviesRow',
-          providerId: prov.id,
-          providerName: prov.provider_name,
-          kind: 'latest',
-          isPersonalized: isPersonalizedOTTs,
-        });
-      }
-    });
+    if (allOttsNormalized.length > 0) {
+      // Latest on My OTTs
+      sectionsList.push({
+        id: 'movies_ott_tabbed_section_latest',
+        type: 'ottTabbedSection',
+        providers: allOttsNormalized,
+        isPersonalized: isPersonalizedOTTs,
+        kind: 'latest',
+        contentType: 'movie',
+      });
+      
+      // Popular on My OTTs
+      sectionsList.push({
+        id: 'movies_ott_tabbed_section_popular',
+        type: 'ottTabbedSection',
+        providers: allOttsNormalized,
+        isPersonalized: isPersonalizedOTTs,
+        kind: 'popular',
+        contentType: 'movie',
+      });
+    }
 
     return sectionsList;
   }, [
@@ -730,7 +711,6 @@ export const MoviesScreen = React.memo(() => {
     isFetchingLatestLangMovies,
     fetchNextLatestLangMovies,
     // OTT deps
-    baseOTTs,
     allOttsNormalized,
   ]);
 
@@ -757,13 +737,15 @@ export const MoviesScreen = React.memo(() => {
             isLoading={item.isLoading}
           />
         );
-      case 'ottMoviesRow':
+      case 'trendingMovies':
+        return <TrendingMoviesSection />;
+      case 'ottTabbedSection':
         return (
-          <OttRowMovies
-            providerId={item.providerId}
-            providerName={item.providerName}
-            kind={item.kind || 'popular'}
+          <OttTabbedSection
+            providers={item.providers}
             isPersonalized={item.isPersonalized}
+            kind={item.kind}
+            contentType={item.contentType}
           />
         );
       case 'featuredSkeleton':
@@ -785,7 +767,7 @@ export const MoviesScreen = React.memo(() => {
       default:
         return null;
     }
-  }, []);
+  }, [popularMoviesFlat, isBannerVisible]);
 
   const keyExtractor = useCallback((item: any) => String(item.id), []);
 
@@ -798,6 +780,8 @@ export const MoviesScreen = React.memo(() => {
           return 580; // banner in movies is taller
         case 'genres':
           return 140;
+        case 'trendingMovies':
+          return 380; // title + tabs + horizontal list
         case 'horizontalList':
           return 320;
         case 'horizontalListSkeleton':

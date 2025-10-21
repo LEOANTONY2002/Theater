@@ -54,15 +54,11 @@ export const TVShowsTabbedSection: React.FC = () => {
 
   const onSeeAllPress = useCallback(() => {
     const categoryLabel = CATEGORIES.find(c => c.key === activeCategory)?.label;
-    if (activeCategory === 'trending') {
-      navigateWithLimit('Explore', {initialTab: 'trending'});
-    } else {
-      navigateWithLimit('Category', {
-        title: `${categoryLabel} Shows`,
-        contentType: 'tv',
-        categoryType: activeCategory,
-      });
-    }
+    navigateWithLimit('Category', {
+      title: `${categoryLabel} Shows`,
+      contentType: 'tv',
+      categoryType: activeCategory === 'trending' ? 'trending_week' : activeCategory,
+    });
   }, [navigateWithLimit, activeCategory]);
 
   const onItemPress = useCallback(
@@ -108,6 +104,7 @@ export const TVShowsTabbedSection: React.FC = () => {
       {/* Content List */}
       {shows.length > 0 || isLoading ? (
         <HorizontalList
+          key={`shows-${activeCategory}`}
           title=""
           data={shows}
           onItemPress={onItemPress}

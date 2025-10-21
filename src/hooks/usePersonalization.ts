@@ -64,6 +64,7 @@ export function useMoviesByLanguage(
     queryKey: ['my_language_movies', kind, iso],
     enabled: !!iso,
     queryFn: ({pageParam = 1}) => {
+      const today = new Date().toISOString().split('T')[0];
       const sortBy =
         kind === 'latest'
           ? 'release_date.desc'
@@ -75,6 +76,7 @@ export function useMoviesByLanguage(
         with_original_language: iso,
         sort_by: sortBy,
         ...(kind === 'top_rated' && {'vote_count.gte': 100}),
+        ...(kind === 'latest' && {'release_date.lte': today}),
       } as any);
     },
     getNextPageParam: (last: any) =>
@@ -93,6 +95,7 @@ export function useTVByLanguage(
     queryKey: ['my_language_tv', kind, iso],
     enabled: !!iso,
     queryFn: ({pageParam = 1}) => {
+      const today = new Date().toISOString().split('T')[0];
       const sortBy =
         kind === 'latest'
           ? 'first_air_date.desc'
@@ -104,6 +107,7 @@ export function useTVByLanguage(
         with_original_language: iso,
         sort_by: sortBy,
         ...(kind === 'top_rated' && {'vote_count.gte': 100}),
+        ...(kind === 'latest' && {'first_air_date.lte': today}),
       } as any);
     },
     getNextPageParam: (last: any) =>

@@ -1,5 +1,5 @@
-import React, {useCallback, useMemo, useEffect, useState} from 'react';
-import {View, StyleSheet} from 'react-native';
+import React, {useCallback, useMemo, useState} from 'react';
+import {View, StyleSheet, FlatList} from 'react-native';
 import {
   useTop10ShowsTodayByRegion,
   useTrendingTVShows,
@@ -19,59 +19,38 @@ import {
   HeadingSkeleton,
   HorizontalListSkeleton,
 } from '../components/LoadingSkeleton';
-import {getGenres} from '../services/tmdb';
+import {useGenres} from '../hooks/useGenres';
 import {Genre} from '../types/movie';
 import {useRegion} from '../hooks/useApp';
 import {HorizontalGenreList} from '../components/HorizontalGenreList';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {Movie} from '../types/movie';
-import {FlatList, RotationGestureHandler} from 'react-native-gesture-handler';
 import {
   useMyLanguage,
   useMyOTTs,
   useTVByLanguageSimpleHook,
 } from '../hooks/usePersonalization';
-import {OttRowTV} from '../components/OttRowTV';
+import {OttTabbedSection} from '../components/OttTabbedSection';
+import {TrendingTVShowsSection} from '../components/TrendingTVShowsSection';
 
 export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
   const {navigateWithLimit} = useNavigationState();
-  const [genres, setGenres] = useState<Genre[]>([]);
-  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
-  const [renderPhase, setRenderPhase] = useState(0);
 
-  // Stagger phases to reduce initial work
-  useEffect(() => {
-    const timer1 = setTimeout(() => setRenderPhase(1), 100);
-    const timer2 = setTimeout(() => setRenderPhase(2), 300);
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, []);
+  // Use cached genres hook
+  const {data: genres = [], isLoading: isLoadingGenres} = useGenres('tv');
 
-  useEffect(() => {
-    const loadGenres = async () => {
-      try {
-        const tvGenres = await getGenres('tv');
-        setGenres(tvGenres);
-        setIsLoadingGenres(false);
-      } catch (error) {
-        console.error('Error loading genres:', error);
-        setIsLoadingGenres(false);
-      }
-    };
-    loadGenres();
-  }, []);
-
-  const handleGenrePress = (genre: Genre) => {
-    navigateWithLimit('Genre', {
-      genreId: genre.id,
-      genreName: genre.name,
-      contentType: 'tv',
-    });
-  };
+  const handleGenrePress = useCallback(
+    (genre: Genre) => {
+      navigateWithLimit('Genre', {
+        genreId: genre.id,
+        genreName: genre.name,
+        contentType: 'tv',
+      });
+    },
+    [navigateWithLimit],
+  );
 
   // Popular TV Shows
   const {
@@ -332,7 +311,10 @@ export const TVShowsScreen = React.memo(() => {
     }
     return {id, provider_name};
   };
-  const allOttsNormalized = baseOTTs.map(normalizeProvider);
+  const allOttsNormalized = useMemo(
+    () => baseOTTs.map(normalizeProvider),
+    [baseOTTs, region?.iso_3166_1],
+  );
   const langSimpleTV = useTVByLanguageSimpleHook(myLanguage?.iso_639_1);
   // Latest Shows in My Language (separate from Popular)
   const {
@@ -375,6 +357,12 @@ export const TVShowsScreen = React.memo(() => {
       data: genres,
       isLoading: isLoadingGenres,
       onItemPress: handleGenrePress,
+    });
+
+    // Trending TV Shows section
+    sectionsList.push({
+      id: 'trendingTVShows',
+      type: 'trendingTVShows',
     });
 
     // Latest Shows section
@@ -453,8 +441,8 @@ export const TVShowsScreen = React.memo(() => {
       });
     }
 
-    // My Language Latest TV list (defer to later phase)
-    if (renderPhase >= 2 && myLanguage?.iso_639_1) {
+    // My Language Latest TV list
+    if (myLanguage?.iso_639_1) {
       const latestTV = getShowsFromData(latestLangTV);
       if (latestTV?.length) {
         sectionsList.push({
@@ -483,8 +471,8 @@ export const TVShowsScreen = React.memo(() => {
       }
     }
 
-    // My Language simple TV list (defer to later phase)
-    if (renderPhase >= 2 && myLanguage?.iso_639_1) {
+    // My Language simple TV list
+    if (myLanguage?.iso_639_1) {
       const langTV = getShowsFromData(langSimpleTV?.data);
       if (langTV?.length) {
         sectionsList.push({
@@ -579,33 +567,29 @@ export const TVShowsScreen = React.memo(() => {
       });
     }
 
-    // My OTTs sections (TV): one row per provider using OttRowTV (both popular and latest)
-    // Use a Set to ensure unique provider IDs and avoid duplicate sections
-    const uniqueProviderIds = new Set<number>();
+    // My OTTs sections: Tabbed sections for Latest and Popular
     const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
-    allOttsNormalized.forEach(prov => {
-      if (!uniqueProviderIds.has(prov.id)) {
-        uniqueProviderIds.add(prov.id);
-        // Add popular OTT row
-        sectionsList.push({
-          id: `ott_${prov.id}_tv_popular_row`,
-          type: 'ottTVRow',
-          providerId: prov.id,
-          providerName: prov.provider_name,
-          kind: 'popular',
-          isPersonalized: isPersonalizedOTTs,
-        });
-        // Add latest OTT row
-        sectionsList.push({
-          id: `ott_${prov.id}_tv_latest_row`,
-          type: 'ottTVRow',
-          providerId: prov.id,
-          providerName: prov.provider_name,
-          kind: 'latest',
-          isPersonalized: isPersonalizedOTTs,
-        });
-      }
-    });
+    if (allOttsNormalized.length > 0) {
+      // Latest on My OTTs
+      sectionsList.push({
+        id: 'tv_ott_tabbed_section_latest',
+        type: 'ottTabbedSection',
+        providers: allOttsNormalized,
+        isPersonalized: isPersonalizedOTTs,
+        kind: 'latest',
+        contentType: 'tv',
+      });
+      
+      // Popular on My OTTs
+      sectionsList.push({
+        id: 'tv_ott_tabbed_section_popular',
+        type: 'ottTabbedSection',
+        providers: allOttsNormalized,
+        isPersonalized: isPersonalizedOTTs,
+        kind: 'popular',
+        contentType: 'tv',
+      });
+    }
 
     return sectionsList;
   }, [
@@ -662,9 +646,7 @@ export const TVShowsScreen = React.memo(() => {
     langSimpleTV?.isLoading,
     langSimpleTV?.hasNextPage,
     // OTT deps
-    baseOTTs,
     allOttsNormalized,
-    renderPhase,
   ]);
 
   const renderSection = useCallback(
@@ -691,6 +673,8 @@ export const TVShowsScreen = React.memo(() => {
               isLoading={item.isLoading}
             />
           );
+        case 'trendingTVShows':
+          return <TrendingTVShowsSection />;
         case 'horizontalList':
           return (
             <HorizontalList
@@ -711,13 +695,13 @@ export const TVShowsScreen = React.memo(() => {
               <HorizontalListSkeleton />
             </View>
           );
-        case 'ottTVRow':
+        case 'ottTabbedSection':
           return (
-            <OttRowTV
-              providerId={item.providerId}
-              providerName={item.providerName}
-              kind={item.kind || 'popular'}
+            <OttTabbedSection
+              providers={item.providers}
               isPersonalized={item.isPersonalized}
+              kind={item.kind}
+              contentType={item.contentType}
             />
           );
 
@@ -739,6 +723,8 @@ export const TVShowsScreen = React.memo(() => {
           return 580; // closer to actual banner height to avoid relayout
         case 'genres':
           return 140;
+        case 'trendingTVShows':
+          return 380; // title + tabs + horizontal list
         case 'horizontalList':
           return 320;
         case 'horizontalListSkeleton':

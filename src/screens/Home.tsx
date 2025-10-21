@@ -673,14 +673,28 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
-    // My OTTs sections (movies): single unified section with tabs
+    // My OTTs sections (movies): Latest releases
     const isPersonalizedOTTs = myOTTs && myOTTs.length > 0;
     if (allOttsNormalized.length > 0) {
       sectionsList.push({
-        id: 'home_ott_tabbed_section',
+        id: 'home_ott_tabbed_section_latest',
         type: 'ottTabbedSection',
         providers: allOttsNormalized,
         isPersonalized: isPersonalizedOTTs,
+        kind: 'latest',
+        contentType: 'movie',
+      });
+    }
+
+    // My OTTs sections (movies): Popular
+    if (allOttsNormalized.length > 0) {
+      sectionsList.push({
+        id: 'home_ott_tabbed_section_popular',
+        type: 'ottTabbedSection',
+        providers: allOttsNormalized,
+        isPersonalized: isPersonalizedOTTs,
+        kind: 'popular',
+        contentType: 'movie',
       });
     }
 
@@ -951,6 +965,8 @@ export const HomeScreen = React.memo(() => {
             <OttTabbedSection
               providers={item.providers}
               isPersonalized={item.isPersonalized}
+              kind={item.kind}
+              contentType={item.contentType}
             />
           );
 

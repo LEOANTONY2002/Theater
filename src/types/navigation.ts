@@ -9,8 +9,10 @@ export type MovieCategoryType =
   | 'popular'
   | 'top_rated'
   | 'now_playing'
-  | 'upcoming';
-export type TVShowCategoryType = 'latest' | 'popular' | 'top_rated';
+  | 'upcoming'
+  | 'trending_day'
+  | 'trending_week';
+export type TVShowCategoryType = 'latest' | 'popular' | 'top_rated' | 'trending_day' | 'trending_week';
 export type ContentType = 'movie' | 'tv';
 
 export type HomeStackParamList = {
@@ -64,6 +66,50 @@ export type MoviesAndSeriesStackParamList = {
     categoryType?: MovieCategoryType | TVShowCategoryType;
     contentType: 'movie' | 'tv';
     filter?: SavedFilter;
+    fromSearch?: boolean;
+  };
+  Genre: {
+    genreId: number;
+    genreName: string;
+    contentType: 'movie' | 'tv';
+  };
+  PersonCredits: {
+    personId: number;
+    personName: string;
+    contentType: ContentType;
+  };
+};
+
+export type MoviesStackParamList = {
+  MovieDetails: {movie: Movie};
+  TVShowDetails: {show: TVShow};
+  Category: {
+    title: string;
+    categoryType?: MovieCategoryType | TVShowCategoryType;
+    contentType: 'movie' | 'tv';
+    filter?: any;
+    fromSearch?: boolean;
+  };
+  Genre: {
+    genreId: number;
+    genreName: string;
+    contentType: 'movie' | 'tv';
+  };
+  PersonCredits: {
+    personId: number;
+    personName: string;
+    contentType: ContentType;
+  };
+};
+
+export type TVShowsStackParamList = {
+  MovieDetails: {movie: Movie};
+  TVShowDetails: {show: TVShow};
+  Category: {
+    title: string;
+    categoryType?: MovieCategoryType | TVShowCategoryType;
+    contentType: 'movie' | 'tv';
+    filter?: any;
     fromSearch?: boolean;
   };
   Genre: {

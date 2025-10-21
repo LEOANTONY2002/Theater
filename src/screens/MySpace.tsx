@@ -69,6 +69,7 @@ export const MySpaceScreen = React.memo(() => {
   // My Language & My OTTs state
   const [showMyLanguageModal, setShowMyLanguageModal] = useState(false);
   const [showOTTsModal, setShowOTTsModal] = useState(false);
+  const [localOTTs, setLocalOTTs] = useState<any[]>([]);
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -112,13 +113,27 @@ export const MySpaceScreen = React.memo(() => {
     queryKey: ['my_otts'],
     queryFn: SettingsManager.getMyOTTs,
   });
+  
+  // Remove duplicate OTTs on load
+  useEffect(() => {
+    if (myOTTs && myOTTs.length > 0) {
+      const uniqueOTTs = myOTTs.filter((item: any, index: number, self: any[]) =>
+        index === self.findIndex((t: any) => t.id === item.id)
+      );
+      if (uniqueOTTs.length !== myOTTs.length) {
+        // Duplicates found, save cleaned version
+        SettingsManager.setMyOTTs(uniqueOTTs);
+      }
+    }
+  }, [myOTTs]);
   const {data: availableProviders = []} = useQuery({
-    queryKey: ['available_watch_providers', 'movie'],
+    queryKey: ['available_watch_providers', 'movie', currentRegion?.iso_3166_1],
     queryFn: () =>
       import('../services/tmdbWithCache').then(m =>
-        m.getAvailableWatchProviders(),
+        m.getAvailableWatchProviders(currentRegion?.iso_3166_1 || 'US'),
       ),
     staleTime: 1000 * 60 * 60,
+    enabled: !!currentRegion,
   });
 
   // Load mood answers on component mount
@@ -231,6 +246,24 @@ export const MySpaceScreen = React.memo(() => {
     if (answers.length === 0) return 'Not set';
     return answers.join(' • ');
   };
+
+  // Initialize local OTTs when modal opens
+  useEffect(() => {
+    if (showOTTsModal) {
+      setLocalOTTs(myOTTs || []);
+    }
+  }, [showOTTsModal, myOTTs]);
+
+  // Save local OTTs when modal closes
+  const handleCloseOTTsModal = useCallback(() => {
+    setShowOTTsModal(false);
+    // Save to persistent storage
+    if (JSON.stringify(localOTTs) !== JSON.stringify(myOTTs)) {
+      SettingsManager.setMyOTTs(localOTTs).then(() => {
+        queryClient.invalidateQueries({queryKey: ['my_otts']});
+      });
+    }
+  }, [localOTTs, myOTTs, queryClient]);
 
   const handleUpdateMood = () => {
     setShowMoodModal(true);
@@ -1229,7 +1262,7 @@ export const MySpaceScreen = React.memo(() => {
         animationType="slide"
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
-        onRequestClose={() => setShowOTTsModal(false)}>
+        onRequestClose={handleCloseOTTsModal}>
         <View style={modalStyles.modalContainer}>
           <MaybeBlurView
             blurType="dark"
@@ -1239,11 +1272,11 @@ export const MySpaceScreen = React.memo(() => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>All Watch Providers</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                {!!(myOTTs && myOTTs.length) && (
+                {!!(localOTTs && localOTTs.length) && (
                   <TouchableOpacity
                     activeOpacity={0.9}
-                    onPress={async () => {
-                      await SettingsManager.setMyOTTs([]);
+                    onPress={() => {
+                      setLocalOTTs([]);
                     }}
                     style={{marginRight: spacing.md}}>
                     <Text
@@ -1261,7 +1294,7 @@ export const MySpaceScreen = React.memo(() => {
                 )}
                 <TouchableOpacity
                   activeOpacity={0.9}
-                  onPress={() => setShowOTTsModal(false)}>
+                  onPress={handleCloseOTTsModal}>
                   <Ionicons
                     name="close"
                     size={24}
@@ -1280,42 +1313,47 @@ export const MySpaceScreen = React.memo(() => {
                     <TouchableOpacity
                       activeOpacity={1}
                       key={`myspace-provider-${p.provider_id}-${index}`}
-                      onPress={async () => {
-                        let next = Array.isArray(myOTTs) ? [...myOTTs] : [];
-                        if (myOTTs?.some((s: any) => s.id === p.provider_id)) {
-                          next = next.filter(
-                            (x: any) => x.id !== p.provider_id,
+                      onPress={() => {
+                        setLocalOTTs(prev => {
+                          let next = Array.isArray(prev) ? [...prev] : [];
+                          if (prev?.some((s: any) => s.id === p.provider_id)) {
+                            next = next.filter(
+                              (x: any) => x.id !== p.provider_id,
+                            );
+                          } else {
+                            next.push({
+                              id: p.provider_id,
+                              provider_name: p.provider_name,
+                              logo_path: p.logo_path,
+                            });
+                          }
+                          // Remove duplicates by ID
+                          return next.filter((item, index, self) =>
+                            index === self.findIndex((t) => t.id === item.id)
                           );
-                        } else {
-                          next.push({
-                            id: p.provider_id,
-                            provider_name: p.provider_name,
-                            logo_path: p.logo_path,
-                          });
-                        }
-                        await SettingsManager.setMyOTTs(next);
+                        });
                       }}
                       style={{
                         borderRadius: 16,
                         margin: 3,
-                        opacity: myOTTs?.some(
+                        opacity: localOTTs?.some(
                           (s: any) => s.id === p.provider_id,
                         )
                           ? 1
                           : 0.7,
-                        backgroundColor: myOTTs?.some(
+                        backgroundColor: localOTTs?.some(
                           (s: any) => s.id === p.provider_id,
                         )
                           ? colors.modal.active
                           : colors.modal.blur,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderWidth: myOTTs?.some(
+                        borderWidth: localOTTs?.some(
                           (s: any) => s.id === p.provider_id,
                         )
                           ? 2
                           : 0,
-                        borderColor: myOTTs?.some(
+                        borderColor: localOTTs?.some(
                           (s: any) => s.id === p.provider_id,
                         )
                           ? colors.modal.activeBorder
@@ -1330,7 +1368,7 @@ export const MySpaceScreen = React.memo(() => {
                         style={{width: 70, height: 70, borderRadius: 16}}
                         resizeMode="contain"
                       />
-                      {myOTTs?.some((s: any) => s.id === p.provider_id) && (
+                      {localOTTs?.some((s: any) => s.id === p.provider_id) && (
                         <View
                           style={{
                             position: 'absolute',

@@ -1,89 +1,69 @@
-import React, {useState, useCallback, useMemo} from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
+import React, {useState, useCallback, useMemo, memo} from 'react';
+import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useMoviesList, useTrendingMovies} from '../hooks/useMovies';
+import {useTrendingMovies} from '../hooks/useMovies';
 import {HorizontalList} from './HorizontalList';
 import {Movie} from '../types/movie';
+import {TVShow} from '../types/tvshow';
 import {ContentItem} from './MovieList';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 
-type MovieCategory = 'popular' | 'top_rated' | 'trending';
-
-interface CategoryTab {
-  key: MovieCategory;
-  label: string;
-}
-
-const CATEGORIES: CategoryTab[] = [
-  {key: 'popular', label: 'Popular'},
-  {key: 'top_rated', label: 'Top Rated'},
-  {key: 'trending', label: 'Trending'},
-];
-
-export const MoviesTabbedSection: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<MovieCategory>('popular');
+export const TrendingMoviesSection: React.FC = memo(() => {
+  const [timeWindow, setTimeWindow] = useState<'day' | 'week'>('day');
   const {navigateWithLimit} = useNavigationState();
 
-  // Get data for the active category
-  const regularQuery = useMoviesList(
-    activeCategory === 'trending' ? 'popular' : activeCategory
-  );
-  const trendingQuery = useTrendingMovies('week');
-
-  // Use trending query if trending is selected, otherwise use regular
+  // Get trending data based on active time window
   const {
-    data,
+    data: trendingData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = activeCategory === 'trending' ? trendingQuery : regularQuery;
+  } = useTrendingMovies(timeWindow);
 
-  const movies = useMemo(() => {
-    const pages = data?.pages || [];
-    return pages.flatMap((page: any) =>
-      (page?.results || []).map((m: any) => ({...m, type: 'movie' as const})),
+  const data = useMemo(() => {
+    const pages = trendingData?.pages || [];
+    return (
+      pages.flatMap((page: any) =>
+        (page?.results || []).map((m: any) => ({...m, type: 'movie' as const})),
+      ) || []
     );
-  }, [data]);
+  }, [trendingData]);
 
   const onSeeAllPress = useCallback(() => {
-    const categoryLabel = CATEGORIES.find(c => c.key === activeCategory)?.label;
+    const title = `Trending Movies - ${timeWindow === 'day' ? 'Today' : 'This Week'}`;
     navigateWithLimit('Category', {
-      title: `${categoryLabel} Movies`,
+      title,
       contentType: 'movie',
-      categoryType: activeCategory === 'trending' ? 'trending_week' : activeCategory,
+      categoryType: timeWindow === 'day' ? 'trending_day' : 'trending_week',
     });
-  }, [navigateWithLimit, activeCategory]);
+  }, [navigateWithLimit, timeWindow]);
 
   const onItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type !== 'tv') {
         navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else {
+        navigateWithLimit('TVShowDetails', {tv: item as TVShow});
       }
     },
     [navigateWithLimit],
   );
 
-  const renderTabButton = (category: CategoryTab) => (
+  const renderTabButton = (tab: 'day' | 'week', label: string) => (
     <TouchableOpacity
-      key={category.key}
+      key={tab}
       style={[
         styles.tabButton,
-        activeCategory === category.key && styles.activeTabButton,
+        timeWindow === tab && styles.activeTabButton,
       ]}
-      onPress={() => setActiveCategory(category.key)}>
+      onPress={() => setTimeWindow(tab)}>
       <Text
         style={[
           styles.tabText,
-          activeCategory === category.key && styles.activeTabText,
+          timeWindow === tab && styles.activeTabText,
         ]}>
-        {category.label}
+        {label}
       </Text>
     </TouchableOpacity>
   );
@@ -91,22 +71,20 @@ export const MoviesTabbedSection: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Title */}
-      <Text style={styles.sectionTitle}>Movies in</Text>
+      <Text style={styles.sectionTitle}>Trending in</Text>
 
-      {/* Horizontal Tabs */}
-      <ScrollView
-        style={styles.tabContainer}
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}>
-        {CATEGORIES.map(renderTabButton)}
-      </ScrollView>
+      {/* Day/Week Tabs */}
+      <View style={styles.tabContainer}>
+        {renderTabButton('day', 'Today')}
+        {renderTabButton('week', 'This Week')}
+      </View>
 
       {/* Content List */}
-      {movies.length > 0 || isLoading ? (
+      {data.length > 0 || isLoading ? (
         <HorizontalList
-          key={`movies-${activeCategory}`}
+          key={`trending-movies-${timeWindow}`}
           title=""
-          data={movies}
+          data={data}
           onItemPress={onItemPress}
           isLoading={isLoading}
           onEndReached={hasNextPage ? fetchNextPage : undefined}
@@ -118,13 +96,13 @@ export const MoviesTabbedSection: React.FC = () => {
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            No movies available in this category
+            No trending movies available
           </Text>
         </View>
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -139,12 +117,13 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     padding: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
   tabButton: {
-    padding: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderRadius: borderRadius.sm,
-    marginHorizontal: spacing.xs,
     alignItems: 'center',
     backgroundColor: colors.modal.blur,
     borderWidth: 1,
@@ -174,6 +153,5 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     ...typography.body2,
     textAlign: 'center',
-    marginBottom: spacing.md,
   },
 });

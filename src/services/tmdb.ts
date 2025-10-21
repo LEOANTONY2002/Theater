@@ -311,7 +311,6 @@ export const searchMovies = async (
   const params = {
     page,
     ...filters,
-    'vote_count.gte': 100,
   };
 
   // Add watch region if watch providers are specified
@@ -612,11 +611,6 @@ export const buildOTTFilters = (
     watch_region: region || 'US',
     with_watch_monetization_types: 'flatrate|ads|free',
   };
-
-  // Latest queries use searchMovies/searchTVShows which add vote_count filter
-  if (kind === 'latest') {
-    filters['vote_count.gte'] = 10;
-  }
 
   return filters;
 };

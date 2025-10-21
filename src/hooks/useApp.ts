@@ -7,8 +7,9 @@ import {
   searchFilterContent,
 } from '../services/tmdbWithCache';
 import {SavedFilter} from '../types/filters';
-import {useDiscoverMovies, useMoviesList} from './useMovies';
-import {useDiscoverTVShows, useTVShowsList} from './useTVShows';
+import {useDiscoverMovies, useMoviesList, useTrendingMovies} from './useMovies';
+import {useDiscoverTVShows, useTVShowsList, useTrendingTVShows} from './useTVShows';
+import {useMoviesByLanguage, useTVByLanguage, useMoviesByProvider, useTVByProvider} from './usePersonalization';
 import {FiltersManager} from '../store/filters';
 import {MovieCategoryType, TVShowCategoryType} from '../types/navigation';
 import {useState, useEffect} from 'react';
@@ -83,6 +84,14 @@ export function useDynamicContentSource({
   if (filter && filter.type && filter.params) {
     return useSavedFilterContent(filter);
   }
+  // If languageCategory is present, use language hooks (single source of truth)
+  if (filter?.languageCategory && filter?.languageIso) {
+    if (contentType === 'movie') {
+      return useMoviesByLanguage(filter.languageCategory, filter.languageIso);
+    } else if (contentType === 'tv') {
+      return useTVByLanguage(filter.languageCategory, filter.languageIso);
+    }
+  }
   if (filter?.genreId) {
     if (contentType === 'movie') {
       return useDiscoverMovies({
@@ -96,6 +105,14 @@ export function useDynamicContentSource({
       });
     }
   }
+  // Check if this is an OTT filter (has providerId)
+  if (filter?.providerId && filter?.ottKind) {
+    if (contentType === 'movie') {
+      return useMoviesByProvider(filter.providerId, filter.ottKind, filter.watchRegion);
+    } else if (contentType === 'tv') {
+      return useTVByProvider(filter.providerId, filter.ottKind, filter.watchRegion);
+    }
+  }
   // If filter is a plain object with filter params (e.g., from OTT sections, Popular/Top Rated)
   // Use discover APIs with the filter params AS-IS (don't modify them)
   if (filter && typeof filter === 'object' && !filter.type && !filter.genreId) {
@@ -107,10 +124,20 @@ export function useDynamicContentSource({
   }
   // If categoryType is present, use category logic
   if (categoryType) {
+    // Handle trending categories separately
+    if (categoryType === 'trending_day' || categoryType === 'trending_week') {
+      const timeWindow = categoryType === 'trending_day' ? 'day' : 'week';
+      if (contentType === 'movie') {
+        return useTrendingMovies(timeWindow);
+      } else if (contentType === 'tv') {
+        return useTrendingTVShows(timeWindow);
+      }
+    }
+    // Handle standard categories
     if (contentType === 'movie') {
-      return useMoviesList(categoryType as MovieCategoryType);
+      return useMoviesList(categoryType as any);
     } else if (contentType === 'tv') {
-      return useTVShowsList(categoryType as TVShowCategoryType);
+      return useTVShowsList(categoryType as any);
     }
   }
   // Fallback: popular movies or shows
