@@ -4,6 +4,7 @@ import type {BottomTabBarButtonProps} from '@react-navigation/bottom-tabs';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useNavigationState, NavigationState} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
+import Fontisto from 'react-native-vector-icons/Fontisto';
 import {TabParamList} from '../types/navigation';
 import {
   HomeStackNavigator,
@@ -53,11 +54,13 @@ const TabIcon = ({
   color,
   size,
   name,
+  type,
 }: {
   focused: boolean;
   color: string;
   size?: number;
   name: string;
+  type: string;
 }) => {
   return (
     <View style={styles.iconContainer}>
@@ -68,12 +71,21 @@ const TabIcon = ({
             opacity: focused ? 1 : 0.7,
           },
         ]}>
-        <Icon
-          name={name}
-          size={size || 20}
-          color={color}
-          suppressHighlighting={true}
-        />
+        {type === 'fontisto' ? (
+          <Fontisto
+            name={name}
+            size={size || 20}
+            color={color}
+            suppressHighlighting={true}
+          />
+        ) : (
+          <Icon
+            name={name}
+            size={size || 20}
+            color={color}
+            suppressHighlighting={true}
+          />
+        )}
       </View>
     </View>
   );
@@ -227,7 +239,12 @@ export const BottomTabNavigator = () => {
           options={{
             title: 'Home',
             tabBarIcon: ({focused, color}: any) => (
-              <TabIcon focused={focused} name="home" color={color} />
+              <TabIcon
+                focused={focused}
+                name="home"
+                color={color}
+                type="feather"
+              />
             ),
             tabBarLabel: 'Home',
           }}
@@ -237,7 +254,12 @@ export const BottomTabNavigator = () => {
           component={SearchStackNavigator}
           options={{
             tabBarIcon: ({focused, color}: any) => (
-              <TabIcon focused={focused} name="search" color={color} />
+              <TabIcon
+                focused={focused}
+                name="search"
+                color={color}
+                type="feather"
+              />
             ),
             tabBarLabel: 'Explore',
           }}
@@ -247,7 +269,12 @@ export const BottomTabNavigator = () => {
           component={MoviesAndSeriesStackNavigator}
           options={{
             tabBarIcon: ({focused, color}: any) => (
-              <TabIcon focused={focused} name="film" color={color} />
+              <TabIcon
+                focused={focused}
+                name="film"
+                color={color}
+                type="feather"
+              />
             ),
             tabBarLabel: 'Browse',
           }}
@@ -257,7 +284,12 @@ export const BottomTabNavigator = () => {
           component={FiltersStackNavigator}
           options={{
             tabBarIcon: ({focused, color}: any) => (
-              <TabIcon focused={focused} name="filter" color={color} />
+              <TabIcon
+                focused={focused}
+                name="equalizer"
+                color={color}
+                type="fontisto"
+              />
             ),
             tabBarLabel: 'Filters',
           }}
@@ -277,7 +309,12 @@ export const BottomTabNavigator = () => {
           options={{
             title: 'Profile',
             tabBarIcon: ({focused, color}: any) => (
-              <TabIcon focused={focused} name="user" color={color} />
+              <TabIcon
+                focused={focused}
+                name="user"
+                color={color}
+                type="feather"
+              />
             ),
             tabBarLabel: 'My space',
           }}

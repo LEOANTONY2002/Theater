@@ -24,20 +24,17 @@ import {HorizontalList} from '../components/HorizontalList';
 import {TrendingGrid} from '../components/TrendingGrid';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FilterModal} from '../components/FilterModal';
-import {FilterParams, SavedFilter} from '../types/filters';
+import {FilterParams} from '../types/filters';
 import {useTrending} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
-import {useQueryClient, useQuery} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import {SettingsManager} from '../store/settings';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import LinearGradient from 'react-native-linear-gradient';
 import FastImage from 'react-native-fast-image';
 import {GradientSpinner} from '../components/GradientSpinner';
-import {FiltersManager} from '../store/filters';
 import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
-import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useAIEnabled} from '../hooks/useAIEnabled';
-import CreateButton from '../components/createButton';
 import {HistoryManager} from '../store/history';
 import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
@@ -68,7 +65,7 @@ const NoResults = ({query}: {query: string}) => (
   </View>
 );
 
-type TabType = 'trending' | 'filters' | 'watchlists' | 'history';
+type TabType = 'trending' | 'watchlists' | 'history';
 
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
@@ -84,12 +81,6 @@ export const SearchScreen = React.memo(() => {
   const [historyItems, setHistoryItems] = useState<ContentItem[]>([]);
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
-
-  // Get real saved filters data
-  const {data: savedFilters = []} = useQuery({
-    queryKey: ['savedFilters'],
-    queryFn: FiltersManager.getSavedFilters,
-  });
 
   // Get real watchlists data
   const {data: watchlists = []} = useWatchlists();
@@ -119,21 +110,6 @@ export const SearchScreen = React.memo(() => {
   const tvShows = tvData?.pages.flatMap(page => page.results) || [];
 
   const navigation = useNavigation();
-
-  // Normalize legacy comma-delimited with_genres to pipe-delimited OR
-  const normalizeWithGenres = useCallback((params: any) => {
-    if (
-      params?.with_genres &&
-      typeof params.with_genres === 'string' &&
-      params.with_genres.includes(',')
-    ) {
-      return {
-        ...params,
-        with_genres: params.with_genres.split(',').filter(Boolean).join('|'),
-      };
-    }
-    return params;
-  }, []);
 
   // trending
   const {
@@ -401,67 +377,6 @@ export const SearchScreen = React.memo(() => {
     />
   );
 
-  const renderFiltersContent = () => {
-    return (
-      <View>
-        {savedFilters.length > 0 ? (
-          savedFilters.map((filter: SavedFilter) => (
-            <HomeFilterRow
-              key={filter.id}
-              savedFilter={filter}
-              onSeeAllPress={() => {
-                // Build a normalized SavedFilter so Category uses useSavedFilterContent
-                const normalizedSaved: SavedFilter = {
-                  ...filter,
-                  params: normalizeWithGenres(filter.params),
-                } as SavedFilter;
-
-                // Navigate within Search stack to keep back gesture returning to Search
-                if (filter.type === 'tv') {
-                  (navigation as any).navigate('Category', {
-                    title: filter.name,
-                    contentType: 'tv',
-                    filter: normalizedSaved,
-                  });
-                } else {
-                  // 'movie' or 'all' -> use 'movie' as concrete contentType; filter.type drives the hook
-                  (navigation as any).navigate('Category', {
-                    title: filter.name,
-                    contentType: 'movie',
-                    filter: normalizedSaved,
-                  });
-                }
-              }}
-            />
-          ))
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 50,
-            }}>
-            <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
-            <Text style={styles.emptyStateText}>
-              Create your first filter to apply on the search
-            </Text>
-            <CreateButton
-              onPress={() =>
-                navigation.navigate('Main', {
-                  screen: 'MySpace',
-                  params: {screen: 'MyFiltersScreen'},
-                })
-              }
-              title="Go to My Filter"
-              icon={null}
-            />
-          </View>
-        )}
-      </View>
-    );
-  };
-
   const renderWatchlistsContent = () => {
     return (
       <View>
@@ -545,8 +460,6 @@ export const SearchScreen = React.memo(() => {
     switch (activeTab) {
       case 'trending':
         return renderTrendingContent();
-      case 'filters':
-        return renderFiltersContent();
       case 'watchlists':
         return renderWatchlistsContent();
       case 'history':
@@ -793,7 +706,6 @@ export const SearchScreen = React.memo(() => {
                   horizontal={true}
                   showsHorizontalScrollIndicator={false}>
                   {renderTabButton('trending', 'Trending')}
-                  {renderTabButton('filters', 'My Filters')}
                   {renderTabButton('watchlists', 'My Watchlists')}
                   {renderTabButton('history', 'History')}
                 </ScrollView>
@@ -1079,88 +991,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     ...typography.body2,
     marginBottom: spacing.lg,
-  },
-  // Filter tab styles
-  currentFiltersContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  currentFiltersTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-    marginBottom: spacing.sm,
-  },
-  filterChipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  filterChip: {
-    backgroundColor: colors.modal.active,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  filterChipText: {
-    color: colors.text.primary,
-    ...typography.caption,
-  },
-  saveFilterButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  saveFilterText: {
-    color: colors.text.primary,
-    ...typography.body2,
-    fontWeight: '600',
-  },
-  createFilterButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  createFilterButtonText: {
-    color: colors.text.primary,
-    ...typography.body2,
-    fontWeight: '600',
-  },
-  savedFiltersContainer: {
-    marginTop: spacing.md,
-  },
-  savedFiltersTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-    marginBottom: spacing.md,
-  },
-  savedFilterItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-  },
-  savedFilterInfo: {
-    flex: 1,
-  },
-  savedFilterName: {
-    color: colors.text.primary,
-    ...typography.body1,
-    fontWeight: '600',
-  },
-  savedFilterDetails: {
-    color: colors.text.secondary,
-    ...typography.caption,
-    marginTop: spacing.xs,
   },
   emptyStateContainer: {
     alignItems: 'center',

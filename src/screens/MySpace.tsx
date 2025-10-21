@@ -9,6 +9,7 @@ import {
   Image,
   Switch,
   ImageBackground,
+  ActivityIndicator,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -113,12 +114,13 @@ export const MySpaceScreen = React.memo(() => {
     queryKey: ['my_otts'],
     queryFn: SettingsManager.getMyOTTs,
   });
-  
+
   // Remove duplicate OTTs on load
   useEffect(() => {
     if (myOTTs && myOTTs.length > 0) {
-      const uniqueOTTs = myOTTs.filter((item: any, index: number, self: any[]) =>
-        index === self.findIndex((t: any) => t.id === item.id)
+      const uniqueOTTs = myOTTs.filter(
+        (item: any, index: number, self: any[]) =>
+          index === self.findIndex((t: any) => t.id === item.id),
       );
       if (uniqueOTTs.length !== myOTTs.length) {
         // Duplicates found, save cleaned version
@@ -254,16 +256,23 @@ export const MySpaceScreen = React.memo(() => {
     }
   }, [showOTTsModal, myOTTs]);
 
-  // Save local OTTs when modal closes
-  const handleCloseOTTsModal = useCallback(() => {
-    setShowOTTsModal(false);
+  // Save local OTTs when Save button clicked
+  const handleCloseOTTsModal = useCallback(async () => {
     // Save to persistent storage
-    if (JSON.stringify(localOTTs) !== JSON.stringify(myOTTs)) {
-      SettingsManager.setMyOTTs(localOTTs).then(() => {
-        queryClient.invalidateQueries({queryKey: ['my_otts']});
-      });
-    }
-  }, [localOTTs, myOTTs, queryClient]);
+    await SettingsManager.setMyOTTs(localOTTs);
+
+    // Invalidate queries immediately
+    await Promise.all([
+      queryClient.invalidateQueries({queryKey: ['my_otts']}),
+      queryClient.invalidateQueries({queryKey: ['my_otts_movies']}),
+      queryClient.invalidateQueries({queryKey: ['my_otts_tv']}),
+      queryClient.invalidateQueries({queryKey: ['my_language_otts_movies']}),
+      queryClient.invalidateQueries({queryKey: ['my_language_otts_tv']}),
+    ]);
+
+    // Close modal
+    setShowOTTsModal(false);
+  }, [localOTTs, queryClient]);
 
   const handleUpdateMood = () => {
     setShowMoodModal(true);
@@ -1262,7 +1271,7 @@ export const MySpaceScreen = React.memo(() => {
         animationType="slide"
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
-        onRequestClose={handleCloseOTTsModal}>
+        onRequestClose={() => setShowOTTsModal(false)}>
         <View style={modalStyles.modalContainer}>
           <MaybeBlurView
             blurType="dark"
@@ -1271,37 +1280,11 @@ export const MySpaceScreen = React.memo(() => {
             modal>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>All Watch Providers</Text>
-              <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                {!!(localOTTs && localOTTs.length) && (
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => {
-                      setLocalOTTs([]);
-                    }}
-                    style={{marginRight: spacing.md}}>
-                    <Text
-                      style={{
-                        ...typography.body2,
-                        color: colors.text.muted,
-                        backgroundColor: colors.background.card,
-                        padding: spacing.sm,
-                        paddingHorizontal: spacing.md,
-                        borderRadius: borderRadius.md,
-                      }}>
-                      clear
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={handleCloseOTTsModal}>
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={colors.text.primary}
-                  />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowOTTsModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
             </View>
             {availableProviders?.length ? (
               <ScrollView
@@ -1328,8 +1311,9 @@ export const MySpaceScreen = React.memo(() => {
                             });
                           }
                           // Remove duplicates by ID
-                          return next.filter((item, index, self) =>
-                            index === self.findIndex((t) => t.id === item.id)
+                          return next.filter(
+                            (item, index, self) =>
+                              index === self.findIndex(t => t.id === item.id),
                           );
                         });
                       }}
@@ -1384,15 +1368,70 @@ export const MySpaceScreen = React.memo(() => {
                     </TouchableOpacity>
                   ))}
                 </View>
-                <View style={{height: 100}} />
+                <View style={{height: 150}} />
               </ScrollView>
             ) : (
-              <View style={{padding: spacing.lg, alignItems: 'center'}}>
-                <Text style={{color: colors.text.secondary}}>
-                  Loading watch providers...
-                </Text>
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                <ActivityIndicator size="large" color={colors.text.primary} />
               </View>
             )}
+
+            {/* Fixed Bottom Buttons - Exact FilterModal style */}
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: spacing.md,
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: colors.modal.blur,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.md,
+                marginHorizontal: isTablet ? '30%' : spacing.xl,
+                marginBottom: spacing.xl,
+                borderRadius: borderRadius.round,
+              }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                  backgroundColor: colors.button.reset,
+                }}
+                onPress={() => setLocalOTTs([])}>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    ...typography.button,
+                  }}>
+                  Clear All
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                  backgroundColor: colors.accent,
+                }}
+                onPress={handleCloseOTTsModal}>
+                <Text
+                  style={{
+                    color: colors.background.primary,
+                    ...typography.button,
+                  }}>
+                  Save & Close
+                </Text>
+              </TouchableOpacity>
+            </View>
           </MaybeBlurView>
         </View>
       </Modal>

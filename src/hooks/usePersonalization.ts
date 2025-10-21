@@ -214,3 +214,56 @@ export function useTVByLanguageSimpleHook(iso?: string) {
     staleTime: STALE_TIME,
   });
 }
+
+// MyLanguage + MyOTTs combined hooks
+export function useMoviesByLanguageAndOTTs(
+  languageIso?: string,
+  ottProviderIds?: number[],
+  watchRegion?: string,
+) {
+  return useInfiniteQuery({
+    queryKey: ['my_language_otts_movies', languageIso, ottProviderIds, watchRegion],
+    enabled: !!languageIso && !!ottProviderIds && ottProviderIds.length > 0,
+    queryFn: ({pageParam = 1}) => {
+      const today = new Date().toISOString().split('T')[0];
+      return searchMovies('', pageParam as number, {
+        with_original_language: languageIso,
+        with_watch_providers: ottProviderIds?.join('|'),
+        watch_region: watchRegion || 'US',
+        sort_by: 'release_date.desc',
+        'release_date.lte': today,
+      } as any);
+    },
+    getNextPageParam: (last: any) =>
+      last?.page < last?.total_pages ? last.page + 1 : undefined,
+    initialPageParam: 1,
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useTVByLanguageAndOTTs(
+  languageIso?: string,
+  ottProviderIds?: number[],
+  watchRegion?: string,
+) {
+  return useInfiniteQuery({
+    queryKey: ['my_language_otts_tv', languageIso, ottProviderIds, watchRegion],
+    enabled: !!languageIso && !!ottProviderIds && ottProviderIds.length > 0,
+    queryFn: ({pageParam = 1}) => {
+      const today = new Date().toISOString().split('T')[0];
+      return searchTVShows('', pageParam as number, {
+        with_original_language: languageIso,
+        with_watch_providers: ottProviderIds?.join('|'),
+        watch_region: watchRegion || 'US',
+        sort_by: 'first_air_date.desc',
+        'first_air_date.lte': today,
+      } as any);
+    },
+    getNextPageParam: (last: any) =>
+      last?.page < last?.total_pages ? last.page + 1 : undefined,
+    initialPageParam: 1,
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+  });
+}

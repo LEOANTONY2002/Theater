@@ -68,6 +68,7 @@ import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
 import {getCriticRatings} from '../services/gemini';
+import {IMDBModal} from '../components/IMDBModal';
 
 type MovieDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -118,6 +119,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   // Poster share state
   const [showPosterModal, setShowPosterModal] = useState(false);
   const [posterLoading, setPosterLoading] = useState(false);
+
+  // Rating modals state
+  const [showIMDBModal, setShowIMDBModal] = useState(false);
+  const [showRottenTomatoesModal, setShowRottenTomatoesModal] = useState(false);
   const [posterUri, setPosterUri] = useState<string | null>(null);
   const [isSharingPoster, setIsSharingPoster] = useState(false);
 
@@ -1323,11 +1328,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       style={styles.addButton}
                       onPress={handleOpenPoster}
                       activeOpacity={0.9}>
-                      <Icon
-                        name="share-social-outline"
-                        size={20}
-                        color="#fff"
-                      />
+                      <Icon name="logo-instagram" size={20} color="#fff" />
                     </TouchableOpacity>
                   </View>
                   <View style={styles.genreContainer}>
@@ -1383,7 +1384,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         gap: spacing.md,
                       }}>
                       {imdbRating?.rating ? (
-                        <View
+                        <TouchableOpacity
+                          onPress={() => setShowIMDBModal(true)}
+                          activeOpacity={0.7}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -1414,11 +1417,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             }}>
                             ({imdbRating?.voteCount})
                           </Text>
-                        </View>
+                        </TouchableOpacity>
                       ) : null}
 
                       {aiRatings?.rotten_tomatoes != null && (
-                        <View
+                        <TouchableOpacity
+                          onPress={() => setShowRottenTomatoesModal(true)}
+                          activeOpacity={0.7}
                           style={{
                             marginTop: spacing.xs,
                             flexDirection: 'row',
@@ -1440,7 +1445,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             }}>
                             {aiRatings.rotten_tomatoes}%
                           </Text>
-                        </View>
+                        </TouchableOpacity>
                       )}
                     </View>
                   )}
@@ -1621,6 +1626,21 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         onClose={() => setIsServerModalOpen(false)}
         currentServer={currentServer}
         setCurrentServer={setCurrentServer}
+      />
+
+      <IMDBModal
+        visible={showIMDBModal}
+        onClose={() => setShowIMDBModal(false)}
+        imdbId={movieDetails?.imdb_id}
+        title={movie.title}
+      />
+
+      <IMDBModal
+        visible={showRottenTomatoesModal}
+        onClose={() => setShowRottenTomatoesModal(false)}
+        searchQuery={movie.title}
+        title={movie.title}
+        type="rotten_tomatoes"
       />
     </View>
   );

@@ -71,6 +71,7 @@ import ShareLib from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {getCriticRatings} from '../services/gemini';
+import {IMDBModal} from '../components/IMDBModal';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -113,6 +114,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [hasCache, setHasCache] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
+  const [showIMDBModal, setShowIMDBModal] = useState(false);
+  const [showRottenTomatoesModal, setShowRottenTomatoesModal] = useState(false);
   const {width, height} = useWindowDimensions();
   const [aiRatings, setAiRatings] = useState<{
     imdb?: number | null;
@@ -1483,11 +1486,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       style={styles.addButton}
                       onPress={handleOpenPoster}
                       activeOpacity={0.9}>
-                      <Ionicons
-                        name="share-social-outline"
-                        size={20}
-                        color="#fff"
-                      />
+                      <Ionicons name="logo-instagram" size={20} color="#fff" />
                     </TouchableOpacity>
                   </View>
                   <View style={styles.genreContainer}>
@@ -1549,7 +1548,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           justifyContent: 'center',
                         }}>
                         {aiRatings.imdb != null && (
-                          <View
+                          <TouchableOpacity
+                            onPress={() => setShowIMDBModal(true)}
+                            activeOpacity={0.7}
                             style={{
                               flexDirection: 'row',
                               alignItems: 'center',
@@ -1581,10 +1582,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                                 ({formatCompact(aiRatings.imdb_votes)})
                               </Text>
                             )}
-                          </View>
+                          </TouchableOpacity>
                         )}
                         {aiRatings.rotten_tomatoes != null && (
-                          <View
+                          <TouchableOpacity
+                            onPress={() => setShowRottenTomatoesModal(true)}
+                            activeOpacity={0.7}
                             style={{
                               flexDirection: 'row',
                               alignItems: 'center',
@@ -1606,7 +1609,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                               }}>
                               {aiRatings.rotten_tomatoes}%
                             </Text>
-                          </View>
+                          </TouchableOpacity>
                         )}
                       </View>
                     )}
@@ -1925,6 +1928,21 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         movieOverview={show.overview}
         movieGenres={showDetails?.genres?.map((g: any) => g.name) || []}
         contentType="tv"
+      />
+
+      <IMDBModal
+        visible={showIMDBModal}
+        onClose={() => setShowIMDBModal(false)}
+        searchQuery={show.name}
+        title={show.name}
+      />
+
+      <IMDBModal
+        visible={showRottenTomatoesModal}
+        onClose={() => setShowRottenTomatoesModal(false)}
+        searchQuery={show.name}
+        title={show.name}
+        type="rotten_tomatoes"
       />
     </View>
   );

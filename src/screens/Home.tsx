@@ -65,6 +65,8 @@ import {MoviesTabbedSection} from '../components/MoviesTabbedSection';
 import {TVShowsTabbedSection} from '../components/TVShowsTabbedSection';
 import {LanguageMoviesTabbedSection} from '../components/LanguageMoviesTabbedSection';
 import {LanguageTVShowsTabbedSection} from '../components/LanguageTVShowsTabbedSection';
+import {MyLanguageMoviesInOTTsSection} from '../components/MyLanguageMoviesInOTTsSection';
+import {MyLanguageTVShowsInOTTsSection} from '../components/MyLanguageTVShowsInOTTsSection';
 import {useNavigation} from '@react-navigation/native';
 
 export const HomeScreen = React.memo(() => {
@@ -671,6 +673,17 @@ export const HomeScreen = React.memo(() => {
         languageIso: myLanguage.iso_639_1,
         languageName: myLanguage.name || myLanguage.english_name,
       });
+
+      // MyLanguage + MyOTTs combined sections
+      sectionsList.push({
+        id: 'myLanguageMoviesInOTTsSection',
+        type: 'myLanguageMoviesInOTTsSection',
+      });
+
+      sectionsList.push({
+        id: 'myLanguageTVShowsInOTTsSection',
+        type: 'myLanguageTVShowsInOTTsSection',
+      });
     }
 
     // My OTTs sections (movies): Latest releases
@@ -972,10 +985,10 @@ export const HomeScreen = React.memo(() => {
 
         case 'moviesTabbedSection':
           return <MoviesTabbedSection />;
-        
+
         case 'tvShowsTabbedSection':
           return <TVShowsTabbedSection />;
-        
+
         case 'languageMoviesTabbedSection':
           return (
             <LanguageMoviesTabbedSection
@@ -983,7 +996,7 @@ export const HomeScreen = React.memo(() => {
               languageName={item.languageName}
             />
           );
-        
+
         case 'languageTVShowsTabbedSection':
           return (
             <LanguageTVShowsTabbedSection
@@ -991,7 +1004,13 @@ export const HomeScreen = React.memo(() => {
               languageName={item.languageName}
             />
           );
-        
+
+        case 'myLanguageMoviesInOTTsSection':
+          return <MyLanguageMoviesInOTTsSection />;
+
+        case 'myLanguageTVShowsInOTTsSection':
+          return <MyLanguageTVShowsInOTTsSection />;
+
         case 'noSavedFilters':
           return (
             <View

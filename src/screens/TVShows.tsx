@@ -32,6 +32,7 @@ import {
 } from '../hooks/usePersonalization';
 import {OttTabbedSection} from '../components/OttTabbedSection';
 import {TrendingTVShowsSection} from '../components/TrendingTVShowsSection';
+import {MyLanguageTVShowsInOTTsSection} from '../components/MyLanguageTVShowsInOTTsSection';
 
 export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -498,6 +499,12 @@ export const TVShowsScreen = React.memo(() => {
             }),
         });
       }
+
+      // MyLanguage + MyOTTs combined section
+      sectionsList.push({
+        id: 'myLanguageTVShowsInOTTsSection',
+        type: 'myLanguageTVShowsInOTTsSection',
+      });
     }
 
     // Add after main lists
@@ -704,6 +711,8 @@ export const TVShowsScreen = React.memo(() => {
               contentType={item.contentType}
             />
           );
+        case 'myLanguageTVShowsInOTTsSection':
+          return <MyLanguageTVShowsInOTTsSection />;
 
         default:
           return null;
@@ -725,6 +734,10 @@ export const TVShowsScreen = React.memo(() => {
           return 140;
         case 'trendingTVShows':
           return 380; // title + tabs + horizontal list
+        case 'myLanguageTVShowsInOTTsSection':
+          return 380; // title + tabs + horizontal list
+        case 'ottTabbedSection':
+          return 380;
         case 'horizontalList':
           return 320;
         case 'horizontalListSkeleton':

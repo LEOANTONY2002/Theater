@@ -33,6 +33,7 @@ import {
 } from '../hooks/usePersonalization';
 import {OttTabbedSection} from '../components/OttTabbedSection';
 import {TrendingMoviesSection} from '../components/TrendingMoviesSection';
+import {MyLanguageMoviesInOTTsSection} from '../components/MyLanguageMoviesInOTTsSection';
 
 export const MoviesScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -595,6 +596,12 @@ export const MoviesScreen = React.memo(() => {
             }),
         });
       }
+
+      // MyLanguage + MyOTTs combined section
+      sectionsList.push({
+        id: 'myLanguageMoviesInOTTsSection',
+        type: 'myLanguageMoviesInOTTsSection',
+      });
     }
 
     // Kids Movies
@@ -748,6 +755,8 @@ export const MoviesScreen = React.memo(() => {
             contentType={item.contentType}
           />
         );
+      case 'myLanguageMoviesInOTTsSection':
+        return <MyLanguageMoviesInOTTsSection />;
       case 'featuredSkeleton':
         return <BannerSkeleton />;
 
@@ -782,6 +791,10 @@ export const MoviesScreen = React.memo(() => {
           return 140;
         case 'trendingMovies':
           return 380; // title + tabs + horizontal list
+        case 'myLanguageMoviesInOTTsSection':
+          return 380; // title + tabs + horizontal list
+        case 'ottTabbedSection':
+          return 380;
         case 'horizontalList':
           return 320;
         case 'horizontalListSkeleton':
