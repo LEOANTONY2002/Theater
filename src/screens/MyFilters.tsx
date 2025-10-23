@@ -160,12 +160,12 @@ export const MyFiltersScreen = () => {
   // Use cached genres hooks
   const {data: movieGenres = []} = useGenres('movie');
   const {data: tvGenres = []} = useGenres('tv');
-  
+
   // Combine and deduplicate genres
   const allGenres = React.useMemo(() => {
     const combined = [...movieGenres, ...tvGenres];
     return combined.filter(
-      (genre, index, self) => index === self.findIndex(t => t.id === genre.id)
+      (genre, index, self) => index === self.findIndex(t => t.id === genre.id),
     );
   }, [movieGenres, tvGenres]);
 
@@ -186,7 +186,6 @@ export const MyFiltersScreen = () => {
     } catch {}
     return map;
   }, [availableProviders]);
-
 
   // Import Filter submit (same UX as Watchlists)
   const handleImportFilterSubmit = useCallback(async () => {
@@ -1078,7 +1077,7 @@ export const MyFiltersScreen = () => {
             activeOpacity={0.9}
             style={{
               backgroundColor: isSolid
-                ? colors.background.primary
+                ? colors.modal.blur
                 : 'rgba(122, 122, 122, 0.25)',
               padding: isTablet ? 12 : 10,
               borderRadius: borderRadius.round,
@@ -1098,7 +1097,7 @@ export const MyFiltersScreen = () => {
               activeOpacity={0.9}
               style={{
                 backgroundColor: isSolid
-                  ? colors.background.primary
+                  ? colors.modal.blur
                   : 'rgba(122, 122, 122, 0.25)',
                 padding: isTablet ? 12 : 10,
                 borderRadius: borderRadius.round,
@@ -1117,7 +1116,7 @@ export const MyFiltersScreen = () => {
                 activeOpacity={0.9}
                 style={{
                   backgroundColor: isSolid
-                    ? colors.background.primary
+                    ? colors.modal.blur
                     : 'rgba(122, 122, 122, 0.25)',
                   padding: isTablet ? 12 : 10,
                   borderRadius: borderRadius.round,
@@ -1196,87 +1195,164 @@ export const MyFiltersScreen = () => {
       {/* Delete Confirmation Modal */}
       <Modal
         visible={!!deletingFilter}
-        animationType="fade"
         transparent
-        statusBarTranslucent={true}
+        animationType="fade"
         onRequestClose={() => setDeletingFilter(null)}>
         <View
-          style={[
-            styles.modalContainer,
-            {
-              margin: spacing.md,
-            },
-          ]}>
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          }}>
           <View
             style={{
-              paddingVertical: spacing.xl,
-              paddingHorizontal: spacing.md,
-              justifyContent: 'center',
-              alignItems: 'center',
+              width: isTablet ? '40%' : '85%',
               borderRadius: borderRadius.xl,
               overflow: 'hidden',
             }}>
-            <MaybeBlurView
-              style={[
-                {
-                  flex: 1,
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  borderRadius: borderRadius.xl,
-                },
-              ]}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-              dialog
-              radius={20}
-            />
-            <View style={{position: 'absolute', top: 16, right: 16}}>
-              <TouchableOpacity onPress={() => setDeletingFilter(null)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            <View style={{padding: spacing.md}}>
-              <Text style={modalStyles.sectionTitle}>
-                Are you sure you want to delete "{deletingFilter?.name}"?
-              </Text>
+            {isSolid ? (
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginTop: spacing.lg,
-                  gap: spacing.md,
+                  padding: spacing.xl,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.xl,
                 }}>
-                <TouchableOpacity
-                  style={[modalStyles.contentTypeButton]}
-                  onPress={() => setDeletingFilter(null)}>
+                <View style={{alignItems: 'center'}}>
                   <Text
-                    style={[
-                      modalStyles.saveButtonText,
-                      {color: colors.text.primary, fontWeight: 'bold'},
-                    ]}>
-                    Cancel
+                    style={{
+                      ...typography.h2,
+                      color: colors.text.primary,
+                      marginBottom: spacing.sm,
+                      textAlign: 'center',
+                    }}>
+                    Delete Filter?
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    modalStyles.contentTypeButton,
-                    {backgroundColor: colors.button.delete},
-                  ]}
-                  onPress={handleConfirmDelete}>
                   <Text
-                    style={[
-                      modalStyles.saveButtonText,
-                      {color: colors.text.primary, fontWeight: 'bold'},
-                    ]}>
-                    Delete
+                    style={{
+                      ...typography.body2,
+                      color: colors.text.secondary,
+                      textAlign: 'center',
+                      marginBottom: spacing.xl,
+                    }}>
+                    Are you sure you want to delete "{deletingFilter?.name}"?
+                    This action cannot be undone.
                   </Text>
-                </TouchableOpacity>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: spacing.md,
+                      width: '100%',
+                    }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: spacing.md,
+                        borderRadius: borderRadius.round,
+                        alignItems: 'center',
+                        backgroundColor: colors.modal.content,
+                      }}
+                      onPress={() => setDeletingFilter(null)}>
+                      <Text
+                        style={{
+                          color: colors.text.primary,
+                          ...typography.button,
+                        }}>
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: spacing.md,
+                        borderRadius: borderRadius.round,
+                        alignItems: 'center',
+                        backgroundColor: '#ef4444',
+                      }}
+                      onPress={handleConfirmDelete}>
+                      <Text
+                        style={{
+                          color: colors.text.primary,
+                          ...typography.button,
+                        }}>
+                        Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </View>
+            ) : (
+              <MaybeBlurView
+                dialog
+                radius={borderRadius.xl}
+                style={{
+                  padding: spacing.xl,
+                  borderRadius: borderRadius.xl,
+                }}>
+                <View style={{alignItems: 'center'}}>
+                  <Text
+                    style={{
+                      ...typography.h2,
+                      color: colors.text.primary,
+                      marginBottom: spacing.sm,
+                      textAlign: 'center',
+                    }}>
+                    Delete Filter?
+                  </Text>
+                  <Text
+                    style={{
+                      ...typography.body2,
+                      color: colors.text.secondary,
+                      textAlign: 'center',
+                      marginBottom: spacing.xl,
+                    }}>
+                    Are you sure you want to delete "{deletingFilter?.name}"?
+                    This action cannot be undone.
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: spacing.md,
+                      width: '100%',
+                    }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: spacing.md,
+                        borderRadius: borderRadius.round,
+                        alignItems: 'center',
+                        backgroundColor: colors.modal.content,
+                      }}
+                      onPress={() => setDeletingFilter(null)}>
+                      <Text
+                        style={{
+                          color: colors.text.primary,
+                          ...typography.button,
+                        }}>
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: spacing.md,
+                        borderRadius: borderRadius.round,
+                        alignItems: 'center',
+                        backgroundColor: '#ef4444',
+                      }}
+                      onPress={handleConfirmDelete}>
+                      <Text
+                        style={{
+                          color: colors.text.primary,
+                          ...typography.button,
+                        }}>
+                        Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </MaybeBlurView>
+            )}
           </View>
         </View>
       </Modal>

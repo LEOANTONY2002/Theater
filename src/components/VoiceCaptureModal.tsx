@@ -15,6 +15,7 @@ import {useSpeechToText} from '../hooks/useSpeechToText';
 import {colors, borderRadius} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
 import {MaybeBlurView} from './MaybeBlurView';
+import {BlurPreference} from '../store/blurPreference';
 
 interface VoiceCaptureModalProps {
   visible: boolean;
@@ -34,6 +35,8 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
   const pulse = useMemo(() => new Animated.Value(1), []);
   const [hint, setHint] = useState<string>('Tap to Speak');
   const {isTablet} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   const {start, stop, isRecording, supported} = useSpeechToText({
     locale,
@@ -80,18 +83,21 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.81)',
+      backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)',
     },
     blur: {
       ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.modal.blurDark,
     },
     card: {
       width: isTablet ? 320 : 250,
       borderRadius: 50,
-      backgroundColor: colors.modal.blurDark,
+      backgroundColor: isSolid ? 'black' : colors.modal.blurDark,
       paddingHorizontal: 20,
       paddingVertical: 60,
       alignItems: 'center',
+      borderWidth: isSolid ? 1 : 0,
+      borderColor: isSolid ? colors.modal.blur : colors.modal.blur,
     },
     micCircle: {
       width: 96,
@@ -124,6 +130,45 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
     actionText: {color: colors.text.primary, fontFamily: 'Inter_18pt-Regular'},
   });
 
+  const renderContent = () => (
+    <View style={styles.card}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={async () => {
+          if (!supported) return;
+          if (isRecording) {
+            await stop();
+          } else {
+            // Reset hint to default before starting
+            setHint('Tap to Speak');
+            await start();
+          }
+        }}>
+        <Animated.View
+          style={[
+            styles.micCircle,
+            {transform: [{scale: isRecording ? pulse : 1}]},
+          ]}>
+          <Icon
+            name={isRecording ? 'mic' : 'mic-outline'}
+            size={42}
+            color={colors.text.primary}
+          />
+        </Animated.View>
+      </TouchableOpacity>
+
+      <Text style={styles.hintText}>{isRecording ? 'Listening…' : hint}</Text>
+
+      <View style={styles.actions}>
+        <TouchableOpacity
+          onPress={onCancel}
+          style={[styles.actionBtn, styles.cancelBtn]}>
+          <Text style={styles.actionText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -132,53 +177,18 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
       animationType="fade"
       onRequestClose={onCancel}>
       <View style={styles.overlay}>
-        <View style={{borderRadius: 50, overflow: 'hidden'}}>
-          <MaybeBlurView
-            style={styles.blur}
-            blurType={'dark'}
-            blurAmount={10}
-            radius={50}
-            dialog
-          />
-          <View style={styles.card}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={async () => {
-                if (!supported) return;
-                if (isRecording) {
-                  await stop();
-                } else {
-                  // Reset hint to default before starting
-                  setHint('Tap to Speak');
-                  await start();
-                }
-              }}>
-              <Animated.View
-                style={[
-                  styles.micCircle,
-                  {transform: [{scale: isRecording ? pulse : 1}]},
-                ]}>
-                <Icon
-                  name={isRecording ? 'mic' : 'mic-outline'}
-                  size={42}
-                  color={colors.text.primary}
-                />
-              </Animated.View>
-            </TouchableOpacity>
-
-            <Text style={styles.hintText}>
-              {isRecording ? 'Listening…' : hint}
-            </Text>
-
-            <View style={styles.actions}>
-              <TouchableOpacity
-                onPress={onCancel}
-                style={[styles.actionBtn, styles.cancelBtn]}>
-                <Text style={styles.actionText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+        {isSolid ? (
+          renderContent()
+        ) : (
+          <View
+            style={{
+              borderRadius: 50,
+              overflow: 'hidden',
+            }}>
+            <MaybeBlurView style={styles.blur} radius={50} dialog />
+            {renderContent()}
           </View>
-        </View>
+        )}
       </View>
     </Modal>
   );

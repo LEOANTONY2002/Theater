@@ -1,6 +1,7 @@
 import React from 'react';
 import {TouchableOpacity, Text, StyleSheet, Image, View} from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
+import {BlurPreference} from '../store/blurPreference';
 
 interface ChipProps {
   label: string;
@@ -10,6 +11,7 @@ interface ChipProps {
   imageOnly?: boolean;
   width?: number;
   height?: number;
+  isWatchlist?: boolean;
 }
 
 export const Chip: React.FC<ChipProps> = ({
@@ -20,10 +22,18 @@ export const Chip: React.FC<ChipProps> = ({
   imageOnly = false,
   width = 120,
   height = 100,
+  isWatchlist = false,
 }) => {
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
+
   const styles = StyleSheet.create({
     chip: {
-      backgroundColor: colors.modal.blur,
+      backgroundColor: isSolid
+        ? colors.modal.blur
+        : isWatchlist
+        ? colors.modal.header
+        : colors.modal.border,
       borderRadius: borderRadius.lg,
       width: width,
       height: height,
@@ -39,7 +49,7 @@ export const Chip: React.FC<ChipProps> = ({
       minHeight: 60,
     },
     selectedChip: {
-      backgroundColor: colors.modal.active,
+      backgroundColor: colors.modal.activeBorder,
       borderColor: colors.modal.activeBorder,
     },
     chipContent: {
@@ -92,7 +102,7 @@ export const Chip: React.FC<ChipProps> = ({
             style={{
               position: 'absolute',
               zIndex: 1,
-              color: colors.text.primary,
+              color: selected && !isSolid ? 'black' : colors.text.primary,
               opacity: 0.08,
               fontSize: 60,
               fontWeight: '900',

@@ -24,8 +24,6 @@ export const modalStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
   },
   modalTitle: {
     color: colors.text.primary,
@@ -37,6 +35,7 @@ export const modalStyles = StyleSheet.create({
   scrollContent: {
     flex: 1,
     paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
   },
   section: {
     marginBottom: spacing.lg,
@@ -67,11 +66,25 @@ export const modalStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
     padding: spacing.md,
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.border,
+    borderRadius: borderRadius.md,
+  },
+  contentTypeButtonSolid: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    padding: spacing.md,
+    backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.md,
   },
   activeButton: {
     borderColor: colors.modal.activeBorder,
+    backgroundColor: colors.modal.activeBorder,
+  },
+  activeButtonSolid: {
+    borderColor: colors.modal.active,
     backgroundColor: colors.modal.active,
   },
   contentTypeText: {
@@ -84,7 +97,13 @@ export const modalStyles = StyleSheet.create({
     fontWeight: '600',
   },
   pickerContainer: {
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.border,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    paddingLeft: spacing.sm,
+  },
+  pickerContainerSolid: {
+    backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     paddingLeft: spacing.sm,
@@ -103,7 +122,14 @@ export const modalStyles = StyleSheet.create({
   },
   dateButton: {
     flex: 1,
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.border,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  dateButtonSolid: {
+    flex: 1,
+    backgroundColor: colors.modal.blur,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
@@ -202,18 +228,8 @@ export const modalStyles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: spacing.md,
   },
-  tagContainer: {
-    marginTop: -spacing.md,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  tagContent: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-  },
   tag: {
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xl,
     marginRight: spacing.sm,
@@ -242,8 +258,13 @@ export const modalStyles = StyleSheet.create({
     opacity: 0.3,
     textAlign: 'center',
   },
-  activeTag: {
+  activeTagSolid: {
     backgroundColor: colors.modal.active,
+    borderWidth: 1,
+    borderColor: colors.modal.active,
+  },
+  activeTag: {
+    backgroundColor: colors.modal.activeBorder,
     borderWidth: 1,
     borderColor: colors.modal.activeBorder,
   },

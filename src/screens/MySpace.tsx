@@ -66,7 +66,6 @@ export const MySpaceScreen = React.memo(() => {
   const {isTablet, orientation} = useResponsive();
   // Blur preference toggle state
   const [forceBlurAll, setForceBlurAll] = useState(false);
-  const [showThemeModal, setShowThemeModal] = useState(false);
   // My Language & My OTTs state
   const [showMyLanguageModal, setShowMyLanguageModal] = useState(false);
   const [showOTTsModal, setShowOTTsModal] = useState(false);
@@ -1224,30 +1223,69 @@ export const MySpaceScreen = React.memo(() => {
       {/* My Language Modal - single select using LanguageSettings in local mode */}
       <Modal
         visible={showMyLanguageModal}
-        transparent
-        animationType="fade"
+        animationType="slide"
+        statusBarTranslucent={true}
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowMyLanguageModal(false)}>
-        <View style={modalStyles.modalContainer}>
-          <MaybeBlurView
-            style={modalStyles.modalContent}
-            modal
-            blurType="dark"
-            blurAmount={20}>
-            <View style={styles.modalHeader}>
-              <Text
-                style={[
-                  styles.modalTitle,
-                  {width: '80%', fontSize: isTablet ? 16 : 12},
-                ]}>
-                Select your language to show personalized content
-              </Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowMyLanguageModal(false)}>
-                <Ionicons name="close" size={22} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            <View style={{flex: 1}}>
+        <View
+          style={{
+            flex: 1,
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor: 'transparent',
+          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: spacing.md,
+              marginBottom: isTablet ? spacing.lg : spacing.md,
+              borderRadius: borderRadius.round,
+              borderWidth: 1,
+              borderColor: forceBlurAll
+                ? colors.modal.border
+                : colors.modal.blur,
+              backgroundColor: forceBlurAll ? colors.modal.content : 'black',
+              zIndex: 1,
+              marginTop: 20,
+            }}>
+            <Text
+              style={{
+                color: colors.text.primary,
+                ...typography.h3,
+              }}>
+              My Language
+            </Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowMyLanguageModal(false)}>
+              <Ionicons name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              borderRadius: borderRadius.xl,
+              borderWidth: forceBlurAll ? 1 : 0,
+              borderColor: forceBlurAll
+                ? colors.modal.content
+                : colors.modal.blur,
+            }}>
+            <MaybeBlurView
+              modal
+              style={{
+                flex: 1,
+                borderRadius: borderRadius.xl,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: forceBlurAll
+                  ? colors.modal.content
+                  : colors.modal.blur,
+                backgroundColor: forceBlurAll ? colors.modal.blur : 'black',
+                opacity: 1,
+              }}>
               <LanguageSettings
                 isTitle={false}
                 singleSelect
@@ -1260,8 +1298,8 @@ export const MySpaceScreen = React.memo(() => {
                   setShowMyLanguageModal(false);
                 }}
               />
-            </View>
-          </MaybeBlurView>
+            </MaybeBlurView>
+          </View>
         </View>
       </Modal>
 
@@ -1272,167 +1310,217 @@ export const MySpaceScreen = React.memo(() => {
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowOTTsModal(false)}>
-        <View style={modalStyles.modalContainer}>
-          <MaybeBlurView
-            blurType="dark"
-            blurAmount={10}
-            style={modalStyles.modalContent}
-            modal>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>All Watch Providers</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setShowOTTsModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            {availableProviders?.length ? (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                key={availableProviders.length}
-                style={modalStyles.scrollContent}>
-                <View style={modalStyles.allProvidersGrid}>
-                  {availableProviders.map((p: any, index: number) => (
-                    <TouchableOpacity
-                      activeOpacity={1}
-                      key={`myspace-provider-${p.provider_id}-${index}`}
-                      onPress={() => {
-                        setLocalOTTs(prev => {
-                          let next = Array.isArray(prev) ? [...prev] : [];
-                          if (prev?.some((s: any) => s.id === p.provider_id)) {
-                            next = next.filter(
-                              (x: any) => x.id !== p.provider_id,
+        <View
+          style={{
+            flex: 1,
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor: 'transparent',
+          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: spacing.md,
+              marginBottom: isTablet ? spacing.lg : spacing.md,
+              borderRadius: borderRadius.round,
+              borderWidth: 1,
+              borderColor: forceBlurAll
+                ? colors.modal.border
+                : colors.modal.blur,
+              backgroundColor: forceBlurAll ? colors.modal.content : 'black',
+              zIndex: 1,
+              marginTop: 20,
+            }}>
+            <Text
+              style={{
+                color: colors.text.primary,
+                ...typography.h3,
+              }}>
+              My OTTs
+            </Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowOTTsModal(false)}>
+              <Ionicons name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              borderRadius: borderRadius.xl,
+              borderWidth: forceBlurAll ? 1 : 0,
+              borderColor: forceBlurAll
+                ? colors.modal.content
+                : colors.modal.blur,
+            }}>
+            <MaybeBlurView
+              modal
+              style={{
+                flex: 1,
+                borderRadius: borderRadius.xl,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: forceBlurAll
+                  ? colors.modal.content
+                  : colors.modal.blur,
+                backgroundColor: forceBlurAll ? colors.modal.blur : 'black',
+                opacity: 1,
+              }}>
+              {availableProviders?.length ? (
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  key={availableProviders.length}
+                  style={modalStyles.scrollContent}>
+                  <View style={modalStyles.allProvidersGrid}>
+                    {availableProviders.map((p: any, index: number) => (
+                      <TouchableOpacity
+                        activeOpacity={1}
+                        key={`myspace-provider-${p.provider_id}-${index}`}
+                        onPress={() => {
+                          setLocalOTTs(prev => {
+                            let next = Array.isArray(prev) ? [...prev] : [];
+                            if (
+                              prev?.some((s: any) => s.id === p.provider_id)
+                            ) {
+                              next = next.filter(
+                                (x: any) => x.id !== p.provider_id,
+                              );
+                            } else {
+                              next.push({
+                                id: p.provider_id,
+                                provider_name: p.provider_name,
+                                logo_path: p.logo_path,
+                              });
+                            }
+                            // Remove duplicates by ID
+                            return next.filter(
+                              (item, index, self) =>
+                                index === self.findIndex(t => t.id === item.id),
                             );
-                          } else {
-                            next.push({
-                              id: p.provider_id,
-                              provider_name: p.provider_name,
-                              logo_path: p.logo_path,
-                            });
-                          }
-                          // Remove duplicates by ID
-                          return next.filter(
-                            (item, index, self) =>
-                              index === self.findIndex(t => t.id === item.id),
-                          );
-                        });
-                      }}
-                      style={{
-                        borderRadius: 16,
-                        margin: 3,
-                        opacity: localOTTs?.some(
-                          (s: any) => s.id === p.provider_id,
-                        )
-                          ? 1
-                          : 0.7,
-                        backgroundColor: localOTTs?.some(
-                          (s: any) => s.id === p.provider_id,
-                        )
-                          ? colors.modal.active
-                          : colors.modal.blur,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderWidth: localOTTs?.some(
-                          (s: any) => s.id === p.provider_id,
-                        )
-                          ? 2
-                          : 0,
-                        borderColor: localOTTs?.some(
-                          (s: any) => s.id === p.provider_id,
-                        )
-                          ? colors.modal.activeBorder
-                          : 'transparent',
-                      }}>
-                      <Image
-                        source={{
-                          uri: p.logo_path
-                            ? `https://image.tmdb.org/t/p/w154${p.logo_path}`
-                            : undefined,
+                          });
                         }}
-                        style={{width: 70, height: 70, borderRadius: 16}}
-                        resizeMode="contain"
-                      />
-                      {localOTTs?.some((s: any) => s.id === p.provider_id) && (
-                        <View
-                          style={{
-                            position: 'absolute',
-                            top: 6,
-                            right: 6,
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            borderRadius: 10,
-                            padding: 2,
-                          }}>
-                          <Ionicons name="checkmark" size={14} color="#fff" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                        style={{
+                          borderRadius: 16,
+                          margin: 3,
+                          opacity: localOTTs?.some(
+                            (s: any) => s.id === p.provider_id,
+                          )
+                            ? 1
+                            : 0.7,
+                          backgroundColor: localOTTs?.some(
+                            (s: any) => s.id === p.provider_id,
+                          )
+                            ? colors.modal.active
+                            : colors.modal.blur,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: localOTTs?.some(
+                            (s: any) => s.id === p.provider_id,
+                          )
+                            ? 2
+                            : 0,
+                          borderColor: localOTTs?.some(
+                            (s: any) => s.id === p.provider_id,
+                          )
+                            ? colors.modal.activeBorder
+                            : 'transparent',
+                        }}>
+                        <Image
+                          source={{
+                            uri: p.logo_path
+                              ? `https://image.tmdb.org/t/p/w154${p.logo_path}`
+                              : undefined,
+                          }}
+                          style={{width: 70, height: 70, borderRadius: 16}}
+                          resizeMode="contain"
+                        />
+                        {localOTTs?.some(
+                          (s: any) => s.id === p.provider_id,
+                        ) && (
+                          <View
+                            style={{
+                              position: 'absolute',
+                              top: 6,
+                              right: 6,
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              borderRadius: 10,
+                              padding: 2,
+                            }}>
+                            <Ionicons name="checkmark" size={14} color="#fff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={{height: 150}} />
+                </ScrollView>
+              ) : (
+                <View
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <ActivityIndicator size="large" color={colors.text.primary} />
                 </View>
-                <View style={{height: 150}} />
-              </ScrollView>
-            ) : (
+              )}
+
+              {/* Fixed Bottom Buttons - Exact FilterModal style */}
               <View
                 style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: spacing.md,
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: colors.modal.blur,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.md,
+                  marginHorizontal: isTablet ? '30%' : spacing.xl,
+                  marginBottom: spacing.xl,
+                  borderRadius: borderRadius.round,
                 }}>
-                <ActivityIndicator size="large" color={colors.text.primary} />
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: spacing.md,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    backgroundColor: colors.button.reset,
+                  }}
+                  onPress={() => setLocalOTTs([])}>
+                  <Text
+                    style={{
+                      color: colors.text.primary,
+                      ...typography.button,
+                    }}>
+                    Clear All
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: spacing.md,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    backgroundColor: colors.accent,
+                  }}
+                  onPress={handleCloseOTTsModal}>
+                  <Text
+                    style={{
+                      color: colors.background.primary,
+                      ...typography.button,
+                    }}>
+                    Save & Close
+                  </Text>
+                </TouchableOpacity>
               </View>
-            )}
-
-            {/* Fixed Bottom Buttons - Exact FilterModal style */}
-            <View
-              style={{
-                flexDirection: 'row',
-                gap: spacing.md,
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                backgroundColor: colors.modal.blur,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.md,
-                marginHorizontal: isTablet ? '30%' : spacing.xl,
-                marginBottom: spacing.xl,
-                borderRadius: borderRadius.round,
-              }}>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  padding: spacing.md,
-                  borderRadius: borderRadius.round,
-                  alignItems: 'center',
-                  backgroundColor: colors.button.reset,
-                }}
-                onPress={() => setLocalOTTs([])}>
-                <Text
-                  style={{
-                    color: colors.text.primary,
-                    ...typography.button,
-                  }}>
-                  Clear All
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  padding: spacing.md,
-                  borderRadius: borderRadius.round,
-                  alignItems: 'center',
-                  backgroundColor: colors.accent,
-                }}
-                onPress={handleCloseOTTsModal}>
-                <Text
-                  style={{
-                    color: colors.background.primary,
-                    ...typography.button,
-                  }}>
-                  Save & Close
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </MaybeBlurView>
+            </MaybeBlurView>
+          </View>
         </View>
       </Modal>
 
@@ -1443,124 +1531,6 @@ export const MySpaceScreen = React.memo(() => {
         selectedRegion={currentRegion?.iso_3166_1}
         onSelectRegion={handleRegionSelect}
       />
-
-      {/* Theme Modal */}
-      <Modal
-        visible={showThemeModal}
-        animationType="slide"
-        statusBarTranslucent={true}
-        backdropColor={colors.modal.blurDark}
-        onRequestClose={() => setShowThemeModal(false)}>
-        <View style={styles.modalContainer}>
-          <MaybeBlurView
-            style={{
-              flex: 1,
-              marginTop: '50%',
-              borderTopLeftRadius: borderRadius.xl,
-              borderTopRightRadius: borderRadius.xl,
-            }}
-            blurType="dark"
-            blurAmount={10}
-            overlayColor={colors.modal.blur}
-            modal
-            radius={borderRadius.xl}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Theme</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setShowThemeModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            <View style={{padding: spacing.md}}>
-              {/* Glass Option */}
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={async () => {
-                  setForceBlurAll(true);
-                  await BlurPreference.set(true);
-                  setShowThemeModal(false);
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingVertical: spacing.md,
-                  paddingHorizontal: spacing.md,
-                  borderRadius: borderRadius.md,
-                  backgroundColor: colors.modal.content,
-                  borderWidth: 1,
-                  borderColor: forceBlurAll
-                    ? colors.accent
-                    : colors.modal.border,
-                  marginBottom: spacing.md,
-                }}>
-                <View>
-                  <Text style={{color: colors.text.primary, ...typography.h3}}>
-                    Glass
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.text.secondary,
-                      ...typography.body2,
-                    }}>
-                    Beautiful blur effects throughout the app
-                  </Text>
-                </View>
-                {forceBlurAll && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={22}
-                    color={colors.accent}
-                  />
-                )}
-              </TouchableOpacity>
-
-              {/* Normal Option */}
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={async () => {
-                  setForceBlurAll(false);
-                  await BlurPreference.set(false);
-                  setShowThemeModal(false);
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingVertical: spacing.md,
-                  paddingHorizontal: spacing.md,
-                  borderRadius: borderRadius.md,
-                  backgroundColor: colors.modal.content,
-                  borderWidth: 1,
-                  borderColor: !forceBlurAll
-                    ? colors.accent
-                    : colors.modal.border,
-                }}>
-                <View>
-                  <Text style={{color: colors.text.primary, ...typography.h3}}>
-                    Solid
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.text.secondary,
-                      ...typography.body2,
-                    }}>
-                    Fallback theme (use if you notice performance issues)
-                  </Text>
-                </View>
-                {!forceBlurAll && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={22}
-                    color={colors.accent}
-                  />
-                )}
-              </TouchableOpacity>
-            </View>
-          </MaybeBlurView>
-        </View>
-      </Modal>
 
       {/* AI Not Enabled Dialog */}
       <Modal

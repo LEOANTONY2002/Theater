@@ -91,7 +91,7 @@ export const MaybeBlurView: React.FC<
         <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(1, 0, 3, 0.8)',
+            backgroundColor: 'black',
             borderWidth: 1.5,
             borderColor: 'rgba(0, 0, 0, 0.3)',
             borderRadius: radius,

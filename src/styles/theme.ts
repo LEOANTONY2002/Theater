@@ -66,7 +66,7 @@ export const colors = {
     content: 'rgba(255, 255, 255, 0.1)',
     border: 'rgba(171, 170, 170, 0.29)',
     active: 'rgba(236, 236, 236, 0.32)',
-    activeBorder: 'rgba(255, 255, 255, 0.49)',
+    activeBorder: 'rgba(255, 255, 255, 0.43)',
     activeText: 'rgba(255, 255, 255, 0.87)',
   },
 };

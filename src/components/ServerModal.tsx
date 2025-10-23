@@ -12,6 +12,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {modalStyles} from '../styles/styles';
 import {MaybeBlurView} from './MaybeBlurView';
+import {useResponsive} from '../hooks/useResponsive';
+import {BlurPreference} from '../store/blurPreference';
 
 interface ServerModalProps {
   visible: boolean;
@@ -28,6 +30,10 @@ export const ServerModal: React.FC<ServerModalProps> = ({
   currentServer,
   setCurrentServer,
 }) => {
+  const {isTablet} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
+
   return (
     <Modal
       visible={visible}
@@ -35,28 +41,60 @@ export const ServerModal: React.FC<ServerModalProps> = ({
       statusBarTranslucent={true}
       backdropColor={colors.modal.blurDark}
       onRequestClose={onClose}>
-      <View style={[modalStyles.modalContainer, {justifyContent: 'flex-end'}]}>
+      <View
+        style={{
+          flex: 1,
+          margin: isTablet ? spacing.xl : spacing.md,
+          borderRadius: borderRadius.xl,
+          backgroundColor: 'transparent',
+        }}>
         <View
-          style={[
-            modalStyles.modalContent,
-            styles.halfScreenContent,
-            {overflow: 'hidden'},
-          ]}>
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: spacing.md,
+            marginBottom: isTablet ? spacing.lg : spacing.md,
+            borderRadius: borderRadius.round,
+            borderWidth: 1,
+            borderColor: isSolid ? colors.modal.blur : colors.modal.border,
+            backgroundColor: isSolid ? 'black' : colors.modal.content,
+            zIndex: 1,
+            marginTop: 20,
+          }}>
+          <Text
+            style={{
+              color: colors.text.primary,
+              ...typography.h3,
+            }}>
+            Select Server
+          </Text>
+          <TouchableOpacity
+            style={{padding: spacing.xs}}
+            onPress={onClose}>
+            <Ionicons name="close" size={20} color={colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            borderRadius: borderRadius.xl,
+            borderWidth: isSolid ? 0 : 1,
+            borderColor: isSolid ? colors.modal.blur : colors.modal.content,
+          }}>
           <MaybeBlurView
-            style={StyleSheet.absoluteFill}
-            blurType="dark"
-            blurAmount={10}
-            overlayColor={colors.modal.blur}
-            dialog
-            radius={borderRadius.xl}
-          />
-          <View style={modalStyles.modalHeader}>
-            <Text style={modalStyles.modalTitle}>Select Server</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.modalBody}>
+            modal
+            style={{
+              flex: 1,
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: isSolid ? colors.modal.blur : colors.modal.content,
+              backgroundColor: isSolid ? 'black' : colors.modal.blur,
+              opacity: 1,
+            }}>
+            <View style={styles.modalBody}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -105,7 +143,8 @@ export const ServerModal: React.FC<ServerModalProps> = ({
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+            </View>
+          </MaybeBlurView>
         </View>
       </View>
     </Modal>

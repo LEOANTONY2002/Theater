@@ -331,7 +331,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       marginTop: spacing.sm,
     },
     watchButton: {
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadius.round,
       height: isTablet ? 60 : 45,
       flexDirection: 'row',
       alignItems: 'center',
@@ -341,7 +341,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
     watchlistButton: {
       width: isTablet ? 60 : 45,
       height: isTablet ? 60 : 45,
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadius.round,
       backgroundColor: 'rgba(255,255,255,0.1)',
       alignItems: 'center',
       justifyContent: 'center',
