@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState, useRef} from 'react';
 import {
   View,
   FlatList,
@@ -7,6 +7,7 @@ import {
   Modal,
   TouchableOpacity,
   useWindowDimensions,
+  AppState,
 } from 'react-native';
 import {
   useMoviesList,
@@ -101,6 +102,7 @@ export const HomeScreen = React.memo(() => {
   const [becauseSeed, setBecauseSeed] = useState(0);
   // Track last history hash used for personalized recommendations
   const [lastHistoryHash, setLastHistoryHash] = useState<string>('');
+  const appState = useRef(AppState.currentState);
   // We no longer force-remount MyNextWatch on Home focus; it can refresh itself via its own UI
   // const [moodRefreshKey, setMoodRefreshKey] = useState(0);
   const queryClient = useQueryClient();
@@ -455,14 +457,15 @@ export const HomeScreen = React.memo(() => {
     return unsubscribe;
   }, [navigation, loadMoodAnswers]);
 
-  // Check if history changed (first 10 items) when screen is focused
+  // Check if history changed (first 10 items) when app opens from background
   useEffect(() => {
-    if (!isFocused || !isAIEnabled) {
+    if (!isAIEnabled) {
       return;
     }
 
     const checkHistoryChange = async () => {
       try {
+        const HISTORY_HASH_KEY = '@last_history_hash';
         const history = await HistoryManager.getAll();
         
         // Create hash from first 10 history items (same as AI input)
@@ -472,23 +475,44 @@ export const HomeScreen = React.memo(() => {
           .sort()
           .join(',');
 
-        // If hash changed and we had a previous hash, invalidate
-        if (lastHistoryHash && currentHash !== lastHistoryHash) {
-          console.log('[Home] History changed - invalidating personalized recommendations');
+        // Get stored hash from previous session
+        const storedHash = await AsyncStorage.getItem(HISTORY_HASH_KEY);
+
+        // If hash changed from stored value, invalidate
+        if (storedHash && currentHash !== storedHash) {
+          console.log('[Home] History changed since last app session - invalidating personalized recommendations');
           queryClient.invalidateQueries({
             queryKey: ['personalized_recommendations'],
           });
         }
 
-        // Update hash
+        // Update both state and storage
         setLastHistoryHash(currentHash);
+        await AsyncStorage.setItem(HISTORY_HASH_KEY, currentHash);
       } catch (error) {
         console.error('[Home] Error checking history change:', error);
       }
     };
 
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      // Only check when app comes to foreground (from background or inactive)
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        console.log('[Home] App became active - checking history changes');
+        checkHistoryChange();
+      }
+      appState.current = nextAppState;
+    });
+
+    // Also check on initial mount
     checkHistoryChange();
-  }, [isFocused, isAIEnabled, queryClient, lastHistoryHash]);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAIEnabled, queryClient]);
 
   // Compare recent searches (top 3 titles) with cached AI source; remount AI only when changed
   const checkRecentSearchUpdateForAI = useCallback(async () => {

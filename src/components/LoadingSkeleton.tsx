@@ -542,7 +542,6 @@ export const PersonalizedBannerSkeleton = () => {
       contentContainerStyle={[styles.horizontalListContent, {gap: spacing.xl}]}
       style={{
         marginBottom: spacing.md,
-        marginLeft: spacing.xl,
         position: 'relative',
       }}>
       {[...Array(2)].map((_, i) => (
