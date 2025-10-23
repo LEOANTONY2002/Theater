@@ -654,3 +654,99 @@ export async function getPersonalizedRecommendation(
     return null;
   }
 }
+
+// Get personalized recommendations based on user's watch history
+export async function getPersonalizedRecommendations(
+  historyItems: Array<{
+    id: number;
+    title?: string;
+    name?: string;
+    type: 'movie' | 'tv';
+    genre_ids?: number[];
+    vote_average?: number;
+  }>,
+): Promise<Array<{title: string; year: string; type: 'movie' | 'tv'}> | null> {
+  if (!historyItems || historyItems.length === 0) {
+    return null;
+  }
+
+  // Create cache key based on recent 10 history items
+  const historyIds = historyItems
+    .slice(0, 10)
+    .map(i => i.id)
+    .sort()
+    .join(',');
+  const cacheKey = `personalized:${historyIds}`;
+
+  // Try cache first
+  try {
+    const cached = await cache.get(CACHE_KEYS.AI_SIMILAR, cacheKey);
+    if (cached && Array.isArray(cached)) {
+      return cached;
+    }
+  } catch (e) {
+    // Fall through to fetch fresh
+  }
+
+  // Prepare history summary for AI - limit to recent 10 items
+  const historySummary = historyItems
+    .slice(0, 10)
+    .map(
+      item =>
+        `- "${item.title || item.name}" (${item.type}, rating: ${
+          item.vote_average || 'N/A'
+        })`,
+    )
+    .join('\n');
+
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI, an expert movie and TV show recommender. 
+Based on the user's watch history, recommend 8 diverse movies or TV shows they would love.
+Consider their viewing patterns, genres, and preferences.
+Return ONLY a JSON array with title, year, and type. No explanations.
+Format: [{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2", "year": "2023", "type": "tv"}]`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Based on my watch history, recommend 8 movies or TV shows I would enjoy:\n\n${historySummary}`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+
+    // Parse JSON array from response
+    let parsedArray: any[] = [];
+    const jsonMatch = result.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      parsedArray = JSON.parse(jsonMatch[0]);
+    } else {
+      const parsed = JSON.parse(result);
+      parsedArray = Array.isArray(parsed) ? parsed : [];
+    }
+
+    // Validate and normalize results
+    const validResults = parsedArray
+      .filter(
+        item =>
+          item.title &&
+          item.year &&
+          (item.type === 'movie' || item.type === 'tv'),
+      )
+      .slice(0, 10);
+
+    // Cache for 24 hours
+    await cache.set(
+      CACHE_KEYS.AI_SIMILAR,
+      cacheKey,
+      validResults,
+      24 * 60 * 60 * 1000,
+    );
+
+    return validResults.length > 0 ? validResults : null;
+  } catch (error) {
+    console.error('Error getting personalized recommendations:', error);
+    return null;
+  }
+}

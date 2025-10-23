@@ -529,3 +529,37 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 });
+
+export const PersonalizedBannerSkeleton = () => {
+  const {isTablet, width: screenWidth} = useResponsive();
+  const cardWidth = isTablet ? screenWidth * 0.85 : screenWidth * 0.8;
+  const cardHeight = isTablet ? 400 : 280;
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={[styles.horizontalListContent, {gap: spacing.xl}]}
+      style={{
+        marginBottom: spacing.md,
+        marginLeft: spacing.xl,
+        position: 'relative',
+      }}>
+      {[...Array(2)].map((_, i) => (
+        <View key={i} style={styles.horizontalCardContainer}>
+          <AnimatedShimmer width={cardWidth} height={cardHeight} radius={16} />
+        </View>
+      ))}
+      <LinearGradient
+        colors={['transparent', colors.background.primary]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          opacity: 0.7,
+          height: isTablet ? 120 : 80,
+        }}
+      />
+    </ScrollView>
+  );
+};

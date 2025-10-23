@@ -50,7 +50,7 @@ export const MaybeBlurView: React.FC<
         blurType={'light'}
         blurAmount={5}
         style={style}
-        overlayColor={colors.modal.blurDark}
+        overlayColor={overlayColor || 'rgba(0, 0, 0, 0.5)'}
         pointerEvents={pointerEvents}>
         {children}
       </BlurView>
@@ -132,7 +132,7 @@ export const MaybeBlurView: React.FC<
             borderColor: 'rgba(255, 254, 254, 0.04)',
             borderTopLeftRadius: borderRadius.xl,
             borderTopRightRadius: borderRadius.xl,
-            zIndex: 1,
+            zIndex: 10,
           }}>
           {children}
         </View>

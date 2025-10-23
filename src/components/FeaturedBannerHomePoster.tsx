@@ -236,6 +236,7 @@ export const FeaturedBannerHomePoster: React.FC<
         source={{
           uri,
           priority: FastImage.priority.high,
+          cache: FastImage.cacheControl.immutable,
         }}
         style={styles.cardContainer}
         resizeMode={FastImage.resizeMode.cover}>

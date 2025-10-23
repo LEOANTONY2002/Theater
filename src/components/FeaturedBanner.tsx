@@ -145,7 +145,39 @@ export const FeaturedBanner = memo(
     const failedImagesRef = useRef<Set<string>>(new Set());
     const scrollX = useRef(new Animated.Value(0)).current;
 
-    // Prefetch adjacent images to avoid decode during scroll (match render size: original)
+    // Preload all images on mount to avoid blank screens
+    useEffect(() => {
+      if (!slides || slides.length === 0) return;
+      const size = 'original';
+      // Preload first 5 images immediately
+      slides.slice(0, 5).forEach((s: any) => {
+        if (s?.backdrop_path) {
+          const uri = `https://image.tmdb.org/t/p/${size}${s.backdrop_path}`;
+          FastImage.preload([{
+            uri,
+            priority: FastImage.priority.high,
+            cache: FastImage.cacheControl.immutable,
+          }]);
+        }
+      });
+      // Preload remaining images with slight delay
+      if (slides.length > 5) {
+        setTimeout(() => {
+          slides.slice(5).forEach((s: any) => {
+            if (s?.backdrop_path) {
+              const uri = `https://image.tmdb.org/t/p/${size}${s.backdrop_path}`;
+              FastImage.preload([{
+                uri,
+                priority: FastImage.priority.normal,
+                cache: FastImage.cacheControl.immutable,
+              }]);
+            }
+          });
+        }, 500);
+      }
+    }, [slides]);
+
+    // Prefetch adjacent images during navigation
     useEffect(() => {
       if (!slides || slides.length <= 1) return;
       const size = 'original';
@@ -156,12 +188,15 @@ export const FeaturedBanner = memo(
       indices.forEach(i => {
         const s: any = slides[i];
         if (s?.backdrop_path) {
-          Image.prefetch(
-            `https://image.tmdb.org/t/p/${size}${s.backdrop_path}`,
-          );
+          const uri = `https://image.tmdb.org/t/p/${size}${s.backdrop_path}`;
+          FastImage.preload([{
+            uri,
+            priority: FastImage.priority.high,
+            cache: FastImage.cacheControl.immutable,
+          }]);
         }
       });
-    }, [activeIndex, slides, isTablet]);
+    }, [activeIndex, slides]);
 
     const addWatchlist = () => {
       if (checkInWatchlist(current.id)) {

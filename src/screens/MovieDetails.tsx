@@ -1383,44 +1383,48 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         flexDirection: 'row',
                         gap: spacing.md,
                       }}>
-                      {imdbRating?.rating ? (
-                        <TouchableOpacity
-                          onPress={() => setShowIMDBModal(true)}
-                          activeOpacity={0.7}
+                      {/* Always show IMDB logo */}
+                      <TouchableOpacity
+                        onPress={() => setShowIMDBModal(true)}
+                        activeOpacity={0.7}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexDirection: 'row',
+                        }}>
+                        <Image
+                          source={require('../assets/imdb.webp')}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            flexDirection: 'row',
-                          }}>
-                          <Image
-                            source={require('../assets/imdb.webp')}
-                            style={{
-                              width: 50,
-                              height: 30,
-                              resizeMode: 'contain',
-                            }}
-                          />
-                          <Text
-                            style={{
-                              ...typography.body1,
-                              color: colors.text.primary,
-                              fontWeight: 'bold',
-                              marginLeft: spacing.sm,
-                            }}>
-                            {imdbRating?.rating}
-                          </Text>
-                          <Text
-                            style={{
-                              ...typography.body1,
-                              color: colors.text.muted,
-                              marginLeft: spacing.xs,
-                            }}>
-                            ({imdbRating?.voteCount})
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
+                            width: 50,
+                            height: 30,
+                            resizeMode: 'contain',
+                          }}
+                        />
+                        {imdbRating?.rating && (
+                          <>
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.primary,
+                                fontWeight: 'bold',
+                                marginLeft: spacing.sm,
+                              }}>
+                              {imdbRating?.rating}
+                            </Text>
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.muted,
+                                marginLeft: spacing.xs,
+                              }}>
+                              ({imdbRating?.voteCount})
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
 
-                      {aiRatings?.rotten_tomatoes != null && (
+                      {/* Always show RT logo if AI is enabled */}
+                      {isAIEnabled && (
                         <TouchableOpacity
                           onPress={() => setShowRottenTomatoesModal(true)}
                           activeOpacity={0.7}
@@ -1437,14 +1441,16 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                               resizeMode: 'contain',
                             }}
                           />
-                          <Text
-                            style={{
-                              ...typography.body1,
-                              color: colors.text.primary,
-                              fontWeight: '600',
-                            }}>
-                            {aiRatings.rotten_tomatoes}%
-                          </Text>
+                          {aiRatings?.rotten_tomatoes != null && (
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.primary,
+                                fontWeight: '600',
+                              }}>
+                              {aiRatings.rotten_tomatoes}%
+                            </Text>
+                          )}
                         </TouchableOpacity>
                       )}
                     </View>
@@ -1632,6 +1638,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         visible={showIMDBModal}
         onClose={() => setShowIMDBModal(false)}
         imdbId={movieDetails?.imdb_id}
+        searchQuery={movie.title}
         title={movie.title}
       />
 

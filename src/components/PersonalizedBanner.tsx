@@ -3,21 +3,20 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
   Animated,
+  Image,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {getImageUrl, getOptimizedImageUrl, getGenres} from '../services/tmdb';
+import {getImageUrl} from '../services/tmdb';
 import {useNavigation} from '@react-navigation/native';
 import {ContentItem} from './MovieList';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useResponsive} from '../hooks/useResponsive';
 import {useQuery} from '@tanstack/react-query';
-import {GradientButton} from './GradientButton';
-import {useUserContent} from '../hooks/useUserContent';
+import {getGenres} from '../services/tmdb';
 import {
   useIsItemInAnyWatchlist,
   useWatchlistContainingItem,
@@ -25,17 +24,19 @@ import {
 } from '../hooks/useWatchlists';
 import {WatchlistModal} from './WatchlistModal';
 
-interface FiltersBannerProps {
+interface PersonalizedBannerProps {
   items: ContentItem[];
 }
 
-export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
+export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
+  items,
+}) => {
   const navigation = useNavigation();
   const {isTablet, orientation, width} = useResponsive();
-  const [activeIndex, setActiveIndex] = useState(0);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<any>(null);
+  const [currentItemId, setCurrentItemId] = useState(items[0]?.id);
 
   // Fetch genres for both movie and TV
   const {data: movieGenres = []} = useQuery({
@@ -51,11 +52,10 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
   });
 
   // Watchlist hooks
-  const {addItem: addToWatchlist} = useUserContent('WATCHLIST');
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
 
-  // Current item based on active index
-  const currentItem = items[activeIndex];
+  // Current item based on current scroll position
+  const currentItem = items.find(item => item.id === currentItemId) || items[0];
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(
     currentItem?.id,
   );
@@ -64,21 +64,12 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
   );
 
   // Recalculate dimensions when orientation or width changes
-  const {CARD_WIDTH, CARD_SPACING, SIDE_CARD_WIDTH} = useMemo(() => {
-    const cardWidth =
-      isTablet && orientation === 'portrait'
-        ? width * 0.85
-        : isTablet && orientation === 'landscape'
-        ? width * 0.65
-        : width * 0.8;
-    const cardSpacing = isTablet ? spacing.xs : spacing.xs;
-    const sideCardWidth = (width - cardWidth) / 2;
-
-    return {
-      CARD_WIDTH: cardWidth,
-      CARD_SPACING: cardSpacing,
-      SIDE_CARD_WIDTH: sideCardWidth,
-    };
+  const CARD_WIDTH = useMemo(() => {
+    return isTablet && orientation === 'portrait'
+      ? width * 0.75
+      : isTablet && orientation === 'landscape'
+      ? width * 0.65
+      : width * 0.8;
   }, [isTablet, orientation, width]);
 
   // Preload all banner images on mount to avoid blank screens
@@ -121,23 +112,6 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       }, 500);
     }
   }, [items]);
-
-  useEffect(() => {
-    if (items.length === 0) return;
-
-    const interval = setInterval(() => {
-      setActiveIndex(prev => {
-        const next = (prev + 1) % items.length;
-        flatListRef.current?.scrollToOffset({
-          offset: next * (CARD_WIDTH + CARD_SPACING),
-          animated: true,
-        });
-        return next;
-      });
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [items.length, CARD_WIDTH, CARD_SPACING]);
 
   const handlePress = useCallback(
     (item: ContentItem) => {
@@ -196,10 +170,21 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
   const styles = StyleSheet.create({
     container: {
       marginBottom: spacing.lg,
-      marginTop: 60,
+      marginTop: spacing.md,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      gap: spacing.sm,
+    },
+    headerTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
     },
     cardContainer: {
-      height: isTablet ? 400 : 280,
+      height: isTablet ? 300 : 200,
     },
     card: {
       flex: 1,
@@ -229,21 +214,27 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       left: 0,
       right: 0,
       bottom: 0,
-      height: '70%',
+      height: '0%',
     },
     content: {
       position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      padding: spacing.md,
-      alignItems: 'center',
+      bottom: isTablet ? spacing.lg : spacing.md,
+      left: isTablet ? spacing.lg : spacing.md,
+      right: isTablet ? spacing.lg : spacing.md,
+      paddingVertical: isTablet ? spacing.lg : spacing.md,
+      paddingLeft: isTablet ? spacing.lg : spacing.md,
+      paddingRight: spacing.lg,
+      alignItems: 'flex-start',
       justifyContent: 'center',
+      backgroundColor: colors.modal.blurDark,
+      borderRadius: isTablet ? borderRadius.xl : borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
     },
     infoContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       gap: spacing.sm,
       marginBottom: spacing.xs,
     },
@@ -277,52 +268,14 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       color: colors.text.primary,
       marginBottom: spacing.xs,
       fontWeight: '700',
-      textAlign: 'center',
-    },
-    overview: {
-      ...typography.body2,
-      color: colors.text.secondary,
-      lineHeight: 18,
-    },
-    pagination: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: spacing.xs,
-      marginTop: spacing.md,
-    },
-    dot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.text.muted,
-      opacity: 0.3,
-    },
-    activeDot: {
-      width: 20,
-      backgroundColor: colors.accent,
-      opacity: 1,
-    },
-    genreContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.xs,
-    },
-    genreWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      textAlign: 'left',
     },
     genreText: {
       ...typography.caption,
       color: colors.text.primary,
-      fontSize: 11,
-    },
-    genreDot: {
-      ...typography.caption,
-      color: colors.text.primary,
-      marginHorizontal: spacing.xs,
+      fontWeight: '600',
+      fontSize: 12,
+      marginBottom: spacing.xs,
     },
     buttonContainer: {
       flexDirection: 'row',
@@ -331,17 +284,17 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       marginTop: spacing.sm,
     },
     watchButton: {
-      borderRadius: borderRadius.md,
-      height: isTablet ? 60 : 45,
+      borderRadius: borderRadius.round,
+      height: isTablet ? 55 : 40,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
       paddingHorizontal: isTablet ? spacing.xl : spacing.md,
     },
     watchlistButton: {
-      width: isTablet ? 60 : 45,
-      height: isTablet ? 60 : 45,
-      borderRadius: borderRadius.md,
+      width: isTablet ? 55 : 40,
+      height: isTablet ? 55 : 40,
+      borderRadius: borderRadius.round,
       backgroundColor: 'rgba(255,255,255,0.1)',
       alignItems: 'center',
       justifyContent: 'center',
@@ -350,10 +303,12 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
 
   const renderItem = useCallback(
     ({item, index}: {item: ContentItem; index: number}) => {
+      const cardSpacing = spacing.xs * 2;
+      const itemWidth = CARD_WIDTH + cardSpacing;
       const inputRange = [
-        (index - 1) * (CARD_WIDTH + CARD_SPACING),
-        index * (CARD_WIDTH + CARD_SPACING),
-        (index + 1) * (CARD_WIDTH + CARD_SPACING),
+        (index - 1) * itemWidth,
+        index * itemWidth,
+        (index + 1) * itemWidth,
       ];
 
       const scale = scrollX.interpolate({
@@ -375,6 +330,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       const year =
         (item as any).release_date?.split('-')[0] ||
         (item as any).first_air_date?.split('-')[0];
+      const overview = (item as any)?.overview;
 
       const imagePath = backdropPath || posterPath;
       const imageUrl = imagePath ? getImageUrl(imagePath, 'original') : null;
@@ -382,11 +338,11 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       // Enhanced parallax: background image translates horizontally on swipe
       const backdropParallaxX = scrollX.interpolate({
         inputRange: [
-          (index - 1) * (CARD_WIDTH + CARD_SPACING),
-          index * (CARD_WIDTH + CARD_SPACING),
-          (index + 1) * (CARD_WIDTH + CARD_SPACING),
+          (index - 1) * itemWidth,
+          index * itemWidth,
+          (index + 1) * itemWidth,
         ],
-        outputRange: [100, 0, -100], // Increased for more visible parallax
+        outputRange: [100, 0, -100], // Increased from 50 to 100 for more visible effect
         extrapolate: 'clamp',
       });
 
@@ -396,7 +352,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
             styles.cardContainer,
             {
               width: CARD_WIDTH,
-              marginHorizontal: CARD_SPACING / 2,
+              marginHorizontal: spacing.xs,
               transform: [{scale}],
               opacity,
             },
@@ -456,55 +412,33 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
                 )}
               </View>
 
-              <Text style={styles.title} numberOfLines={2}>
+              <Text style={styles.title} numberOfLines={isTablet ? 2 : 1}>
                 {title}
               </Text>
 
               {/* Genres */}
               {getItemGenres(item).length > 0 && (
-                <View style={styles.genreContainer}>
-                  {getItemGenres(item).map((genre: string, idx: number) => (
-                    <View key={idx} style={styles.genreWrapper}>
-                      <Text style={styles.genreText}>{genre}</Text>
-                      {idx < getItemGenres(item).length - 1 && (
-                        <Text style={styles.genreDot}>•</Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
+                <Text
+                  style={styles.genreText}
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
+                  {getItemGenres(item).join(' • ')}
+                </Text>
               )}
 
-              {/* Action Buttons - only show for active card */}
-
-              <View style={styles.buttonContainer}>
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  style={styles.watchButton}>
-                  <Ionicons
-                    name="play"
-                    size={isTablet ? 24 : 20}
-                    color={colors.text.primary}
-                  />
-                  <Text
-                    style={{
-                      color: colors.text.primary,
-                      fontSize: isTablet ? 14 : 12,
-                      fontWeight: 'bold',
-                    }}>
-                    Watch Now
-                  </Text>
-                </LinearGradient>
-                <TouchableOpacity
-                  style={styles.watchlistButton}
-                  onPress={handleWatchlistPress}
-                  disabled={removeFromWatchlistMutation.isPending}>
-                  <Ionicons
-                    name={isInAnyWatchlist ? 'checkmark' : 'add-outline'}
-                    size={isTablet ? 24 : 20}
-                    color={colors.text.primary}
-                  />
-                </TouchableOpacity>
-              </View>
+              {/* Overview */}
+              {overview && (
+                <Text
+                  numberOfLines={isTablet ? 3 : 2}
+                  ellipsizeMode="tail"
+                  style={{
+                    color: colors.text.secondary,
+                    fontSize: 12,
+                    fontWeight: '400',
+                  }}>
+                  {overview}
+                </Text>
+              )}
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -513,11 +447,9 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
     [
       scrollX,
       CARD_WIDTH,
-      CARD_SPACING,
       handlePress,
       isTablet,
       getItemGenres,
-      activeIndex,
       handleWatchlistPress,
       isInAnyWatchlist,
       removeFromWatchlistMutation.isPending,
@@ -531,12 +463,13 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
 
   const onMomentumScrollEnd = useCallback(
     (event: any) => {
-      const newIndex = Math.round(
-        event.nativeEvent.contentOffset.x / (CARD_WIDTH + CARD_SPACING),
-      );
-      setActiveIndex(newIndex);
+      const scrollOffset = event.nativeEvent.contentOffset.x + spacing.lg;
+      const newIndex = Math.round(scrollOffset / (CARD_WIDTH + spacing.xs * 2));
+      if (items[newIndex]) {
+        setCurrentItemId(items[newIndex].id);
+      }
     },
-    [CARD_WIDTH, CARD_SPACING],
+    [CARD_WIDTH, items],
   );
 
   if (!items || items.length === 0) {
@@ -549,6 +482,14 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Image
+          source={require('../assets/theaterai.webp')}
+          style={{width: 25, height: 25}}
+          resizeMode="contain"
+        />
+        <Text style={styles.headerTitle}>Just For You</Text>
+      </View>
       <Animated.FlatList
         ref={flatListRef}
         data={items}
@@ -556,25 +497,15 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
         keyExtractor={(item, index) => `${(item as any).id}-${index}`}
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + CARD_SPACING}
-        decelerationRate="fast"
+        decelerationRate={0.998}
         contentContainerStyle={{
-          paddingHorizontal: SIDE_CARD_WIDTH - CARD_SPACING / 2,
+          paddingLeft: spacing.lg,
+          paddingRight: spacing.lg,
         }}
         onScroll={onScroll}
         onMomentumScrollEnd={onMomentumScrollEnd}
         scrollEventThrottle={16}
       />
-      {items.length > 1 && (
-        <View style={styles.pagination}>
-          {items.map((_, index) => (
-            <View
-              key={index}
-              style={[styles.dot, index === activeIndex && styles.activeDot]}
-            />
-          ))}
-        </View>
-      )}
 
       <WatchlistModal
         visible={showWatchlistModal}

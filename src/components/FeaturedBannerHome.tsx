@@ -1,4 +1,4 @@
-import React, {useState, memo} from 'react';
+import React, {useState, memo, useEffect} from 'react';
 import {
   View,
   StyleSheet,
@@ -15,6 +15,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
+import FastImage from 'react-native-fast-image';
 
 type FeaturedBannerHomeProps = {
   items: {item: any; type: 'movie' | 'tv'; title: string}[];
@@ -52,6 +53,23 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
         };
       }),
     );
+
+    // Preload all poster images on mount
+    useEffect(() => {
+      if (!items || items.length === 0) return;
+      const size = isTablet ? 'original' : 'w500';
+      items.slice(0, MAX_FILTERS).forEach((dataItem: any) => {
+        const posterPath = dataItem.item?.poster_path || dataItem.item?.backdrop_path;
+        if (posterPath) {
+          const uri = `https://image.tmdb.org/t/p/${size}${posterPath}`;
+          FastImage.preload([{
+            uri,
+            priority: FastImage.priority.high,
+            cache: FastImage.cacheControl.immutable,
+          }]);
+        }
+      });
+    }, [items, isTablet]);
 
     const styles = StyleSheet.create({
       wrapper: {

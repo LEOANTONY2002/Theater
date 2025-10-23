@@ -33,6 +33,7 @@ import {
   BannerHomeSkeleton,
   HeadingSkeleton,
   HorizontalListSkeleton,
+  PersonalizedBannerSkeleton,
 } from '../components/LoadingSkeleton';
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
 import {useRegion} from '../hooks/useApp';
@@ -68,12 +69,22 @@ import {LanguageTVShowsTabbedSection} from '../components/LanguageTVShowsTabbedS
 import {MyLanguageMoviesInOTTsSection} from '../components/MyLanguageMoviesInOTTsSection';
 import {MyLanguageTVShowsInOTTsSection} from '../components/MyLanguageTVShowsInOTTsSection';
 import {useNavigation} from '@react-navigation/native';
+import {usePersonalizedRecommendations} from '../hooks/usePersonalizedRecommendations';
+import {PersonalizedBanner} from '../components/PersonalizedBanner';
+import {HistoryManager} from '../store/history';
+import {useIsFocused} from '@react-navigation/native';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
   const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
+  const isFocused = useIsFocused();
   const {isAIEnabled} = useAIEnabled();
+  const {
+    data: personalizedRecommendations = [],
+    isLoading: isLoadingPersonalized,
+    isFetching: isFetchingPersonalized,
+  } = usePersonalizedRecommendations();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
   >([]);
@@ -88,6 +99,8 @@ export const HomeScreen = React.memo(() => {
   const [moodVersion, setMoodVersion] = useState(0);
   // Seed for remounting BecauseYouWatched when recent searches changed
   const [becauseSeed, setBecauseSeed] = useState(0);
+  // Track last history hash used for personalized recommendations
+  const [lastHistoryHash, setLastHistoryHash] = useState<string>('');
   // We no longer force-remount MyNextWatch on Home focus; it can refresh itself via its own UI
   // const [moodRefreshKey, setMoodRefreshKey] = useState(0);
   const queryClient = useQueryClient();
@@ -442,6 +455,41 @@ export const HomeScreen = React.memo(() => {
     return unsubscribe;
   }, [navigation, loadMoodAnswers]);
 
+  // Check if history changed (first 10 items) when screen is focused
+  useEffect(() => {
+    if (!isFocused || !isAIEnabled) {
+      return;
+    }
+
+    const checkHistoryChange = async () => {
+      try {
+        const history = await HistoryManager.getAll();
+        
+        // Create hash from first 10 history items (same as AI input)
+        const currentHash = history
+          .slice(0, 10)
+          .map(i => i.id)
+          .sort()
+          .join(',');
+
+        // If hash changed and we had a previous hash, invalidate
+        if (lastHistoryHash && currentHash !== lastHistoryHash) {
+          console.log('[Home] History changed - invalidating personalized recommendations');
+          queryClient.invalidateQueries({
+            queryKey: ['personalized_recommendations'],
+          });
+        }
+
+        // Update hash
+        setLastHistoryHash(currentHash);
+      } catch (error) {
+        console.error('[Home] Error checking history change:', error);
+      }
+    };
+
+    checkHistoryChange();
+  }, [isFocused, isAIEnabled, queryClient, lastHistoryHash]);
+
   // Compare recent searches (top 3 titles) with cached AI source; remount AI only when changed
   const checkRecentSearchUpdateForAI = useCallback(async () => {
     try {
@@ -558,6 +606,22 @@ export const HomeScreen = React.memo(() => {
           id: 'myNextWatch',
           type: 'myNextWatch',
           refreshSignal: moodVersion,
+        });
+      }
+    }
+
+    // Personalized Recommendations section - AI powered
+    if (isAIEnabled) {
+      if (isFetchingPersonalized) {
+        sectionsList.push({
+          id: 'personalizedRecommendationsSkeleton',
+          type: 'personalizedRecommendationsSkeleton',
+        });
+      } else if (personalizedRecommendations.length > 0) {
+        sectionsList.push({
+          id: 'personalizedRecommendations',
+          type: 'personalizedRecommendations',
+          data: personalizedRecommendations,
         });
       }
     }
@@ -789,6 +853,9 @@ export const HomeScreen = React.memo(() => {
     moodAnswers,
     isAIEnabled,
     moodVersion,
+    personalizedRecommendations,
+    isLoadingPersonalized,
+    isFetchingPersonalized,
     // OTT deps
     baseOTTs,
     allOttsNormalized,
@@ -814,6 +881,17 @@ export const HomeScreen = React.memo(() => {
               onUpdateMood={onUpdateMoodCb}
               refreshSignal={item.refreshSignal}
             />
+          );
+
+        case 'personalizedRecommendations':
+          return <PersonalizedBanner items={item.data} />;
+
+        case 'personalizedRecommendationsSkeleton':
+          return (
+            <>
+              <HeadingSkeleton />
+              <PersonalizedBannerSkeleton />
+            </>
           );
 
         case 'moodSetup':

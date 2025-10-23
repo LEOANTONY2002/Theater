@@ -1534,35 +1534,34 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         <IMDBSkeleton />
                       </View>
                     </View>
-                  ) : null}
-                  {aiRatings &&
-                    (aiRatings.imdb != null ||
-                      aiRatings.rotten_tomatoes != null) && (
-                      <View
+                  ) : (
+                    <View
+                      style={{
+                        marginTop: spacing.xs,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: spacing.lg,
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                      }}>
+                      {/* Always show IMDB logo */}
+                      <TouchableOpacity
+                        onPress={() => setShowIMDBModal(true)}
+                        activeOpacity={0.7}
                         style={{
-                          marginTop: spacing.xs,
                           flexDirection: 'row',
                           alignItems: 'center',
-                          gap: spacing.lg,
-                          flexWrap: 'wrap',
-                          justifyContent: 'center',
                         }}>
-                        {aiRatings.imdb != null && (
-                          <TouchableOpacity
-                            onPress={() => setShowIMDBModal(true)}
-                            activeOpacity={0.7}
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                            }}>
-                            <Image
-                              source={require('../assets/imdb.webp')}
-                              style={{
-                                width: 50,
-                                height: 30,
-                                resizeMode: 'contain',
-                              }}
-                            />
+                        <Image
+                          source={require('../assets/imdb.webp')}
+                          style={{
+                            width: 50,
+                            height: 30,
+                            resizeMode: 'contain',
+                          }}
+                        />
+                        {aiRatings?.imdb != null && (
+                          <>
                             <Text
                               style={{
                                 ...typography.body1,
@@ -1582,37 +1581,39 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                                 ({formatCompact(aiRatings.imdb_votes)})
                               </Text>
                             )}
-                          </TouchableOpacity>
+                          </>
                         )}
-                        {aiRatings.rotten_tomatoes != null && (
-                          <TouchableOpacity
-                            onPress={() => setShowRottenTomatoesModal(true)}
-                            activeOpacity={0.7}
+                      </TouchableOpacity>
+                      {/* Always show RT logo */}
+                      <TouchableOpacity
+                        onPress={() => setShowRottenTomatoesModal(true)}
+                        activeOpacity={0.7}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: spacing.sm,
+                        }}>
+                        <Image
+                          source={require('../assets/tomato.png')}
+                          style={{
+                            width: 30,
+                            height: 30,
+                            resizeMode: 'contain',
+                          }}
+                        />
+                        {aiRatings?.rotten_tomatoes != null && (
+                          <Text
                             style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: spacing.sm,
+                              ...typography.body1,
+                              color: colors.text.primary,
+                              fontWeight: '600',
                             }}>
-                            <Image
-                              source={require('../assets/tomato.png')}
-                              style={{
-                                width: 30,
-                                height: 30,
-                                resizeMode: 'contain',
-                              }}
-                            />
-                            <Text
-                              style={{
-                                ...typography.body1,
-                                color: colors.text.primary,
-                                fontWeight: '600',
-                              }}>
-                              {aiRatings.rotten_tomatoes}%
-                            </Text>
-                          </TouchableOpacity>
+                            {aiRatings.rotten_tomatoes}%
+                          </Text>
                         )}
-                      </View>
-                    )}
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   <LinearGradient
                     colors={[colors.primary, colors.secondary]}
                     start={{x: 0, y: 0}}
