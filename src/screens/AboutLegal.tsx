@@ -427,7 +427,7 @@ const AboutLegalScreen: React.FC = () => {
               </MaybeBlurView>
               <View
                 style={{
-                  minHeight: 280,
+                  minHeight: 250,
                   maxHeight: 500,
                   overflow: 'hidden',
                   borderRadius: borderRadius.xl,

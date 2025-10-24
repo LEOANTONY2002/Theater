@@ -597,8 +597,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
                     contentType === 'all' &&
                       (isSolid
-                        ? styles.activeButton
-                        : styles.activeButtonSolid),
+                        ? styles.activeButtonSolid
+                        : styles.activeButton),
                   ]}
                   onPress={() => setContentType('all')}>
                   <Ionicons
@@ -626,8 +626,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
                     contentType === 'movie' &&
                       (isSolid
-                        ? styles.activeButton
-                        : styles.activeButtonSolid),
+                        ? styles.activeButtonSolid
+                        : styles.activeButton),
                   ]}
                   onPress={() => setContentType('movie')}>
                   <Ionicons
@@ -655,8 +655,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
                     contentType === 'tv' &&
                       (isSolid
-                        ? styles.activeButton
-                        : styles.activeButtonSolid),
+                        ? styles.activeButtonSolid
+                        : styles.activeButton),
                   ]}
                   onPress={() => setContentType('tv')}>
                   <Ionicons
@@ -673,7 +673,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                       styles.contentTypeText,
                       contentType === 'tv' && styles.activeText,
                     ]}>
-                    TV Shows
+                    Series
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -20,6 +20,8 @@ import {GradientButton} from '../components/GradientButton';
 import OnboardingAISettings from './OnboardingAISettings';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
+import OnboardingLanguage from './OnboardingLanguage';
+import OnboardingOTTs from './OnboardingOTTs';
 
 interface Region {
   iso_3166_1: string;
@@ -27,7 +29,7 @@ interface Region {
   native_name: string;
 }
 
-type OnboardingStep = 'welcome' | 'region' | 'ai';
+type OnboardingStep = 'welcome' | 'region' | 'ai' | 'language' | 'otts';
 
 interface OnboardingProps {
   onDone: () => void;
@@ -545,12 +547,48 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         return (
           <OnboardingAISettings
             onDone={() => {
+              setCurrentStep('language');
+              animateTransition();
+            }}
+            onSkip={() => {
+              setCurrentStep('language');
+              animateTransition();
+            }}
+          />
+        );
+
+      case 'language':
+        return (
+          <OnboardingLanguage
+            onDone={() => {
+              setCurrentStep('otts');
+              animateTransition();
+            }}
+            onSkip={() => {
+              setCurrentStep('otts');
+              animateTransition();
+            }}
+            onBack={() => {
+              setCurrentStep('ai');
+              animateTransition();
+            }}
+          />
+        );
+
+      case 'otts':
+        return (
+          <OnboardingOTTs
+            onDone={() => {
               OnboardingManager.setIsOnboarded(true);
               onDone();
             }}
             onSkip={() => {
               OnboardingManager.setIsOnboarded(true);
               onDone();
+            }}
+            onBack={() => {
+              setCurrentStep('language');
+              animateTransition();
             }}
           />
         );
@@ -565,32 +603,36 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
   }
   return (
     <View style={styles.onboardingContainer}>
-      {currentStep !== 'ai' && (
-        <>
-          <View
-            style={[
-              styles.backgroundImageContainer,
-              {
-                top: isTablet ? spacing.xxl : 0,
-                bottom: orientation === 'portrait' ? 0 : 200,
-                marginBottom: 150,
-              },
-            ]}>
+      {currentStep !== 'ai' &&
+        currentStep !== 'language' &&
+        currentStep !== 'otts' && (
+          <>
+            <View
+              style={[
+                styles.backgroundImageContainer,
+                {
+                  top: isTablet ? spacing.xxl : 0,
+                  bottom: orientation === 'portrait' ? 0 : 200,
+                  marginBottom: 150,
+                },
+              ]}>
+              <Image
+                style={styles.laImage}
+                source={require('../assets/LA.webp')}
+              />
+            </View>
             <Image
-              style={styles.laImage}
-              source={require('../assets/LA.webp')}
+              source={require('../assets/Onboard.webp')}
+              style={styles.backgroundImage}
             />
-          </View>
-          <Image
-            source={require('../assets/Onboard.webp')}
-            style={styles.backgroundImage}
-          />
-        </>
-      )}
+          </>
+        )}
 
       {renderStep()}
 
-      {currentStep !== 'ai' && (
+      {currentStep !== 'ai' &&
+        currentStep !== 'language' &&
+        currentStep !== 'otts' && (
         <View style={styles.bottomControls}>
           <View style={styles.logoContainer}>
             <Image
@@ -621,16 +663,20 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         </View>
       )}
 
-      <LinearGradient
-        colors={['transparent', '#000013', '#000013']}
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: '100%',
-          height: isTablet ? 400 : 200,
-          pointerEvents: 'none',
-        }}
-      />
+      {currentStep !== 'ai' &&
+        currentStep !== 'language' &&
+        currentStep !== 'otts' && (
+          <LinearGradient
+            colors={['transparent', '#000013', '#000013']}
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              width: '100%',
+              height: isTablet ? 400 : 200,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
     </View>
   );
 };

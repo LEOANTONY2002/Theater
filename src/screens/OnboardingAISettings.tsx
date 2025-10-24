@@ -709,7 +709,7 @@ const OnboardingAISettings: React.FC<{
                   padding: spacing.md,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: isTablet ? 200 : width * 0.5,
+                  width: 150,
                   opacity: isValidating || apiKey === '' ? 0.5 : 1,
                 }}>
                 <Text
@@ -718,7 +718,7 @@ const OnboardingAISettings: React.FC<{
                     fontWeight: 'bold',
                     fontFamily: 'Inter_18pt-Regular',
                   }}>
-                  Enter Theater
+                  Next
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
