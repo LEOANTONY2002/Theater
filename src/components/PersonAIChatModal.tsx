@@ -27,6 +27,8 @@ import {AIReportFlag} from './AIReportFlag';
 import {HorizontalList} from './HorizontalList';
 import {ContentItem} from './MovieList';
 import {useNavigation} from '@react-navigation/native';
+import {BlurPreference} from '../store/blurPreference';
+import {BlurView} from '@react-native-community/blur';
 
 // Types
 type Message = {
@@ -34,6 +36,7 @@ type Message = {
   text: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  tmdbResults?: ContentItem[];
 };
 
 type PersonAIChatModalProps = {
@@ -71,13 +74,12 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [aiResults, setAiResults] = useState<ContentItem[]>([]);
-  const [aiResultsLoading, setAiResultsLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
   const androidInset = useAndroidKeyboardInset(10);
   const navigation = useNavigation<any>();
+  const themeMode = BlurPreference.getMode();
 
   // Animations (mirroring MovieAIChatModal)
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -210,11 +212,9 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
           sender: 'ai',
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, aiMessage]);
 
         // Resolve suggestions if present
         if (Array.isArray(arr) && arr.length > 0) {
-          setAiResultsLoading(true);
           try {
             const resolved: ContentItem[] = [];
             for (const item of arr) {
@@ -391,14 +391,14 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                 }
               }
             }
-            setAiResults(resolved.slice(0, 10));
+            // Update the AI message with tmdbResults
+            aiMessage.tmdbResults = resolved.slice(0, 10);
           } catch (e) {
-          } finally {
-            setAiResultsLoading(false);
+            console.error('Error resolving TMDB results:', e);
           }
-        } else {
-          setAiResults([]);
         }
+
+        setMessages(prev => [...prev, aiMessage]);
       } catch (error) {
         console.error('Error getting AI response:', error);
         const aiMessage: Message = {
@@ -425,26 +425,74 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
     ],
   );
 
-  const renderMessage = useCallback(({item}: {item: Message}) => {
-    const isUser = item.sender === 'user';
-    return isUser ? (
-      <View style={[styles.message, styles.user]}>
-        <Text style={styles.userText}>{item.text}</Text>
-      </View>
-    ) : (
-      <View>
-        <View style={[styles.message, styles.assistant]}>
-          <Markdown style={{body: styles.messageText}}>{item.text}</Markdown>
+  const renderMessage = useCallback(
+    ({item, index}: {item: Message; index: number}) => {
+      const isLast = index === messages.length - 1 && item.sender === 'ai';
+      const getPrevUserText = (i: number) => {
+        for (let j = i - 1; j >= 0; j--) {
+          const m = messages[j];
+          if (m?.sender === 'user') return m.text;
+        }
+        return undefined;
+      };
+      const prevUserText = getPrevUserText(index);
+
+      return (
+        <View style={isLast && {paddingBottom: 10}}>
+          {item.sender === 'user' ? (
+            <View style={[styles.message, styles.user]}>
+              <Text style={styles.userText}>{item.text}</Text>
+            </View>
+          ) : (
+            <View>
+              <View style={[styles.message, styles.assistant]}>
+                <Markdown
+                  style={{
+                    body: styles.messageText,
+                    code_block: {backgroundColor: 'transparent'},
+                    fence: {backgroundColor: 'transparent'},
+                    code_inline: {backgroundColor: 'transparent'},
+                  }}>
+                  {item.text}
+                </Markdown>
+              </View>
+              <AIReportFlag
+                aiText={item.text}
+                userText={prevUserText}
+                context="PersonAIChatModal"
+                threadId={personName}
+                timestamp={item.timestamp.getTime()}
+              />
+            </View>
+          )}
+          {item.tmdbResults && item.tmdbResults.length > 0 && (
+            <View style={{marginTop: spacing.md}}>
+              <View style={{marginTop: -spacing.xl, marginBottom: spacing.md}}>
+                <HorizontalList
+                  title=""
+                  data={item.tmdbResults as any}
+                  onItemPress={(content: any) => {
+                    if (
+                      content.type === 'movie' ||
+                      content.media_type === 'movie'
+                    ) {
+                      navigation.navigate('MovieDetails', {movie: content});
+                    } else {
+                      navigation.navigate('TVShowDetails', {show: content});
+                    }
+                  }}
+                  isLoading={false}
+                  isSeeAll={false}
+                  ai
+                />
+              </View>
+            </View>
+          )}
         </View>
-        <AIReportFlag
-          aiText={item.text}
-          userText={undefined}
-          context="PersonAIChatModal"
-          timestamp={Date.now()}
-        />
-      </View>
-    );
-  }, []);
+      );
+    },
+    [messages, personName, navigation],
+  );
 
   return (
     <Modal
@@ -457,10 +505,10 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
       <View
         style={{
           flex: 1,
-          borderTopLeftRadius: 50,
-          borderTopRightRadius: 50,
+          margin: isTablet ? spacing.xl : spacing.md,
+          borderRadius: borderRadius.xl,
+          backgroundColor: 'transparent',
           overflow: 'hidden',
-          marginTop: 60,
         }}>
         <Animated.View
           style={[
@@ -471,215 +519,252 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
             },
           ]}>
           <MaybeBlurView
-            blurType="dark"
-            blurAmount={5}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}
-            modal
-            overlayColor={colors.modal.blur}
-          />
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: borderRadius.round,
-              height: 50,
-              width: 50,
-              borderColor: colors.modal.border,
-              borderWidth: 1,
-              backgroundColor: colors.modal.blur,
-              zIndex: 2,
-            }}
-            onPress={onClose}>
-            <Icon name="close" size={24} color="white" />
-          </TouchableOpacity>
-          <LinearGradient
-            colors={['rgb(18, 1, 51)', 'rgb(42, 0, 39)']}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: 0.8,
-            }}
-          />
-          <View style={styles.container}>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              renderItem={renderMessage}
-              keyExtractor={item => item.id}
-              contentContainerStyle={[styles.chat]}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({animated: true})
-              }
-              onLayout={() =>
-                flatListRef.current?.scrollToEnd({animated: true})
-              }
-              ListFooterComponent={
-                isLoading ? (
-                  <Animated.View
-                    style={{marginHorizontal: spacing.lg, marginBottom: 32}}>
-                    <GradientSpinner
-                      size={30}
-                      style={{
-                        alignItems: 'center',
-                        alignSelf: 'center',
-                        backgroundColor: 'transparent',
-                      }}
-                      color={colors.primary}
-                    />
-                    <Animated.Text
-                      style={[
-                        {
-                          color: colors.text.secondary,
-                          textAlign: 'center',
-                          fontSize: 12,
-                          marginTop: 4,
-                          fontStyle: 'italic',
-                        },
-                        {opacity: pulseAnim},
-                      ]}>
-                      Theater AI is thinking...
-                    </Animated.Text>
-                  </Animated.View>
-                ) : aiResults.length > 0 ? (
-                  <View
-                    style={{marginTop: -spacing.xl, marginBottom: spacing.md}}>
-                    <HorizontalList
-                      title=""
-                      data={aiResults as any}
-                      onItemPress={(content: any) => {
-                        if (
-                          content.type === 'movie' ||
-                          content.media_type === 'movie'
-                        ) {
-                          navigation.navigate('MovieDetails', {movie: content});
-                        } else {
-                          navigation.navigate('TVShowDetails', {show: content});
-                        }
-                      }}
-                      isLoading={aiResultsLoading}
-                      isSeeAll={false}
-                      ai
-                    />
-                  </View>
-                ) : null
-              }
+            header
+            isAI
+            style={[
+              {
+                marginTop: 20,
+                overflow: 'hidden',
+              },
+            ]}>
+            <LinearGradient
+              colors={['rgba(18, 1, 51, 0.87)', 'rgba(42, 0, 39, 0.83)']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
             />
-            <View style={{zIndex: 1, backgroundColor: colors.modal.blur}}>
-              <View
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+                flex: 1,
+                paddingRight: 10,
+              }}>
+              <Icon
+                name="sparkles"
+                size={20}
+                color={colors.text.muted}
+                style={{flexShrink: 0}}
+              />
+              <Text
+                numberOfLines={1}
                 style={{
-                  paddingVertical: spacing.sm,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.background.secondary,
-                  zIndex: 1,
+                  flex: 1,
+                  color: colors.text.primary,
+                  ...typography.h3,
+                  fontSize: isTablet ? 16 : 14,
                 }}>
-                <Text style={styles.suggestionsTitle}>Try asking:</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.suggestionsScrollContent}>
-                  {DEFAULT_PERSON_QUESTIONS.map((question, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      style={styles.suggestionChip}
-                      onPress={() => handleSend(question)}
-                      activeOpacity={0.7}>
-                      <Text style={styles.suggestionText}>{question}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-              <View
-                style={{
-                  marginHorizontal: isTablet ? 100 : spacing.lg,
-                  borderRadius: 50,
-                  overflow: 'hidden',
-                  zIndex: 3,
-                }}>
-                <TouchableWithoutFeedback
-                  onPress={() => inputRef.current?.focus()}>
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      ref={inputRef}
-                      style={styles.input}
-                      value={inputText}
-                      onChangeText={setInputText}
-                      placeholder={`Ask about ${personName}...`}
-                      placeholderTextColor={colors.text.tertiary}
-                      editable={true}
-                      onFocus={() =>
-                        setTimeout(
-                          () =>
-                            flatListRef.current?.scrollToEnd({animated: true}),
-                          50,
-                        )
-                      }
-                      onSubmitEditing={() => handleSend()}
-                      returnKeyType="send"
-                    />
-                    <MicButton
-                      onFinalText={text => {
-                        setInputText(text);
-                        inputRef.current?.focus();
-                      }}
-                    />
-                    <Animated.View>
-                      <TouchableOpacity
-                        style={[
-                          styles.sendButton,
-                          {opacity: isLoading || !inputText.trim() ? 0.5 : 1},
-                        ]}
-                        onPress={() => handleSend()}
-                        disabled={isLoading || !inputText.trim()}>
-                        <Icon
-                          name={'send'}
-                          size={24}
-                          color={
-                            isLoading || !inputText.trim()
-                              ? colors.modal.active
-                              : colors.text.primary
-                          }
+                Chat about {personName}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Icon name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </MaybeBlurView>
+          <View
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              borderRadius: 40,
+            }}>
+            <LinearGradient
+              colors={['rgb(18, 1, 51)', 'rgb(42, 0, 39)']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+            <View style={styles.container}>
+              <FlatList
+                ref={flatListRef}
+                data={messages}
+                renderItem={renderMessage}
+                keyExtractor={item => item.id}
+                contentContainerStyle={[styles.chat]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                onContentSizeChange={() =>
+                  flatListRef.current?.scrollToEnd({animated: true})
+                }
+                onLayout={() =>
+                  flatListRef.current?.scrollToEnd({animated: true})
+                }
+                ListFooterComponent={
+                  <>
+                    {isLoading && (
+                      <Animated.View
+                        style={{
+                          marginHorizontal: spacing.lg,
+                          marginBottom: 32,
+                        }}>
+                        <GradientSpinner
+                          size={30}
+                          style={{
+                            alignItems: 'center',
+                            alignSelf: 'center',
+                            backgroundColor: 'transparent',
+                          }}
+                          colors={[colors.primary, colors.secondary]}
                         />
-                      </TouchableOpacity>
-                    </Animated.View>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
+                        <Animated.Text
+                          style={[
+                            {
+                              color: colors.text.secondary,
+                              textAlign: 'center',
+                              fontSize: 12,
+                              marginTop: 4,
+                              fontStyle: 'italic',
+                            },
+                            {opacity: pulseAnim},
+                          ]}>
+                          Theater AI is thinking...
+                        </Animated.Text>
+                      </Animated.View>
+                    )}
+                    <View style={{height: 250}} />
+                  </>
+                }
+              />
               <View
                 style={{
-                  marginVertical: spacing.md,
-                  marginHorizontal: spacing.sm,
+                  zIndex: 1,
+                  backgroundColor: 'rgb(23, 1, 42)',
+                  borderRadius: borderRadius.xl,
+                  paddingVertical: spacing.md,
+                  position: 'absolute',
+                  bottom: spacing.md,
+                  left: spacing.md,
+                  right: spacing.md,
                 }}>
-                <Text
+                <View style={{zIndex: 1, marginBottom: spacing.sm}}>
+                  <Text style={styles.suggestionsTitle}>Try asking:</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.suggestionsScrollContent}>
+                    {DEFAULT_PERSON_QUESTIONS.map((question, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.suggestionChip}
+                        onPress={() => handleSend(question)}
+                        activeOpacity={0.7}>
+                        <Text style={styles.suggestionText}>{question}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <LinearGradient
+                    colors={['transparent', 'rgb(23, 1, 42)']}
+                    start={{x: 0, y: 1}}
+                    end={{x: 1, y: 0}}
+                    style={{
+                      width: '30%',
+                      height: 40,
+                      position: 'absolute',
+                      bottom: 0,
+                      right: -1,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </View>
+                <View
                   style={{
-                    textAlign: 'center',
-                    ...typography.caption,
-                    fontSize: 10,
-                    color: colors.text.tertiary,
+                    marginHorizontal: isTablet ? 100 : spacing.md,
+                    borderRadius: 50,
+                    overflow: 'hidden',
+                    zIndex: 3,
                   }}>
-                  Responses are AI generated and for entertainment purposes
-                  only.
-                </Text>
+                  <TouchableWithoutFeedback
+                    onPress={() => inputRef.current?.focus()}>
+                    <View style={styles.inputRow}>
+                      <TextInput
+                        ref={inputRef}
+                        style={[styles.input, {height: isTablet ? 50 : 40}]}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        placeholder={`Ask about ${personName}...`}
+                        placeholderTextColor={colors.text.tertiary}
+                        editable={true}
+                        onFocus={() =>
+                          setTimeout(
+                            () =>
+                              flatListRef.current?.scrollToEnd({
+                                animated: true,
+                              }),
+                            50,
+                          )
+                        }
+                        onSubmitEditing={() => handleSend()}
+                        returnKeyType="send"
+                      />
+                      <MicButton
+                        onPartialText={text => {
+                          if (text) setInputText(text);
+                        }}
+                        onFinalText={text => {
+                          setInputText(text);
+                          inputRef.current?.focus();
+                        }}
+                      />
+                      <Animated.View>
+                        <TouchableOpacity
+                          style={[
+                            styles.sendButton,
+                            {opacity: isLoading || !inputText.trim() ? 0.5 : 1},
+                          ]}
+                          onPress={() => handleSend()}
+                          disabled={isLoading || !inputText.trim()}>
+                          <Icon
+                            name={'send'}
+                            size={24}
+                            color={
+                              isLoading || !inputText.trim()
+                                ? colors.modal.active
+                                : colors.text.primary
+                            }
+                          />
+                        </TouchableOpacity>
+                      </Animated.View>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </View>
               </View>
+              {/* <Text
+              numberOfLines={1}
+              style={{
+                textAlign: 'center',
+                ...typography.caption,
+                fontSize: 10,
+                color: colors.text.tertiary,
+                marginHorizontal: spacing.md,
+                marginTop: -spacing.sm,
+                marginBottom: spacing.xs,
+              }}>
+              Responses are AI generated and for entertainment purposes
+              only.
+            </Text> */}
             </View>
           </View>
         </Animated.View>
@@ -690,7 +775,7 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {flex: 1, marginHorizontal: 2, overflow: 'hidden'},
-  chat: {paddingVertical: spacing.md, paddingTop: 70, gap: spacing.md},
+  chat: {paddingVertical: spacing.md, gap: spacing.md},
   message: {
     marginBottom: spacing.sm,
     marginHorizontal: spacing.md,
@@ -727,7 +812,6 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 50,
     color: colors.text.primary,
     borderRadius: borderRadius.md,
     padding: spacing.sm,

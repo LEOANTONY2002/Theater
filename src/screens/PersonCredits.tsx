@@ -367,6 +367,7 @@ export const PersonCreditsScreen = () => {
       </View>
 
       <FlatList
+        key={`credits-grid-${columns}`}
         data={transformedData}
         renderItem={renderItem}
         keyExtractor={item => `${item.type}-${item.id}`}

@@ -16,6 +16,8 @@ import FastImage from 'react-native-fast-image';
 import {useResponsive} from '../hooks/useResponsive';
 import {MaybeBlurView} from './MaybeBlurView';
 import {GradientSpinner} from './GradientSpinner';
+import {BlurView} from '@react-native-community/blur';
+import {BlurPreference} from '../store/blurPreference';
 
 interface IMDBModalProps {
   visible: boolean;
@@ -36,6 +38,8 @@ export const IMDBModal: React.FC<IMDBModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const {isTablet} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   if (!imdbId && !searchQuery) return null;
 
@@ -90,6 +94,7 @@ export const IMDBModal: React.FC<IMDBModalProps> = ({
       borderRadius: borderRadius.xl,
       borderWidth: 1,
       borderColor: colors.modal.content,
+      backgroundColor: isSolid ? 'black' : 'transparent',
     },
     blurView: {
       position: 'absolute',
@@ -173,7 +178,14 @@ export const IMDBModal: React.FC<IMDBModalProps> = ({
       onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <MaybeBlurView style={styles.blurView} blurType="light" />
+          {!isSolid && (
+            <BlurView
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={'rgba(0, 0, 0, 0.5)'}
+              style={styles.blurView}
+            />
+          )}
           <View style={styles.headerContent}>
             <View style={styles.titleContainer}>
               <FastImage

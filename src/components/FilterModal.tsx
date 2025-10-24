@@ -429,6 +429,22 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       backdropColor={colors.modal.blurDark}
       statusBarTranslucent={true}
       onRequestClose={onClose}>
+      {!isSolid && (
+        <BlurView
+          blurType="dark"
+          blurAmount={10}
+          overlayColor={colors.modal.blurDark}
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
+      )}
+
       <View
         style={{
           flex: 1,
@@ -436,566 +452,546 @@ export const FilterModal: React.FC<FilterModalProps> = ({
           borderRadius: borderRadius.xl,
           backgroundColor: 'transparent',
         }}>
-        <View
+        <MaybeBlurView
+          header
           style={[
-            styles.modalHeader,
             {
-              marginBottom: isTablet ? spacing.lg : spacing.md,
-              borderRadius: borderRadius.round,
-              borderWidth: 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.border,
-              backgroundColor: isSolid ? 'black' : colors.modal.content,
-              zIndex: 1,
               marginTop: 20,
             },
           ]}>
-          <Text style={styles.modalTitle}>Filter</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+            }}>
+            <Ionicons name="filter" size={20} color={colors.text.muted} />
+            <Text style={styles.modalTitle}>Filter</Text>
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              padding: spacing.sm,
+              backgroundColor: colors.modal.blur,
+              borderRadius: borderRadius.round,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: colors.modal.content,
+            }}>
             <Ionicons name="close" size={20} color={colors.text.primary} />
           </TouchableOpacity>
-        </View>
-        <View
-          style={{
-            flex: 1,
-            overflow: 'hidden',
-            borderRadius: borderRadius.xl,
-            borderWidth: isSolid ? 0 : 1,
-            borderColor: isSolid ? colors.modal.blur : colors.modal.content,
-          }}>
-          <MaybeBlurView
-            modal
-            style={{
-              flex: 1,
-              borderRadius: borderRadius.xl,
-              overflow: 'hidden',
-              borderWidth: 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.content,
-              backgroundColor: isSolid ? 'black' : colors.modal.blur,
-              opacity: 1,
-            }}>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              style={styles.scrollContent}>
-              {/* Saved Filters Section */}
-              {savedFilters.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>My Filters</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={{...styles.scrollContent, padding: 0}}>
-                    {savedFilters.map((filter: SavedFilter) => (
-                      <TouchableOpacity
-                        key={filter.id}
+        </MaybeBlurView>
+        <MaybeBlurView body>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollContent}>
+            {/* Saved Filters Section */}
+            {savedFilters.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>My Filters</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{...styles.scrollContent, padding: 0}}>
+                  {savedFilters.map((filter: SavedFilter) => (
+                    <TouchableOpacity
+                      key={filter.id}
+                      style={[
+                        {
+                          backgroundColor: isSolid
+                            ? colors.modal.blur
+                            : colors.modal.border,
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: spacing.xl,
+                          marginRight: spacing.sm,
+                          borderRadius: borderRadius.lg,
+                          width: 100,
+                          height: 100,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        },
+                        JSON.stringify(filters) ===
+                          JSON.stringify(filter.params) &&
+                          contentType === filter.type &&
+                          (isSolid ? styles.activeTagSolid : styles.activeTag),
+                      ]}
+                      onPress={() => handleSavedFilterSelect(filter)}>
+                      <Text
+                        numberOfLines={1}
                         style={[
-                          {
-                            backgroundColor: isSolid
-                              ? colors.modal.blur
-                              : colors.modal.border,
-                            paddingHorizontal: spacing.md,
-                            paddingVertical: spacing.xl,
-                            marginRight: spacing.sm,
-                            borderRadius: borderRadius.lg,
-                            width: 100,
-                            height: 100,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          },
+                          styles.tagText,
                           JSON.stringify(filters) ===
                             JSON.stringify(filter.params) &&
                             contentType === filter.type &&
-                            (isSolid
-                              ? styles.activeTagSolid
-                              : styles.activeTag),
-                        ]}
-                        onPress={() => handleSavedFilterSelect(filter)}>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.tagText,
-                            JSON.stringify(filters) ===
-                              JSON.stringify(filter.params) &&
-                              contentType === filter.type &&
-                              styles.activeTagText,
-                          ]}>
-                          {filter.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Content Type */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Content Type</Text>
-                <View style={styles.contentTypeContainer}>
-                  <TouchableOpacity
-                    style={[
-                      isSolid
-                        ? styles.contentTypeButtonSolid
-                        : styles.contentTypeButton,
-
-                      contentType === 'all' &&
-                        (isSolid
-                          ? styles.activeButton
-                          : styles.activeButtonSolid),
-                    ]}
-                    onPress={() => setContentType('all')}>
-                    <Ionicons
-                      name="apps-outline"
-                      size={20}
-                      color={
-                        contentType === 'all'
-                          ? colors.accent
-                          : colors.text.secondary
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.contentTypeText,
-                        contentType === 'all' && styles.activeText,
-                      ]}>
-                      All
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      isSolid
-                        ? styles.contentTypeButtonSolid
-                        : styles.contentTypeButton,
-
-                      contentType === 'movie' &&
-                        (isSolid
-                          ? styles.activeButton
-                          : styles.activeButtonSolid),
-                    ]}
-                    onPress={() => setContentType('movie')}>
-                    <Ionicons
-                      name="film-outline"
-                      size={20}
-                      color={
-                        contentType === 'movie'
-                          ? colors.accent
-                          : colors.text.secondary
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.contentTypeText,
-                        contentType === 'movie' && styles.activeText,
-                      ]}>
-                      Movies
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      isSolid
-                        ? styles.contentTypeButtonSolid
-                        : styles.contentTypeButton,
-
-                      contentType === 'tv' &&
-                        (isSolid
-                          ? styles.activeButtonSolid
-                          : styles.activeButton),
-                    ]}
-                    onPress={() => setContentType('tv')}>
-                    <Ionicons
-                      name="tv-outline"
-                      size={20}
-                      color={
-                        contentType === 'tv'
-                          ? colors.accent
-                          : colors.text.secondary
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.contentTypeText,
-                        contentType === 'tv' && styles.activeText,
-                      ]}>
-                      TV Shows
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Genres */}
-              <View style={[styles.section, {paddingHorizontal: 0}]}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Genres</Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                    }}>
-                    {!!filters.with_genres && (
-                      <TouchableOpacity onPress={clearAllGenres}>
-                        <Text style={styles.showAllText}>Clear</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      onPress={() => setShowAllGenresModal(true)}>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={colors.accent}
-                      />
+                            styles.activeTagText,
+                        ]}>
+                        {filter.name}
+                      </Text>
                     </TouchableOpacity>
-                  </View>
-                </View>
-                <FlatList
-                  data={getFilteredGenres()}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  scrollEnabled={true}
-                  nestedScrollEnabled={true}
-                  renderItem={({item: genre}: {item: Genre}) => (
-                    <Chip
-                      key={genre.id}
-                      label={genre.name}
-                      selected={(() => {
-                        if (!filters.with_genres) return false;
-                        const tokens = filters.with_genres.split('|');
-                        if (contentType !== 'all') {
-                          return tokens.includes(genre.id.toString());
-                        }
-                        const movieMatch = movieGenres.find(
-                          g => g.name === genre.name,
-                        );
-                        const tvMatch = tvGenres.find(
-                          g => g.name === genre.name,
-                        );
-                        const ids = [movieMatch?.id, tvMatch?.id]
-                          .filter(Boolean)
-                          .map(String) as string[];
-                        if (ids.length === 0)
-                          return tokens.includes(genre.id.toString());
-                        return ids.some(id => tokens.includes(id));
-                      })()}
-                      onPress={() => handleGenreToggle(genre.id, genre.name)}
-                    />
-                  )}
-                  keyExtractor={(genre: Genre) => genre.id.toString()}
-                  contentContainerStyle={{
-                    paddingHorizontal: 16,
-                    paddingRight: 32,
-                  }}
-                  ItemSeparatorComponent={() => <View style={{width: 8}} />}
-                />
+                  ))}
+                </ScrollView>
               </View>
+            )}
 
-              {/* Sort By with Order Toggle */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Sort By</Text>
-                <View
-                  style={
-                    isSolid
-                      ? styles.pickerContainerSolid
-                      : styles.pickerContainer
-                  }>
-                  <Picker
-                    selectedValue={filters.sort_by}
-                    onValueChange={handleSortChange}
-                    style={styles.picker}
-                    dropdownIconColor={colors.text.primary}>
-                    <Picker.Item label="Select..." value="" />
-                    {SORT_OPTIONS.map(option => (
-                      <Picker.Item
-                        key={option.value}
-                        label={option.label}
-                        value={option.value}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-
-              {/* Language (uses LanguageSettings modal) */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Original Language</Text>
+            {/* Content Type */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Content Type</Text>
+              <View style={styles.contentTypeContainer}>
                 <TouchableOpacity
                   style={[
-                    styles.sectionHeader,
-                    {
-                      backgroundColor: isSolid
-                        ? colors.modal.blur
-                        : colors.modal.border,
-                      borderRadius: borderRadius.md,
-                    },
+                    isSolid
+                      ? styles.contentTypeButtonSolid
+                      : styles.contentTypeButton,
+
+                    contentType === 'all' &&
+                      (isSolid
+                        ? styles.activeButton
+                        : styles.activeButtonSolid),
                   ]}
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    const iso = filters.with_original_language;
-                    setTempLanguageSelection(
-                      iso
-                        ? [{iso_639_1: iso, english_name: '', name: ''} as any]
-                        : [],
-                    );
-                    setShowLanguageModal(true);
-                  }}>
-                  <Text style={[styles.sectionTitle, {marginBottom: 0}]}>
-                    {(() => {
-                      const first = selectedLanguages?.[0];
-                      if (!first) return 'Select Language';
-                      return (
-                        first.english_name ||
-                        first.iso_639_1 ||
-                        'Select Language'
-                      );
-                    })()}
-                  </Text>
+                  onPress={() => setContentType('all')}>
                   <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color={colors.text.primary}
+                    name="apps-outline"
+                    size={20}
+                    color={
+                      contentType === 'all'
+                        ? colors.accent
+                        : colors.text.secondary
+                    }
                   />
+                  <Text
+                    style={[
+                      styles.contentTypeText,
+                      contentType === 'all' && styles.activeText,
+                    ]}>
+                    All
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    isSolid
+                      ? styles.contentTypeButtonSolid
+                      : styles.contentTypeButton,
+
+                    contentType === 'movie' &&
+                      (isSolid
+                        ? styles.activeButton
+                        : styles.activeButtonSolid),
+                  ]}
+                  onPress={() => setContentType('movie')}>
+                  <Ionicons
+                    name="film-outline"
+                    size={20}
+                    color={
+                      contentType === 'movie'
+                        ? colors.accent
+                        : colors.text.secondary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.contentTypeText,
+                      contentType === 'movie' && styles.activeText,
+                    ]}>
+                    Movies
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    isSolid
+                      ? styles.contentTypeButtonSolid
+                      : styles.contentTypeButton,
+
+                    contentType === 'tv' &&
+                      (isSolid
+                        ? styles.activeButtonSolid
+                        : styles.activeButton),
+                  ]}
+                  onPress={() => setContentType('tv')}>
+                  <Ionicons
+                    name="tv-outline"
+                    size={20}
+                    color={
+                      contentType === 'tv'
+                        ? colors.accent
+                        : colors.text.secondary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.contentTypeText,
+                      contentType === 'tv' && styles.activeText,
+                    ]}>
+                    TV Shows
+                  </Text>
                 </TouchableOpacity>
               </View>
+            </View>
 
-              {/* Rating */}
-              <View style={styles.section}>
-                <GradientProgressBar
-                  value={filters['vote_average.gte'] || 1}
-                  minValue={0}
-                  maxValue={10}
-                  step={0.5}
-                  onValueChange={handleRatingChange}
-                  label="Minimum Rating"
-                  showValue={true}
-                  height={16}
-                />
-              </View>
-
-              {/* Release Date */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Release Date</Text>
-                <View style={styles.dateContainer}>
-                  <TouchableOpacity
-                    style={isSolid ? styles.dateButtonSolid : styles.dateButton}
-                    onPress={() => setShowFromDate(true)}>
-                    <Text style={styles.dateButtonText}>
-                      {filters[
-                        contentType === 'movie'
-                          ? 'primary_release_date.gte'
-                          : 'first_air_date.gte'
-                      ] || 'From Date'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={isSolid ? styles.dateButtonSolid : styles.dateButton}
-                    onPress={() => setShowToDate(true)}>
-                    <Text style={styles.dateButtonText}>
-                      {filters[
-                        contentType === 'movie'
-                          ? 'primary_release_date.lte'
-                          : 'first_air_date.lte'
-                      ] || 'To Date'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Watch Providers */}
-              <View style={[styles.section, {paddingHorizontal: 0}]}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Watch Providers</Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                    }}>
-                    {!!filters.with_watch_providers && (
-                      <TouchableOpacity onPress={clearAllWatchProviders}>
-                        <Text style={styles.showAllText}>Clear</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      style={styles.showAllButton}
-                      onPress={() => setShowAllProvidersModal(true)}>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={colors.accent}
-                      />
+            {/* Genres */}
+            <View style={[styles.section, {paddingHorizontal: 0}]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Genres</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}>
+                  {!!filters.with_genres && (
+                    <TouchableOpacity onPress={clearAllGenres}>
+                      <Text style={styles.showAllText}>Clear</Text>
                     </TouchableOpacity>
-                  </View>
-                </View>
-                <FlatList
-                  data={watchProviders}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  scrollEnabled={true}
-                  nestedScrollEnabled={true}
-                  renderItem={({
-                    item: provider,
-                    index,
-                  }: {
-                    item: WatchProvider;
-                    index: number;
-                  }) => {
-                    const selected = (() => {
-                      if (!filters.with_watch_providers) return false;
-                      return filters.with_watch_providers
-                        .split('|')
-                        .includes(provider.provider_id.toString());
-                    })();
-                    return (
-                      <TouchableOpacity
-                        activeOpacity={1}
-                        key={`provider-${provider.provider_id}-${index}`}
-                        onPress={() =>
-                          handleWatchProviderToggle(provider.provider_id)
-                        }
-                        style={[
-                          {
-                            borderRadius: 16,
-                            opacity: 0.7,
-                          },
-                          selected && {
-                            backgroundColor: colors.modal.active,
-                            opacity: 1,
-                          },
-                        ]}>
-                        <View
-                          style={{
-                            width: 70,
-                            height: 70,
-                            margin: 2,
-                            borderRadius: 16,
-                            overflow: 'hidden',
-                          }}>
-                          <Image
-                            source={{
-                              uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
-                            }}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                            }}
-                            resizeMode="contain"
-                          />
-                          {selected && (
-                            <View
-                              style={{
-                                position: 'absolute',
-                                top: 4,
-                                right: 4,
-                                backgroundColor: 'rgba(0,0,0,0.6)',
-                                borderRadius: 10,
-                                padding: 2,
-                              }}>
-                              <Ionicons
-                                name="checkmark"
-                                size={14}
-                                color="#fff"
-                              />
-                            </View>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  }}
-                  keyExtractor={(provider: WatchProvider, index: number) =>
-                    `provider-${provider.provider_id}-${index}`
-                  }
-                  contentContainerStyle={{
-                    paddingHorizontal: 16,
-                    paddingRight: 32,
-                  }}
-                  ItemSeparatorComponent={() => <View style={{width: 8}} />}
-                />
-              </View>
-
-              <View style={{height: 150}} />
-            </ScrollView>
-
-            {/* Date Pickers */}
-            {showFromDate && (
-              <DateTimePicker
-                value={getDateFromFilter(
-                  contentType === 'movie'
-                    ? 'primary_release_date.gte'
-                    : 'first_air_date.gte',
-                )}
-                mode="date"
-                onChange={handleFromDateChange}
-              />
-            )}
-            {showToDate && (
-              <DateTimePicker
-                value={getDateFromFilter(
-                  contentType === 'movie'
-                    ? 'primary_release_date.lte'
-                    : 'first_air_date.lte',
-                )}
-                mode="date"
-                onChange={handleToDateChange}
-              />
-            )}
-
-            <View
-              style={[
-                styles.footer,
-                {
-                  alignItems: 'center',
-                  marginHorizontal: isTablet ? '25%' : spacing.md,
-                },
-              ]}>
-              <TouchableOpacity
-                style={[styles.footerButton, styles.resetButton]}
-                onPress={handleReset}>
-                <Text style={styles.resetButtonText}>Reset</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.footerButton, styles.applyButton]}
-                onPress={handleApply}>
-                <Text style={styles.applyButtonText}>Apply</Text>
-              </TouchableOpacity>
-              {!isCurrentFilterSaved &&
-                (checkingResults ? (
-                  <View
-                    style={[
-                      {
-                        width: 40,
-                        marginRight: 8,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      },
-                    ]}>
-                    <GradientSpinner
-                      size={20}
-                      style={{
-                        alignItems: 'center',
-                        alignSelf: 'center',
-                      }}
-                      color={colors.modal.activeBorder}
-                    />
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={{
-                      marginRight: 8,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      backgroundColor: colors.modal.active,
-                      borderRadius: borderRadius.round,
-                      width: 40,
-                      height: 40,
-                    }}
-                    onPress={handleSaveCurrentFilter}>
+                  )}
+                  <TouchableOpacity onPress={() => setShowAllGenresModal(true)}>
                     <Ionicons
-                      name="add-outline"
-                      size={28}
+                      name="chevron-forward"
+                      size={16}
                       color={colors.accent}
                     />
                   </TouchableOpacity>
-                ))}
+                </View>
+              </View>
+              <FlatList
+                data={getFilteredGenres()}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                renderItem={({item: genre}: {item: Genre}) => (
+                  <Chip
+                    key={genre.id}
+                    label={genre.name}
+                    selected={(() => {
+                      if (!filters.with_genres) return false;
+                      const tokens = filters.with_genres.split('|');
+                      if (contentType !== 'all') {
+                        return tokens.includes(genre.id.toString());
+                      }
+                      const movieMatch = movieGenres.find(
+                        g => g.name === genre.name,
+                      );
+                      const tvMatch = tvGenres.find(g => g.name === genre.name);
+                      const ids = [movieMatch?.id, tvMatch?.id]
+                        .filter(Boolean)
+                        .map(String) as string[];
+                      if (ids.length === 0)
+                        return tokens.includes(genre.id.toString());
+                      return ids.some(id => tokens.includes(id));
+                    })()}
+                    onPress={() => handleGenreToggle(genre.id, genre.name)}
+                  />
+                )}
+                keyExtractor={(genre: Genre) => genre.id.toString()}
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingRight: 32,
+                }}
+                ItemSeparatorComponent={() => <View style={{width: 8}} />}
+              />
             </View>
-          </MaybeBlurView>
-        </View>
+
+            {/* Sort By with Order Toggle */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Sort By</Text>
+              <View
+                style={
+                  isSolid ? styles.pickerContainerSolid : styles.pickerContainer
+                }>
+                <Picker
+                  selectedValue={filters.sort_by}
+                  onValueChange={handleSortChange}
+                  style={styles.picker}
+                  dropdownIconColor={colors.text.primary}>
+                  <Picker.Item label="Select..." value="" />
+                  {SORT_OPTIONS.map(option => (
+                    <Picker.Item
+                      key={option.value}
+                      label={option.label}
+                      value={option.value}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Language (uses LanguageSettings modal) */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Original Language</Text>
+              <TouchableOpacity
+                style={[
+                  styles.sectionHeader,
+                  {
+                    backgroundColor: isSolid
+                      ? colors.modal.blur
+                      : colors.modal.border,
+                    borderRadius: borderRadius.md,
+                  },
+                ]}
+                activeOpacity={0.9}
+                onPress={() => {
+                  const iso = filters.with_original_language;
+                  setTempLanguageSelection(
+                    iso
+                      ? [{iso_639_1: iso, english_name: '', name: ''} as any]
+                      : [],
+                  );
+                  setShowLanguageModal(true);
+                }}>
+                <Text style={[styles.sectionTitle, {marginBottom: 0}]}>
+                  {(() => {
+                    const first = selectedLanguages?.[0];
+                    if (!first) return 'Select Language';
+                    return (
+                      first.english_name || first.iso_639_1 || 'Select Language'
+                    );
+                  })()}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Rating */}
+            <View style={styles.section}>
+              <GradientProgressBar
+                value={filters['vote_average.gte'] || 1}
+                minValue={0}
+                maxValue={10}
+                step={0.5}
+                onValueChange={handleRatingChange}
+                label="Minimum Rating"
+                showValue={true}
+                height={16}
+              />
+            </View>
+
+            {/* Release Date */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Release Date</Text>
+              <View style={styles.dateContainer}>
+                <TouchableOpacity
+                  style={isSolid ? styles.dateButtonSolid : styles.dateButton}
+                  onPress={() => setShowFromDate(true)}>
+                  <Text style={styles.dateButtonText}>
+                    {filters[
+                      contentType === 'movie'
+                        ? 'primary_release_date.gte'
+                        : 'first_air_date.gte'
+                    ] || 'From Date'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={isSolid ? styles.dateButtonSolid : styles.dateButton}
+                  onPress={() => setShowToDate(true)}>
+                  <Text style={styles.dateButtonText}>
+                    {filters[
+                      contentType === 'movie'
+                        ? 'primary_release_date.lte'
+                        : 'first_air_date.lte'
+                    ] || 'To Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Watch Providers */}
+            <View style={[styles.section, {paddingHorizontal: 0}]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Watch Providers</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}>
+                  {!!filters.with_watch_providers && (
+                    <TouchableOpacity onPress={clearAllWatchProviders}>
+                      <Text style={styles.showAllText}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.showAllButton}
+                    onPress={() => setShowAllProvidersModal(true)}>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.accent}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <FlatList
+                data={watchProviders}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                renderItem={({
+                  item: provider,
+                  index,
+                }: {
+                  item: WatchProvider;
+                  index: number;
+                }) => {
+                  const selected = (() => {
+                    if (!filters.with_watch_providers) return false;
+                    return filters.with_watch_providers
+                      .split('|')
+                      .includes(provider.provider_id.toString());
+                  })();
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      key={`provider-${provider.provider_id}-${index}`}
+                      onPress={() =>
+                        handleWatchProviderToggle(provider.provider_id)
+                      }
+                      style={[
+                        {
+                          borderRadius: 16,
+                          opacity: 0.7,
+                        },
+                        selected && {
+                          backgroundColor: colors.modal.active,
+                          opacity: 1,
+                        },
+                      ]}>
+                      <View
+                        style={{
+                          width: 70,
+                          height: 70,
+                          margin: 2,
+                          borderRadius: 16,
+                          overflow: 'hidden',
+                        }}>
+                        <Image
+                          source={{
+                            uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
+                          }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                          }}
+                          resizeMode="contain"
+                        />
+                        {selected && (
+                          <View
+                            style={{
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              borderRadius: 10,
+                              padding: 2,
+                            }}>
+                            <Ionicons name="checkmark" size={14} color="#fff" />
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+                keyExtractor={(provider: WatchProvider, index: number) =>
+                  `provider-${provider.provider_id}-${index}`
+                }
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingRight: 32,
+                }}
+                ItemSeparatorComponent={() => <View style={{width: 8}} />}
+              />
+            </View>
+
+            <View style={{height: 150}} />
+          </ScrollView>
+
+          {/* Date Pickers */}
+          {showFromDate && (
+            <DateTimePicker
+              value={getDateFromFilter(
+                contentType === 'movie'
+                  ? 'primary_release_date.gte'
+                  : 'first_air_date.gte',
+              )}
+              mode="date"
+              onChange={handleFromDateChange}
+            />
+          )}
+          {showToDate && (
+            <DateTimePicker
+              value={getDateFromFilter(
+                contentType === 'movie'
+                  ? 'primary_release_date.lte'
+                  : 'first_air_date.lte',
+              )}
+              mode="date"
+              onChange={handleToDateChange}
+            />
+          )}
+
+          <View
+            style={[
+              styles.footer,
+              {
+                alignItems: 'center',
+                marginHorizontal: isTablet ? '25%' : spacing.md,
+              },
+            ]}>
+            <TouchableOpacity
+              style={[styles.footerButton, styles.resetButton]}
+              onPress={handleReset}>
+              <Text style={styles.resetButtonText}>Reset</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.footerButton, styles.applyButton]}
+              onPress={handleApply}>
+              <Text style={styles.applyButtonText}>Apply</Text>
+            </TouchableOpacity>
+            {!isCurrentFilterSaved &&
+              (checkingResults ? (
+                <View
+                  style={[
+                    {
+                      width: 40,
+                      marginRight: 8,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                  ]}>
+                  <GradientSpinner
+                    size={20}
+                    style={{
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                    }}
+                    color={colors.modal.activeBorder}
+                  />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={{
+                    marginRight: 8,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: colors.modal.active,
+                    borderRadius: borderRadius.round,
+                    width: 40,
+                    height: 40,
+                  }}
+                  onPress={handleSaveCurrentFilter}>
+                  <Ionicons
+                    name="add-outline"
+                    size={28}
+                    color={colors.accent}
+                  />
+                </TouchableOpacity>
+              ))}
+          </View>
+        </MaybeBlurView>
       </View>
       {/* Save Filter Modal */}
       <RNModal
@@ -1177,6 +1173,22 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               tempLanguageSelection[0]?.iso_639_1 || undefined,
           }));
         }}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+
         <View
           style={{
             flex: 1,
@@ -1184,29 +1196,29 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             borderRadius: borderRadius.xl,
             backgroundColor: 'transparent',
           }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: spacing.md,
-              marginBottom: isTablet ? spacing.lg : spacing.md,
-              borderRadius: borderRadius.round,
-              borderWidth: 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.border,
-              backgroundColor: isSolid ? 'black' : colors.modal.content,
-              zIndex: 1,
-              marginTop: 20,
-            }}>
-            <Text
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
               style={{
-                color: colors.text.primary,
-                ...typography.h3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
               }}>
-              Language Settings
-            </Text>
+              <Ionicons name="language" size={20} color={colors.text.muted} />
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  ...typography.h3,
+                }}>
+                Language Settings
+              </Text>
+            </View>
             <TouchableOpacity
-              style={{padding: spacing.xs}}
               onPress={async () => {
                 setShowLanguageModal(false);
                 setSelectedLanguages(tempLanguageSelection);
@@ -1215,29 +1227,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   with_original_language:
                     tempLanguageSelection[0]?.iso_639_1 || undefined,
                 }));
+              }}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
               }}>
               <Ionicons name="close" size={20} color={colors.text.primary} />
             </TouchableOpacity>
-          </View>
+          </MaybeBlurView>
           <View
             style={{
               flex: 1,
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
-              borderWidth: isSolid ? 0 : 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.content,
             }}>
-            <MaybeBlurView
-              modal
-              style={{
-                flex: 1,
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: isSolid ? colors.modal.blur : colors.modal.content,
-                backgroundColor: isSolid ? 'black' : colors.modal.blur,
-                opacity: 1,
-              }}>
+            <MaybeBlurView body>
               <View style={{flex: 1}}>
                 <LanguageSettings
                   singleSelect
@@ -1271,6 +1280,22 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowAllGenresModal(false)}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+
         <View
           style={{
             flex: 1,
@@ -1278,27 +1303,28 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             borderRadius: borderRadius.xl,
             backgroundColor: 'transparent',
           }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: spacing.md,
-              marginBottom: isTablet ? spacing.lg : spacing.md,
-              borderRadius: borderRadius.round,
-              borderWidth: 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.border,
-              backgroundColor: isSolid ? 'black' : colors.modal.content,
-              zIndex: 1,
-              marginTop: 20,
-            }}>
-            <Text
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
               style={{
-                color: colors.text.primary,
-                ...typography.h3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
               }}>
-              All Genres
-            </Text>
+              <Ionicons name="grid" size={20} color={colors.text.muted} />
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  ...typography.h3,
+                }}>
+                All Genres
+              </Text>
+            </View>
             <View
               style={{
                 flexDirection: 'row',
@@ -1307,35 +1333,31 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               }}>
               {!!filters.with_genres && (
                 <TouchableOpacity activeOpacity={0.9} onPress={clearAllGenres}>
-                  <Text style={{color: colors.text.muted}}>Clear</Text>
+                  <Text style={styles.showAllText}>Clear</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={{padding: spacing.xs}}
-                onPress={() => setShowAllGenresModal(false)}>
+                onPress={() => setShowAllGenresModal(false)}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
                 <Ionicons name="close" size={20} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
-          </View>
+          </MaybeBlurView>
           <View
             style={{
               flex: 1,
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
-              borderWidth: isSolid ? 0 : 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.content,
             }}>
-            <MaybeBlurView
-              modal
-              style={{
-                flex: 1,
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: isSolid ? colors.modal.blur : colors.modal.content,
-                backgroundColor: isSolid ? 'black' : colors.modal.blur,
-                opacity: 1,
-              }}>
+            <MaybeBlurView body>
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
@@ -1387,6 +1409,22 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowAllProvidersModal(false)}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+
         <View
           style={{
             flex: 1,
@@ -1394,27 +1432,28 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             borderRadius: borderRadius.xl,
             backgroundColor: 'transparent',
           }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: spacing.md,
-              marginBottom: isTablet ? spacing.lg : spacing.md,
-              borderRadius: borderRadius.round,
-              borderWidth: 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.border,
-              backgroundColor: isSolid ? 'black' : colors.modal.content,
-              zIndex: 1,
-              marginTop: 20,
-            }}>
-            <Text
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
               style={{
-                color: colors.text.primary,
-                ...typography.h3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
               }}>
-              All Watch Providers
-            </Text>
+              <Ionicons name="tv" size={20} color={colors.text.muted} />
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  ...typography.h3,
+                }}>
+                All Watch Providers
+              </Text>
+            </View>
             <View
               style={{
                 flexDirection: 'row',
@@ -1425,104 +1464,94 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 <TouchableOpacity
                   activeOpacity={0.9}
                   onPress={clearAllWatchProviders}>
-                  <Text style={{color: colors.text.muted}}>Clear</Text>
+                  <Text style={styles.showAllText}>Clear</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={{padding: spacing.xs}}
-                onPress={() => setShowAllProvidersModal(false)}>
+                onPress={() => setShowAllProvidersModal(false)}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
                 <Ionicons name="close" size={20} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
-          </View>
+          </MaybeBlurView>
           <View
             style={{
               flex: 1,
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
-              borderWidth: isSolid ? 0 : 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.content,
             }}>
-            <MaybeBlurView
-              modal
-              style={{
-                flex: 1,
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: isSolid ? colors.modal.blur : colors.modal.content,
-                backgroundColor: isSolid ? 'black' : colors.modal.blur,
-                opacity: 1,
-              }}>
+            <MaybeBlurView body>
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
                   paddingVertical: isTablet ? spacing.xl : spacing.md,
                 }}>
                 <View style={styles.allProvidersGrid}>
-                  {watchProviders.map(
-                    (provider: WatchProvider, index: number) => {
-                      const selected = (() => {
-                        if (!filters.with_watch_providers) return false;
-                        return filters.with_watch_providers
-                          .split('|')
-                          .includes(provider.provider_id.toString());
-                      })();
-                      return (
-                        <TouchableOpacity
-                          activeOpacity={1}
-                          key={`modal-provider-${provider.provider_id}-${index}`}
-                          onPress={() =>
-                            handleWatchProviderToggle(provider.provider_id)
-                          }
-                          style={[
-                            {
-                              borderRadius: 16,
-                              margin: 3,
-                              opacity: 0.7,
-                              backgroundColor: colors.modal.blur,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            },
-                            selected && {
-                              backgroundColor: colors.modal.active,
-                              opacity: 1,
-                              borderWidth: 2,
-                              borderColor: colors.modal.activeBorder,
-                            },
-                          ]}>
-                          <Image
-                            source={{
-                              uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
-                            }}
+                  {watchProviders.map((provider: any, index: number) => {
+                    const selected = (() => {
+                      if (!filters.with_watch_providers) return false;
+                      return filters.with_watch_providers
+                        .split('|')
+                        .includes(provider.provider_id.toString());
+                    })();
+                    return (
+                      <TouchableOpacity
+                        activeOpacity={1}
+                        key={`modal-provider-${provider.provider_id}-${index}`}
+                        onPress={() =>
+                          handleWatchProviderToggle(provider.provider_id)
+                        }
+                        style={[
+                          {
+                            borderRadius: 16,
+                            margin: 3,
+                            opacity: 0.7,
+                            backgroundColor: colors.modal.blur,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          },
+                          selected && {
+                            backgroundColor: colors.modal.active,
+                            opacity: 1,
+                            borderWidth: 2,
+                            borderColor: colors.modal.activeBorder,
+                          },
+                        ]}>
+                        <Image
+                          source={{
+                            uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
+                          }}
+                          style={{
+                            width: 70,
+                            height: 70,
+                            borderRadius: 16,
+                          }}
+                          resizeMode="contain"
+                        />
+                        {selected && (
+                          <View
                             style={{
-                              width: 70,
-                              height: 70,
-                              borderRadius: 16,
-                            }}
-                            resizeMode="contain"
-                          />
-                          {selected && (
-                            <View
-                              style={{
-                                position: 'absolute',
-                                top: 4,
-                                right: 4,
-                                backgroundColor: 'rgba(0,0,0,0.6)',
-                                borderRadius: 10,
-                                padding: 2,
-                              }}>
-                              <Ionicons
-                                name="checkmark"
-                                size={14}
-                                color="#fff"
-                              />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    },
-                  )}
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              borderRadius: 10,
+                              padding: 2,
+                            }}>
+                            <Ionicons name="checkmark" size={14} color="#fff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </ScrollView>
             </MaybeBlurView>

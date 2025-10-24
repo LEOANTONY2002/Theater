@@ -101,6 +101,22 @@ export const RegionModal: React.FC<RegionModalProps> = ({
       backdropColor={colors.modal.blurDark}
       statusBarTranslucent={true}
       onRequestClose={onClose}>
+      {!isSolid && (
+        <BlurView
+          blurType="dark"
+          blurAmount={10}
+          overlayColor={colors.modal.blurDark}
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
+      )}
+
       <View
         style={{
           flex: 1,
@@ -108,12 +124,36 @@ export const RegionModal: React.FC<RegionModalProps> = ({
           borderRadius: borderRadius.xl,
           backgroundColor: 'transparent',
         }}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Select Region</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <MaybeBlurView
+          header
+          style={[
+            {
+              marginTop: 20,
+            },
+          ]}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+            }}>
+            <Ionicons name="location" size={20} color={colors.text.muted} />
+            <Text style={styles.modalTitle}>Select Region</Text>
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              padding: spacing.sm,
+              backgroundColor: colors.modal.blur,
+              borderRadius: borderRadius.round,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: colors.modal.content,
+            }}>
             <Ionicons name="close" size={20} color={colors.text.primary} />
           </TouchableOpacity>
-        </View>
+        </MaybeBlurView>
         <View
           style={{
             flex: 1,
@@ -122,17 +162,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
             borderWidth: isSolid ? 0 : 1,
             borderColor: isSolid ? colors.modal.blur : colors.modal.content,
           }}>
-          <MaybeBlurView
-            modal
-            style={{
-              flex: 1,
-              borderRadius: borderRadius.xl,
-              overflow: 'hidden',
-              borderWidth: 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.content,
-              backgroundColor: isSolid ? 'black' : colors.modal.blur,
-              opacity: 1,
-            }}>
+          <MaybeBlurView body>
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <GradientSpinner
@@ -196,4 +226,3 @@ export const RegionModal: React.FC<RegionModalProps> = ({
     </Modal>
   );
 };
-

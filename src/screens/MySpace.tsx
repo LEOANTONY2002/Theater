@@ -532,9 +532,14 @@ export const MySpaceScreen = React.memo(() => {
         : colors.background.tertiarySolid,
       borderRadius: isTablet ? 40 : borderRadius.lg,
       padding: isTablet ? spacing.md : spacing.sm,
-      borderWidth: 1,
-      borderColor: forceBlurAll ? colors.modal.blur : colors.background.border,
       minHeight: isTablet ? 180 : 120,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderBottomWidth: !forceBlurAll ? 1 : 0,
+      borderColor: forceBlurAll
+        ? colors.modal.content
+        : colors.background.border,
     },
     tileTitle: {
       // color: '#E8E9FC55',
@@ -983,7 +988,7 @@ export const MySpaceScreen = React.memo(() => {
           </View>
 
           {/* Right Column */}
-          <View style={{flex: 0.9, gap: spacing.md}}>
+          <View style={{flex: 0.9, gap: isTablet ? spacing.md : spacing.sm}}>
             {/* Theme - tall */}
             <View style={[styles.tile, styles.themeTall]}>
               <View style={styles.tileHeaderColumn}>
@@ -995,7 +1000,11 @@ export const MySpaceScreen = React.memo(() => {
                   Theme
                 </Text>
               </View>
-              <View style={{gap: isTablet ? spacing.md : spacing.sm}}>
+              <View
+                style={{
+                  gap: isTablet ? spacing.md : spacing.sm,
+                  paddingBottom: isTablet ? 5 : 3,
+                }}>
                 {/* Glass option */}
                 <TouchableOpacity
                   accessibilityRole="button"
@@ -1052,7 +1061,11 @@ export const MySpaceScreen = React.memo(() => {
             </View>
 
             {/* Ask Theater AI - tall */}
-            <View style={{position: 'relative'}}>
+            <View
+              style={{
+                position: 'relative',
+                marginBottom: isTablet ? 5 : 0,
+              }}>
               <LinearGradient
                 colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
                 start={{x: 0, y: 0}}
@@ -1118,10 +1131,15 @@ export const MySpaceScreen = React.memo(() => {
             </View>
             <View style={styles.region}>
               <Text style={styles.regionLabelBG}>
-                {(myLanguage?.english_name || 'L').slice(0, 1)}
+                {(myLanguage?.name || myLanguage?.english_name || '').slice(
+                  0,
+                  1,
+                )}
               </Text>
               <Text numberOfLines={1} style={styles.regionLabel}>
-                {myLanguage?.english_name || 'Select Language'}
+                {myLanguage?.name ||
+                  myLanguage?.english_name ||
+                  'Select Language'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -1191,7 +1209,7 @@ export const MySpaceScreen = React.memo(() => {
                     styles.emptyTextContainer,
                     {paddingVertical: spacing.sm},
                   ]}>
-                  <Text style={styles.emptyText}>Select providers</Text>
+                  <Text style={styles.emptyText}>Select OTTs</Text>
                 </View>
               )}
             </View>
@@ -1227,6 +1245,22 @@ export const MySpaceScreen = React.memo(() => {
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowMyLanguageModal(false)}>
+        {forceBlurAll && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+
         <View
           style={{
             flex: 1,
@@ -1234,58 +1268,49 @@ export const MySpaceScreen = React.memo(() => {
             borderRadius: borderRadius.xl,
             backgroundColor: 'transparent',
           }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: spacing.md,
-              marginBottom: isTablet ? spacing.lg : spacing.md,
-              borderRadius: borderRadius.round,
-              borderWidth: 1,
-              borderColor: forceBlurAll
-                ? colors.modal.border
-                : colors.modal.blur,
-              backgroundColor: forceBlurAll ? colors.modal.content : 'black',
-              zIndex: 1,
-              marginTop: 20,
-            }}>
-            <Text
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
               style={{
-                color: colors.text.primary,
-                ...typography.h3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
               }}>
-              My Language
-            </Text>
+              <Ionicons name="language" size={20} color={colors.text.muted} />
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  ...typography.h3,
+                }}>
+                My Language
+              </Text>
+            </View>
             <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowMyLanguageModal(false)}>
+              onPress={() => setShowMyLanguageModal(false)}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
               <Ionicons name="close" size={20} color={colors.text.primary} />
             </TouchableOpacity>
-          </View>
+          </MaybeBlurView>
           <View
             style={{
               flex: 1,
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
-              borderWidth: forceBlurAll ? 1 : 0,
-              borderColor: forceBlurAll
-                ? colors.modal.content
-                : colors.modal.blur,
             }}>
-            <MaybeBlurView
-              modal
-              style={{
-                flex: 1,
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: forceBlurAll
-                  ? colors.modal.content
-                  : colors.modal.blur,
-                backgroundColor: forceBlurAll ? colors.modal.blur : 'black',
-                opacity: 1,
-              }}>
+            <MaybeBlurView body>
               <LanguageSettings
                 isTitle={false}
                 singleSelect
@@ -1310,6 +1335,22 @@ export const MySpaceScreen = React.memo(() => {
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowOTTsModal(false)}>
+        {forceBlurAll && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+
         <View
           style={{
             flex: 1,
@@ -1317,58 +1358,49 @@ export const MySpaceScreen = React.memo(() => {
             borderRadius: borderRadius.xl,
             backgroundColor: 'transparent',
           }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: spacing.md,
-              marginBottom: isTablet ? spacing.lg : spacing.md,
-              borderRadius: borderRadius.round,
-              borderWidth: 1,
-              borderColor: forceBlurAll
-                ? colors.modal.border
-                : colors.modal.blur,
-              backgroundColor: forceBlurAll ? colors.modal.content : 'black',
-              zIndex: 1,
-              marginTop: 20,
-            }}>
-            <Text
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
               style={{
-                color: colors.text.primary,
-                ...typography.h3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
               }}>
-              My OTTs
-            </Text>
+              <Ionicons name="tv" size={20} color={colors.text.muted} />
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  ...typography.h3,
+                }}>
+                My OTTs
+              </Text>
+            </View>
             <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowOTTsModal(false)}>
+              onPress={() => setShowOTTsModal(false)}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
               <Ionicons name="close" size={20} color={colors.text.primary} />
             </TouchableOpacity>
-          </View>
+          </MaybeBlurView>
           <View
             style={{
               flex: 1,
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
-              borderWidth: forceBlurAll ? 1 : 0,
-              borderColor: forceBlurAll
-                ? colors.modal.content
-                : colors.modal.blur,
             }}>
-            <MaybeBlurView
-              modal
-              style={{
-                flex: 1,
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: forceBlurAll
-                  ? colors.modal.content
-                  : colors.modal.blur,
-                backgroundColor: forceBlurAll ? colors.modal.blur : 'black',
-                opacity: 1,
-              }}>
+            <MaybeBlurView body>
               {availableProviders?.length ? (
                 <ScrollView
                   showsVerticalScrollIndicator={false}
@@ -1443,8 +1475,8 @@ export const MySpaceScreen = React.memo(() => {
                           <View
                             style={{
                               position: 'absolute',
-                              top: 6,
-                              right: 6,
+                              top: 4,
+                              right: 4,
                               backgroundColor: 'rgba(0,0,0,0.6)',
                               borderRadius: 10,
                               padding: 2,

@@ -119,7 +119,7 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
   const styles = StyleSheet.create({
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
     },
     modalContainer: {
       flex: 1,
@@ -291,6 +291,21 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
       backdropColor={isSolid ? 'transparent' : colors.modal.blurDark}
       statusBarTranslucent={true}
       onRequestClose={handleClose}>
+      {!isSolid && (
+        <BlurView
+          blurType="dark"
+          blurAmount={10}
+          overlayColor={colors.modal.blurDark}
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
+      )}
       <TouchableOpacity
         style={styles.modalOverlay}
         activeOpacity={1}
@@ -303,14 +318,30 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                 marginBottom: keyboardHeight,
               },
             ]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add to Watchlist</Text>
+            <MaybeBlurView header>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                }}>
+                <Ionicons name="bookmarks" size={20} color={colors.text.muted} />
+                <Text style={styles.modalTitle}>Add to Watchlist</Text>
+              </View>
               <TouchableOpacity
-                style={{padding: spacing.xs}}
-                onPress={handleClose}>
+                onPress={handleClose}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
                 <Ionicons name="close" size={20} color={colors.text.primary} />
               </TouchableOpacity>
-            </View>
+            </MaybeBlurView>
 
             <View style={styles.modalBodyWrapper}>
               <MaybeBlurView

@@ -1330,39 +1330,26 @@ export const HomeScreen = React.memo(() => {
       <Modal
         visible={showMoodModal}
         animationType="slide"
-        presentationStyle="pageSheet"
-        navigationBarTranslucent={true}
-        statusBarTranslucent={true}
+        navigationBarTranslucent
+        statusBarTranslucent
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowMoodModal(false)}>
-        <MaybeBlurView
+        <View
           style={{
             flex: 1,
-            paddingTop: 80,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          }}
-          blurType="dark"
-          blurAmount={10}
-          modal>
-          <View
-            style={[
-              modalStyles.container,
-              {
-                backgroundColor: colors.modal.blurDark,
-                borderTopStartRadius: borderRadius.xl,
-                borderTopEndRadius: borderRadius.xl,
-              },
-            ]}>
-            <MoodQuestionnaire
-              onComplete={answers => {
-                // Use the centralized handler that persists, invalidates queries,
-                // refreshes MyNextWatch and closes the modal.
-                handleMoodComplete(answers);
-              }}
-              onCancel={() => setShowMoodModal(false)}
-            />
-          </View>
-        </MaybeBlurView>
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor: 'transparent',
+          }}>
+          <MoodQuestionnaire
+            onComplete={answers => {
+              // Use the centralized handler that persists, invalidates queries,
+              // refreshes MyNextWatch and closes the modal.
+              handleMoodComplete(answers);
+            }}
+            onCancel={() => setShowMoodModal(false)}
+          />
+        </View>
       </Modal>
     </View>
   );

@@ -12,6 +12,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Fontisto from 'react-native-vector-icons/Fontisto';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
+import {MaybeBlurView} from './MaybeBlurView';
+import {useResponsive} from '../hooks/useResponsive';
+import {BlurView} from '@react-native-community/blur';
+import {BlurPreference} from '../store/blurPreference';
 
 type MoodQuestion = {
   id: string;
@@ -187,6 +191,9 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
     initialAnswers,
   );
   const [isLoading, setIsLoading] = useState(false);
+  const {isTablet} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   // Dynamically filter options based on prior answers to avoid contradictory tones
   const getEffectiveOptions = (
@@ -285,117 +292,182 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Update My Mood</Text>
-        <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>
-          {currentQuestionIndex + 1} of {MOOD_QUESTIONS.length}
-        </Text>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${
-                  ((currentQuestionIndex + 1) / MOOD_QUESTIONS.length) * 100
-                }%`,
-              },
-            ]}
-          />
-        </View>
-      </View>
-
-      <Text style={styles.questionTitle}>{currentQuestion.question}</Text>
-
-      <ScrollView
-        style={styles.optionsContainer}
-        showsVerticalScrollIndicator={false}>
-        {displayedOptions.map(
-          (
-            option: {
-              text: string;
-              emoji: string;
-              icon: string;
-              iconType: string;
+    <>
+      {!isSolid && (
+        <BlurView
+          blurType="dark"
+          blurAmount={10}
+          overlayColor={colors.modal.blurDark}
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
+      )}
+      <View style={styles.container}>
+        <MaybeBlurView
+          header
+          style={[
+            {
+              marginTop: isTablet ? '50%' : 20,
             },
-            index: number,
-          ) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.moodOption}
-              onPress={() => handleMoodAnswer(option.text)}
-              activeOpacity={0.7}
-              disabled={isLoading}>
-              {option.iconType === 'Ionicons' ? (
-                <Ionicons
-                  name={option.icon}
-                  size={20}
-                  color={colors.text.tertiary}
-                />
-              ) : option.iconType === 'Fontisto' ? (
-                <Fontisto
-                  name={option.icon}
-                  size={20}
-                  color={colors.text.tertiary}
-                />
-              ) : option.iconType === 'MaterialCommunityIcons' ? (
-                <MaterialCommunityIcons
-                  name={option.icon}
-                  size={20}
-                  color={colors.text.tertiary}
-                />
-              ) : (
-                <Ionicons
-                  name={option.icon}
-                  size={20}
-                  color={colors.text.tertiary}
-                />
-              )}
-              <Text style={styles.moodText}>{option.text}</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.text.tertiary}
+          ]}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+              flex: 1,
+              minWidth: 0,
+            }}>
+            <Ionicons
+              name="sparkles"
+              size={20}
+              color={colors.text.muted}
+              style={{flexShrink: 0}}
+            />
+            <Text
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                color: colors.text.primary,
+                ...typography.h3,
+                fontSize: isTablet ? 16 : 14,
+              }}>
+              Update My Mood
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={onCancel}
+            style={{
+              padding: spacing.sm,
+              backgroundColor: colors.modal.blur,
+              borderRadius: borderRadius.round,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: colors.modal.content,
+            }}>
+            <Ionicons name="close" size={20} color={colors.text.primary} />
+          </TouchableOpacity>
+        </MaybeBlurView>
+        <MaybeBlurView body>
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>
+              {currentQuestionIndex + 1} of {MOOD_QUESTIONS.length}
+            </Text>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${
+                      ((currentQuestionIndex + 1) / MOOD_QUESTIONS.length) * 100
+                    }%`,
+                  },
+                ]}
               />
-            </TouchableOpacity>
-          ),
-        )}
-      </ScrollView>
-    </View>
+            </View>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              paddingHorizontal: spacing.md,
+              marginVertical: spacing.lg,
+            }}>
+            {currentQuestionIndex > 0 && (
+              <TouchableOpacity
+                onPress={handleBack}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons
+                  name="chevron-back"
+                  size={24}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.questionTitle}>{currentQuestion.question}</Text>
+          </View>
+
+          <ScrollView
+            style={{paddingHorizontal: spacing.md}}
+            contentContainerStyle={styles.optionsContainer}
+            showsVerticalScrollIndicator={false}>
+            {displayedOptions.map(
+              (
+                option: {
+                  text: string;
+                  emoji: string;
+                  icon: string;
+                  iconType: string;
+                },
+                index: number,
+              ) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.moodOption}
+                  onPress={() => handleMoodAnswer(option.text)}
+                  activeOpacity={0.7}
+                  disabled={isLoading}>
+                  {option.iconType === 'Ionicons' ? (
+                    <Ionicons
+                      name={option.icon}
+                      size={20}
+                      color={colors.text.tertiary}
+                    />
+                  ) : option.iconType === 'Fontisto' ? (
+                    <Fontisto
+                      name={option.icon}
+                      size={20}
+                      color={colors.text.tertiary}
+                    />
+                  ) : option.iconType === 'MaterialCommunityIcons' ? (
+                    <MaterialCommunityIcons
+                      name={option.icon}
+                      size={20}
+                      color={colors.text.tertiary}
+                    />
+                  ) : (
+                    <Ionicons
+                      name={option.icon}
+                      size={20}
+                      color={colors.text.tertiary}
+                    />
+                  )}
+                  <Text style={styles.moodText}>{option.text}</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={colors.text.tertiary}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
+          </ScrollView>
+        </MaybeBlurView>
+      </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  backButton: {
-    padding: spacing.xs,
-  },
-  closeButton: {
-    padding: spacing.xs,
-  },
-  title: {
-    fontSize: typography.h3.fontSize,
-    fontWeight: 'bold',
-    color: colors.text.primary,
   },
   progressContainer: {
     alignItems: 'center',
@@ -424,14 +496,11 @@ const styles = StyleSheet.create({
     fontSize: typography.h3.fontSize,
     fontWeight: 'bold',
     color: colors.text.primary,
-    textAlign: 'center',
-    marginVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
+    flex: 1,
     fontFamily: 'Inter_18pt-Regular',
   },
   optionsContainer: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xl,
   },
   moodOption: {
     flexDirection: 'row',

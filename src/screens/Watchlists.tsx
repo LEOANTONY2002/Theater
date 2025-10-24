@@ -910,15 +910,30 @@ export const WatchlistsScreen: React.FC = () => {
         {/* Delete Confirmation Modal */}
         <Modal
           visible={showDeleteConfirm}
-          transparent
+          backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
           animationType="fade"
+          statusBarTranslucent
+          navigationBarTranslucent
           onRequestClose={() => setShowDeleteConfirm(false)}>
+          {!isSolid && (
+            <BlurView
+              blurType="dark"
+              blurAmount={10}
+              overlayColor="rgba(0, 0, 0, 0.5)"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+          )}
           <View
             style={{
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
             }}>
             <View
               style={{
@@ -927,13 +942,24 @@ export const WatchlistsScreen: React.FC = () => {
                 overflow: 'hidden',
               }}>
               {isSolid ? (
-                <View
+                <LinearGradient
+                  colors={[
+                    'rgba(111, 111, 111, 0.42)',
+                    'rgba(20, 20, 20, 0.7)',
+                  ]}
+                  start={{x: 1, y: 0}}
+                  end={{x: 1, y: 1}}
                   style={{
-                    padding: spacing.xl,
-                    backgroundColor: colors.modal.blur,
                     borderRadius: borderRadius.xl,
                   }}>
-                  <View style={{alignItems: 'center'}}>
+                  <View
+                    style={{
+                      padding: spacing.xl,
+                      backgroundColor: 'black',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(0, 0, 0, 0.3)',
+                      borderRadius: borderRadius.xl,
+                    }}>
                     <Text
                       style={{
                         ...typography.h2,
@@ -999,22 +1025,36 @@ export const WatchlistsScreen: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   </View>
-                </View>
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      height: isTablet ? '150%' : '100%',
+                      width: '180%',
+                      transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+                      left: isTablet ? '-30%' : '-50%',
+                      bottom: isTablet ? '-20%' : '-30%',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </LinearGradient>
               ) : (
-                <MaybeBlurView
-                  dialog
-                  radius={borderRadius.xl}
+                <View
                   style={{
                     padding: spacing.xl,
+                    backgroundColor: colors.modal.blur,
                     borderRadius: borderRadius.xl,
+                    borderTopWidth: 1,
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderColor: colors.modal.content,
                   }}>
-                  <View style={{alignItems: 'center'}}>
                   <Text
                     style={{
                       ...typography.h2,
                       color: colors.text.primary,
                       marginBottom: spacing.sm,
-                      textAlign: 'center',
                     }}>
                     Delete Watchlist?
                   </Text>
@@ -1074,7 +1114,6 @@ export const WatchlistsScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
                 </View>
-                </MaybeBlurView>
               )}
             </View>
           </View>

@@ -121,27 +121,7 @@ const TabBarButton = ({
 const TabBarBackground = () => {
   const {isTablet} = useResponsive();
 
-  return (
-    <View
-      style={[
-        styles.blurWrapper,
-        {
-          height: isTablet ? 90 : 70,
-          marginBottom: isTablet ? 15 : 10,
-          borderWidth: 1,
-          borderColor: colors.modal.blur,
-        },
-      ]}>
-      <MaybeBlurView
-        blurType="light"
-        blurAmount={10}
-        style={styles.blurContainer}
-        overlayColor={colors.modal.blurDark}
-        bottomBar
-        gradientColors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.5)']}
-      />
-    </View>
-  );
+  return <MaybeBlurView bottomBar />;
 };
 
 export const BottomTabNavigator = () => {
@@ -183,11 +163,11 @@ export const BottomTabNavigator = () => {
           tabBarActiveBackgroundColor: 'transparent',
           tabBarInactiveBackgroundColor: 'transparent',
           tabBarStyle: {
-            elevation: 10,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
+            // elevation: 10,
             backgroundColor: 'transparent',
-            borderTopWidth: 0,
             height: isTablet ? 90 : 70,
+            borderTopWidth: 0,
+            paddingTop: isTablet ? spacing.md : spacing.sm,
             position: 'absolute',
             bottom: isTablet ? 30 : 16,
             shadowOpacity: 0,

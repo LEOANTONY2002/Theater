@@ -21,6 +21,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {GradientButton} from '../components/GradientButton';
 import {MaybeBlurView} from '../components/MaybeBlurView';
+import {BlurPreference} from '../store/blurPreference';
 
 const AboutLegalScreen: React.FC = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -28,6 +29,8 @@ const AboutLegalScreen: React.FC = () => {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
   const {isTablet, orientation} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   // Reuse the same report/support mail behavior as AIReportFlag
   const REPORT_EMAIL = 'la.curations@gmail.com';
@@ -216,7 +219,7 @@ const AboutLegalScreen: React.FC = () => {
       minHeight: 120,
       borderWidth: 1,
       borderColor: colors.modal.border,
-      backgroundColor: colors.modal.blur,
+      backgroundColor: 'rgba(0, 0, 0, 0.2)',
       color: colors.text.primary,
       borderRadius: borderRadius.lg,
       padding: spacing.md,
@@ -226,6 +229,7 @@ const AboutLegalScreen: React.FC = () => {
       flexDirection: 'row',
       gap: spacing.sm,
       padding: spacing.md,
+      marginTop: spacing.md,
     },
     supportActionBtn: {
       paddingHorizontal: spacing.xl,
@@ -345,69 +349,126 @@ const AboutLegalScreen: React.FC = () => {
         visible={showSupportModal}
         animationType="slide"
         statusBarTranslucent
-        transparent
+        backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowSupportModal(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-            />
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Write Me</Text>
-                <Text
-                  style={{
-                    color: colors.text.secondary,
-                    fontSize: 12,
-                    marginTop: 0,
-                    fontFamily: 'Inter_18pt-Regular',
-                  }}>
-                  Support or Report
-                </Text>
-              </View>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={{paddingHorizontal: spacing.md}}
-                onPress={() => setShowSupportModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            <View style={{padding: spacing.md}}>
-              <Text style={styles.privacyText}>
-                Tell me about your theater experience
-              </Text>
-              <TextInput
-                style={styles.supportTextArea}
-                placeholder="Type your message here..."
-                placeholderTextColor={colors.text.tertiary}
-                multiline
-                numberOfLines={5}
-                value={supportMessage}
-                onChangeText={setSupportMessage}
-              />
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.supportActions}
-              onPress={() => {
-                const msg = supportMessage;
-                setShowSupportModal(false);
-                setSupportMessage('');
-                openSupportMail(msg);
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
+          }}
+          activeOpacity={1}
+          onPress={() => setShowSupportModal(false)}>
+          <View style={{flex: 1, justifyContent: 'flex-end'}}>
+            <View
+              style={{
+                margin: isTablet ? spacing.xl : spacing.md,
+                borderRadius: borderRadius.xl,
+                backgroundColor: 'transparent',
               }}>
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.supportActionBtn}>
-                <Text style={styles.supportActionText}>Send</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              <MaybeBlurView
+                header
+                style={[
+                  {
+                    marginTop: 20,
+                  },
+                ]}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                  }}>
+                  <Ionicons name="mail" size={20} color={colors.text.muted} />
+                  <View>
+                    <Text style={styles.modalTitle}>Write Me</Text>
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        fontSize: 12,
+                        marginTop: 0,
+                        fontFamily: 'Inter_18pt-Regular',
+                      }}>
+                      Support or Report
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowSupportModal(false)}
+                  style={{
+                    padding: spacing.sm,
+                    backgroundColor: colors.modal.blur,
+                    borderRadius: borderRadius.round,
+                    borderTopWidth: 1,
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderColor: colors.modal.content,
+                  }}>
+                  <Ionicons
+                    name="close"
+                    size={20}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              </MaybeBlurView>
+              <View
+                style={{
+                  minHeight: 280,
+                  maxHeight: 500,
+                  overflow: 'hidden',
+                  borderRadius: borderRadius.xl,
+                }}>
+                <MaybeBlurView body>
+                  <View style={{padding: spacing.md}}>
+                    <Text style={styles.privacyText}>
+                      Tell me about your theater experience
+                    </Text>
+                    <TextInput
+                      style={styles.supportTextArea}
+                      placeholder="Type your message here..."
+                      placeholderTextColor={colors.text.tertiary}
+                      multiline
+                      numberOfLines={5}
+                      value={supportMessage}
+                      onChangeText={setSupportMessage}
+                    />
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      style={styles.supportActions}
+                      onPress={() => {
+                        const msg = supportMessage;
+                        setShowSupportModal(false);
+                        setSupportMessage('');
+                        openSupportMail(msg);
+                      }}>
+                      <LinearGradient
+                        colors={[colors.primary, colors.secondary]}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 1}}
+                        style={styles.supportActionBtn}>
+                        <Text style={styles.supportActionText}>Send</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </MaybeBlurView>
+              </View>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* Privacy Policy Modal */}
@@ -417,84 +478,136 @@ const AboutLegalScreen: React.FC = () => {
         backdropColor={colors.modal.blurDark}
         statusBarTranslucent
         onRequestClose={() => setShowPrivacyModal(false)}>
-        <View style={styles.modalContainer}>
-          <MaybeBlurView
-            style={[styles.modalContent]}
+        {!isSolid && (
+          <BlurView
             blurType="dark"
             blurAmount={10}
-            modal
-            overlayColor={colors.modal.blurDark}>
-            <View style={styles.modalHeader}>
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor: 'transparent',
+          }}>
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+              }}>
+              <Ionicons
+                name="shield-checkmark"
+                size={20}
+                color={colors.text.muted}
+              />
               <Text style={styles.modalTitle}>Privacy Policy</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={{paddingHorizontal: spacing.md}}
-                onPress={() => setShowPrivacyModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
             </View>
-            <ScrollView
-              style={styles.modalBody}
-              showsVerticalScrollIndicator={false}>
-              <View style={styles.privacyContent}>
-                <Text style={styles.privacySectionTitle}>
-                  Privacy Policy for Theater App{'\n\n'}
-                </Text>
+            <TouchableOpacity
+              onPress={() => setShowPrivacyModal(false)}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Ionicons name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </MaybeBlurView>
+          <View
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              borderRadius: borderRadius.xl,
+            }}>
+            <MaybeBlurView body>
+              <ScrollView
+                style={styles.modalBody}
+                showsVerticalScrollIndicator={false}>
+                <View style={styles.privacyContent}>
+                  <Text style={styles.privacySectionTitle}>
+                    Privacy Policy for Theater App{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  Information We Collect{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  Theater does not collect, store, or transmit any personal
-                  information from users. We do not track your browsing history,
-                  personal preferences, or any other identifiable data.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    Information We Collect{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    Theater does not collect, store, or transmit any personal
+                    information from users. We do not track your browsing
+                    history, personal preferences, or any other identifiable
+                    data.{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>Data Usage{'\n'}</Text>
-                <Text style={styles.privacyText}>
-                  The app displays movie and TV show information sourced from
-                  The Movie Database (TMDB) API. All content is provided by TMDB
-                  and we do not store or cache any user-specific data.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    Data Usage{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    The app displays movie and TV show information sourced from
+                    The Movie Database (TMDB) API. All content is provided by
+                    TMDB and we do not store or cache any user-specific data.
+                    {'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  Third-Party Services{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  This app uses the TMDB API to provide movie and TV show
-                  information. Please refer to TMDB's privacy policy for
-                  information about how they handle data.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    Third-Party Services{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    This app uses the TMDB API to provide movie and TV show
+                    information. Please refer to TMDB's privacy policy for
+                    information about how they handle data.{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  Generative AI Chat Feature{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  This app includes a chat feature powered by Google's Gemini
-                  API. The app facilitates communication with the Gemini API
-                  using an API key that you, the user, provide.{'\n\n'}
-                  When you use this feature, your chat prompts and the AI's
-                  responses are sent to and processed by Google's services in
-                  accordance with their privacy policy and terms. We do not
-                  store or save your chat history on our servers.{'\n\n'}
-                  Since you are using your own API key, you are responsible for
-                  this usage. For more information on how Google handles data
-                  from the Gemini API, please refer to Google's Privacy Policy
-                  and the Gemini API's terms of service.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    Generative AI Chat Feature{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    This app includes a chat feature powered by Google's Gemini
+                    API. The app facilitates communication with the Gemini API
+                    using an API key that you, the user, provide.{'\n\n'}
+                    When you use this feature, your chat prompts and the AI's
+                    responses are sent to and processed by Google's services in
+                    accordance with their privacy policy and terms. We do not
+                    store or save your chat history on our servers.{'\n\n'}
+                    Since you are using your own API key, you are responsible
+                    for this usage. For more information on how Google handles
+                    data from the Gemini API, please refer to Google's Privacy
+                    Policy and the Gemini API's terms of service.{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>Contact{'\n'}</Text>
-                <Text style={styles.privacyText}>
-                  If you have any questions about this privacy policy, please
-                  contact us through the app store.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>Contact{'\n'}</Text>
+                  <Text style={styles.privacyText}>
+                    If you have any questions about this privacy policy, please
+                    contact us through the app store.{'\n\n'}
+                  </Text>
 
-                {/* <Text style={styles.privacyText}>
+                  {/* <Text style={styles.privacyText}>
                   Last updated: {new Date().toLocaleDateString()}
                 </Text> */}
-              </View>
-            </ScrollView>
-          </MaybeBlurView>
+                </View>
+              </ScrollView>
+            </MaybeBlurView>
+          </View>
         </View>
       </Modal>
 
@@ -505,92 +618,140 @@ const AboutLegalScreen: React.FC = () => {
         statusBarTranslucent
         transparent
         onRequestClose={() => setShowTosModal(false)}>
-        <View style={styles.modalContainer}>
-          <MaybeBlurView
-            style={styles.modalContent}
+        {!isSolid && (
+          <BlurView
             blurType="dark"
             blurAmount={10}
-            modal
-            overlayColor={colors.modal.blurDark}>
-            <View style={styles.modalHeader}>
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor: 'transparent',
+          }}>
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+              }}>
+              <Ionicons
+                name="document-text"
+                size={20}
+                color={colors.text.muted}
+              />
               <Text style={styles.modalTitle}>Terms of Service</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={{paddingHorizontal: spacing.md}}
-                onPress={() => setShowTosModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
             </View>
-            <ScrollView
-              style={styles.modalBody}
-              showsVerticalScrollIndicator={false}>
-              <View style={styles.privacyContent}>
-                <Text style={styles.privacySectionTitle}>
-                  Terms of Service{'\n\n'}
-                </Text>
+            <TouchableOpacity
+              onPress={() => setShowTosModal(false)}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Ionicons name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </MaybeBlurView>
+          <View
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              borderRadius: borderRadius.xl,
+            }}>
+            <MaybeBlurView body>
+              <ScrollView
+                style={styles.modalBody}
+                showsVerticalScrollIndicator={false}>
+                <View style={styles.privacyContent}>
+                  <Text style={styles.privacySectionTitle}>
+                    Terms of Service{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacyText}>
-                  Welcome to Theater! By using this application, you agree to
-                  these Terms of Service.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacyText}>
+                    Welcome to Theater! By using this application, you agree to
+                    these Terms of Service.{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  1. User Responsibility for API Keys{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  This app relies on a Google Gemini API key that you, the user,
-                  must provide. You are solely responsible for all API usage
-                  associated with your key, including any potential costs
-                  incurred. By using your key, you agree to and are bound by
-                  Google’s Generative AI terms of service.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    1. User Responsibility for API Keys{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    This app relies on a Google Gemini API key that you, the
+                    user, must provide. You are solely responsible for all API
+                    usage associated with your key, including any potential
+                    costs incurred. By using your key, you agree to and are
+                    bound by Google’s Generative AI terms of service.{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  2. AI-Generated Content Disclaimer{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  The chat responses in this app are generated by an artificial
-                  intelligence model. The content is for informational and
-                  entertainment purposes only and should not be considered
-                  factual, professional, or definitive. We do not guarantee the
-                  accuracy, completeness, or usefulness of any information
-                  provided.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    2. AI-Generated Content Disclaimer{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    The chat responses in this app are generated by an
+                    artificial intelligence model. The content is for
+                    informational and entertainment purposes only and should not
+                    be considered factual, professional, or definitive. We do
+                    not guarantee the accuracy, completeness, or usefulness of
+                    any information provided.{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  3. Prohibited Conduct{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  You agree not to use this app to generate content that is
-                  illegal, hateful, harassing, violent, sexually explicit, or
-                  misleading. Any violation of these terms may result in the
-                  termination of your access to the app.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    3. Prohibited Conduct{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    You agree not to use this app to generate content that is
+                    illegal, hateful, harassing, violent, sexually explicit, or
+                    misleading. Any violation of these terms may result in the
+                    termination of your access to the app.{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  4. Third-Party Services{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  This app utilizes the TMDB API to provide movie and TV show
-                  information. All such content is sourced from and subject to
-                  the terms of The Movie Database (TMDB).{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    4. Third-Party Services{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    This app utilizes the TMDB API to provide movie and TV show
+                    information. All such content is sourced from and subject to
+                    the terms of The Movie Database (TMDB).{'\n\n'}
+                  </Text>
 
-                <Text style={styles.privacySectionTitle}>
-                  5. No Warranty{'\n'}
-                </Text>
-                <Text style={styles.privacyText}>
-                  This app is provided "as is" and without any warranty. We are
-                  not liable for any damages or issues that may arise from your
-                  use of the application.{'\n\n'}
-                </Text>
+                  <Text style={styles.privacySectionTitle}>
+                    5. No Warranty{'\n'}
+                  </Text>
+                  <Text style={styles.privacyText}>
+                    This app is provided "as is" and without any warranty. We
+                    are not liable for any damages or issues that may arise from
+                    your use of the application.{'\n\n'}
+                  </Text>
 
-                {/* <Text style={styles.privacyText}>
+                  {/* <Text style={styles.privacyText}>
                   Last updated: {new Date().toLocaleDateString()}
                 </Text> */}
-              </View>
-            </ScrollView>
-          </MaybeBlurView>
+                </View>
+              </ScrollView>
+            </MaybeBlurView>
+          </View>
         </View>
       </Modal>
     </View>

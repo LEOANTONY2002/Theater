@@ -34,6 +34,8 @@ import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import {AIReportFlag} from '../components/AIReportFlag';
 import {HorizontalList} from '../components/HorizontalList';
 import {ContentItem} from '../components/MovieList';
+import {MaybeBlurView} from '../components/MaybeBlurView';
+import {BlurPreference} from '../store/blurPreference';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -63,6 +65,8 @@ export const OnlineAIScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const isFocused = useIsFocused();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1291,55 +1295,71 @@ export const OnlineAIScreen: React.FC = () => {
         statusBarTranslucent={true}
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowMenu(false)}>
-        <View
-          style={[
-            modalStyles.modalContainer,
-            {justifyContent: 'flex-end', marginTop: 0},
-          ]}>
-          {/* Backdrop to close on outside press */}
-          <TouchableOpacity
-            style={{backgroundColor: 'rgba(0, 0, 0, 0.7)', paddingTop: 100}}
-            activeOpacity={1}
-            onPress={() => setShowMenu(false)}
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
           />
-          <View
-            style={[
-              modalStyles.modalContent,
-              {
-                overflow: 'hidden',
-                borderTopLeftRadius: borderRadius.xl,
-                borderTopRightRadius: borderRadius.xl,
-              },
-            ]}
-            pointerEvents="box-none">
-            <BlurView
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  borderTopLeftRadius: borderRadius.xl,
-                  borderTopRightRadius: borderRadius.xl,
-                },
-              ]}
-              blurType="dark"
-              blurAmount={20}
-              overlayColor={colors.modal.blurDark}
-            />
-            {/* Header */}
+        )}
+        <TouchableOpacity
+          style={{flex: 1, backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'transparent'}}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}>
+          <View style={{flex: 1, justifyContent: 'flex-end'}}>
             <View
-              style={[
-                modalStyles.modalHeader,
-                {
-                  borderTopLeftRadius: borderRadius.xl,
-                  borderTopRightRadius: borderRadius.xl,
-                },
-              ]}>
-              <Text style={modalStyles.modalTitle}>Theater AI</Text>
-              <TouchableOpacity onPress={() => setShowMenu(false)}>
-                <Icon name="close" size={20} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            {/* Body */}
-            <View style={{padding: spacing.md, paddingTop: spacing.sm}}>
+              style={{
+                margin: isTablet ? spacing.xl : spacing.md,
+                borderRadius: borderRadius.xl,
+                backgroundColor: 'transparent',
+              }}>
+              <MaybeBlurView
+                header
+                style={[
+                  {
+                    marginTop: 20,
+                  },
+                ]}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                  }}>
+                  <Icon name="sparkles" size={20} color={colors.text.muted} />
+                  <Text style={modalStyles.modalTitle}>Theater AI</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowMenu(false)}
+                  style={{
+                    padding: spacing.sm,
+                    backgroundColor: colors.modal.blur,
+                    borderRadius: borderRadius.round,
+                    borderTopWidth: 1,
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderColor: colors.modal.content,
+                  }}>
+                  <Icon name="close" size={20} color={colors.text.primary} />
+                </TouchableOpacity>
+              </MaybeBlurView>
+              <View
+                style={{
+                  minHeight: 300,
+                  maxHeight: 500,
+                  overflow: 'hidden',
+                  borderRadius: borderRadius.xl,
+                }}>
+                <MaybeBlurView body>
+                  <View style={{padding: spacing.md, paddingTop: spacing.sm}}>
               {/* New chat */}
               <TouchableOpacity
                 onPress={async () => {
@@ -1452,9 +1472,12 @@ export const OnlineAIScreen: React.FC = () => {
                   })}
                 </ScrollView>
               )}
+                  </View>
+                </MaybeBlurView>
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </KeyboardAvoidingView>
   );

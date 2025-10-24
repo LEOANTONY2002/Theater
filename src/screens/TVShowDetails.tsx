@@ -72,6 +72,7 @@ import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {getCriticRatings} from '../services/gemini';
 import {IMDBModal} from '../components/IMDBModal';
+import {BlurPreference} from '../store/blurPreference';
 
 type TVShowDetailsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -91,6 +92,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {navigateWithLimit} = useNavigationState();
   const {show} = route.params;
   const {isAIEnabled} = useAIEnabled();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
@@ -991,7 +994,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       alignItems: 'center',
       paddingVertical: 12,
       backgroundColor: colors.modal.blur,
-      borderRadius: 8,
+      borderRadius: borderRadius.lg,
       marginBottom: 8,
       paddingHorizontal: 12,
     },
@@ -1760,72 +1763,120 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     animationType="slide"
                     statusBarTranslucent={true}
                     onRequestClose={() => setShowSeasonModal(false)}>
-                    <TouchableOpacity
-                      style={styles.modalOverlay}
-                      activeOpacity={0.9}
-                      onPress={() => setShowSeasonModal(false)}>
-                      <MaybeBlurView
-                        style={styles.modalContent}
+                    {!isSolid && (
+                      <BlurView
                         blurType="dark"
                         blurAmount={10}
-                        overlayColor={colors.modal.blur}
-                        modal
-                        radius={borderRadius.xl}>
-                        <View style={styles.modalHeader}>
+                        overlayColor={colors.modal.blurDark}
+                        style={{
+                          flex: 1,
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                        }}
+                      />
+                    )}
+                    <View
+                      style={{
+                        flex: 1,
+                        margin: isTablet ? spacing.xl : spacing.md,
+                        borderRadius: borderRadius.xl,
+                        backgroundColor: 'transparent',
+                      }}>
+                      <MaybeBlurView
+                        header
+                        style={[
+                          {
+                            marginTop: '30%',
+                          },
+                        ]}>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: spacing.sm,
+                          }}>
+                          <Ionicons
+                            name="tv"
+                            size={20}
+                            color={colors.text.muted}
+                          />
                           <Text style={styles.modalTitle}>Select Season</Text>
-                          <TouchableOpacity
-                            activeOpacity={0.9}
-                            onPress={() => setShowSeasonModal(false)}>
-                            <Ionicons
-                              name="close"
-                              size={24}
-                              color={colors.text.primary}
-                            />
-                          </TouchableOpacity>
                         </View>
-                        <ScrollView
-                          style={styles.seasonsList}
-                          showsVerticalScrollIndicator={false}>
-                          {showDetails.seasons.map(
-                            (s: TVShowDetailsType['seasons'][0]) => (
-                              <TouchableOpacity
-                                key={s.season_number}
-                                activeOpacity={0.9}
-                                style={[
-                                  styles.seasonItem,
-                                  selectedSeason?.id === s.id && {
-                                    backgroundColor: colors.modal.active,
-                                    borderWidth: 1,
-                                    borderColor: colors.text.tertiary,
-                                  },
-                                ]}
-                                onPress={() => {
-                                  setSelectedSeason(s);
-                                  setSeason(s.season_number);
-                                  setShowSeasonModal(false);
-                                }}>
-                                <Image
-                                  source={{
-                                    uri: s?.poster_path
-                                      ? getImageUrl(s?.poster_path, 'w185')
-                                      : 'https://via.placeholder.com/100x150',
-                                  }}
-                                  style={styles.seasonItemPoster}
-                                />
-                                <View style={styles.seasonItemInfo}>
-                                  <Text style={styles.seasonItemName}>
-                                    {getSeasonTitle(s)}
-                                  </Text>
-                                  <Text style={styles.seasonItemEpisodes}>
-                                    {s.episode_count} Episodes
-                                  </Text>
-                                </View>
-                              </TouchableOpacity>
-                            ),
-                          )}
-                        </ScrollView>
+                        <TouchableOpacity
+                          onPress={() => setShowSeasonModal(false)}
+                          style={{
+                            padding: spacing.sm,
+                            backgroundColor: colors.modal.blur,
+                            borderRadius: borderRadius.round,
+                            borderTopWidth: 1,
+                            borderLeftWidth: 1,
+                            borderRightWidth: 1,
+                            borderColor: colors.modal.content,
+                          }}>
+                          <Ionicons
+                            name="close"
+                            size={20}
+                            color={colors.text.primary}
+                          />
+                        </TouchableOpacity>
                       </MaybeBlurView>
-                    </TouchableOpacity>
+                      <View
+                        style={{
+                          flex: 1,
+                          overflow: 'hidden',
+                          borderRadius: borderRadius.xl,
+                        }}>
+                        <MaybeBlurView body>
+                          <ScrollView
+                            style={styles.seasonsList}
+                            contentContainerStyle={{
+                              paddingBottom: spacing.lg,
+                            }}
+                            showsVerticalScrollIndicator={false}>
+                            {showDetails.seasons.map(
+                              (s: TVShowDetailsType['seasons'][0]) => (
+                                <TouchableOpacity
+                                  key={s.season_number}
+                                  activeOpacity={0.9}
+                                  style={[
+                                    styles.seasonItem,
+                                    selectedSeason?.id === s.id && {
+                                      backgroundColor: colors.modal.active,
+                                      borderWidth: 1,
+                                      borderColor: colors.text.tertiary,
+                                    },
+                                  ]}
+                                  onPress={() => {
+                                    setSelectedSeason(s);
+                                    setSeason(s.season_number);
+                                    setShowSeasonModal(false);
+                                  }}>
+                                  <Image
+                                    source={{
+                                      uri: s?.poster_path
+                                        ? getImageUrl(s?.poster_path, 'w185')
+                                        : 'https://via.placeholder.com/100x150',
+                                    }}
+                                    style={styles.seasonItemPoster}
+                                  />
+                                  <View style={styles.seasonItemInfo}>
+                                    <Text style={styles.seasonItemName}>
+                                      {getSeasonTitle(s)}
+                                    </Text>
+                                    <Text style={styles.seasonItemEpisodes}>
+                                      {s.episode_count} Episodes
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
+                              ),
+                            )}
+                          </ScrollView>
+                        </MaybeBlurView>
+                      </View>
+                    </View>
                   </Modal>
                 </View>
               ) : null;
