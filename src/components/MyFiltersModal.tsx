@@ -533,7 +533,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             }}>
             <Ionicons name="filter" size={20} color={colors.text.muted} />
             <Text style={styles.modalTitle}>
-              {editingFilter ? 'Edit Filter' : 'New Filter'}
+              {editingFilter ? 'Edit Filter' : 'Create Filter'}
             </Text>
           </View>
           <TouchableOpacity

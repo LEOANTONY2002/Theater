@@ -4,7 +4,7 @@ import type {BottomTabBarButtonProps} from '@react-navigation/bottom-tabs';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useNavigationState, NavigationState} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
-import Fontisto from 'react-native-vector-icons/Fontisto';
+import Ionicon from 'react-native-vector-icons/Ionicons';
 import {TabParamList} from '../types/navigation';
 import {
   HomeStackNavigator,
@@ -71,8 +71,8 @@ const TabIcon = ({
             opacity: focused ? 1 : 0.7,
           },
         ]}>
-        {type === 'fontisto' ? (
-          <Fontisto
+        {type === 'ion' ? (
+          <Ionicon
             name={name}
             size={size || 20}
             color={color}
@@ -266,9 +266,9 @@ export const BottomTabNavigator = () => {
             tabBarIcon: ({focused, color}: any) => (
               <TabIcon
                 focused={focused}
-                name="equalizer"
+                name="options-outline"
                 color={color}
-                type="fontisto"
+                type="ion"
               />
             ),
             tabBarLabel: 'Filters',

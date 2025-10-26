@@ -82,10 +82,6 @@ const OnboardingOTTs: React.FC<{
     });
   };
 
-  const handleClearAll = () => {
-    setLocalOTTs([]);
-  };
-
   const handleSave = async () => {
     try {
       await SettingsManager.setMyOTTs(localOTTs);
@@ -206,14 +202,6 @@ const OnboardingOTTs: React.FC<{
         <TouchableOpacity activeOpacity={0.9} onPress={onSkip}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
-        {localOTTs.length > 0 && (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleClearAll}
-            style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>Clear All</Text>
-          </TouchableOpacity>
-        )}
         <TouchableOpacity activeOpacity={0.9} onPress={handleSave}>
           <LinearGradient
             colors={[colors.primary, colors.secondary]}
@@ -348,16 +336,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: colors.text.muted,
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  clearButton: {
-    padding: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.button.reset,
-  },
-  clearButtonText: {
-    color: colors.text.primary,
     fontFamily: 'Inter_18pt-Regular',
   },
   continueButton: {

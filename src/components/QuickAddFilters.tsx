@@ -77,12 +77,6 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
       type: 'movie' as const,
       icon: 'heart-circle-outline',
     },
-    {
-      name: 'Documentary',
-      params: {with_genres: '99', sort_by: 'popularity.desc'},
-      type: 'movie' as const,
-      icon: 'videocam-outline',
-    },
   ];
 
   return (

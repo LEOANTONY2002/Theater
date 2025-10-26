@@ -199,7 +199,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       marginTop: 60,
     },
     cardContainer: {
-      height: isTablet ? 400 : 280,
+      height: isTablet ? 400 : 220,
     },
     card: {
       flex: 1,
@@ -213,11 +213,9 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       position: 'absolute',
     },
     backdropContainer: {
-      width: '180%',
-      height: '180%',
+      width: '100%',
+      height: '100%',
       position: 'absolute',
-      top: '-40%',
-      left: '-40%',
     },
     placeholderImage: {
       justifyContent: 'center',
@@ -406,13 +404,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
             onPress={() => handlePress(item)}
             style={styles.card}>
             {imageUrl ? (
-              <Animated.View
-                style={[
-                  styles.backdropContainer,
-                  {
-                    transform: [{translateX: backdropParallaxX}],
-                  },
-                ]}>
+              <Animated.View style={[styles.backdropContainer, {}]}>
                 <FastImage
                   source={{
                     uri: imageUrl,

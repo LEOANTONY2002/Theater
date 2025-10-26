@@ -1396,72 +1396,264 @@ export const MyFiltersScreen = () => {
       {/* Import Filter Modal */}
       <Modal
         visible={showImportModal}
-        animationType="slide"
-        statusBarTranslucent={true}
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
         onRequestClose={() => setShowImportModal(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.importModalContent}>
-            <MaybeBlurView
-              style={[
-                {
-                  flex: 1,
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                },
-              ]}
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-              dialog
-              radius={20}
-            />
-            <View style={modalStyles.modalHeader}>
-              <Text style={modalStyles.modalTitle}>Import Filter</Text>
-              <TouchableOpacity onPress={() => setShowImportModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-            <View style={{padding: spacing.md}}>
-              <Text style={modalStyles.sectionTitle}>Paste Code</Text>
-              <TextInput
-                style={[
-                  modalStyles.input,
-                  {height: 100, marginTop: spacing.sm},
-                ]}
-                value={importCode}
-                onChangeText={setImportCode}
-                placeholder="THTRF:..."
-                placeholderTextColor={colors.text.muted}
-                multiline
-              />
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor="rgba(0, 0, 0, 0.5)"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              width: isTablet ? '40%' : '85%',
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+            }}>
+            {isSolid ? (
+              <LinearGradient
+                colors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.7)']}
+                start={{x: 1, y: 0}}
+                end={{x: 1, y: 1}}
+                style={{
+                  borderRadius: borderRadius.xl,
+                }}>
+                <View
+                  style={{
+                    padding: spacing.xl,
+                    backgroundColor: 'black',
+                    borderWidth: 1.5,
+                    borderColor: 'rgba(0, 0, 0, 0.3)',
+                    borderRadius: borderRadius.xl,
+                  }}>
+                  <Text
+                    style={{
+                      ...typography.h2,
+                      color: colors.text.primary,
+                      marginBottom: spacing.sm,
+                      textAlign: 'center',
+                    }}>
+                    Import Filter
+                  </Text>
+                  <Text
+                    style={{
+                      ...typography.body2,
+                      color: colors.text.secondary,
+                      marginBottom: spacing.md,
+                    }}>
+                    Paste Code
+                  </Text>
+                  <TextInput
+                    style={{
+                      ...typography.body1,
+                      backgroundColor: colors.modal.content,
+                      borderWidth: 1,
+                      borderColor: colors.modal.border,
+                      borderRadius: borderRadius.md,
+                      padding: spacing.md,
+                      color: colors.text.primary,
+                      height: 100,
+                      textAlignVertical: 'top',
+                      marginBottom: spacing.xl,
+                    }}
+                    value={importCode}
+                    onChangeText={setImportCode}
+                    placeholder="THTRF:..."
+                    placeholderTextColor={colors.text.muted}
+                    multiline
+                  />
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: spacing.md,
+                      width: '100%',
+                    }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: spacing.md,
+                        borderRadius: borderRadius.round,
+                        alignItems: 'center',
+                        backgroundColor: colors.modal.content,
+                      }}
+                      onPress={() => setShowImportModal(false)}>
+                      <Text
+                        style={{
+                          color: colors.text.primary,
+                          ...typography.button,
+                        }}>
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{flex: 1, width: '100%'}}
+                      onPress={handleImportFilterSubmit}
+                      disabled={isImporting}
+                      activeOpacity={0.8}>
+                      <LinearGradient
+                        colors={[colors.primary, colors.secondary]}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 0}}
+                        style={{
+                          flex: 1,
+                          padding: spacing.md,
+                          borderRadius: borderRadius.round,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                        {isImporting ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.text.primary}
+                          />
+                        ) : (
+                          <Text
+                            style={{
+                              color: colors.text.primary,
+                              ...typography.button,
+                            }}>
+                            Import
+                          </Text>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <LinearGradient
+                  colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    height: isTablet ? '150%' : '100%',
+                    width: '180%',
+                    transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+                    left: isTablet ? '-30%' : '-50%',
+                    bottom: isTablet ? '-20%' : '-30%',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </LinearGradient>
+            ) : (
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginTop: spacing.md,
-                  gap: spacing.md,
-                  width: isTablet ? '50%' : '100%',
+                  padding: spacing.xl,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.xl,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
                 }}>
-                <TouchableOpacity
-                  style={[modalStyles.footerButton, modalStyles.resetButton]}
-                  onPress={() => setShowImportModal(false)}>
-                  <Text style={modalStyles.resetButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[modalStyles.footerButton, modalStyles.applyButton]}
-                  onPress={handleImportFilterSubmit}
-                  disabled={isImporting}>
-                  {isImporting ? (
-                    <ActivityIndicator color={colors.background.primary} />
-                  ) : (
-                    <Text style={modalStyles.applyButtonText}>Import</Text>
-                  )}
-                </TouchableOpacity>
+                <Text
+                  style={{
+                    ...typography.h2,
+                    color: colors.text.primary,
+                    marginBottom: spacing.sm,
+                    textAlign: 'center',
+                  }}>
+                  Import Filter
+                </Text>
+                <Text
+                  style={{
+                    ...typography.body2,
+                    color: colors.text.secondary,
+                    marginBottom: spacing.md,
+                  }}>
+                  Paste Code
+                </Text>
+                <TextInput
+                  style={{
+                    ...typography.body1,
+                    backgroundColor: colors.modal.content,
+                    borderWidth: 1,
+                    borderColor: colors.modal.border,
+                    borderRadius: borderRadius.md,
+                    padding: spacing.md,
+                    color: colors.text.primary,
+                    height: 100,
+                    textAlignVertical: 'top',
+                    marginBottom: spacing.xl,
+                  }}
+                  value={importCode}
+                  onChangeText={setImportCode}
+                  placeholder="THTRF:..."
+                  placeholderTextColor={colors.text.muted}
+                  multiline
+                />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    gap: spacing.md,
+                    width: '100%',
+                  }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: spacing.md,
+                      borderRadius: borderRadius.round,
+                      alignItems: 'center',
+                      backgroundColor: colors.modal.content,
+                    }}
+                    onPress={() => setShowImportModal(false)}>
+                    <Text
+                      style={{
+                        color: colors.text.primary,
+                        ...typography.button,
+                      }}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{flex: 1}}
+                    onPress={handleImportFilterSubmit}
+                    disabled={isImporting}
+                    activeOpacity={0.8}>
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 0}}
+                      style={{
+                        padding: spacing.md,
+                        borderRadius: borderRadius.round,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      {isImporting ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.text.primary}
+                        />
+                      ) : (
+                        <Text
+                          style={{
+                            color: colors.text.primary,
+                            ...typography.button,
+                          }}>
+                          Import
+                        </Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            )}
           </View>
         </View>
       </Modal>

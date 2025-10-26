@@ -15,6 +15,7 @@ import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
+import {BlurPreference} from '../store/blurPreference';
 import {AISettingsManager} from '../store/aiSettings';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useQueryClient} from '@tanstack/react-query';
@@ -142,6 +143,8 @@ const OnboardingAISettings: React.FC<{
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
   const width = useWindowDimensions().width;
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   const showAlert = (title: string, message: string) => {
     setModalTitle(title);
@@ -399,39 +402,83 @@ const OnboardingAISettings: React.FC<{
       {/* App-wide message modal */}
       <Modal
         visible={modalVisible}
-        backdropColor={colors.modal.blurDark}
+        backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setModalVisible(false)}>
+        <BlurView
+          blurType="dark"
+          blurAmount={10}
+          overlayColor="rgba(0, 0, 0, 0.5)"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
         <View
           style={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.14)',
           }}>
-          <View style={styles.modalOverlay}>
-            <BlurView
-              blurAmount={10}
-              blurRadius={5}
-              blurType="light"
-              overlayColor={colors.modal.blur}
+          <View
+            style={{
+              width: isTablet ? '40%' : '85%',
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+            }}>
+            <View
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderRadius: 50,
-              }}
-            />
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>{modalTitle}</Text>
-              <Text style={styles.modalMessage}>{modalMessage}</Text>
+                padding: spacing.xl,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.xl,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Text
+                style={{
+                  ...typography.h2,
+                  color: colors.text.primary,
+                  marginBottom: spacing.sm,
+                  textAlign: 'center',
+                }}>
+                {modalTitle}
+              </Text>
+              <Text
+                style={{
+                  ...typography.body2,
+                  color: colors.text.secondary,
+                  textAlign: 'center',
+                  marginBottom: spacing.xl,
+                }}>
+                {modalMessage}
+              </Text>
               <TouchableOpacity
-                style={styles.modalButtonGradient}
+                style={{
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                  backgroundColor: colors.modal.content,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.border,
+                }}
                 activeOpacity={0.8}
                 onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalButtonText}>OK</Text>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    ...typography.button,
+                  }}>
+                  OK
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -441,75 +488,115 @@ const OnboardingAISettings: React.FC<{
       {/* Skip confirmation modal */}
       <Modal
         visible={skipConfirmVisible}
-        backdropColor={colors.modal.blurDark}
+        backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setSkipConfirmVisible(false)}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor="rgba(0, 0, 0, 0.5)"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
         <View
           style={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.14)',
           }}>
-          <View style={styles.modalOverlay}>
-            <BlurView
-              blurAmount={10}
-              blurRadius={5}
-              blurType="light"
-              overlayColor={colors.modal.blur}
+          <View
+            style={{
+              width: isTablet ? '40%' : '85%',
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+            }}>
+            <View
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderRadius: 50,
-              }}
-            />
-            <View style={styles.modalCard}>
-              <View style={styles.skipModalHeader}>
-                {/* <Icon
-                  name="warning-outline"
-                  size={24}
-                  color={colors.secondary}
-                  style={styles.skipModalIcon}
-                /> */}
-                <Text style={styles.modalTitle}>AI Features Disabled</Text>
-              </View>
-              <Text style={styles.modalMessage}>
+                padding: spacing.xl,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.xl,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Text
+                style={{
+                  ...typography.h2,
+                  color: colors.text.primary,
+                  marginBottom: spacing.sm,
+                  textAlign: 'center',
+                }}>
+                AI Features Disabled
+              </Text>
+              <Text
+                style={{
+                  ...typography.body2,
+                  color: colors.text.secondary,
+                  textAlign: 'left',
+                  marginBottom: spacing.xl,
+                }}>
                 No AI features can be used if API key is not set. You'll miss
                 out on:
+                {'\n'}
                 {'\n'}• Cinema chat assistant
-                {'\n'}• Movie/Show level chat assistant
+                {'\n'}• Movie/Series level chat assistant
+                {'\n'}• Simiar Movie/Series recommendations
                 {'\n'}• AI-powered movie recommendations
                 {'\n'}• My Next Watch - Personalized content discovery
                 {'\n'}• Trivia & Facts
               </Text>
-              <View style={styles.skipModalButtons}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: spacing.md,
+                  width: '100%',
+                }}>
                 <TouchableOpacity
-                  style={styles.skipModalSecondaryButton}
+                  style={{
+                    flex: 1,
+                    padding: spacing.md,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    backgroundColor: colors.modal.content,
+                  }}
                   activeOpacity={0.9}
                   onPress={handleSkipAnyway}>
-                  <Text style={styles.skipModalSecondaryButtonText}>
+                  <Text
+                    style={{
+                      color: colors.text.primary,
+                      ...typography.button,
+                    }}>
                     Skip Anyway
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={{flex: 1}}
-                  onPress={handleSetApiKey}>
+                  activeOpacity={0.9}
+                  onPress={handleSetApiKey}
+                  style={{flex: 1}}>
                   <LinearGradient
                     colors={[colors.primary, colors.secondary]}
                     start={{x: 0, y: 0}}
                     end={{x: 1, y: 0}}
                     style={{
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                      borderRadius: borderRadius.md,
+                      padding: spacing.md,
+                      borderRadius: borderRadius.round,
                       alignItems: 'center',
-                      justifyContent: 'center',
                     }}>
-                    <Text style={styles.skipModalPrimaryButtonText}>
+                    <Text
+                      style={{
+                        color: colors.text.primary,
+                        ...typography.button,
+                      }}>
                       Set API Key
                     </Text>
                   </LinearGradient>
@@ -600,8 +687,9 @@ const OnboardingAISettings: React.FC<{
               display: 'flex',
               alignItems: 'flex-start',
               justifyContent: 'flex-start',
+              marginTop: spacing.sm,
             }}
-            activeOpacity={0.8}>
+            activeOpacity={1}>
             <Text
               style={{
                 color: colors.background.primary,
