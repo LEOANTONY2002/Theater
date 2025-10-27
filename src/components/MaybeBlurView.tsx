@@ -20,6 +20,7 @@ interface MaybeBlurViewProps {
   header?: boolean;
   body?: boolean;
   isAI?: boolean;
+  isSingle?: boolean;
 }
 
 export const MaybeBlurView: React.FC<
@@ -39,6 +40,7 @@ export const MaybeBlurView: React.FC<
   header = false,
   body = false,
   isAI = false,
+  isSingle = false,
 }) => {
   const [, setVersion] = React.useState(0);
   React.useEffect(() => {
@@ -272,14 +274,14 @@ export const MaybeBlurView: React.FC<
               borderTopWidth: 1,
               borderLeftWidth: 1,
               borderRightWidth: 1,
-              borderColor: colors.modal.content,
+              borderColor: colors.modal.border,
               borderRadius: radius || borderRadius.round,
             },
           ]}>
           <BlurView
             blurType="light"
             blurAmount={5}
-            overlayColor={'rgba(50, 50, 50, 0.35)'}
+            overlayColor={colors.modal.blur}
             style={{
               flex: 1,
             }}>
@@ -302,6 +304,81 @@ export const MaybeBlurView: React.FC<
               borderWidth: 1.5,
               borderColor: 'rgba(0, 0, 0, 0.3)',
               borderRadius: radius,
+            }}>
+            {children}
+          </View>
+          <LinearGradient
+            colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+            style={{
+              position: 'absolute',
+              right: 0,
+              height: isTablet ? '150%' : '100%',
+              width: '180%',
+              transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+              left: isTablet ? '-30%' : '-50%',
+              bottom: isTablet ? '-20%' : '-30%',
+              pointerEvents: 'none',
+            }}
+          />
+        </LinearGradient>
+      );
+    }
+  }
+
+  if (isSingle) {
+    if (!useFallback) {
+      return (
+        <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+          <BlurView
+            blurType="light"
+            blurAmount={5}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+          <View
+            style={[
+              style,
+              {
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                backgroundColor: colors.modal.content,
+                borderColor: colors.modal.border,
+                borderRadius: borderRadius.xl,
+              },
+            ]}>
+            {children}
+          </View>
+        </View>
+      );
+    } else {
+      return (
+        <LinearGradient
+          colors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.7)']}
+          start={{x: 1, y: 0}}
+          end={{x: 1, y: 1}}
+          style={[
+            style,
+            {
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+            },
+          ]}
+          pointerEvents={pointerEvents as any}>
+          <View
+            style={{
+              backgroundColor: 'black',
+              borderRadius: borderRadius.xl,
+              padding: spacing.xl,
+              borderWidth: 3,
+              borderColor: 'rgba(0, 0, 0, 0.04)',
             }}>
             {children}
           </View>

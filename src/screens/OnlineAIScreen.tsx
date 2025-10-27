@@ -348,11 +348,11 @@ export const OnlineAIScreen: React.FC = () => {
     setAnimating(false);
     setAnimatedContent('');
     try {
-      const groqMessages = newMessages.map(({role, content}) => ({
+      const aiMessages = newMessages.map(({role, content}) => ({
         role,
         content,
       }));
-      const response = await cinemaChat(groqMessages);
+      const response = await cinemaChat(aiMessages);
       let tmdbResults:
         | Array<{
             id: number;
@@ -1311,7 +1311,10 @@ export const OnlineAIScreen: React.FC = () => {
           />
         )}
         <TouchableOpacity
-          style={{flex: 1, backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'transparent'}}
+          style={{
+            flex: 1,
+            backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
+          }}
           activeOpacity={1}
           onPress={() => setShowMenu(false)}>
           <View style={{flex: 1, justifyContent: 'flex-end'}}>
@@ -1360,118 +1363,126 @@ export const OnlineAIScreen: React.FC = () => {
                 }}>
                 <MaybeBlurView body>
                   <View style={{padding: spacing.md, paddingTop: spacing.sm}}>
-              {/* New chat */}
-              <TouchableOpacity
-                onPress={async () => {
-                  setShowMenu(false);
-                  await handleNewThread();
-                }}
-                activeOpacity={0.9}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 24,
-                  borderWidth: 1,
-                  borderColor: colors.modal.border,
-                  backgroundColor: colors.modal.content,
-                  paddingVertical: 12,
-                  marginBottom: spacing.md,
-                }}>
-                <Icon name="add" size={18} color={colors.text.primary} />
-                <Text
-                  style={{
-                    color: colors.text.primary,
-                    ...typography.button,
-                    marginLeft: 8,
-                  }}>
-                  New chat
-                </Text>
-              </TouchableOpacity>
-
-              {/* Recent */}
-              <Text
-                style={{
-                  color: colors.text.secondary,
-                  ...typography.body2,
-                  marginBottom: spacing.xs,
-                  marginTop: 2,
-                }}>
-                Recent
-              </Text>
-              <View
-                style={{
-                  borderTopColor: colors.modal.border,
-                  borderTopWidth: 1,
-                  marginBottom: spacing.xs,
-                  opacity: 0.6,
-                }}
-              />
-              {threads.length === 0 ? (
-                <Text
-                  style={{
-                    color: colors.text.tertiary,
-                    fontFamily: 'Inter_18pt-Regular',
-                  }}>
-                  No chats yet
-                </Text>
-              ) : (
-                <ScrollView
-                  contentContainerStyle={{paddingBottom: 200}}
-                  showsVerticalScrollIndicator={false}>
-                  {threads.map(th => {
-                    const label =
-                      th.title && th.title.trim().length > 0
-                        ? th.title
-                        : '(New chat)';
-                    return (
-                      <TouchableOpacity
-                        key={th.id}
-                        onPress={async () => {
-                          setShowMenu(false);
-                          await switchThread(th.id);
-                        }}
+                    {/* New chat */}
+                    <TouchableOpacity
+                      onPress={async () => {
+                        setShowMenu(false);
+                        await handleNewThread();
+                      }}
+                      activeOpacity={0.9}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 24,
+                        borderWidth: 1,
+                        borderColor: colors.modal.border,
+                        backgroundColor: colors.modal.content,
+                        paddingVertical: 12,
+                        marginBottom: spacing.md,
+                      }}>
+                      <Icon name="add" size={18} color={colors.text.primary} />
+                      <Text
                         style={{
-                          paddingVertical: 10,
-                          paddingHorizontal: 10,
-                          borderRadius: 8,
-                          backgroundColor:
-                            th.id === currentThreadId
-                              ? colors.modal.blur
-                              : 'transparent',
-                          borderWidth: 1,
-                          borderColor:
-                            th.id === currentThreadId
-                              ? colors.modal.content
-                              : 'transparent',
-                          marginBottom: 6,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
+                          color: colors.text.primary,
+                          ...typography.button,
+                          marginLeft: 8,
                         }}>
-                        <Text
-                          style={{
-                            color: colors.text.primary,
-                            fontFamily: 'Inter_18pt-Regular',
-                          }}
-                          numberOfLines={1}>
-                          {label}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => deleteThread(th.id)}
-                          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-                          style={{paddingHorizontal: 2, paddingVertical: 2}}>
-                          <Icon
-                            name="close"
-                            size={18}
-                            color={colors.text.tertiary}
-                          />
-                        </TouchableOpacity>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              )}
+                        New chat
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Recent */}
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        ...typography.body2,
+                        marginBottom: spacing.xs,
+                        marginTop: 2,
+                      }}>
+                      Recent
+                    </Text>
+                    <View
+                      style={{
+                        borderTopColor: colors.modal.border,
+                        borderTopWidth: 1,
+                        marginBottom: spacing.xs,
+                        opacity: 0.6,
+                      }}
+                    />
+                    {threads.length === 0 ? (
+                      <Text
+                        style={{
+                          color: colors.text.tertiary,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        No chats yet
+                      </Text>
+                    ) : (
+                      <ScrollView
+                        contentContainerStyle={{paddingBottom: 200}}
+                        showsVerticalScrollIndicator={false}>
+                        {threads.map(th => {
+                          const label =
+                            th.title && th.title.trim().length > 0
+                              ? th.title
+                              : '(New chat)';
+                          return (
+                            <TouchableOpacity
+                              key={th.id}
+                              onPress={async () => {
+                                setShowMenu(false);
+                                await switchThread(th.id);
+                              }}
+                              style={{
+                                paddingVertical: 10,
+                                paddingHorizontal: 10,
+                                borderRadius: 8,
+                                backgroundColor:
+                                  th.id === currentThreadId
+                                    ? colors.modal.blur
+                                    : 'transparent',
+                                borderWidth: 1,
+                                borderColor:
+                                  th.id === currentThreadId
+                                    ? colors.modal.content
+                                    : 'transparent',
+                                marginBottom: 6,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                              }}>
+                              <Text
+                                style={{
+                                  color: colors.text.primary,
+                                  fontFamily: 'Inter_18pt-Regular',
+                                }}
+                                numberOfLines={1}>
+                                {label}
+                              </Text>
+                              <TouchableOpacity
+                                onPress={() => deleteThread(th.id)}
+                                hitSlop={{
+                                  top: 10,
+                                  bottom: 10,
+                                  left: 10,
+                                  right: 10,
+                                }}
+                                style={{
+                                  paddingHorizontal: 2,
+                                  paddingVertical: 2,
+                                }}>
+                                <Icon
+                                  name="close"
+                                  size={18}
+                                  color={colors.text.tertiary}
+                                />
+                              </TouchableOpacity>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    )}
                   </View>
                 </MaybeBlurView>
               </View>

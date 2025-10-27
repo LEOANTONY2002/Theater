@@ -17,7 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {MaybeBlurView} from './MaybeBlurView';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
-import {FilterParams, SORT_OPTIONS} from '../types/filters';
+import {FilterParams, SORT_OPTIONS, SavedFilter} from '../types/filters';
 import {
   getLanguages,
   searchFilterContent,
@@ -25,8 +25,6 @@ import {
 } from '../services/tmdb';
 import {useGenres} from '../hooks/useGenres';
 import {Chip} from './Chip';
-import {FiltersManager} from '../store/filters';
-import type {SavedFilter} from '../types/filters';
 import {useQuery} from '@tanstack/react-query';
 import {modalStyles} from '../styles/styles';
 import {GradientSpinner} from './GradientSpinner';
@@ -34,6 +32,8 @@ import {LanguageSettings} from './LanguageSettings';
 import {Language as SettingsLanguage, SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
+import {FiltersManager} from '../store/filters';
+import {AISearchFilterBuilder} from './AISearchFilterBuilder';
 
 interface Language {
   iso_639_1: string;
@@ -59,7 +59,7 @@ interface FilterModalProps {
   initialFilters: FilterParams;
   initialContentType: 'all' | 'movie' | 'tv';
   onReset?: () => void;
-  savedFilters: SavedFilter[];
+  savedFilters?: SavedFilter[];
 }
 
 export const FilterModal: React.FC<FilterModalProps> = ({
@@ -69,11 +69,13 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   initialFilters,
   initialContentType,
   onReset,
+  savedFilters: initialSavedFilters = [],
 }) => {
-  const [filters, setFilters] = useState<FilterParams>(initialFilters);
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>(
     initialContentType,
   );
+  const [filters, setFilters] = useState<FilterParams>(initialFilters);
+  const [showAISearch, setShowAISearch] = useState(false);
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -118,30 +120,53 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     fetchFilters();
   });
 
-  // Only set filters and contentType from props when modal is opened
+  // Only set filters and contentType from props when modal is opened or filters change
   useEffect(() => {
     if (visible) {
+      console.log('🎯 FilterModal opened with:', {
+        initialFilters,
+        initialContentType,
+        genres: initialFilters?.with_genres,
+        language: initialFilters?.with_original_language,
+      });
       // Normalize any legacy with_genres strings that used commas (AND) to pipes (OR)
       if (
         initialFilters?.with_genres &&
         initialFilters.with_genres.includes(',')
       ) {
-        setFilters({
+        const normalized = {
           ...initialFilters,
           with_genres: initialFilters.with_genres
             .split(',')
             .filter(Boolean)
             .join('|'),
-        });
+        };
+        console.log('🔄 Normalized filters:', normalized);
+        setFilters(normalized);
       } else {
+        console.log('📝 Setting filters directly:', initialFilters);
         setFilters(initialFilters);
       }
+      console.log('🎬 Setting contentType:', initialContentType);
       setContentType(initialContentType);
-      // Do NOT reset or reload any other state here
+
+      // Log filtered genres that will be shown
+      setTimeout(() => {
+        const genreList =
+          initialContentType === 'movie'
+            ? movieGenres
+            : initialContentType === 'tv'
+            ? tvGenres
+            : [...movieGenres, ...tvGenres];
+        console.log('📋 Genres being displayed:', {
+          contentType: initialContentType,
+          totalGenres: genreList.length,
+          genreIds: genreList.map(g => g.id).join(', '),
+          lookingFor: initialFilters?.with_genres,
+        });
+      }, 100);
     }
-    // Only run when modal is opened
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, initialFilters, initialContentType, movieGenres, tvGenres]);
 
   useEffect(() => {
     const loadLanguages = async () => {
@@ -468,19 +493,34 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             <Ionicons name="filter" size={20} color={colors.text.muted} />
             <Text style={styles.modalTitle}>Filter</Text>
           </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={{
-              padding: spacing.sm,
-              backgroundColor: colors.modal.blur,
-              borderRadius: borderRadius.round,
-              borderTopWidth: 1,
-              borderLeftWidth: 1,
-              borderRightWidth: 1,
-              borderColor: colors.modal.content,
-            }}>
-            <Ionicons name="close" size={20} color={colors.text.primary} />
-          </TouchableOpacity>
+          <View style={{flexDirection: 'row', gap: spacing.sm}}>
+            <TouchableOpacity
+              onPress={() => setShowAISearch(true)}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Ionicons name="sparkles" size={20} color={colors.accent} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onClose}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Ionicons name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
         </MaybeBlurView>
         <MaybeBlurView body>
           <ScrollView
@@ -658,30 +698,43 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 showsHorizontalScrollIndicator={false}
                 scrollEnabled={true}
                 nestedScrollEnabled={true}
-                renderItem={({item: genre}: {item: Genre}) => (
-                  <Chip
-                    key={genre.id}
-                    label={genre.name}
-                    selected={(() => {
-                      if (!filters.with_genres) return false;
-                      const tokens = filters.with_genres.split('|');
-                      if (contentType !== 'all') {
-                        return tokens.includes(genre.id.toString());
+                renderItem={({item: genre}: {item: Genre}) => {
+                  const isSelected = (() => {
+                    if (!filters.with_genres) return false;
+                    const tokens = filters.with_genres.split('|');
+                    if (contentType !== 'all') {
+                      const selected = tokens.includes(genre.id.toString());
+                      if (selected) {
+                        console.log('✅ Genre selected:', {
+                          genreName: genre.name,
+                          genreId: genre.id,
+                          contentType,
+                          tokens,
+                        });
                       }
-                      const movieMatch = movieGenres.find(
-                        g => g.name === genre.name,
-                      );
-                      const tvMatch = tvGenres.find(g => g.name === genre.name);
-                      const ids = [movieMatch?.id, tvMatch?.id]
-                        .filter(Boolean)
-                        .map(String) as string[];
-                      if (ids.length === 0)
-                        return tokens.includes(genre.id.toString());
-                      return ids.some(id => tokens.includes(id));
-                    })()}
-                    onPress={() => handleGenreToggle(genre.id, genre.name)}
-                  />
-                )}
+                      return selected;
+                    }
+                    const movieMatch = movieGenres.find(
+                      g => g.name === genre.name,
+                    );
+                    const tvMatch = tvGenres.find(g => g.name === genre.name);
+                    const ids = [movieMatch?.id, tvMatch?.id]
+                      .filter(Boolean)
+                      .map(String) as string[];
+                    if (ids.length === 0)
+                      return tokens.includes(genre.id.toString());
+                    return ids.some(id => tokens.includes(id));
+                  })();
+
+                  return (
+                    <Chip
+                      key={genre.id}
+                      label={genre.name}
+                      selected={isSelected}
+                      onPress={() => handleGenreToggle(genre.id, genre.name)}
+                    />
+                  );
+                }}
                 keyExtractor={(genre: Genre) => genre.id.toString()}
                 contentContainerStyle={{
                   paddingHorizontal: 16,
@@ -1370,10 +1423,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       label={genre.name}
                       selected={(() => {
                         if (!filters.with_genres) return false;
+                        const genreIds = filters.with_genres
+                          .split('|')
+                          .filter(Boolean);
                         if (contentType !== 'all') {
-                          return filters.with_genres.includes(
-                            genre.id.toString(),
-                          );
+                          return genreIds.includes(genre.id.toString());
                         }
                         const movieMatch = movieGenres.find(
                           g => g.name === genre.name,
@@ -1385,12 +1439,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                           .filter(Boolean)
                           .map(String) as string[];
                         if (ids.length === 0)
-                          return filters.with_genres.includes(
-                            genre.id.toString(),
-                          );
-                        return ids.some(id =>
-                          filters.with_genres!.includes(id),
-                        );
+                          return genreIds.includes(genre.id.toString());
+                        return ids.some(id => genreIds.includes(id));
                       })()}
                       onPress={() => handleGenreToggle(genre.id, genre.name)}
                     />
@@ -1558,6 +1608,22 @@ export const FilterModal: React.FC<FilterModalProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* AI Search Modal */}
+      <AISearchFilterBuilder
+        visible={showAISearch}
+        onClose={() => setShowAISearch(false)}
+        onApplyFilters={(aiFilters, aiContentType, explanation) => {
+          console.log('AI filters applied in FilterModal:', {
+            aiFilters,
+            aiContentType,
+            explanation,
+          });
+          setFilters(aiFilters);
+          setContentType(aiContentType);
+          setShowAISearch(false);
+        }}
+      />
     </Modal>
   );
 };

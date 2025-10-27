@@ -42,6 +42,9 @@ import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
+import {WatchlistAnalyzer} from '../components/WatchlistAnalyzer';
+import {QuickDecision} from '../components/QuickDecision';
+import {useAIEnabled} from '../hooks/useAIEnabled';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -57,6 +60,11 @@ export const WatchlistsScreen: React.FC = () => {
     id: string;
     name: string;
   } | null>(null);
+  const [showQuickDecision, setShowQuickDecision] = useState(false);
+  const [selectedItemsForComparison, setSelectedItemsForComparison] = useState<
+    ContentItem[]
+  >([]);
+  const {isAIEnabled} = useAIEnabled();
 
   const {data: watchlists = [], isLoading} = useWatchlists();
   const createWatchlistMutation = useCreateWatchlist();
@@ -351,6 +359,23 @@ export const WatchlistsScreen: React.FC = () => {
     }
   }, [importCode, createWatchlistMutation]);
 
+  // Component to aggregate all watchlist items for analysis
+  const AllWatchlistsAnalyzer: React.FC = () => {
+    // Collect all items from all watchlists
+    const allItemsData = watchlists.map(wl => {
+      const {data: items = []} = useWatchlistItems(wl.id);
+      return items;
+    });
+
+    const allItems = allItemsData.flat();
+
+    if (!isAIEnabled || allItems.length === 0) {
+      return null;
+    }
+
+    return <WatchlistAnalyzer watchlistItems={allItems} />;
+  };
+
   // Child component to render a watchlist and its results
   const WatchlistItemWithResults = ({
     watchlistId,
@@ -519,6 +544,18 @@ export const WatchlistsScreen: React.FC = () => {
               }}>
               <Text style={styles.watchlistName}>{watchlistName}</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                {isAIEnabled && contentItems.length >= 2 && (
+                  <TouchableOpacity
+                    style={{alignItems: 'center', padding: 5, marginRight: 6}}
+                    activeOpacity={0.9}
+                    onPress={() => handleQuickDecisionOpen(contentItems)}>
+                    <Ionicons
+                      name="git-compare-outline"
+                      size={16}
+                      color={colors.accent}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={{alignItems: 'center', padding: 5, marginRight: 6}}
                   activeOpacity={0.9}
@@ -742,6 +779,13 @@ export const WatchlistsScreen: React.FC = () => {
     );
   };
 
+  const handleQuickDecisionOpen = (items: ContentItem[]) => {
+    if (items.length >= 2) {
+      setSelectedItemsForComparison(items);
+      setShowQuickDecision(true);
+    }
+  };
+
   return (
     <View style={{flex: 1}}>
       <LinearGradient
@@ -819,6 +863,7 @@ export const WatchlistsScreen: React.FC = () => {
           </View>
         ) : watchlists.length > 0 ? (
           <View style={styles.content}>
+            <AllWatchlistsAnalyzer />
             {watchlists.map(watchlist => (
               <WatchlistItemWithResults
                 key={watchlist.id}
@@ -1319,6 +1364,14 @@ export const WatchlistsScreen: React.FC = () => {
           </View>
         </Modal>
       </Animated.ScrollView>
+
+      {/* Quick Decision Modal */}
+      <QuickDecision
+        visible={showQuickDecision}
+        onClose={() => setShowQuickDecision(false)}
+        items={selectedItemsForComparison}
+        onSelectItem={handleItemPress}
+      />
     </View>
   );
 };

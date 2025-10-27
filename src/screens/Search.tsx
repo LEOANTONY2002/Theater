@@ -17,7 +17,14 @@ import {
 import {MovieList, ContentItem} from '../components/MovieList';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
-import {useIsFocused, useNavigation} from '@react-navigation/native';
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+  RouteProp,
+} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {SearchStackParamList} from '../types/navigation';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {HorizontalList} from '../components/HorizontalList';
@@ -38,6 +45,7 @@ import {useAIEnabled} from '../hooks/useAIEnabled';
 import {HistoryManager} from '../store/history';
 import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
+import {AISearchFilterBuilder} from '../components/AISearchFilterBuilder';
 
 const RECENT_ITEMS_KEY = '@recent_search_items';
 const MAX_RECENT_ITEMS = 10;
@@ -69,16 +77,20 @@ type TabType = 'trending' | 'watchlists' | 'history';
 
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
-  const {isAIEnabled} = useAIEnabled();
+  const [query, setQuery] = React.useState('');
+  const [debouncedQuery, setDebouncedQuery] = React.useState('');
+  const [recentItems, setRecentItems] = React.useState<ContentItem[]>([]);
+  const [historyItems, setHistoryItems] = React.useState<ContentItem[]>([]);
+  const [activeFilters, setActiveFilters] = React.useState<FilterParams>({});
+  const [contentType, setContentType] = React.useState<'all' | 'movie' | 'tv'>(
+    'all',
+  );
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [showAISearch, setShowAISearch] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<TabType>('trending');
   const isFocused = useIsFocused();
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [recentItems, setRecentItems] = useState<ContentItem[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<FilterParams>({});
-  const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
-  const [activeTab, setActiveTab] = useState<TabType>('trending');
-  const [historyItems, setHistoryItems] = useState<ContentItem[]>([]);
+  const {isAIEnabled} = useAIEnabled();
+  const route = useRoute<RouteProp<SearchStackParamList, 'SearchScreen'>>();
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
 
@@ -246,6 +258,27 @@ export const SearchScreen = React.memo(() => {
       setContentType(selectedContentType);
       setShowFilters(false);
       // Do NOT clear the query or manually refetch here.
+    },
+    [],
+  );
+
+  const handleApplyAIFilters = useCallback(
+    (
+      filters: FilterParams,
+      selectedContentType: 'all' | 'movie' | 'tv',
+      explanation: string,
+    ) => {
+      console.log('🤖 AI Filters applied:', {
+        filters,
+        contentType: selectedContentType,
+        explanation,
+        genres: filters.with_genres,
+        language: filters.with_original_language,
+        allFilters: filters,
+      });
+      setActiveFilters(filters);
+      setContentType(selectedContentType);
+      setQuery(''); // Clear search query when using AI filters
     },
     [],
   );
@@ -507,20 +540,6 @@ export const SearchScreen = React.memo(() => {
           />
         )}
         <View style={styles.searchContainer}>
-          <Icon
-            name="search-outline"
-            size={15}
-            color={colors.text.tertiary}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search movies & TV shows..."
-            numberOfLines={1}
-            placeholderTextColor={colors.text.tertiary}
-            value={query}
-            onChangeText={setQuery}
-          />
           <MicButton
             onPartialText={text => {
               if (text) setQuery(text);
@@ -531,9 +550,40 @@ export const SearchScreen = React.memo(() => {
             locale={Platform.OS === 'android' ? 'en-US' : undefined}
             mode="hold"
           />
-          {query.length > 0 && (
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search movies & TV shows..."
+            numberOfLines={1}
+            placeholderTextColor={colors.text.tertiary}
+            value={query}
+            onChangeText={setQuery}
+          />
+          {isAIEnabled && (
             <TouchableOpacity
-              onPress={handleClearSearch}
+              style={styles.inlineFilterButton}
+              onPress={() => setShowAISearch(true)}>
+              <Icon name="sparkles" size={20} color={colors.text.muted} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.inlineFilterButton}
+            onPress={() => setShowFilters(true)}>
+            <Icon
+              name="options-outline"
+              size={20}
+              color={hasActiveFilters ? colors.accent : colors.text.tertiary}
+            />
+          </TouchableOpacity>
+          {(query.length > 0 || hasActiveFilters) && (
+            <TouchableOpacity
+              onPress={() => {
+                if (query.length > 0) {
+                  handleClearSearch();
+                }
+                if (hasActiveFilters) {
+                  handleResetFilters();
+                }
+              }}
               style={styles.clearButton}>
               <Icon
                 name="close-circle"
@@ -543,28 +593,6 @@ export const SearchScreen = React.memo(() => {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            hasActiveFilters && styles.filterButtonActive,
-          ]}
-          onPress={() => setShowFilters(true)}>
-          <Icon
-            name="options-outline"
-            size={24}
-            color={
-              hasActiveFilters ? colors.background.primary : colors.modal.active
-            }
-          />
-        </TouchableOpacity>
-        {hasActiveFilters && (
-          <TouchableOpacity
-            accessibilityLabel="Clear filters"
-            style={styles.clearFilterButton}
-            onPress={handleResetFilters}>
-            <Icon name="close-circle" size={20} color={colors.text.muted} />
-          </TouchableOpacity>
-        )}
       </View>
 
       <View
@@ -791,6 +819,12 @@ export const SearchScreen = React.memo(() => {
         onReset={handleResetFilters}
         savedFilters={[]}
       />
+
+      <AISearchFilterBuilder
+        visible={showAISearch}
+        onClose={() => setShowAISearch(false)}
+        onApplyFilters={handleApplyAIFilters}
+      />
     </View>
   );
 });
@@ -804,8 +838,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
     marginTop: spacing.xl,
     marginBottom: spacing.md,
     backgroundColor: 'transparent',
@@ -813,7 +846,7 @@ const styles = StyleSheet.create({
     top: 0,
     zIndex: 1,
     overflow: 'hidden',
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     margin: 20,
     borderRadius: borderRadius.round,
     width: '90%',
@@ -828,21 +861,14 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   searchContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    // backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: spacing.md,
     borderRadius: borderRadius.round,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
   },
   searchInput: {
     flex: 1,
     height: 48,
+    paddingHorizontal: spacing.sm,
     color: colors.text.primary,
     ...typography.body1,
   },
@@ -865,11 +891,15 @@ const styles = StyleSheet.create({
     borderColor: colors.modal.border,
     backgroundColor: colors.modal.activeText,
   },
-  clearFilterButton: {
+  inlineFilterButton: {
+    padding: spacing.sm,
+    marginRight: spacing.sm,
     borderRadius: borderRadius.round,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    backgroundColor: colors.modal.blur,
+    borderColor: colors.modal.content,
   },
   recentItemsContainer: {
     paddingTop: spacing.sm,

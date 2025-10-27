@@ -1159,7 +1159,7 @@ export const MyFiltersScreen = () => {
                 />
               ))}
             </View>
-            <QuickAddFilters onQuickAdd={handleQuickAdd} />
+            <QuickAddFilters onQuickAdd={handleQuickAdd} onAISave={handleSaveFilter} />
             <View style={{height: 200}} />
           </>
         ) : (
@@ -1176,7 +1176,7 @@ export const MyFiltersScreen = () => {
               isIcon={false}
               style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
             />
-            <QuickAddFilters onQuickAdd={handleQuickAdd} />
+            <QuickAddFilters onQuickAdd={handleQuickAdd} onAISave={handleSaveFilter} />
           </View>
         )}
       </Animated.ScrollView>

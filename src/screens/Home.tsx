@@ -74,6 +74,7 @@ import {usePersonalizedRecommendations} from '../hooks/usePersonalizedRecommenda
 import {PersonalizedBanner} from '../components/PersonalizedBanner';
 import {HistoryManager} from '../store/history';
 import {useIsFocused} from '@react-navigation/native';
+import {WatchlistAISection} from '../components/WatchlistAISection';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -650,6 +651,14 @@ export const HomeScreen = React.memo(() => {
       }
     }
 
+    // Watchlist AI Recommendations section
+    if (isAIEnabled) {
+      sectionsList.push({
+        id: 'watchlistAISection',
+        type: 'watchlistAISection',
+      });
+    }
+
     // Because You Watched section
     // sectionsList.push({
     //   id: `becauseYouWatched:${becauseSeed}`,
@@ -917,6 +926,9 @@ export const HomeScreen = React.memo(() => {
               <PersonalizedBannerSkeleton />
             </>
           );
+
+        case 'watchlistAISection':
+          return <WatchlistAISection />;
 
         case 'moodSetup':
           return (

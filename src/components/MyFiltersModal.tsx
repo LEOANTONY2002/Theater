@@ -34,6 +34,7 @@ import {LanguageSettings} from './LanguageSettings';
 import {Language as SettingsLanguage, SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
+import {AISearchFilterBuilder} from './AISearchFilterBuilder';
 
 interface Language {
   iso_639_1: string;
@@ -99,6 +100,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     SettingsLanguage[]
   >([]);
   const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
+  const [showAISearch, setShowAISearch] = useState(false);
   const [isLoadingWatchProviders, setIsLoadingWatchProviders] = useState(false);
   const [showAllGenresModal, setShowAllGenresModal] = useState(false);
   const [showAllProvidersModal, setShowAllProvidersModal] = useState(false);
@@ -536,19 +538,34 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               {editingFilter ? 'Edit Filter' : 'Create Filter'}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={{
-              padding: spacing.sm,
-              backgroundColor: colors.modal.blur,
-              borderRadius: borderRadius.round,
-              borderTopWidth: 1,
-              borderLeftWidth: 1,
-              borderRightWidth: 1,
-              borderColor: colors.modal.content,
-            }}>
-            <Ionicons name="close" size={20} color={colors.text.primary} />
-          </TouchableOpacity>
+          <View style={{flexDirection: 'row', gap: spacing.sm}}>
+            <TouchableOpacity
+              onPress={() => setShowAISearch(true)}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Ionicons name="sparkles" size={20} color={colors.accent} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onClose}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Ionicons name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
         </MaybeBlurView>
         <MaybeBlurView body>
           <ScrollView
@@ -1489,6 +1506,22 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
           </View>
         </View>
       )}
+
+      {/* AI Search Modal */}
+      <AISearchFilterBuilder
+        visible={showAISearch}
+        onClose={() => setShowAISearch(false)}
+        onApplyFilters={(aiFilters, aiContentType, explanation) => {
+          console.log('AI filters applied in MyFiltersModal:', {
+            aiFilters,
+            aiContentType,
+            explanation,
+          });
+          setFilters(aiFilters);
+          setContentType(aiContentType);
+          setShowAISearch(false);
+        }}
+      />
     </Modal>
   );
 };

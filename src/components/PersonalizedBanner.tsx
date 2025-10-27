@@ -264,9 +264,8 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
     },
     title: {
       ...typography.h3,
-      fontSize: isTablet ? 24 : 16,
+      fontSize: isTablet ? 20 : 14,
       color: colors.text.primary,
-      marginBottom: spacing.xs,
       fontWeight: '700',
       textAlign: 'left',
     },
@@ -274,7 +273,7 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
       ...typography.caption,
       color: colors.text.primary,
       fontWeight: '600',
-      fontSize: 12,
+      fontSize: isTablet ? 12 : 11,
       marginBottom: spacing.xs,
     },
     buttonContainer: {
@@ -433,7 +432,7 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
                   ellipsizeMode="tail"
                   style={{
                     color: colors.text.secondary,
-                    fontSize: 12,
+                    fontSize: isTablet ? 12 : 10,
                     fontWeight: '400',
                   }}>
                   {overview}

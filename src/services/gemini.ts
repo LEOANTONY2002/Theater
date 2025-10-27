@@ -750,3 +750,262 @@ Format: [{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2
     return null;
   }
 }
+
+// Feature 1: Natural Language to Filter Conversion
+export async function parseNaturalLanguageToFilters(
+  query: string,
+  movieGenres: Array<{id: number; name: string}>,
+  tvGenres: Array<{id: number; name: string}>,
+  languages: Array<{iso_639_1: string; english_name: string}>,
+  watchProviders: Array<{provider_id: number; provider_name: string}>,
+): Promise<{
+  filters: Record<string, any>;
+  contentType: 'all' | 'movie' | 'tv';
+  explanation: string;
+} | null> {
+  // Format all TMDB data for AI
+  const movieGenresList = movieGenres.map(g => `${g.id}:${g.name}`).join(', ');
+  const tvGenresList = tvGenres.map(g => `${g.id}:${g.name}`).join(', ');
+  const languagesList = languages
+    .map(l => `${l.iso_639_1}:${l.english_name}`)
+    .join(', ');
+  const providersList = watchProviders
+    .map(p => `${p.provider_id}:${p.provider_name}`)
+    .join(', ');
+
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI's filter parser. Convert natural language to TMDB filter parameters.
+
+=== AVAILABLE DATA FROM TMDB (USE ONLY THESE!) ===
+
+MOVIE GENRES: ${movieGenresList}
+
+TV SHOW GENRES: ${tvGenresList}
+
+LANGUAGES: ${languagesList}
+
+STREAMING PROVIDERS: ${providersList}
+
+=== FILTER PARAMETERS ===
+{
+  "sort_by": "popularity.desc" | "vote_average.desc" | "primary_release_date.desc" | "original_title.asc",
+  "vote_average.gte": number (0-10),
+  "primary_release_date.gte": "YYYY-MM-DD",
+  "primary_release_date.lte": "YYYY-MM-DD",
+  "first_air_date.gte": "YYYY-MM-DD",
+  "first_air_date.lte": "YYYY-MM-DD",
+  "with_genres": "id1|id2" (pipe-separated),
+  "with_original_language": "code",
+  "with_runtime_gte": number (minutes),
+  "with_watch_providers": "id1|id2",
+  "watch_region": "US"
+}
+
+=== RETURN FORMAT ===
+{
+  "contentType": "movie" | "tv" | "all",
+  "filters": {...},
+  "explanation": "string"
+}
+
+=== STRICT RULES ===
+1. CONTENT TYPE DETECTION:
+   - "series", "show", "tv", "drama" → contentType: "tv"
+   - "movie", "film" → contentType: "movie"
+   - Default → "all"
+
+2. GENRE SELECTION:
+   - If contentType="movie" → USE ONLY MOVIE GENRES LIST
+   - If contentType="tv" → USE ONLY TV SHOW GENRES LIST
+   - NEVER use genre IDs not in the correct list!
+
+3. LANGUAGE:
+   - USE ONLY language codes from LANGUAGES list
+   - Map language name to code (e.g., Tamil→ta, Hindi→hi)
+
+4. PROVIDERS:
+   - USE ONLY provider IDs from STREAMING PROVIDERS list
+   - Map service name to ID (e.g., Netflix→8)
+
+5. If data not found in lists, OMIT that filter parameter!`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Parse this search query: "${query}"`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        filters: parsed.filters || {},
+        contentType: parsed.contentType || 'all',
+        explanation: parsed.explanation || 'Filters applied',
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error parsing natural language filters:', error);
+    return null;
+  }
+}
+
+// Feature 2: Watchlist Pattern Analysis
+export async function analyzeWatchlistPatterns(
+  watchlistItems: Array<{
+    id: number;
+    title?: string;
+    name?: string;
+    type: 'movie' | 'tv';
+    genre_ids?: number[];
+    vote_average?: number;
+    release_date?: string;
+    first_air_date?: string;
+  }>,
+): Promise<{
+  insights: string[];
+  topGenres: string[];
+  averageRating: number;
+  decadeDistribution: Record<string, number>;
+  recommendations: string;
+  recommendedTitles: Array<{title: string; type: 'movie' | 'tv'}>;
+} | null> {
+  if (!watchlistItems || watchlistItems.length === 0) {
+    return null;
+  }
+
+  // Prepare summary
+  const summary = watchlistItems
+    .slice(0, 30)
+    .map(
+      item =>
+        `- "${item.title || item.name}" (${item.type}, rating: ${
+          item.vote_average || 'N/A'
+        }, genres: ${item.genre_ids?.join(',') || 'none'})`,
+    )
+    .join('\n');
+
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI's pattern analyzer. Analyze user's watchlist and provide insights.
+
+Return ONLY a JSON object with these exact fields:
+{
+  "insights": ["insight 1", "insight 2", "insight 3"] (3-5 key patterns you notice),
+  "topGenres": ["genre1", "genre2", "genre3"] (most common genre names),
+  "averageRating": 7.5 (average rating preference),
+  "decadeDistribution": {"2020s": 15, "2010s": 10, "2000s": 5} (content by decade),
+  "recommendations": "Based on your patterns, you might enjoy...",
+  "recommendedTitles": [
+    {"title": "Movie/Show Name", "type": "movie or tv"},
+    {"title": "Another Title", "type": "movie or tv"}
+  ] (5-7 specific movie/show recommendations based on their taste)
+}`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Analyze this watchlist (${watchlistItems.length} items):\n\n${summary}`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        insights: parsed.insights || [],
+        topGenres: parsed.topGenres || [],
+        averageRating: parsed.averageRating || 0,
+        decadeDistribution: parsed.decadeDistribution || {},
+        recommendations: parsed.recommendations || '',
+        recommendedTitles: parsed.recommendedTitles || [],
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error analyzing watchlist patterns:', error);
+    return null;
+  }
+}
+
+// Feature 3: Quick Decision - Compare Content
+export async function compareContent(
+  items: Array<{
+    title?: string;
+    name?: string;
+    overview?: string;
+    vote_average?: number;
+    release_date?: string;
+    first_air_date?: string;
+    genre_ids?: number[];
+    type: 'movie' | 'tv';
+  }>,
+): Promise<{
+  comparisons: Array<{
+    title: string;
+    pros: string[];
+    cons: string[];
+    bestFor: string;
+  }>;
+  recommendation: string;
+  reasoning: string;
+} | null> {
+  if (!items || items.length < 2) {
+    return null;
+  }
+
+  const itemsSummary = items
+    .map(
+      (item, idx) =>
+        `${idx + 1}. "${item.title || item.name}" (${item.type}, ${
+          item.vote_average || 'N/A'
+        }/10) - ${item.overview?.slice(0, 150) || 'No overview'}`,
+    )
+    .join('\n\n');
+
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI's decision assistant. Compare content and help users decide what to watch.
+
+Return ONLY a JSON object with these exact fields:
+{
+  "comparisons": [
+    {
+      "title": "Movie/Show Title",
+      "pros": ["pro 1", "pro 2", "pro 3"],
+      "cons": ["con 1", "con 2"],
+      "bestFor": "When you want..."
+    }
+  ],
+  "recommendation": "Title of best choice",
+  "reasoning": "Brief explanation why this is the best choice right now"
+}`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Compare these ${items.length} options and help me decide:\n\n${itemsSummary}`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        comparisons: parsed.comparisons || [],
+        recommendation: parsed.recommendation || '',
+        reasoning: parsed.reasoning || '',
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error comparing content:', error);
+    return null;
+  }
+}

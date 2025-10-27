@@ -1,15 +1,20 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {AIFilterCreator} from './AIFilterCreator';
+import {SavedFilter} from '../types/filters';
 
 interface QuickAddFiltersProps {
   onQuickAdd: (name: string, params: any, type: 'movie' | 'tv' | 'all') => void;
+  onAISave: (filter: SavedFilter) => void;
 }
 
 export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
   onQuickAdd,
+  onAISave,
 }) => {
+  const [showAICreator, setShowAICreator] = useState(false);
   const quickAddItems = [
     {
       name: 'Sci‑Fi Series',
@@ -81,7 +86,16 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Quick add</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Quick add</Text>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.aiButton}
+          onPress={() => setShowAICreator(true)}>
+          <Ionicons name="sparkles" size={16} color={colors.accent} />
+          <Text style={styles.aiButtonText}>AI Create</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.grid}>
         {quickAddItems.map((item, index) => (
           <TouchableOpacity
@@ -94,6 +108,15 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
           </TouchableOpacity>
         ))}
       </View>
+
+      <AIFilterCreator
+        visible={showAICreator}
+        onClose={() => setShowAICreator(false)}
+        onSave={filter => {
+          onAISave(filter);
+          setShowAICreator(false);
+        }}
+      />
     </View>
   );
 };
@@ -104,11 +127,32 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.xl,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
   title: {
     ...typography.h2,
     color: colors.text.primary,
-    textAlign: 'center',
-    marginBottom: spacing.md,
+  },
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: 'rgba(147, 51, 234, 0.1)',
+    borderRadius: borderRadius.round,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  aiButtonText: {
+    ...typography.body2,
+    color: colors.accent,
+    fontWeight: '600',
   },
   grid: {
     flexDirection: 'row',
