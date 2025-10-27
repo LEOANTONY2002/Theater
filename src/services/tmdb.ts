@@ -692,9 +692,16 @@ export const getWatchProviders = async (
 };
 
 export const getAvailableWatchProviders = async (region = 'US') => {
-  const response = await tmdbApi.get(
-    `/watch/providers/movie?watch_region=${region}`,
-  );
+  const response = await tmdbApi.get('/watch/providers/tv', {
+    params: {
+      watch_region: region,
+    },
+  });
+  console.log('[TMDB] API Response:', {
+    status: response.status,
+    resultsCount: response.data.results?.length || 0,
+    hasResults: !!response.data.results,
+  });
   return response.data.results || [];
 };
 

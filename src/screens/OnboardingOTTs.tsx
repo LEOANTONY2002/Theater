@@ -38,14 +38,24 @@ const OnboardingOTTs: React.FC<{
       queryKey: [
         'available_watch_providers',
         'movie',
-        currentRegion?.iso_3166_1,
+        currentRegion?.iso_3166_1 || 'US',
       ],
-      queryFn: () =>
-        import('../services/tmdbWithCache').then(m =>
-          m.getAvailableWatchProviders(currentRegion?.iso_3166_1 || 'US'),
-        ),
+      queryFn: async () => {
+        const region = currentRegion?.iso_3166_1 || 'US';
+        console.log('[OnboardingOTTs] Fetching providers for region:', region);
+        const m = await import('../services/tmdbWithCache');
+        let result = await m.getAvailableWatchProviders(region);
+        
+        // Fallback to US if current region has no providers
+        if (!result || result.length === 0) {
+          console.log('[OnboardingOTTs] No providers for', region, '- falling back to US');
+          result = await m.getAvailableWatchProviders('US');
+        }
+        
+        console.log('[OnboardingOTTs] Providers loaded:', result?.length || 0, 'providers');
+        return result;
+      },
       staleTime: 1000 * 60 * 60,
-      enabled: !!currentRegion,
     });
 
   useEffect(() => {
