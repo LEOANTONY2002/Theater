@@ -5,6 +5,7 @@ import {MovieDetailsScreen} from '../screens/MovieDetails';
 import {CategoryScreen} from '../screens/CategoryScreen';
 import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
+import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
 import {MoviesStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 
@@ -30,6 +31,10 @@ export const MoviesNavigator = () => {
       />
       <Stack.Screen name="Genre" component={GenreScreen} />
       <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} />
+      <Stack.Screen
+        name="EmotionalToneResults"
+        component={EmotionalToneResultsScreen}
+      />
     </Stack.Navigator>
   );
 };

@@ -17,8 +17,13 @@ import {SettingsManager} from '../store/settings';
 import {getSimilarByStory} from '../services/gemini';
 import {Genre} from '../types/movie';
 
-const CACHE_TIME = 1000 * 60 * 60; // 1 hour
-const STALE_TIME = 1000 * 60 * 30; // 30 minutes
+// Cache times
+const TMDB_LIST_STALE = 1000 * 60 * 60 * 24; // 1 day for trending/popular/latest
+const TMDB_LIST_GC = 1000 * 60 * 60 * 24 * 2; // 2 days GC
+const TMDB_DETAILS_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for details
+const TMDB_DETAILS_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
+const AI_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for AI
+const AI_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
 
 export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
   return useInfiniteQuery({
@@ -41,8 +46,8 @@ export const useTVShowDetails = (tvShowId: number) => {
   return useQuery({
     queryKey: ['tvshow', tvShowId],
     queryFn: () => getTVShowDetails(tvShowId),
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
   });
 };
 
@@ -54,8 +59,8 @@ export const useTVShowSearch = (query: string, filters: FilterParams = {}) => {
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
   });
 };
 
@@ -67,8 +72,8 @@ export const useDiscoverTVShows = (params: FilterParams) => {
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
     enabled: params !== undefined,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
   });
 };
 
@@ -79,8 +84,8 @@ export const useSimilarTVShows = (tvId: number) => {
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
   });
 };
 
@@ -92,8 +97,8 @@ export const useTVShowRecommendations = (tvId: number) => {
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
   });
 };
 
@@ -101,7 +106,7 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
   const {data: contentLanguages} = useQuery({
     queryKey: ['content_languages'],
     queryFn: SettingsManager.getContentLanguages,
-    staleTime: STALE_TIME,
+    staleTime: TMDB_LIST_STALE,
   });
 
   return useInfiniteQuery({
@@ -115,8 +120,8 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -132,8 +137,8 @@ export const useSeasonDetails = (tvId: number, seasonNumber?: number) => {
       return getSeasonDetails(tvId, season!);
     },
     enabled: seasonNumber !== undefined,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
   });
 };
 
@@ -141,7 +146,7 @@ export const useTop10ShowsTodayByRegion = () => {
   const {data: region} = useQuery<{iso_3166_1: string; english_name: string}>({
     queryKey: ['region'],
     queryFn: SettingsManager.getRegion,
-    staleTime: STALE_TIME,
+    staleTime: TMDB_LIST_STALE,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -150,8 +155,8 @@ export const useTop10ShowsTodayByRegion = () => {
   return useQuery({
     queryKey: ['top_10_shows_today_by_region', region?.iso_3166_1],
     queryFn: () => getTop10TVShowsTodayByRegion(),
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
     enabled: !!region?.iso_3166_1,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
@@ -188,8 +193,8 @@ export const useAISimilarTVShows = (
         return [];
       }
     },
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: AI_GC,
+    staleTime: AI_STALE,
     enabled: !!title && !!overview,
     refetchOnMount: false,
     refetchOnWindowFocus: false,

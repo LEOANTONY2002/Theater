@@ -369,7 +369,7 @@ export const WatchlistsScreen: React.FC = () => {
 
     const allItems = allItemsData.flat();
 
-    if (!isAIEnabled || allItems.length === 0) {
+    if (!isAIEnabled || allItems.length < 3) {
       return null;
     }
 

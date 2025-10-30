@@ -3,11 +3,12 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {HomeScreen} from '../screens/Home';
 import {MovieDetailsScreen} from '../screens/MovieDetails';
 import {TVShowDetailsScreen} from '../screens/TVShowDetails';
-import {CategoryScreen} from '../screens/Category';
+import {CategoryScreen} from '../screens/CategoryScreen';
 import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
+import {ThematicGenreResultsScreen} from '../screens/ThematicGenreResults';
 import {HomeStackParamList} from '../types/navigation';
-import {colors} from '../theme';
+import {colors} from '../styles/theme';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -26,6 +27,7 @@ export const HomeNavigator = () => {
       <Stack.Screen name="Category" component={CategoryScreen} />
       <Stack.Screen name="Genre" component={GenreScreen} />
       <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} />
+      <Stack.Screen name="ThematicGenreResults" component={ThematicGenreResultsScreen} />
     </Stack.Navigator>
   );
 };

@@ -67,8 +67,8 @@ export const usePersonalizedRecommendations = () => {
       );
       return filtered;
     },
-    staleTime: 1000 * 60 * 60 * 24, // 24 hours - matches AI cache
-    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    staleTime: 1000 * 60 * 60 * 24 * 180, // 6 months - matches AI cache
+    gcTime: 1000 * 60 * 60 * 24 * 180, // 6 months
     enabled: !!isAIEnabled,
     retry: 2,
   });

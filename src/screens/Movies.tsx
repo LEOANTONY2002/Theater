@@ -34,6 +34,7 @@ import {
 import {OttTabbedSection} from '../components/OttTabbedSection';
 import {TrendingMoviesSection} from '../components/TrendingMoviesSection';
 import {MyLanguageMoviesInOTTsSection} from '../components/MyLanguageMoviesInOTTsSection';
+import {EmotionalTones} from '../components/EmotionalTones';
 
 export const MoviesScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -419,6 +420,12 @@ export const MoviesScreen = React.memo(() => {
       onItemPress: handleGenrePress,
     });
 
+    // Emotional Tones section
+    sectionsList.push({
+      id: 'emotionalTones',
+      type: 'emotionalTones',
+    });
+
     // Trending Movies section
     sectionsList.push({
       id: 'trendingMovies',
@@ -744,6 +751,8 @@ export const MoviesScreen = React.memo(() => {
             isLoading={item.isLoading}
           />
         );
+      case 'emotionalTones':
+        return <EmotionalTones contentType="movie" />;
       case 'trendingMovies':
         return <TrendingMoviesSection />;
       case 'ottTabbedSection':
@@ -789,6 +798,8 @@ export const MoviesScreen = React.memo(() => {
           return 580; // banner in movies is taller
         case 'genres':
           return 140;
+        case 'emotionalTones':
+          return 180; // thematic genres list
         case 'trendingMovies':
           return 380; // title + tabs + horizontal list
         case 'myLanguageMoviesInOTTsSection':

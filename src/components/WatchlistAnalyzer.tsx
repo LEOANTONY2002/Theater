@@ -42,6 +42,7 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const {navigateWithLimit} = useNavigationState();
+  const {isTablet} = useResponsive();
 
   // Create watchlist hash
   const watchlistHash = useMemo(() => {
@@ -181,6 +182,206 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
     return null;
   }
 
+  const styles = StyleSheet.create({
+    container: {
+      marginBottom: spacing.lg,
+    },
+    card: {
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginBottom: spacing.md,
+    },
+    title: {
+      ...typography.h3,
+      color: colors.text.primary,
+    },
+    description: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      fontSize: isTablet ? 14 : 12,
+    },
+    analyzeButton: {
+      borderRadius: borderRadius.round,
+      overflow: 'hidden',
+    },
+    analyzeButtonGradient: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    analyzeButtonText: {
+      ...typography.body2,
+      color: colors.text.primary,
+      fontWeight: '600',
+    },
+    errorContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      borderRadius: borderRadius.sm,
+      padding: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    errorText: {
+      ...typography.body2,
+      color: colors.status.error,
+      marginLeft: spacing.xs,
+      flex: 1,
+    },
+    resultsContainer: {
+      flex: 1,
+    },
+    section: {
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      ...typography.h3,
+      fontSize: 16,
+      color: colors.text.primary,
+      marginBottom: spacing.sm,
+    },
+    insightRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: spacing.sm,
+      gap: spacing.sm,
+    },
+    insightText: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      flex: 1,
+      lineHeight: 20,
+    },
+    genreContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    genreChip: {
+      backgroundColor: colors.modal.content,
+      borderRadius: borderRadius.sm,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+    },
+    genreText: {
+      ...typography.body2,
+      color: colors.text.primary,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: colors.modal.content,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+    },
+    statValue: {
+      ...typography.h2,
+      color: colors.text.primary,
+      marginTop: spacing.xs,
+    },
+    statLabel: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginTop: spacing.xs,
+    },
+    decadeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+      gap: spacing.sm,
+    },
+    decadeText: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      width: 60,
+    },
+    decadeBar: {
+      flex: 1,
+      height: 8,
+      backgroundColor: colors.modal.content,
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    decadeBarFill: {
+      height: '100%',
+      backgroundColor: colors.accent,
+    },
+    decadeCount: {
+      ...typography.body2,
+      color: colors.text.muted,
+      width: 30,
+      textAlign: 'right',
+    },
+    recommendationText: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      lineHeight: 20,
+    },
+    loadingRecs: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+    },
+    loadingRecsText: {
+      ...typography.body2,
+      color: colors.text.secondary,
+    },
+    bottomActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: spacing.md,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.modal.border,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      padding: spacing.sm,
+    },
+    collapseButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      marginTop: spacing.md,
+      padding: spacing.sm,
+    },
+    collapseButtonText: {
+      ...typography.body2,
+      color: colors.text.secondary,
+    },
+  });
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -201,7 +402,7 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                 ]}>
                 <Icon
                   name="analytics"
-                  size={24}
+                  size={isTablet ? 24 : 20}
                   color={colors.accent}
                   style={{
                     backgroundColor: colors.modal.blur,
@@ -209,12 +410,12 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                     borderRadius: borderRadius.md,
                   }}
                 />
-                <View>
+                <View style={{width: '90%', paddingRight: spacing.lg}}>
                   <Text style={styles.title}>Watchlist Insights</Text>
                   <Text style={styles.description}>
                     {analysis
                       ? 'See your watchlist analysis and personalized recommendations.'
-                      : 'Discover patterns in your watchlist: favorite genres, rating preferences, and personalized recommendations.'}
+                      : 'Discover patterns in your watchlist and personalized recommendations.'}
                   </Text>
                 </View>
               </View>
@@ -419,204 +620,3 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.lg,
-  },
-  card: {
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginBottom: spacing.md,
-  },
-  title: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginLeft: spacing.sm,
-  },
-  description: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    lineHeight: 20,
-  },
-  analyzeButton: {
-    borderRadius: borderRadius.round,
-    overflow: 'hidden',
-  },
-  analyzeButtonGradient: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  analyzeButtonText: {
-    ...typography.body2,
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: borderRadius.sm,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  errorText: {
-    ...typography.body2,
-    color: colors.status.error,
-    marginLeft: spacing.xs,
-    flex: 1,
-  },
-  resultsContainer: {
-    flex: 1,
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    ...typography.h3,
-    fontSize: 16,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  insightRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  insightText: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    flex: 1,
-    lineHeight: 20,
-  },
-  genreContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  genreChip: {
-    backgroundColor: colors.modal.content,
-    borderRadius: borderRadius.sm,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-  },
-  genreText: {
-    ...typography.body2,
-    color: colors.text.primary,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.modal.content,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-  },
-  statValue: {
-    ...typography.h2,
-    color: colors.text.primary,
-    marginTop: spacing.xs,
-  },
-  statLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginTop: spacing.xs,
-  },
-  decadeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  decadeText: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    width: 60,
-  },
-  decadeBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: colors.modal.content,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  decadeBarFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-  },
-  decadeCount: {
-    ...typography.body2,
-    color: colors.text.muted,
-    width: 30,
-    textAlign: 'right',
-  },
-  recommendationText: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    lineHeight: 20,
-  },
-  loadingRecs: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  loadingRecsText: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.modal.border,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    padding: spacing.sm,
-  },
-  collapseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.md,
-    padding: spacing.sm,
-  },
-  collapseButtonText: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-});

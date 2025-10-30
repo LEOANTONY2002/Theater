@@ -17,8 +17,13 @@ import {SettingsManager} from '../store/settings';
 import {getSimilarByStory} from '../services/gemini';
 import {Genre} from '../types/movie';
 
-const CACHE_TIME = 1000 * 60 * 60; // 1 hour
-const STALE_TIME = 1000 * 60 * 30; // 30 minutes
+// Cache times
+const TMDB_LIST_STALE = 1000 * 60 * 60 * 24; // 1 day for trending/popular/latest
+const TMDB_LIST_GC = 1000 * 60 * 60 * 24 * 2; // 2 days GC
+const TMDB_DETAILS_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for details
+const TMDB_DETAILS_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
+const AI_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for AI
+const AI_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
 
 export const useMoviesList = (
   type:
@@ -39,8 +44,8 @@ export const useMoviesList = (
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
   });
 };
 
@@ -48,8 +53,8 @@ export const useMovieDetails = (movieId: number) => {
   return useQuery({
     queryKey: ['movie', movieId],
     queryFn: () => getMovieDetails(movieId),
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
   });
 };
 
@@ -61,8 +66,8 @@ export const useMovieSearch = (query: string, filters: FilterParams = {}) => {
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
   });
 };
 
@@ -74,8 +79,8 @@ export const useSimilarMovies = (movieId: number) => {
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
   });
 };
 
@@ -87,8 +92,8 @@ export const useMovieRecommendations = (movieId: number) => {
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
   });
 };
 
@@ -96,7 +101,7 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
   const {data: contentLanguages} = useQuery({
     queryKey: ['content_languages'],
     queryFn: SettingsManager.getContentLanguages,
-    staleTime: STALE_TIME,
+    staleTime: TMDB_LIST_STALE,
   });
 
   return useInfiniteQuery({
@@ -110,8 +115,8 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -126,8 +131,8 @@ export const useDiscoverMovies = (params: FilterParams) => {
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
     enabled: params !== undefined,
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
   });
 };
 
@@ -135,7 +140,7 @@ export const useTop10MoviesTodayByRegion = () => {
   const {data: region} = useQuery<{iso_3166_1: string; english_name: string}>({
     queryKey: ['region'],
     queryFn: SettingsManager.getRegion,
-    staleTime: STALE_TIME,
+    staleTime: TMDB_LIST_STALE,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -144,8 +149,8 @@ export const useTop10MoviesTodayByRegion = () => {
   return useQuery({
     queryKey: ['top_10_movies_today_by_region', region?.iso_3166_1],
     queryFn: () => getTop10MoviesTodayByRegion(),
-    gcTime: CACHE_TIME,
-    staleTime: STALE_TIME,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
     enabled: !!region?.iso_3166_1,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
@@ -190,8 +195,8 @@ export const useAISimilarMovies = (
       }
     },
     enabled: !!title && !!overview,
-    gcTime: CACHE_TIME * 2, // Cache for 2 hours since AI calls are expensive
-    staleTime: STALE_TIME * 4, // Keep data fresh for 2 hours
+    gcTime: AI_GC,
+    staleTime: AI_STALE,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

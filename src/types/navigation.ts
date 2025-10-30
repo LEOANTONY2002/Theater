@@ -12,7 +12,12 @@ export type MovieCategoryType =
   | 'upcoming'
   | 'trending_day'
   | 'trending_week';
-export type TVShowCategoryType = 'latest' | 'popular' | 'top_rated' | 'trending_day' | 'trending_week';
+export type TVShowCategoryType =
+  | 'latest'
+  | 'popular'
+  | 'top_rated'
+  | 'trending_day'
+  | 'trending_week';
 export type ContentType = 'movie' | 'tv';
 
 export type HomeStackParamList = {
@@ -34,6 +39,10 @@ export type HomeStackParamList = {
     personId: number;
     personName: string;
     contentType: ContentType;
+  };
+  ThematicGenreResults: {
+    tag: string;
+    description: string;
   };
 };
 
@@ -78,6 +87,10 @@ export type MoviesAndSeriesStackParamList = {
     personName: string;
     contentType: ContentType;
   };
+  EmotionalToneResults: {
+    tag: string;
+    contentType: 'movie' | 'tv';
+  };
 };
 
 export type MoviesStackParamList = {
@@ -100,6 +113,10 @@ export type MoviesStackParamList = {
     personName: string;
     contentType: ContentType;
   };
+  EmotionalToneResults: {
+    tag: string;
+    contentType: 'movie';
+  };
 };
 
 export type TVShowsStackParamList = {
@@ -121,6 +138,10 @@ export type TVShowsStackParamList = {
     personId: number;
     personName: string;
     contentType: ContentType;
+  };
+  EmotionalToneResults: {
+    tag: string;
+    contentType: 'tv';
   };
 };
 

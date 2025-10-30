@@ -149,17 +149,18 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
     modalBodyWrapper: {
       minHeight: showCreateForm ? 200 : 180,
       maxHeight: 400,
-      overflow: 'hidden',
       borderRadius: borderRadius.xl,
       borderWidth: isSolid ? 0 : 1,
       borderColor: isSolid ? colors.modal.blur : colors.modal.content,
     },
     modalBody: {
       flex: 1,
+      minHeight: showCreateForm ? 200 : 180,
+      maxHeight: 400,
       borderRadius: borderRadius.xl,
       backgroundColor: isSolid ? 'black' : colors.modal.blur,
-      opacity: 1,
       paddingTop: showCreateForm && !isSolid ? spacing.md : 0,
+      marginBottom: 190,
     },
     watchlistList: {
       padding: spacing.md,
@@ -325,7 +326,11 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
                   alignItems: 'center',
                   gap: spacing.sm,
                 }}>
-                <Ionicons name="bookmarks" size={20} color={colors.text.muted} />
+                <Ionicons
+                  name="bookmarks"
+                  size={20}
+                  color={colors.text.muted}
+                />
                 <Text style={styles.modalTitle}>Add to Watchlist</Text>
               </View>
               <TouchableOpacity
@@ -343,107 +348,103 @@ export const WatchlistModal: React.FC<WatchlistModalProps> = ({
               </TouchableOpacity>
             </MaybeBlurView>
 
-            <View style={styles.modalBodyWrapper}>
-              <MaybeBlurView
-                dialog
-                radius={borderRadius.xl}
-                style={styles.modalBody}>
-                {showCreateForm ? (
-                  <View style={styles.createForm}>
-                    <Text style={modalStyles.sectionTitle}>Watchlist Name</Text>
-                    <TextInput
-                      style={[
-                        modalStyles.input,
-                        {
-                          height: 50,
-                          marginTop: spacing.sm,
-                        },
-                      ]}
-                      value={newWatchlistName}
-                      onChangeText={setNewWatchlistName}
-                      placeholder="Enter watchlist name"
-                      placeholderTextColor={colors.text.muted}
-                      autoFocus
-                    />
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        gap: spacing.md,
-                        marginTop: spacing.md,
-                        marginHorizontal: isTablet ? '25%' : spacing.md,
-                      }}>
-                      <TouchableOpacity
-                        style={[
-                          modalStyles.footerButton,
-                          modalStyles.resetButton,
-                        ]}
-                        onPress={() => setShowCreateForm(false)}>
-                        <Text style={modalStyles.resetButtonText}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          modalStyles.footerButton,
-                          modalStyles.applyButton,
-                        ]}
-                        onPress={handleCreateWatchlist}
-                        disabled={
-                          createWatchlistMutation.isPending ||
-                          addToWatchlistMutation.isPending
-                        }>
-                        <Text style={modalStyles.applyButtonText}>
-                          {createWatchlistMutation.isPending ||
-                          addToWatchlistMutation.isPending
-                            ? 'Creating...'
-                            : 'Create & Add'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : watchlists.length > 0 ? (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{gap: spacing.md}}
-                    style={styles.watchlistList}>
-                    {watchlists.map(watchlist => (
-                      <Chip
-                        key={watchlist?.id}
-                        label={watchlist.name}
-                        onPress={() => handleAddToWatchlist(watchlist)}
-                        selected={false}
-                        isWatchlist={true}
-                        width={150}
-                        height={150}
-                      />
-                    ))}
-
+            <MaybeBlurView
+              body
+              radius={borderRadius.xl}
+              style={styles.modalBody}>
+              {showCreateForm ? (
+                <View style={styles.createForm}>
+                  <Text style={modalStyles.sectionTitle}>Watchlist Name</Text>
+                  <TextInput
+                    style={[
+                      modalStyles.input,
+                      {
+                        height: 50,
+                        marginTop: spacing.sm,
+                      },
+                    ]}
+                    value={newWatchlistName}
+                    onChangeText={setNewWatchlistName}
+                    placeholder="Enter watchlist name"
+                    placeholderTextColor={colors.text.muted}
+                    autoFocus
+                  />
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: spacing.md,
+                      marginTop: spacing.md,
+                      marginHorizontal: isTablet ? '25%' : spacing.md,
+                    }}>
                     <TouchableOpacity
-                      style={styles.createNewButton}
-                      onPress={() => setShowCreateForm(true)}>
-                      <Ionicons
-                        name="add"
-                        size={24}
-                        color={colors.text.secondary}
-                      />
-                      <Text style={styles.createNewText}>New Watchlist</Text>
+                      style={[
+                        modalStyles.footerButton,
+                        modalStyles.resetButton,
+                      ]}
+                      onPress={() => setShowCreateForm(false)}>
+                      <Text style={modalStyles.resetButtonText}>Cancel</Text>
                     </TouchableOpacity>
-                  </ScrollView>
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateTitle}>
-                      No Watchlists Yet
-                    </Text>
-                    <CreateButton
-                      onPress={() => {
-                        setShowCreateForm(true);
-                      }}
-                      title="Create Your First Watchlist"
-                      icon="add"
-                    />
+                    <TouchableOpacity
+                      style={[
+                        modalStyles.footerButton,
+                        modalStyles.applyButton,
+                      ]}
+                      onPress={handleCreateWatchlist}
+                      disabled={
+                        createWatchlistMutation.isPending ||
+                        addToWatchlistMutation.isPending
+                      }>
+                      <Text style={modalStyles.applyButtonText}>
+                        {createWatchlistMutation.isPending ||
+                        addToWatchlistMutation.isPending
+                          ? 'Creating...'
+                          : 'Create & Add'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </MaybeBlurView>
-            </View>
+                </View>
+              ) : watchlists.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{gap: spacing.md}}
+                  style={styles.watchlistList}>
+                  {watchlists.map(watchlist => (
+                    <Chip
+                      key={watchlist?.id}
+                      label={watchlist.name}
+                      onPress={() => handleAddToWatchlist(watchlist)}
+                      selected={false}
+                      isWatchlist={true}
+                      width={150}
+                      height={150}
+                    />
+                  ))}
+
+                  <TouchableOpacity
+                    style={styles.createNewButton}
+                    onPress={() => setShowCreateForm(true)}>
+                    <Ionicons
+                      name="add"
+                      size={24}
+                      color={colors.text.secondary}
+                    />
+                    <Text style={styles.createNewText}>New Watchlist</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
+                  <CreateButton
+                    onPress={() => {
+                      setShowCreateForm(true);
+                    }}
+                    title="Create Your First Watchlist"
+                    icon="add"
+                  />
+                </View>
+              )}
+            </MaybeBlurView>
           </View>
         </View>
       </TouchableOpacity>

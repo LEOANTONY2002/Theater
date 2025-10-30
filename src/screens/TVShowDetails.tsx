@@ -35,6 +35,8 @@ import {HorizontalList} from '../components/HorizontalList';
 import {MovieTrivia} from '../components/MovieTrivia';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {useContentTags} from '../hooks/useContentTags';
+import {ContentTagsDisplay} from '../components/ContentTagsDisplay';
 import {ContentItem} from '../components/MovieList';
 import {MySpaceStackParamList} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -102,6 +104,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     isLoading,
     error: showDetailsError,
   } = useTVShowDetails(show.id);
+
+  // Generate and store thematic/emotional tags for this TV show
+  const {isGenerating: isGeneratingTags, tags: contentTags} = useContentTags({
+    title: show.name,
+    overview: show.overview,
+    genres: showDetails?.genres?.map((g: Genre) => g.name).join(', ') || '',
+    type: 'tv',
+    enabled: !!(showDetails && isAIEnabled),
+  });
+
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
@@ -1883,6 +1895,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             case 'aiSimilar':
               return showDetails ? (
                 <>
+                  {/* Content Tags Section */}
+                  <ContentTagsDisplay
+                    thematicTags={contentTags?.thematicTags}
+                    emotionalTags={contentTags?.emotionalTags}
+                    isLoading={isGeneratingTags}
+                  />
+
                   {isLoadingAiSimilar ? (
                     <View
                       style={[

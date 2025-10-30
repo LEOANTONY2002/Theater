@@ -54,6 +54,12 @@ export const useNavigationState = () => {
         return;
       }
 
+      // Special handling for ThematicGenreResults - always navigate normally
+      if (routeName === 'ThematicGenreResults') {
+        navigation.navigate(routeName as any, params);
+        return;
+      }
+
       // If we already have 2 or more screens, use replace instead of navigate
       if (false) {
         (navigation as any).replace(routeName, params);

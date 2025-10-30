@@ -5,6 +5,7 @@ import {TVShowDetailsScreen} from '../screens/TVShowDetails';
 import {CategoryScreen} from '../screens/CategoryScreen';
 import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
+import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
 import {TVShowsStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 
@@ -30,6 +31,7 @@ export const TVShowsNavigator = () => {
       />
       <Stack.Screen name="Genre" component={GenreScreen} />
       <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} />
+      <Stack.Screen name="EmotionalToneResults" component={EmotionalToneResultsScreen} />
     </Stack.Navigator>
   );
 };

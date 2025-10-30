@@ -75,6 +75,7 @@ import {PersonalizedBanner} from '../components/PersonalizedBanner';
 import {HistoryManager} from '../store/history';
 import {useIsFocused} from '@react-navigation/native';
 import {WatchlistAISection} from '../components/WatchlistAISection';
+import {ThematicGenres} from '../components/ThematicGenres';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -468,7 +469,7 @@ export const HomeScreen = React.memo(() => {
       try {
         const HISTORY_HASH_KEY = '@last_history_hash';
         const history = await HistoryManager.getAll();
-        
+
         // Create hash from first 10 history items (same as AI input)
         const currentHash = history
           .slice(0, 10)
@@ -481,7 +482,9 @@ export const HomeScreen = React.memo(() => {
 
         // If hash changed from stored value, invalidate
         if (storedHash && currentHash !== storedHash) {
-          console.log('[Home] History changed since last app session - invalidating personalized recommendations');
+          console.log(
+            '[Home] History changed since last app session - invalidating personalized recommendations',
+          );
           queryClient.invalidateQueries({
             queryKey: ['personalized_recommendations'],
           });
@@ -649,6 +652,14 @@ export const HomeScreen = React.memo(() => {
           data: personalizedRecommendations,
         });
       }
+    }
+
+    // Thematic Genres by AI section
+    if (isAIEnabled) {
+      sectionsList.push({
+        id: 'thematicGenres',
+        type: 'thematicGenres',
+      });
     }
 
     // Watchlist AI Recommendations section
@@ -926,6 +937,9 @@ export const HomeScreen = React.memo(() => {
               <PersonalizedBannerSkeleton />
             </>
           );
+
+        case 'thematicGenres':
+          return <ThematicGenres />;
 
         case 'watchlistAISection':
           return <WatchlistAISection />;
@@ -1349,7 +1363,7 @@ export const HomeScreen = React.memo(() => {
         <View
           style={{
             flex: 1,
-            margin: isTablet ? spacing.xl : spacing.md,
+            padding: isTablet ? spacing.xl : spacing.md,
             borderRadius: borderRadius.xl,
             backgroundColor: 'transparent',
           }}>

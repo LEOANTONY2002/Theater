@@ -23,6 +23,7 @@ import {
   useRemoveFromWatchlist,
 } from '../hooks/useWatchlists';
 import {WatchlistModal} from './WatchlistModal';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface PersonalizedBannerProps {
   items: ContentItem[];
@@ -482,11 +483,7 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Image
-          source={require('../assets/theaterai.webp')}
-          style={{width: 25, height: 25}}
-          resizeMode="contain"
-        />
+        <Icon name="sparkles" size={20} color={colors.text.primary} />
         <Text style={styles.headerTitle}>Just For You</Text>
       </View>
       <Animated.FlatList

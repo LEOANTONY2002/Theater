@@ -22,6 +22,8 @@ import {WatchlistsScreen} from '../screens/Watchlists';
 import {OnlineAIScreen} from '../screens/OnlineAIScreen';
 import AISettingsScreen from '../screens/AISettings';
 import AboutLegalScreen from '../screens/AboutLegal';
+import {ThematicGenreResultsScreen} from '../screens/ThematicGenreResults';
+import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -96,6 +98,14 @@ export const HomeStackNavigator = () => (
     <HomeStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <HomeStack.Screen
+      name="ThematicGenreResults"
+      component={ThematicGenreResultsScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,
@@ -188,6 +198,14 @@ export const MoviesAndSeriesStackNavigator = () => (
     <MoviesAndSeriesStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <MoviesAndSeriesStack.Screen
+      name="EmotionalToneResults"
+      component={EmotionalToneResultsScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,

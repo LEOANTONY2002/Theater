@@ -22,6 +22,7 @@ import {BlurView} from '@react-native-community/blur';
 import {useQuery} from '@tanstack/react-query';
 import {getImageUrl} from '../services/tmdbWithCache';
 import {GradientSpinner} from './GradientSpinner';
+import {thematicTagsManager} from '../store/thematicTags';
 
 interface QuickDecisionProps {
   visible: boolean;
@@ -58,7 +59,7 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.log('🤖 Calling AI to compare content...');
+      console.log('🤖 Calling AI to compare content with user preferences...');
       if (items.length < 2) {
         throw new Error('Please select at least 2 items to compare');
       }
@@ -74,16 +75,36 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
         type: item.type,
       }));
 
-      const result = await compareContent(itemsForComparison);
+      // Fetch user's top preferences
+      const thematicTags = await thematicTagsManager.getTopTags(5, 'thematic');
+      const emotionalTags = await thematicTagsManager.getTopTags(5, 'emotional');
+
+      const userPreferences = {
+        thematicTags: thematicTags.map(t => ({
+          tag: t.tag,
+          description: t.description,
+        })),
+        emotionalTags: emotionalTags.map(t => ({
+          tag: t.tag,
+          description: t.description,
+        })),
+      };
+
+      console.log('📊 User preferences:', {
+        thematic: userPreferences.thematicTags.map(t => t.tag),
+        emotional: userPreferences.emotionalTags.map(t => t.tag),
+      });
+
+      const result = await compareContent(itemsForComparison, userPreferences);
       if (!result) {
         throw new Error('Could not compare items. Please try again.');
       }
-      console.log('✅ AI comparison cached for 30 minutes');
+      console.log('✅ Personalized AI comparison cached for 6 months');
       return result;
     },
     enabled: items.length >= 2, // Always enabled if items exist
-    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
-    gcTime: 1000 * 60 * 60, // Keep in cache for 1 hour
+    staleTime: 1000 * 60 * 60 * 24 * 180, // Cache for 6 months
+    gcTime: 1000 * 60 * 60 * 24 * 180, // Keep in cache for 6 months
     refetchOnMount: false, // Don't refetch on mount if data is fresh
     refetchOnWindowFocus: false, // Don't refetch on window focus
     refetchOnReconnect: false, // Don't refetch on reconnect

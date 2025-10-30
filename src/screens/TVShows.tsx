@@ -33,6 +33,7 @@ import {
 import {OttTabbedSection} from '../components/OttTabbedSection';
 import {TrendingTVShowsSection} from '../components/TrendingTVShowsSection';
 import {MyLanguageTVShowsInOTTsSection} from '../components/MyLanguageTVShowsInOTTsSection';
+import {EmotionalTones} from '../components/EmotionalTones';
 
 export const TVShowsScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -360,6 +361,12 @@ export const TVShowsScreen = React.memo(() => {
       onItemPress: handleGenrePress,
     });
 
+    // Emotional Tones section
+    sectionsList.push({
+      id: 'emotionalTones',
+      type: 'emotionalTones',
+    });
+
     // Trending TV Shows section
     sectionsList.push({
       id: 'trendingTVShows',
@@ -680,6 +687,8 @@ export const TVShowsScreen = React.memo(() => {
               isLoading={item.isLoading}
             />
           );
+        case 'emotionalTones':
+          return <EmotionalTones contentType="tv" />;
         case 'trendingTVShows':
           return <TrendingTVShowsSection />;
         case 'horizontalList':
@@ -732,6 +741,8 @@ export const TVShowsScreen = React.memo(() => {
           return 580; // closer to actual banner height to avoid relayout
         case 'genres':
           return 140;
+        case 'emotionalTones':
+          return 180;
         case 'trendingTVShows':
           return 380; // title + tabs + horizontal list
         case 'myLanguageTVShowsInOTTsSection':

@@ -48,6 +48,8 @@ import {
 } from '../hooks/useWatchlists';
 import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
+import {useContentTags} from '../hooks/useContentTags';
+import {ContentTagsDisplay} from '../components/ContentTagsDisplay';
 import languageData from '../utils/language.json';
 import {useQueryClient} from '@tanstack/react-query';
 import Cinema from '../components/Cinema';
@@ -310,6 +312,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     isLoading: isLoadingDetails,
     error: movieDetailsError,
   } = useMovieDetails(movie.id);
+
+  // Generate and store thematic/emotional tags for this movie
+  const {isGenerating: isGeneratingTags, tags: contentTags} = useContentTags({
+    title: movie.title,
+    overview: movie.overview,
+    genres: movieDetails?.genres?.map((g: Genre) => g.name).join(', ') || '',
+    type: 'movie',
+    enabled: !!(movieDetails && isAIEnabled),
+  });
 
   // Set loading to false when data is available
   useEffect(() => {
@@ -1562,20 +1573,18 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   }}>
                   {isAIEnabled && (
                     <>
+                      {/* Content Tags Section */}
+                      <ContentTagsDisplay
+                        thematicTags={contentTags?.thematicTags}
+                        emotionalTags={contentTags?.emotionalTags}
+                        isLoading={isGeneratingTags}
+                      />
+
                       {isLoadingAiSimilar ? (
-                        <View
-                          style={{
-                            height: 200,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                          }}>
-                          <GradientSpinner
-                            size={24}
-                            colors={[colors.primary, colors.secondary]}
-                          />
+                        <View style={{minHeight: 200}}>
                           <Text
                             style={{
-                              fontStyle: 'italic',
+                              ...typography.body2,
                               color: colors.modal.activeBorder,
                               marginTop: spacing.md,
                               textAlign: 'center',

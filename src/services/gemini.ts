@@ -116,7 +116,7 @@ If a value is unknown, set it to null. Do not include extra fields.`;
       CACHE_KEYS.AI_TRIVIA,
       cacheKey,
       JSON.stringify(normalized),
-      7 * 24 * 60 * 60 * 1000,
+      180 * 24 * 60 * 60 * 1000, // 6 months
     );
 
     return normalized;
@@ -349,12 +349,12 @@ export async function getSimilarByStory({
       parsedArray = Array.isArray(parsed) ? parsed : [];
     }
 
-    // Cache the parsed array for 1 week to avoid type mismatch later
+    // Cache the parsed array for 6 months to avoid type mismatch later
     await cache.set(
       CACHE_KEYS.AI_SIMILAR,
       cacheKey,
       Array.isArray(parsedArray) ? parsedArray : [],
-      7 * 24 * 60 * 60 * 1000,
+      180 * 24 * 60 * 60 * 1000, // 6 months
     );
 
     return Array.isArray(parsedArray) ? parsedArray : [];
@@ -501,7 +501,7 @@ export async function getMovieTrivia({
       CACHE_KEYS.AI_TRIVIA,
       cacheKey,
       JSON.stringify(triviaFacts),
-      30 * 24 * 60 * 60 * 1000, // 30 days
+      180 * 24 * 60 * 60 * 1000, // 6 months
     );
 
     return triviaFacts;
@@ -736,12 +736,12 @@ Format: [{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2
       )
       .slice(0, 10);
 
-    // Cache for 24 hours
+    // Cache for 6 months
     await cache.set(
       CACHE_KEYS.AI_SIMILAR,
       cacheKey,
       validResults,
-      24 * 60 * 60 * 1000,
+      180 * 24 * 60 * 60 * 1000, // 6 months
     );
 
     return validResults.length > 0 ? validResults : null;
@@ -945,6 +945,10 @@ export async function compareContent(
     genre_ids?: number[];
     type: 'movie' | 'tv';
   }>,
+  userPreferences?: {
+    thematicTags?: Array<{tag: string; description: string}>;
+    emotionalTags?: Array<{tag: string; description: string}>;
+  },
 ): Promise<{
   comparisons: Array<{
     title: string;
@@ -967,6 +971,30 @@ export async function compareContent(
         }/10) - ${item.overview?.slice(0, 150) || 'No overview'}`,
     )
     .join('\n\n');
+
+  // Build user preference context
+  let preferenceContext = '';
+  if (userPreferences) {
+    const thematicList = userPreferences.thematicTags
+      ?.slice(0, 5)
+      .map(t => `"${t.tag}" (${t.description})`)
+      .join(', ');
+    const emotionalList = userPreferences.emotionalTags
+      ?.slice(0, 5)
+      .map(t => `"${t.tag}" (${t.description})`)
+      .join(', ');
+
+    if (thematicList || emotionalList) {
+      preferenceContext = `\n\nUSER'S PROVEN PREFERENCES (based on browse history):`;
+      if (thematicList) {
+        preferenceContext += `\n- Thematic Tags: ${thematicList}`;
+      }
+      if (emotionalList) {
+        preferenceContext += `\n- Emotional Tags: ${emotionalList}`;
+      }
+      preferenceContext += `\n\nPrioritize content that matches these preferences. Mention specific preference matches in your reasoning.`;
+    }
+  }
 
   const system = {
     role: 'system' as const,
@@ -1006,6 +1034,263 @@ Return ONLY a JSON object with these exact fields:
     return null;
   } catch (error) {
     console.error('Error comparing content:', error);
+    return null;
+  }
+}
+
+// Generate thematic and emotional tags for a single content item
+export async function generateTagsForContent(
+  title: string,
+  overview: string,
+  genres: string,
+  type: 'movie' | 'tv',
+): Promise<{
+  thematicTags: Array<{tag: string; description: string; confidence: number}>;
+  emotionalTags: Array<{tag: string; description: string; confidence: number}>;
+} | null> {
+  const cacheKey = `tags:${type}:${title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')}`;
+
+  // Try cache first
+  try {
+    const cached = await cache.get(CACHE_KEYS.AI_TRIVIA, cacheKey);
+    if (cached) {
+      console.log(`[generateTagsForContent] 📂 Using cached tags for "${title}"`);
+      if (typeof cached === 'string') {
+        return JSON.parse(cached);
+      }
+      return cached as any;
+    }
+  } catch (e) {
+    // proceed to fetch fresh
+  }
+
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI's content analyzer. Analyze a movie/TV show and identify:
+
+1. THEMATIC TAGS: Story themes, narrative patterns, character archetypes (e.g., "Revenge & Redemption", "Found Family", "Time Travel Paradoxes")
+2. EMOTIONAL TAGS: Emotional tones, moods, atmosphere (e.g., "Heartwarming & Uplifting", "Tense & Suspenseful", "Melancholic")
+
+Return ONLY a JSON object with 3-5 tags of each type:
+{
+  "thematicTags": [
+    {"tag": "Short tag (2-4 words)", "description": "Brief explanation", "confidence": 0.0-1.0}
+  ],
+  "emotionalTags": [
+    {"tag": "Short tag (2-4 words)", "description": "Brief explanation", "confidence": 0.0-1.0}
+  ]
+}
+
+Focus on the most prominent and distinctive tags. Confidence should reflect how strongly the tag applies.`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Analyze this ${type}:
+
+Title: ${title}
+Genres: ${genres}
+Overview: ${overview}
+
+Identify the key thematic and emotional tags.`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const tags = {
+        thematicTags: parsed.thematicTags || [],
+        emotionalTags: parsed.emotionalTags || [],
+      };
+      
+      // Cache for 6 months
+      await cache.set(
+        CACHE_KEYS.AI_TRIVIA,
+        cacheKey,
+        JSON.stringify(tags),
+        180 * 24 * 60 * 60 * 1000, // 6 months
+      );
+      
+      console.log(`[generateTagsForContent] ✅ Generated and cached tags for "${title}" (6 months)`);
+      return tags;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error generating tags for content:', error);
+    return null;
+  }
+}
+
+// Search content by thematic genre using AI
+export async function searchByThematicGenre(
+  thematicTag: string,
+): Promise<Array<{title: string; year: string; type: 'movie' | 'tv'}> | null> {
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI's content discovery assistant. Given a thematic genre/tag, recommend movies and TV shows that match this theme.
+
+Return ONLY a JSON array of 10-15 recommendations with exact titles and years:
+[
+  {"title": "Movie/Show Title", "year": "2024", "type": "movie"},
+  {"title": "Another Title", "year": "2023", "type": "tv"}
+]
+
+Focus on content that truly embodies the thematic essence, not just surface-level genre matches. Recommend diverse, well-known content that clearly represents the theme.`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Find movies and TV shows that match this thematic genre: "${thematicTag}"\n\nRecommend a diverse mix of movies and TV shows that capture this thematic essence.`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    const jsonMatch = result.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return Array.isArray(parsed) ? parsed : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error searching by thematic genre:', error);
+    return null;
+  }
+}
+
+// Search content by emotional tone using AI (with type filter)
+export async function searchByEmotionalTone(
+  emotionalTag: string,
+  contentType?: 'movie' | 'tv',
+): Promise<Array<{title: string; year: string; type: 'movie' | 'tv'}> | null> {
+  const typeFilter = contentType === 'movie' ? 'movies only' : contentType === 'tv' ? 'TV shows only' : 'movies and TV shows';
+  
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI's content discovery assistant. Given an emotional tone/mood, recommend content that matches this emotional atmosphere.
+
+Return ONLY a JSON array of 10-15 recommendations with exact titles and years:
+[
+  {"title": "Movie/Show Title", "year": "2024", "type": "movie"},
+  {"title": "Another Title", "year": "2023", "type": "tv"}
+]
+
+Focus on content that truly captures the emotional tone and atmosphere, not just genre. Recommend diverse, well-known content.`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Find ${typeFilter} that match this emotional tone: "${emotionalTag}"\n\nRecommend content that captures this emotional atmosphere and mood.${contentType ? ` IMPORTANT: Return ONLY ${contentType === 'movie' ? 'movies' : 'TV shows'} (type: "${contentType}").` : ''}`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    const jsonMatch = result.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return Array.isArray(parsed) ? parsed : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error searching by emotional tone:', error);
+    return null;
+  }
+}
+
+// Generate Thematic Genres based on user's watchlist and history
+export async function generateThematicGenres(
+  watchlistItems: Array<{
+    title?: string;
+    name?: string;
+    overview?: string;
+    genre_ids?: number[];
+    type: 'movie' | 'tv';
+  }>,
+  historyItems: Array<{
+    title?: string;
+    name?: string;
+    overview?: string;
+    genre_ids?: number[];
+    type: 'movie' | 'tv';
+  }>,
+): Promise<{
+  thematicTags: Array<{
+    tag: string;
+    description: string;
+    confidence: number;
+  }>;
+} | null> {
+  const allItems = [...watchlistItems, ...historyItems];
+
+  if (allItems.length < 3) {
+    return null;
+  }
+
+  // Create summary of content
+  const contentSummary = allItems
+    .slice(0, 50) // Limit to 50 items to avoid token limits
+    .map(
+      item =>
+        `"${item.title || item.name}" (${item.type}) - ${
+          item.overview?.slice(0, 100) || 'No overview'
+        }`,
+    )
+    .join('\n');
+
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI's thematic genre analyzer. Based on a user's watching patterns, identify deep thematic preferences beyond standard genres.
+
+Analyze the story themes, narrative patterns, character archetypes, emotional tones, and storytelling styles they prefer.
+
+Return ONLY a JSON object with 5-8 thematic tags:
+{
+  "thematicTags": [
+    {
+      "tag": "Short descriptive tag (2-4 words)",
+      "description": "Brief explanation of this theme",
+      "confidence": 0.0-1.0 (how strongly this theme appears in their content)
+    }
+  ]
+}
+
+Examples of good thematic tags:
+- "Underdog Triumphs"
+- "Mind-Bending Mysteries"
+- "Found Family Bonds"
+- "Moral Ambiguity"
+- "Time Travel Paradoxes"
+- "Revenge & Redemption"
+- "Coming of Age"
+- "Dystopian Futures"
+- "Heist & Strategy"
+- "Supernatural Romance"
+
+Focus on narrative themes, not standard genres like "Action" or "Drama".`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Analyze these ${allItems.length} movies/shows and identify thematic patterns:\n\n${contentSummary}`,
+  };
+
+  try {
+    const result = await callGemini([system, user]);
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        thematicTags: (parsed.thematicTags || [])
+          .filter((tag: any) => tag.confidence >= 0.5) // Only high-confidence tags
+          .slice(0, 8), // Max 8 tags
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error generating thematic genres:', error);
     return null;
   }
 }
