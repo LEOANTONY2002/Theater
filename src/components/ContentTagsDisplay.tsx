@@ -39,7 +39,15 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+        ]}>
         <GradientSpinner colors={[colors.primary, colors.secondary]} />
         <View style={styles.loadingContainer}>
           <Ionicon name="sparkles" size={20} color={colors.text.muted} />
@@ -130,7 +138,7 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginVertical: spacing.md,
-    minHeight: 250,
+    minHeight: 400,
   },
   loadingContainer: {
     flexDirection: 'row',

@@ -60,6 +60,7 @@ import {
   useMyLanguage,
   useMoviesByLanguageSimpleHook,
   useTVByLanguageSimpleHook,
+  useAvailableProviders,
 } from '../hooks/usePersonalization';
 import {OttRowMovies} from '../components/OttRowMovies';
 import {OttTabbedSection} from '../components/OttTabbedSection';
@@ -76,6 +77,7 @@ import {HistoryManager} from '../store/history';
 import {useIsFocused} from '@react-navigation/native';
 import {WatchlistAISection} from '../components/WatchlistAISection';
 import {ThematicGenres} from '../components/ThematicGenres';
+import {OTTCardsRow} from '../components/OTTCardsRow';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -280,7 +282,11 @@ export const HomeScreen = React.memo(() => {
   // My OTTs (Home): get first 3 or fallback to Netflix/Prime/Disney
   const {data: myOTTs = []} = useMyOTTs();
   const {data: myLanguage} = useMyLanguage();
-  const defaultOTTs =
+  
+  // Fetch available providers to enrich fallback OTTs with logos
+  const {data: availableProviders = []} = useAvailableProviders(region?.iso_3166_1);
+  
+  const defaultOTTIds =
     region?.iso_3166_1 === 'IN'
       ? [
           {id: 8, provider_name: 'Netflix'},
@@ -292,11 +298,25 @@ export const HomeScreen = React.memo(() => {
           {id: 10, provider_name: 'Amazon Video'},
           {id: 337, provider_name: 'Disney+'},
         ];
+  
+  // Enrich default OTTs with logo_path from available providers
+  const defaultOTTs = defaultOTTIds.map(defaultOtt => {
+    const matchingProvider = availableProviders.find(
+      (p: any) => p.provider_id === defaultOtt.id
+    );
+    return {
+      id: defaultOtt.id,
+      provider_name: defaultOtt.provider_name,
+      logo_path: matchingProvider?.logo_path || undefined,
+    };
+  });
+  
   const baseOTTs = myOTTs && myOTTs.length ? myOTTs : defaultOTTs;
   const normalizeProvider = (p: any) => {
     const nameRaw = p?.provider_name ?? p?.name ?? '';
     let id = p?.id ?? p?.provider_id;
     let provider_name = nameRaw || 'Provider';
+    let logo_path = p?.logo_path;
     // Prime mapping
     if (/prime\s*video/i.test(provider_name) || id === 9 || id === 119) {
       if (region?.iso_3166_1 === 'IN') {
@@ -322,7 +342,7 @@ export const HomeScreen = React.memo(() => {
         if (!nameRaw) provider_name = 'Disney+';
       }
     }
-    return {id, provider_name};
+    return {id, provider_name, logo_path};
   };
   const allOttsNormalized = baseOTTs.map(normalizeProvider);
   // no fixed hooks here; each provider will be rendered by its own OttRowMovies component
@@ -662,6 +682,15 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
+    // My OTTs Cards Row
+    if (allOttsNormalized.length > 0) {
+      sectionsList.push({
+        id: 'ottCardsRow',
+        type: 'ottCardsRow',
+        data: allOttsNormalized,
+      });
+    }
+
     // Watchlist AI Recommendations section
     if (isAIEnabled) {
       sectionsList.push({
@@ -940,6 +969,9 @@ export const HomeScreen = React.memo(() => {
 
         case 'thematicGenres':
           return <ThematicGenres />;
+
+        case 'ottCardsRow':
+          return <OTTCardsRow otts={item.data} />;
 
         case 'watchlistAISection':
           return <WatchlistAISection />;

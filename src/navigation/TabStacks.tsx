@@ -24,6 +24,7 @@ import AISettingsScreen from '../screens/AISettings';
 import AboutLegalScreen from '../screens/AboutLegal';
 import {ThematicGenreResultsScreen} from '../screens/ThematicGenreResults';
 import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
+import {OTTDetailsScreen} from '../screens/OTTDetails';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -106,6 +107,14 @@ export const HomeStackNavigator = () => (
     <HomeStack.Screen
       name="ThematicGenreResults"
       component={ThematicGenreResultsScreen}
+      options={{
+        headerShown: false,
+        ...modalScreenOptions,
+      }}
+    />
+    <HomeStack.Screen
+      name="OTTDetails"
+      component={OTTDetailsScreen}
       options={{
         headerShown: false,
         ...modalScreenOptions,

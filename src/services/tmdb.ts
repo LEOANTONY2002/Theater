@@ -662,6 +662,78 @@ export const getShowsByLanguageSimple = async (iso6391: string, page = 1) => {
   return response.data;
 };
 
+// Trending movies by OTT provider
+export const getTrendingMoviesByOTT = async (providerId: number, page = 1) => {
+  if (!providerId) return {results: [], page: 1, total_pages: 1};
+  const region = await SettingsManager.getRegion();
+  
+  // Get trending movies first
+  const trendingResponse = await tmdbApi.get('/trending/movie/week', {
+    params: {page, include_adult: false},
+  });
+  
+  // Filter by provider availability
+  const moviesWithProvider = await Promise.all(
+    trendingResponse.data.results.map(async (movie: any) => {
+      try {
+        const providersResponse = await tmdbApi.get(`/movie/${movie.id}/watch/providers`);
+        const providers = providersResponse.data.results?.[region?.iso_3166_1 || 'US'];
+        
+        if (providers?.flatrate?.some((p: any) => p.provider_id === providerId)) {
+          return movie;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  
+  const filteredResults = moviesWithProvider.filter(m => m !== null);
+  
+  return {
+    ...trendingResponse.data,
+    results: filteredResults,
+    total_results: filteredResults.length,
+  };
+};
+
+// Trending TV shows by OTT provider
+export const getTrendingTVByOTT = async (providerId: number, page = 1) => {
+  if (!providerId) return {results: [], page: 1, total_pages: 1};
+  const region = await SettingsManager.getRegion();
+  
+  // Get trending TV shows first
+  const trendingResponse = await tmdbApi.get('/trending/tv/week', {
+    params: {page, include_adult: false},
+  });
+  
+  // Filter by provider availability
+  const showsWithProvider = await Promise.all(
+    trendingResponse.data.results.map(async (show: any) => {
+      try {
+        const providersResponse = await tmdbApi.get(`/tv/${show.id}/watch/providers`);
+        const providers = providersResponse.data.results?.[region?.iso_3166_1 || 'US'];
+        
+        if (providers?.flatrate?.some((p: any) => p.provider_id === providerId)) {
+          return show;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  
+  const filteredResults = showsWithProvider.filter(s => s !== null);
+  
+  return {
+    ...trendingResponse.data,
+    results: filteredResults,
+    total_results: filteredResults.length,
+  };
+};
+
 export const discoverContent = async (savedFilters: any = []) => {
   return await Promise.all(
     savedFilters.map(async (filter: SavedFilter) => {

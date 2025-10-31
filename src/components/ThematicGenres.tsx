@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.modal.blur,
     marginRight: spacing.sm,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   tagCardTablet: {
     width: 200,

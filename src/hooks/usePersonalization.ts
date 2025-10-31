@@ -11,6 +11,8 @@ import {
   discoverMovies,
   discoverTVShows,
   getAvailableWatchProviders,
+  getTrendingMoviesByOTT,
+  getTrendingTVByOTT,
 } from '../services/tmdbWithCache';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
@@ -207,6 +209,32 @@ export function useTVByLanguageSimpleHook(iso?: string) {
     queryKey: ['language_tv_simple', iso],
     enabled: !!iso,
     queryFn: ({pageParam = 1}) => getShowsByLanguageSimple(iso as string, pageParam as number),
+    getNextPageParam: (last: any) =>
+      last?.page < last?.total_pages ? last.page + 1 : undefined,
+    initialPageParam: 1,
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useTrendingMoviesByOTT(providerId?: number) {
+  return useInfiniteQuery({
+    queryKey: ['trending_movies_by_ott', providerId],
+    enabled: !!providerId,
+    queryFn: ({pageParam = 1}) => getTrendingMoviesByOTT(providerId as number, pageParam as number),
+    getNextPageParam: (last: any) =>
+      last?.page < last?.total_pages ? last.page + 1 : undefined,
+    initialPageParam: 1,
+    gcTime: CACHE_TIME,
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useTrendingTVByOTT(providerId?: number) {
+  return useInfiniteQuery({
+    queryKey: ['trending_tv_by_ott', providerId],
+    enabled: !!providerId,
+    queryFn: ({pageParam = 1}) => getTrendingTVByOTT(providerId as number, pageParam as number),
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
     initialPageParam: 1,

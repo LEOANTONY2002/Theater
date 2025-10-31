@@ -7,6 +7,7 @@ import {CategoryScreen} from '../screens/CategoryScreen';
 import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {ThematicGenreResultsScreen} from '../screens/ThematicGenreResults';
+import {OTTDetailsScreen} from '../screens/OTTDetails';
 import {HomeStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 
@@ -27,7 +28,11 @@ export const HomeNavigator = () => {
       <Stack.Screen name="Category" component={CategoryScreen} />
       <Stack.Screen name="Genre" component={GenreScreen} />
       <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} />
-      <Stack.Screen name="ThematicGenreResults" component={ThematicGenreResultsScreen} />
+      <Stack.Screen
+        name="ThematicGenreResults"
+        component={ThematicGenreResultsScreen}
+      />
+      <Stack.Screen name="OTTDetails" component={OTTDetailsScreen} />
     </Stack.Navigator>
   );
 };

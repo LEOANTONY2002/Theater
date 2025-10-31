@@ -26,9 +26,10 @@ export type HomeStackParamList = {
   TVShowDetails: {show: TVShow};
   Category: {
     title: string;
-    categoryType: MovieCategoryType | TVShowCategoryType;
+    categoryType?: MovieCategoryType | TVShowCategoryType;
     contentType: ContentType;
     genreId?: number;
+    filter?: any;
   };
   Genre: {
     genreId: number;
@@ -43,6 +44,11 @@ export type HomeStackParamList = {
   ThematicGenreResults: {
     tag: string;
     description: string;
+  };
+  OTTDetails: {
+    ottId: number;
+    ottName: string;
+    ottLogo?: string;
   };
 };
 

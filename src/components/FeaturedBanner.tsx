@@ -516,9 +516,13 @@ export const FeaturedBanner = memo(
           extrapolate: 'clamp',
         });
 
+        // Detect the actual type of this slide
+        const slideType = (slide as any).type || 
+          ((slide as any).title ? 'movie' : 'tv');
+        
         // Local handlers bound to slide to avoid depending on `current`
         const onPress = () => {
-          if (type === 'movie') {
+          if (slideType === 'movie') {
             navigateWithLimit('MovieDetails', {movie: slide as Movie});
           } else {
             navigateWithLimit('TVShowDetails', {show: slide as TVShow});
@@ -614,7 +618,7 @@ export const FeaturedBanner = memo(
                   alignItems: 'center',
                 }}>
                 <Text style={[styles.title, {textAlign: 'center'}]}>
-                  {type === 'movie'
+                  {slideType === 'movie'
                     ? (slide as Movie).title
                     : (slide as TVShow).name}
                 </Text>
@@ -622,16 +626,21 @@ export const FeaturedBanner = memo(
                   <View style={styles.genreContainer}>
                     {slide.genre_ids
                       ?.slice(0, 3)
-                      .map((genreId: number, idx: number) => (
+                      .map((genreId: number) => {
+                        const genreName = slideType === 'movie' 
+                          ? movieGenres[genreId] 
+                          : tvGenres[genreId];
+                        return genreName ? {id: genreId, name: genreName} : null;
+                      })
+                      .filter((g): g is {id: number; name: string} => g !== null)
+                      .map((genre, idx, arr) => (
                         <View
-                          key={`${genreId}-${idx}`}
+                          key={`${genre.id}-${idx}`}
                           style={styles.genreWrapper}>
                           <Text style={styles.genre}>
-                            {type === 'movie'
-                              ? movieGenres[genreId]
-                              : tvGenres[genreId]}
+                            {genre.name}
                           </Text>
-                          {idx < Math.min(slide.genre_ids.length - 1, 2) && (
+                          {idx < arr.length - 1 && (
                             <Text style={styles.genreDot}>•</Text>
                           )}
                         </View>

@@ -11,10 +11,14 @@ class CacheManager {
   private static instance: CacheManager;
   private memoryCache: Map<string, CacheEntry<any>>;
   private readonly PREFIX = '@cache_';
-  private readonly MEMORY_CACHE_LIMIT = 50; // Max items in memory cache
+  private readonly MEMORY_CACHE_LIMIT = 100; // Max items in memory cache (increased from 50)
+  private readonly STORAGE_CACHE_LIMIT = 500; // Max items in AsyncStorage (increased from 200 to allow more AI caches)
+  private cleanupScheduled = false;
 
   private constructor() {
     this.memoryCache = new Map();
+    // Schedule cleanup on initialization
+    this.scheduleCleanup();
   }
 
   public static getInstance(): CacheManager {
@@ -44,52 +48,32 @@ class CacheManager {
     // Update memory cache
     this.memoryCache.set(cacheKey, entry);
 
-    // Enforce memory limit
+    // Enforce memory limit using LRU
     if (this.memoryCache.size > this.MEMORY_CACHE_LIMIT) {
-      // Remove oldest entry
+      // Remove oldest entry (LRU)
       const oldestKey = this.memoryCache.keys().next().value;
       if (oldestKey) {
         this.memoryCache.delete(oldestKey);
       }
     }
 
-    // Persist to storage
-    try {
-      await AsyncStorage.setItem(cacheKey, JSON.stringify(entry));
-    } catch (error) {
-      console.error('Error saving to cache:', error);
-    }
+    // NOTE: We no longer persist AI caches to AsyncStorage
+    // TanStack Query already handles in-memory caching with proper TTL
+    // AsyncStorage should only be used for user data (watchlists, preferences, etc.)
   }
 
   async get<T>(prefix: string, key: string): Promise<T | null> {
     const cacheKey = this.getKey(prefix, key);
     const now = Date.now();
 
-    // Check memory cache first
+    // Check memory cache only (no AsyncStorage lookup)
     const memoryEntry = this.memoryCache.get(cacheKey);
     if (memoryEntry) {
       if (now - memoryEntry.timestamp < memoryEntry.ttl) {
         return memoryEntry.data as T;
       }
+      // Expired, remove from memory
       this.memoryCache.delete(cacheKey);
-    }
-
-    // Check persistent storage
-    try {
-      const stored = await AsyncStorage.getItem(cacheKey);
-      if (!stored) return null;
-
-      const entry = JSON.parse(stored) as CacheEntry<T>;
-      if (now - entry.timestamp < entry.ttl) {
-        // Update memory cache
-        this.memoryCache.set(cacheKey, entry);
-        return entry.data;
-      } else {
-        // Remove expired entry
-        await AsyncStorage.removeItem(cacheKey);
-      }
-    } catch (error) {
-      console.error('Error reading from cache:', error);
     }
 
     return null;
@@ -115,6 +99,30 @@ class CacheManager {
     } catch (error) {
       console.error('Error clearing cache:', error);
     }
+  }
+
+  private async cleanupOldAsyncStorageEntries(): Promise<void> {
+    // One-time cleanup of old @cache_ entries from AsyncStorage
+    // This removes legacy AI cache entries that were persisted before this fix
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const oldCacheKeys = keys.filter(key => key.startsWith(this.PREFIX));
+      
+      if (oldCacheKeys.length > 0) {
+        console.log(`[Cache] Cleaning up ${oldCacheKeys.length} old AsyncStorage cache entries (one-time migration)`);
+        await AsyncStorage.multiRemove(oldCacheKeys);
+      }
+    } catch (error) {
+      console.error('[Cache] Error during AsyncStorage cleanup:', error);
+    }
+  }
+
+  private scheduleCleanup(): void {
+    if (this.cleanupScheduled) return;
+    this.cleanupScheduled = true;
+
+    // Run one-time cleanup of old AsyncStorage entries
+    this.cleanupOldAsyncStorageEntries();
   }
 }
 

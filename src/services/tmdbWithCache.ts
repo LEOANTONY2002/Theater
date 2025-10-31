@@ -76,6 +76,30 @@ class TMDBWithCacheService {
     );
   }
 
+  async getTrendingMoviesByOTT(providerId: number, page = 1): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'trending_movies_by_ott',
+      identifier: `${providerId}_${page}`,
+    };
+    return this.tryOnlineFirst(
+      () => tmdbService.getTrendingMoviesByOTT(providerId, page) as any,
+      cacheKey,
+      offlineCache['TTL_CONFIG'].trending,
+    );
+  }
+
+  async getTrendingTVByOTT(providerId: number, page = 1): Promise<CacheableResponse> {
+    const cacheKey = {
+      type: 'trending_tv_by_ott',
+      identifier: `${providerId}_${page}`,
+    };
+    return this.tryOnlineFirst(
+      () => tmdbService.getTrendingTVByOTT(providerId, page) as any,
+      cacheKey,
+      offlineCache['TTL_CONFIG'].trending,
+    );
+  }
+
   private async checkConnectivity(): Promise<void> {
     this.isOnline = await checkInternet();
   }
@@ -665,3 +689,7 @@ export const getTrendingTVShows = (
 ) => tmdbWithCache.getTrendingTVShows(timeWindow, page);
 export const getSeasonDetails = (tvId: number, seasonNumber: number) =>
   tmdbWithCache.getSeasonDetails(tvId, seasonNumber);
+export const getTrendingMoviesByOTT = (providerId: number, page?: number) =>
+  tmdbWithCache.getTrendingMoviesByOTT(providerId, page);
+export const getTrendingTVByOTT = (providerId: number, page?: number) =>
+  tmdbWithCache.getTrendingTVByOTT(providerId, page);
