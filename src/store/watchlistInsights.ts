@@ -1,7 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const INSIGHTS_KEY = '@watchlist_insights';
-const RECOMMENDATIONS_KEY = '@watchlist_recommendations';
+import {getRealm} from '../database/realm';
+import Realm from 'realm';
 
 export interface WatchlistInsight {
   watchlistHash: string; // Hash of watchlist item IDs
@@ -9,7 +7,28 @@ export interface WatchlistInsight {
   topGenres: string[];
   averageRating: number;
   decadeDistribution: Record<string, number>;
+  contentTypeSplit: {movies: number; tvShows: number};
+  moodProfile: {
+    dominant: string;
+    secondary: string;
+    traits: string[];
+  };
+  hiddenGems: Array<{title: string; type: string; reason: string}>;
+  contentFreshness: {
+    preference: string;
+    recentPercentage: number;
+    note: string;
+  };
+  completionInsight: {
+    estimatedWatchTime: string;
+    bingeability: number;
+    suggestion: string;
+  };
   recommendations: string;
+  recommendedTitles: Array<{
+    title: string;
+    type: 'movie' | 'tv';
+  }>;
   timestamp: number;
 }
 
@@ -43,25 +62,28 @@ export class WatchlistInsightsManager {
   // Save insights
   static async saveInsights(
     watchlistHash: string,
-    data: {
-      insights: string[];
-      topGenres: string[];
-      averageRating: number;
-      decadeDistribution: Record<string, number>;
-      recommendations: string;
-    },
+    data: Omit<WatchlistInsight, 'watchlistHash' | 'timestamp'>,
   ): Promise<void> {
     try {
-      const insight: WatchlistInsight = {
-        watchlistHash,
-        ...data,
-        timestamp: Date.now(),
-      };
-      await AsyncStorage.setItem(
-        `${INSIGHTS_KEY}:${watchlistHash}`,
-        JSON.stringify(insight),
-      );
-      console.log('💾 Saved watchlist insights:', watchlistHash);
+      const realm = getRealm();
+      realm.write(() => {
+        realm.create('WatchlistInsight', {
+          _id: watchlistHash,
+          insights: JSON.stringify(data.insights),
+          topGenres: JSON.stringify(data.topGenres),
+          averageRating: data.averageRating,
+          decadeDistribution: JSON.stringify(data.decadeDistribution),
+          contentTypeSplit: JSON.stringify(data.contentTypeSplit),
+          moodProfile: JSON.stringify(data.moodProfile),
+          hiddenGems: JSON.stringify(data.hiddenGems),
+          contentFreshness: JSON.stringify(data.contentFreshness),
+          completionInsight: JSON.stringify(data.completionInsight),
+          recommendations: data.recommendations,
+          recommendedTitles: JSON.stringify(data.recommendedTitles),
+          timestamp: new Date(),
+        }, Realm.UpdateMode.Modified);
+      });
+      console.log('💾 Saved watchlist insights in Realm:', watchlistHash);
     } catch (error) {
       console.error('Error saving insights:', error);
     }
@@ -72,11 +94,36 @@ export class WatchlistInsightsManager {
     watchlistHash: string,
   ): Promise<WatchlistInsight | null> {
     try {
-      const data = await AsyncStorage.getItem(
-        `${INSIGHTS_KEY}:${watchlistHash}`,
-      );
-      if (data) {
-        return JSON.parse(data);
+      const realm = getRealm();
+      const insight = realm.objectForPrimaryKey('WatchlistInsight', watchlistHash);
+      if (insight) {
+        return {
+          watchlistHash,
+          insights: JSON.parse(insight.insights as string),
+          topGenres: JSON.parse(insight.topGenres as string),
+          averageRating: insight.averageRating as number,
+          decadeDistribution: JSON.parse(insight.decadeDistribution as string),
+          contentTypeSplit: insight.contentTypeSplit
+            ? JSON.parse(insight.contentTypeSplit as string)
+            : {movies: 50, tvShows: 50},
+          moodProfile: insight.moodProfile
+            ? JSON.parse(insight.moodProfile as string)
+            : {dominant: 'Varied', secondary: 'Diverse', traits: []},
+          hiddenGems: insight.hiddenGems
+            ? JSON.parse(insight.hiddenGems as string)
+            : [],
+          contentFreshness: insight.contentFreshness
+            ? JSON.parse(insight.contentFreshness as string)
+            : {preference: 'Balanced', recentPercentage: 50, note: ''},
+          completionInsight: insight.completionInsight
+            ? JSON.parse(insight.completionInsight as string)
+            : {estimatedWatchTime: 'Unknown', bingeability: 5, suggestion: ''},
+          recommendations: insight.recommendations as string,
+          recommendedTitles: insight.recommendedTitles
+            ? JSON.parse(insight.recommendedTitles as string)
+            : [],
+          timestamp: (insight.timestamp as Date).getTime(),
+        };
       }
       return null;
     } catch (error) {
@@ -91,21 +138,15 @@ export class WatchlistInsightsManager {
     items: WatchlistRecommendation['items'],
   ): Promise<void> {
     try {
-      const recommendation: WatchlistRecommendation = {
-        watchlistHash,
-        items,
-        timestamp: Date.now(),
-      };
-      await AsyncStorage.setItem(
-        `${RECOMMENDATIONS_KEY}:${watchlistHash}`,
-        JSON.stringify(recommendation),
-      );
-      console.log(
-        '💾 Saved watchlist recommendations:',
-        watchlistHash,
-        items.length,
-        'items',
-      );
+      const realm = getRealm();
+      realm.write(() => {
+        realm.create('WatchlistRecommendation', {
+          _id: watchlistHash,
+          items: JSON.stringify(items),
+          timestamp: new Date(),
+        }, Realm.UpdateMode.Modified);
+      });
+      console.log('💾 Saved watchlist recommendations in Realm:', watchlistHash, items.length, 'items');
     } catch (error) {
       console.error('Error saving recommendations:', error);
     }
@@ -116,11 +157,14 @@ export class WatchlistInsightsManager {
     watchlistHash: string,
   ): Promise<WatchlistRecommendation | null> {
     try {
-      const data = await AsyncStorage.getItem(
-        `${RECOMMENDATIONS_KEY}:${watchlistHash}`,
-      );
-      if (data) {
-        return JSON.parse(data);
+      const realm = getRealm();
+      const rec = realm.objectForPrimaryKey('WatchlistRecommendation', watchlistHash);
+      if (rec) {
+        return {
+          watchlistHash,
+          items: JSON.parse(rec.items as string),
+          timestamp: (rec.timestamp as Date).getTime(),
+        };
       }
       return null;
     } catch (error) {
@@ -132,13 +176,14 @@ export class WatchlistInsightsManager {
   // Clear old data (call when watchlist changes significantly)
   static async clearAll(): Promise<void> {
     try {
-      const keys = await AsyncStorage.getAllKeys();
-      const insightKeys = keys.filter(
-        key =>
-          key.startsWith(INSIGHTS_KEY) || key.startsWith(RECOMMENDATIONS_KEY),
-      );
-      await AsyncStorage.multiRemove(insightKeys);
-      console.log('🗑️ Cleared all watchlist insights and recommendations');
+      const realm = getRealm();
+      realm.write(() => {
+        const insights = realm.objects('WatchlistInsight');
+        const recs = realm.objects('WatchlistRecommendation');
+        realm.delete(insights);
+        realm.delete(recs);
+      });
+      console.log('🗑️ Cleared all watchlist insights and recommendations from Realm');
     } catch (error) {
       console.error('Error clearing insights:', error);
     }

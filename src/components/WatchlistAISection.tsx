@@ -8,7 +8,6 @@ import type {Movie} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useIsFocused} from '@react-navigation/native';
 import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const WatchlistAISection: React.FC = () => {
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -31,40 +30,36 @@ export const WatchlistAISection: React.FC = () => {
     if (isFocused) {
       loadRecommendations();
     }
-  }, [isFocused]);
+  }, [isFocused, watchlists.length]); // Re-run when watchlists change
 
   const loadRecommendations = async () => {
     try {
       setLoading(true);
 
-      // Try to find any stored recommendations by checking storage keys
-      // This is a simple approach - just look for the latest analysis
-      const keys = await AsyncStorage.getAllKeys();
-      const recKeys = keys.filter((key: string) =>
-        key.startsWith('@watchlist_recommendations:'),
-      );
+      // Check if there are any watchlists first
+      if (!watchlists || watchlists.length === 0) {
+        console.log('❌ No watchlists - clearing AI recommendations');
+        setRecommendations([]);
+        return;
+      }
 
-      if (recKeys.length === 0) {
+      // Get all recommendations from Realm
+      const {getRealm} = await import('../database/realm');
+      const realm = getRealm();
+      const allRecs = realm.objects('WatchlistRecommendation').sorted('timestamp', true);
+      
+      if (allRecs.length === 0) {
         setRecommendations([]);
         return;
       }
 
       // Get the most recent one
-      const latestKey = recKeys[recKeys.length - 1];
-      const data = await AsyncStorage.getItem(latestKey);
-
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (parsed.items && parsed.items.length > 0) {
-          console.log(
-            '✅ Loaded',
-            parsed.items.length,
-            'AI recommendations for home',
-          );
-          setRecommendations(parsed.items);
-        } else {
-          setRecommendations([]);
-        }
+      const latest = allRecs[0];
+      const items = JSON.parse(latest.items as string);
+      
+      if (items && items.length > 0) {
+        console.log('✅ Loaded', items.length, 'AI recommendations from Realm for home');
+        setRecommendations(items);
       } else {
         setRecommendations([]);
       }

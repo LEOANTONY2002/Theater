@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {UserPreferencesManager} from '../database/managers';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Fontisto from 'react-native-vector-icons/Fontisto';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -261,17 +261,8 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
       try {
         setIsLoading(true);
 
-        // Save preferences with mood answers
-        const preferences = {
-          moodAnswers: updatedAnswers,
-          timestamp: Date.now(),
-        };
-
-        await AsyncStorage.setItem(
-          '@theater_user_preferences',
-          JSON.stringify(preferences),
-        );
-        await AsyncStorage.setItem('@theater_next_watch_onboarding', 'true');
+        // Save preferences with mood answers to Realm
+        await UserPreferencesManager.setPreferences([], updatedAnswers);
 
         onComplete(updatedAnswers);
       } catch (error) {

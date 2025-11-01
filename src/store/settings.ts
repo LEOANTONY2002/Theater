@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {queryClient} from '../services/queryClient';
+import {RealmSettingsManager} from '../database/managers';
 
 export interface Language {
   iso_639_1: string;
@@ -7,20 +7,8 @@ export interface Language {
   name: string;
 }
 
-const STORAGE_KEY = '@settings_content_languages';
-const LANGUAGES_CACHE_KEY = '@languages_cache';
-const MY_LANGUAGE_KEY = '@settings/my_language';
-const MY_OTTS_KEY = '@settings/my_otts';
-
 type SettingsChangeListener = () => void;
 const listeners = new Set<SettingsChangeListener>();
-
-const KEYS = {
-  LANGUAGES: '@settings/languages',
-  REGIONS: '@settings/regions',
-  SELECTED_LANGUAGE: '@settings/selected_language',
-  SELECTED_REGION: '@settings/selected_region',
-};
 
 // Add debounce utility
 function debounce(fn: (...args: any[]) => void, delay: number) {
@@ -33,14 +21,13 @@ function debounce(fn: (...args: any[]) => void, delay: number) {
 
 export const SettingsManager = {
   async getRegions(): Promise<any> {
-    const regions = await AsyncStorage.getItem(KEYS.REGIONS);
+    const regions = await RealmSettingsManager.getSetting('@settings/regions');
     return regions ? JSON.parse(regions) : [];
   },
 
-  // My Language (single selection)
   async getMyLanguage(): Promise<Language | null> {
     try {
-      const raw = await AsyncStorage.getItem(MY_LANGUAGE_KEY);
+      const raw = await RealmSettingsManager.getSetting('@settings/my_language');
       return raw ? (JSON.parse(raw) as Language) : null;
     } catch (e) {
       console.error('Error reading My Language:', e);
@@ -51,9 +38,9 @@ export const SettingsManager = {
   async setMyLanguage(lang: Language | null): Promise<void> {
     try {
       if (lang) {
-        await AsyncStorage.setItem(MY_LANGUAGE_KEY, JSON.stringify(lang));
+        await RealmSettingsManager.setSetting('@settings/my_language', JSON.stringify(lang));
       } else {
-        await AsyncStorage.removeItem(MY_LANGUAGE_KEY);
+        await RealmSettingsManager.removeSetting('@settings/my_language');
       }
       debounce(async () => {
         await Promise.all([
@@ -68,10 +55,9 @@ export const SettingsManager = {
     }
   },
 
-  // My OTTs (multi-select of providers)
   async getMyOTTs(): Promise<Array<{id: number; provider_name: string; logo_path?: string}>> {
     try {
-      const raw = await AsyncStorage.getItem(MY_OTTS_KEY);
+      const raw = await RealmSettingsManager.getSetting('@settings/my_otts');
       return raw ? JSON.parse(raw) : [];
     } catch (e) {
       console.error('Error reading My OTTs:', e);
@@ -81,7 +67,7 @@ export const SettingsManager = {
 
   async setMyOTTs(providers: Array<{id: number; provider_name: string; logo_path?: string}>): Promise<void> {
     try {
-      await AsyncStorage.setItem(MY_OTTS_KEY, JSON.stringify(providers || []));
+      await RealmSettingsManager.setSetting('@settings/my_otts', JSON.stringify(providers || []));
       debounce(async () => {
         await Promise.all([
           queryClient.invalidateQueries({queryKey: ['my_otts']}),
@@ -96,33 +82,23 @@ export const SettingsManager = {
   },
 
   async setRegions(regions: any): Promise<void> {
-    await AsyncStorage.setItem(KEYS.REGIONS, JSON.stringify(regions));
+    await RealmSettingsManager.setSetting('@settings/regions', JSON.stringify(regions));
     queryClient.invalidateQueries({queryKey: ['regions']});
   },
 
   async getRegion(): Promise<any> {
-    const region = await AsyncStorage.getItem(KEYS.SELECTED_REGION);
+    const region = await RealmSettingsManager.getSetting('@settings/selected_region');
     return region ? JSON.parse(region) : null;
-    // : {
-    //     iso_3166_1: 'US',
-    //     english_name: 'United States of America',
-    //     native_name: 'United States',
-    //   };
   },
 
   async setRegion(region: any): Promise<void> {
     try {
-      await AsyncStorage.setItem(KEYS.SELECTED_REGION, JSON.stringify(region));
-      // Debounced invalidate and refetch
+      await RealmSettingsManager.setSetting('@settings/selected_region', JSON.stringify(region));
       debounce(async () => {
         await Promise.all([
           queryClient.invalidateQueries({queryKey: ['region']}),
-          queryClient.invalidateQueries({
-            queryKey: ['top_10_movies_today_by_region'],
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ['top_10_shows_today_by_region'],
-          }),
+          queryClient.invalidateQueries({queryKey: ['top_10_movies_today_by_region']}),
+          queryClient.invalidateQueries({queryKey: ['top_10_shows_today_by_region']}),
           queryClient.invalidateQueries({queryKey: ['watchProviders']}),
           queryClient.invalidateQueries({queryKey: ['movies']}),
           queryClient.invalidateQueries({queryKey: ['tvshows']}),
@@ -131,12 +107,8 @@ export const SettingsManager = {
         ]);
         await Promise.all([
           queryClient.refetchQueries({queryKey: ['region']}),
-          queryClient.refetchQueries({
-            queryKey: ['top_10_movies_today_by_region'],
-          }),
-          queryClient.refetchQueries({
-            queryKey: ['top_10_shows_today_by_region'],
-          }),
+          queryClient.refetchQueries({queryKey: ['top_10_movies_today_by_region']}),
+          queryClient.refetchQueries({queryKey: ['top_10_shows_today_by_region']}),
           queryClient.refetchQueries({queryKey: ['watchProviders']}),
           queryClient.refetchQueries({queryKey: ['movies']}),
           queryClient.refetchQueries({queryKey: ['tvshows']}),
@@ -153,9 +125,8 @@ export const SettingsManager = {
 
   async getContentLanguages(): Promise<Language[]> {
     try {
-      const savedLanguages = await AsyncStorage.getItem(STORAGE_KEY);
+      const savedLanguages = await RealmSettingsManager.getSetting('@settings_content_languages');
       if (!savedLanguages) return [];
-
       const parsedLanguages = JSON.parse(savedLanguages);
       return Array.isArray(parsedLanguages) ? parsedLanguages : [];
     } catch (error) {
@@ -166,8 +137,7 @@ export const SettingsManager = {
 
   async setContentLanguages(languages: Language[]): Promise<void> {
     try {
-      const languagesString = JSON.stringify(languages);
-      await AsyncStorage.setItem(STORAGE_KEY, languagesString);
+      await RealmSettingsManager.setSetting('@settings_content_languages', JSON.stringify(languages));
       debounce(() => {
         queryClient.invalidateQueries({queryKey: ['watchlist']});
         queryClient.invalidateQueries({queryKey: ['selectedLanguages']});
@@ -178,48 +148,20 @@ export const SettingsManager = {
     }
   },
 
-  async getCachedLanguages(): Promise<Language[] | null> {
-    try {
-      const cachedData = await AsyncStorage.getItem(LANGUAGES_CACHE_KEY);
-      if (!cachedData) return null;
 
-      const parsedCache = JSON.parse(cachedData);
-      return Array.isArray(parsedCache) ? parsedCache : null;
-    } catch (error) {
-      console.error('Error loading cached languages:', error);
-      return null;
-    }
-  },
-
-  async setCachedLanguages(languages: Language[]): Promise<void> {
-    try {
-      const languagesString = JSON.stringify(languages);
-      await AsyncStorage.setItem(LANGUAGES_CACHE_KEY, languagesString);
-    } catch (error) {
-      console.error('Error caching languages:', error);
-    }
-  },
-
-  // Combined listener management for both language and region changes
   addChangeListener(listener: SettingsChangeListener): void {
     listeners.add(listener);
   },
 
   removeChangeListener(listener: SettingsChangeListener): void {
-    listeners.delete(listener);
   },
 
-  // Debug method to clear all storage (for testing)
   async clearStorage(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([
-        STORAGE_KEY,
-        LANGUAGES_CACHE_KEY,
-        KEYS.SELECTED_REGION,
-        KEYS.REGIONS,
-      ]);
+      await RealmSettingsManager.removeSetting('@settings_content_languages');
+      await RealmSettingsManager.removeSetting('@settings/selected_region');
     } catch (error) {
-      console.error('Error clearing storage:', error);
+      console.error('Error clearing settings storage:', error);
     }
   },
 };

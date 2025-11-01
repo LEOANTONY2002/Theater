@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {RealmSettingsManager} from '../database/managers';
 
-const STORAGE_KEY = '@settings/force_blur_all';
+const BLUR_PREFERENCE_KEY = 'blur_preference';
 
 export type ThemeMode = 'glass' | 'normal';
 
@@ -12,7 +12,7 @@ export const BlurPreference = {
   async init() {
     if (cached) return;
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const raw = await RealmSettingsManager.getSetting(BLUR_PREFERENCE_KEY);
       if (raw === 'glass' || raw === 'normal') {
         mode = raw;
       } else if (raw === 'true') {
@@ -40,7 +40,7 @@ export const BlurPreference = {
   // Back-compat boolean setter
   async set(value: boolean) {
     mode = value ? 'glass' : 'normal';
-    await AsyncStorage.setItem(STORAGE_KEY, mode);
+    await RealmSettingsManager.setSetting(BLUR_PREFERENCE_KEY, mode);
     listeners.forEach(l => l());
   },
   getMode(): ThemeMode {
@@ -48,7 +48,7 @@ export const BlurPreference = {
   },
   async setMode(next: ThemeMode) {
     mode = next;
-    await AsyncStorage.setItem(STORAGE_KEY, mode);
+    await RealmSettingsManager.setSetting(BLUR_PREFERENCE_KEY, mode);
     listeners.forEach(l => l());
   },
   subscribe(listener: () => void) {

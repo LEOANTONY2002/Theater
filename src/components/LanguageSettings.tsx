@@ -9,11 +9,10 @@ import {
   FlatList,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {getLanguages} from '../services/tmdb';
+import languageData from '../utils/language.json';
 import {SettingsManager, Language} from '../store/settings';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import {GradientSpinner} from './GradientSpinner';
 
 // Define suggested language codes
 const SUGGESTED_LANGUAGE_CODES = [
@@ -28,19 +27,6 @@ const SUGGESTED_LANGUAGE_CODES = [
   'de', // German
   'it', // Italian
 ];
-
-const fetchLanguages = async () => {
-  // Try to get cached languages first
-  const cachedLanguages = await SettingsManager.getCachedLanguages();
-  if (cachedLanguages) {
-    return cachedLanguages;
-  }
-
-  // If no cache, fetch from API and cache
-  const languages = await getLanguages();
-  await SettingsManager.setCachedLanguages(languages);
-  return languages;
-};
 
 interface LanguageSettingsProps {
   isTitle?: boolean;
@@ -60,16 +46,8 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
   const queryClient = useQueryClient();
   const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([]);
 
-  // Query for all languages
-  const {data: languages = [], isLoading: isLoadingLanguages} = useQuery({
-    queryKey: ['languages'],
-    queryFn: fetchLanguages,
-    staleTime: Infinity,
-    gcTime: 1000 * 60 * 60 * 24, // 24h
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
+  // Languages are static - use directly from JSON
+  const languages = languageData as Language[];
 
   // Query for selected languages with enabled setting
   const {data: savedLanguages = [], isLoading: isLoadingSaved} = useQuery<
@@ -145,8 +123,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
     }
   };
 
-  const isLoading =
-    isLoadingLanguages || (!disablePersistence && isLoadingSaved);
+  const isLoading = !disablePersistence && isLoadingSaved;
 
   // Sort and partition languages (memoized)
   const sortedLanguages = useMemo(() => {
@@ -200,15 +177,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <GradientSpinner
-            size={30}
-            style={{
-              marginTop: 150,
-              alignItems: 'center',
-              alignSelf: 'center',
-            }}
-            color={colors.modal.activeBorder}
-          />
+          <Text style={styles.description}>Loading...</Text>
         </View>
       ) : (
         <>

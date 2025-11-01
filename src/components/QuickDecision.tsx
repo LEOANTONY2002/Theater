@@ -22,7 +22,6 @@ import {BlurView} from '@react-native-community/blur';
 import {useQuery} from '@tanstack/react-query';
 import {getImageUrl} from '../services/tmdbWithCache';
 import {GradientSpinner} from './GradientSpinner';
-import {thematicTagsManager} from '../store/thematicTags';
 
 interface QuickDecisionProps {
   visible: boolean;
@@ -75,27 +74,7 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
         type: item.type,
       }));
 
-      // Fetch user's top preferences
-      const thematicTags = await thematicTagsManager.getTopTags(5, 'thematic');
-      const emotionalTags = await thematicTagsManager.getTopTags(5, 'emotional');
-
-      const userPreferences = {
-        thematicTags: thematicTags.map(t => ({
-          tag: t.tag,
-          description: t.description,
-        })),
-        emotionalTags: emotionalTags.map(t => ({
-          tag: t.tag,
-          description: t.description,
-        })),
-      };
-
-      console.log('📊 User preferences:', {
-        thematic: userPreferences.thematicTags.map(t => t.tag),
-        emotional: userPreferences.emotionalTags.map(t => t.tag),
-      });
-
-      const result = await compareContent(itemsForComparison, userPreferences);
+      const result = await compareContent(itemsForComparison);
       if (!result) {
         throw new Error('Could not compare items. Please try again.');
       }
@@ -103,8 +82,8 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
       return result;
     },
     enabled: items.length >= 2, // Always enabled if items exist
-    staleTime: 1000 * 60 * 60 * 24 * 180, // Cache for 6 months
-    gcTime: 1000 * 60 * 60 * 24 * 180, // Keep in cache for 6 months
+    staleTime: 1000 * 60 * 60 * 24 * 7, // Cache for 7 days (not stored in Realm)
+    gcTime: 1000 * 60 * 60 * 24 * 7, // Keep in cache for 7 days
     refetchOnMount: false, // Don't refetch on mount if data is fresh
     refetchOnWindowFocus: false, // Don't refetch on window focus
     refetchOnReconnect: false, // Don't refetch on reconnect

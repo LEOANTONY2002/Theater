@@ -38,8 +38,11 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
       : 'w185'; // poster on phone
     const imageUrl = imgPath ? getImageUrl(imgPath, tmdbSize) : '';
 
+    // For TV shows, prefer 'name' over 'title'. For movies, use 'title'
     const title =
-      'title' in item ? item.title : 'name' in item ? item.name : '';
+      item.type === 'tv'
+        ? (item as any).name || (item as any).title || ''
+        : (item as any).title || (item as any).name || '';
 
     const handlePress = useCallback(() => {
       onPress(item);
@@ -143,8 +146,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.secondary,
     fontWeight: '600',
-    marginBottom: spacing.xs,
-    width: 150,
+    marginTop: spacing.xs,
+    textAlign: 'center',
     fontFamily: 'Inter_18pt-Regular',
   },
 });

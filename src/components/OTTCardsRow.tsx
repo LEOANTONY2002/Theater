@@ -1,8 +1,16 @@
 import React, {useCallback} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Image, ScrollView} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ScrollView,
+} from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {OTTProvider} from '../hooks/usePersonalization';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface Props {
   otts: OTTProvider[];
@@ -43,8 +51,8 @@ export const OTTCardsRow: React.FC<Props> = ({otts, title = 'My OTTs'}) => {
         contentContainerStyle={styles.cardsContainer}>
         {otts.map((ott, index) => (
           <TouchableOpacity
-            key={`ott-${ott.id}-${index}`}
             style={styles.card}
+            key={`ott-${ott.id}-${index}`}
             onPress={() => handleOTTPress(ott)}
             activeOpacity={0.8}>
             <View style={styles.logoContainer}>
@@ -59,7 +67,7 @@ export const OTTCardsRow: React.FC<Props> = ({otts, title = 'My OTTs'}) => {
                 />
               ) : (
                 <View style={styles.placeholderLogo}>
-                  <Text style={styles.placeholderText}>
+                  <Text numberOfLines={1} style={styles.placeholderText}>
                     {ott.provider_name.charAt(0)}
                   </Text>
                 </View>
@@ -99,20 +107,18 @@ const styles = StyleSheet.create({
     paddingRight: spacing.xl,
   },
   card: {
-    width: 120,
-    backgroundColor: colors.background.secondary,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    padding: spacing.sm,
+    paddingRight: spacing.lg,
+    flexDirection: 'row',
+    gap: spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.modal.border,
-    minHeight: 120,
+    borderColor: colors.modal.blur,
+    width: 200,
+    backgroundColor: colors.modal.blur,
   },
   logoContainer: {
-    width: 60,
-    height: 60,
-    marginBottom: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -135,9 +141,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   ottName: {
-    ...typography.body2,
-    color: colors.text.primary,
+    ...typography.h3,
+    color: colors.text.muted,
     textAlign: 'center',
-    fontFamily: 'Inter_18pt-Regular',
+    fontWeight: '700',
+    maxWidth: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

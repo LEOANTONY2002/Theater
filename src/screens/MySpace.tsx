@@ -36,7 +36,7 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import packageJson from '../../package.json';
 import {AISettingsManager} from '../store/aiSettings';
 import {useResponsive} from '../hooks/useResponsive';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {UserPreferencesManager, RealmSettingsManager} from '../database/managers';
 import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {BlurPreference} from '../store/blurPreference';
@@ -234,21 +234,16 @@ export const MySpaceScreen = React.memo(() => {
 
   const loadMoodAnswers = async () => {
     try {
-      const preferences = await AsyncStorage.getItem(
-        '@theater_user_preferences',
-      );
-      if (preferences) {
-        const parsed = JSON.parse(preferences);
-        if (parsed.moodAnswers) {
-          setMoodAnswers(parsed.moodAnswers);
-          if (parsed.timestamp) {
-            const date = new Date(parsed.timestamp);
-            setLastMoodUpdate(date.toLocaleDateString());
-          }
+      const preferences = await UserPreferencesManager.getPreferences();
+      if (preferences && preferences.moodAnswers) {
+        setMoodAnswers(preferences.moodAnswers);
+        if (preferences.timestamp) {
+          const date = new Date(preferences.timestamp);
+          setLastMoodUpdate(date.toLocaleDateString());
         }
       }
     } catch (error) {
-      console.error('Error loading mood answers:', error);
+      console.error('[MySpace] Error loading mood answers from Realm:', error);
     }
   };
 
@@ -291,24 +286,9 @@ export const MySpaceScreen = React.memo(() => {
     [key: string]: string;
   }) => {
     try {
-      // Clear old data first
-      await AsyncStorage.multiRemove([
-        '@theater_user_preferences',
-        '@theater_user_feedback',
-        '@theater_next_watch_onboarding',
-      ]);
-
-      // Save fresh mood data
-      const preferences = {
-        moodAnswers: newMoodAnswers,
-        timestamp: Date.now(),
-      };
-
-      await AsyncStorage.setItem(
-        '@theater_user_preferences',
-        JSON.stringify(preferences),
-      );
-      await AsyncStorage.setItem('@theater_next_watch_onboarding', 'true');
+      // Save fresh mood data to Realm
+      await UserPreferencesManager.setPreferences([], newMoodAnswers);
+      await RealmSettingsManager.setSetting('next_watch_onboarding', 'true');
 
       // Update local state
       setMoodAnswers(newMoodAnswers);
@@ -327,10 +307,10 @@ export const MySpaceScreen = React.memo(() => {
 
       setShowMoodModal(false);
 
-      // Store a flag to indicate mood was updated
-      await AsyncStorage.setItem('@theater_mood_updated', 'true');
+      // Store a flag to indicate mood was updated (using Realm)
+      await RealmSettingsManager.setSetting('mood_updated', 'true');
     } catch (error) {
-      console.error('Error updating mood preferences:', error);
+      console.error('[MySpace] Error updating mood preferences:', error);
     }
   };
 

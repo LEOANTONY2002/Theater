@@ -264,11 +264,11 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReached={onEndReached}
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
-            initialNumToRender={6}
-            windowSize={5}
-            maxToRenderPerBatch={6}
-            updateCellsBatchingPeriod={50}
-            removeClippedSubviews={false}
+            initialNumToRender={4}
+            windowSize={3}
+            maxToRenderPerBatch={3}
+            updateCellsBatchingPeriod={100}
+            removeClippedSubviews={true}
             getItemLayout={getItemLayout}
             decelerationRate={Platform.OS === 'ios' ? 'fast' : 0.98}
             ListFooterComponent={

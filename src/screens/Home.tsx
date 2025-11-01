@@ -48,11 +48,15 @@ import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 import {MyNextWatch} from '../components/MyNextWatch';
-import {BecauseYouWatched} from '../components/BecauseYouWatched';
 import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  UserPreferencesManager,
+  RealmSettingsManager,
+  AIPersonalizationCacheManager,
+} from '../database/managers';
+import {RecentSearchItemsManager} from '../store/recentSearchItems';
+import {HistoryManager} from '../store/history';
 import FastImage from 'react-native-fast-image';
-import {MaybeBlurView} from '../components/MaybeBlurView';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {cache, CACHE_KEYS} from '../utils/cache';
 import {
@@ -62,7 +66,6 @@ import {
   useTVByLanguageSimpleHook,
   useAvailableProviders,
 } from '../hooks/usePersonalization';
-import {OttRowMovies} from '../components/OttRowMovies';
 import {OttTabbedSection} from '../components/OttTabbedSection';
 import {MoviesTabbedSection} from '../components/MoviesTabbedSection';
 import {TVShowsTabbedSection} from '../components/TVShowsTabbedSection';
@@ -73,7 +76,6 @@ import {MyLanguageTVShowsInOTTsSection} from '../components/MyLanguageTVShowsInO
 import {useNavigation} from '@react-navigation/native';
 import {usePersonalizedRecommendations} from '../hooks/usePersonalizedRecommendations';
 import {PersonalizedBanner} from '../components/PersonalizedBanner';
-import {HistoryManager} from '../store/history';
 import {useIsFocused} from '@react-navigation/native';
 import {WatchlistAISection} from '../components/WatchlistAISection';
 import {ThematicGenres} from '../components/ThematicGenres';
@@ -102,11 +104,8 @@ export const HomeScreen = React.memo(() => {
   const [moodLoaded, setMoodLoaded] = useState(false);
   // Increment only when mood is updated to signal MyNextWatch to refresh
   const [moodVersion, setMoodVersion] = useState(0);
-  // Seed for remounting BecauseYouWatched when recent searches changed
-  const [becauseSeed, setBecauseSeed] = useState(0);
-  // Track last history hash used for personalized recommendations
-  const [lastHistoryHash, setLastHistoryHash] = useState<string>('');
   const appState = useRef(AppState.currentState);
+  const hasCheckedHistoryOnAppOpen = useRef(false);
   // We no longer force-remount MyNextWatch on Home focus; it can refresh itself via its own UI
   // const [moodRefreshKey, setMoodRefreshKey] = useState(0);
   const queryClient = useQueryClient();
@@ -282,10 +281,12 @@ export const HomeScreen = React.memo(() => {
   // My OTTs (Home): get first 3 or fallback to Netflix/Prime/Disney
   const {data: myOTTs = []} = useMyOTTs();
   const {data: myLanguage} = useMyLanguage();
-  
+
   // Fetch available providers to enrich fallback OTTs with logos
-  const {data: availableProviders = []} = useAvailableProviders(region?.iso_3166_1);
-  
+  const {data: availableProviders = []} = useAvailableProviders(
+    region?.iso_3166_1,
+  );
+
   const defaultOTTIds =
     region?.iso_3166_1 === 'IN'
       ? [
@@ -298,11 +299,11 @@ export const HomeScreen = React.memo(() => {
           {id: 10, provider_name: 'Amazon Video'},
           {id: 337, provider_name: 'Disney+'},
         ];
-  
+
   // Enrich default OTTs with logo_path from available providers
   const defaultOTTs = defaultOTTIds.map(defaultOtt => {
     const matchingProvider = availableProviders.find(
-      (p: any) => p.provider_id === defaultOtt.id
+      (p: any) => p.provider_id === defaultOtt.id,
     );
     return {
       id: defaultOtt.id,
@@ -310,7 +311,7 @@ export const HomeScreen = React.memo(() => {
       logo_path: matchingProvider?.logo_path || undefined,
     };
   });
-  
+
   const baseOTTs = myOTTs && myOTTs.length ? myOTTs : defaultOTTs;
   const normalizeProvider = (p: any) => {
     const nameRaw = p?.provider_name ?? p?.name ?? '';
@@ -390,18 +391,6 @@ export const HomeScreen = React.memo(() => {
     refetchOnReconnect: true,
   });
 
-  const filterContent = useMemo(() => {
-    if (savedFilters && savedFilters?.length > 0) {
-      return savedFilters.map(async (filter: SavedFilter) => {
-        const data = await searchFilterContent(filter);
-        return {
-          ...data,
-          isLoading: false,
-        };
-      });
-    }
-  }, [savedFilters]);
-
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
@@ -441,24 +430,17 @@ export const HomeScreen = React.memo(() => {
   const WIDTH = useWindowDimensions().width;
   const {isTablet} = useResponsive();
 
-  // Load mood answers on component mount and when screen comes into focus
+  // Load mood answers from Realm on component mount and when screen comes into focus
   const loadMoodAnswers = useCallback(async () => {
     try {
-      const preferences = await AsyncStorage.getItem(
-        '@theater_user_preferences',
-      );
-      if (preferences) {
-        const parsed = JSON.parse(preferences);
-        if (parsed.moodAnswers) {
-          setMoodAnswers(parsed.moodAnswers);
-        } else {
-          setMoodAnswers(null);
-        }
+      const preferences = await UserPreferencesManager.getPreferences();
+      if (preferences && preferences.moodAnswers) {
+        setMoodAnswers(preferences.moodAnswers);
       } else {
         setMoodAnswers(null);
       }
     } catch (error) {
-      console.error('Error loading mood answers:', error);
+      console.error('[Home] Error loading mood answers from Realm:', error);
     } finally {
       setMoodLoaded(true);
     }
@@ -473,7 +455,6 @@ export const HomeScreen = React.memo(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       loadMoodAnswers();
       // No forced remount of MyNextWatch here; it manages its own refresh
-      checkRecentSearchUpdateForAI();
     });
 
     return unsubscribe;
@@ -485,111 +466,91 @@ export const HomeScreen = React.memo(() => {
       return;
     }
 
-    const checkHistoryChange = async () => {
+    const checkHistoryChangeOnce = async () => {
+      // Only check once per app session
+      if (hasCheckedHistoryOnAppOpen.current) {
+        console.log('[Home] Already checked history this session, skipping');
+        return;
+      }
+
+      hasCheckedHistoryOnAppOpen.current = true;
+
       try {
-        const HISTORY_HASH_KEY = '@last_history_hash';
-        const history = await HistoryManager.getAll();
+        console.log(
+          '[Home] 🔍 Checking if history changed since last app session',
+        );
 
-        // Create hash from first 10 history items (same as AI input)
-        const currentHash = history
-          .slice(0, 10)
-          .map(i => i.id)
-          .sort()
-          .join(',');
-
-        // Get stored hash from previous session
-        const storedHash = await AsyncStorage.getItem(HISTORY_HASH_KEY);
-
-        // If hash changed from stored value, invalidate
-        if (storedHash && currentHash !== storedHash) {
-          console.log(
-            '[Home] History changed since last app session - invalidating personalized recommendations',
-          );
-          queryClient.invalidateQueries({
-            queryKey: ['personalized_recommendations'],
-          });
-        }
-
-        // Update both state and storage
-        setLastHistoryHash(currentHash);
-        await AsyncStorage.setItem(HISTORY_HASH_KEY, currentHash);
+        // The hook will handle cache comparison automatically
+        // Just invalidate to trigger a fresh check
+        queryClient.invalidateQueries({
+          queryKey: ['personalized_recommendations'],
+        });
       } catch (error) {
         console.error('[Home] Error checking history change:', error);
       }
     };
 
     const subscription = AppState.addEventListener('change', nextAppState => {
-      // Only check when app comes to foreground (from background or inactive)
-      if (
+      // Reset flag when app goes to background
+      if (nextAppState.match(/inactive|background/)) {
+        hasCheckedHistoryOnAppOpen.current = false;
+        console.log('[Home] App went to background - reset history check flag');
+      }
+      // Check when app comes to foreground
+      else if (
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
-        console.log('[Home] App became active - checking history changes');
-        checkHistoryChange();
+        console.log(
+          '[Home] App became active - will check history on next Home visit',
+        );
       }
       appState.current = nextAppState;
     });
 
-    // Also check on initial mount
-    checkHistoryChange();
+    // Check on initial mount (first time opening app)
+    checkHistoryChangeOnce();
 
     return () => {
       subscription.remove();
     };
   }, [isAIEnabled, queryClient]);
 
-  // Compare recent searches (top 3 titles) with cached AI source; remount AI only when changed
-  const checkRecentSearchUpdateForAI = useCallback(async () => {
-    try {
-      const RECENT_KEY = '@recent_search_items';
-      const AI_CACHE_KEY = '@because_you_watched_cache';
-      const recentRaw = await AsyncStorage.getItem(RECENT_KEY);
-      const recent: any[] = recentRaw ? JSON.parse(recentRaw) : [];
-      const topTitles = recent
-        .slice(0, 3)
-        .map(i => (i?.title || i?.name || '').toString())
-        .filter(Boolean);
+  // Listen for navigation focus to check if first-time user just viewed content
+  useEffect(() => {
+    if (!isAIEnabled) {
+      return;
+    }
 
-      const cacheRaw = await AsyncStorage.getItem(AI_CACHE_KEY);
-      let cachedBasedOn: string[] = [];
-      if (cacheRaw) {
-        const parsed = JSON.parse(cacheRaw);
-        cachedBasedOn = Array.isArray(parsed?.basedOnItems)
-          ? parsed.basedOnItems
-          : [];
+    const unsubscribe = navigation.addListener('focus', async () => {
+      // Check if this is first time and user now has history
+      const cache = await AIPersonalizationCacheManager.get();
+
+      if (!cache) {
+        // No cache exists - might be first time user
+        const history = await HistoryManager.getAll();
+
+        if (history.length > 0 && !hasCheckedHistoryOnAppOpen.current) {
+          console.log(
+            '[Home] 🎉 First-time user has history now - triggering personalized recommendations',
+          );
+          hasCheckedHistoryOnAppOpen.current = true;
+          queryClient.invalidateQueries({
+            queryKey: ['personalized_recommendations'],
+          });
+        }
       }
+    });
 
-      const currentKey = topTitles.join('|');
-      const cachedKey = cachedBasedOn.join('|');
+    return unsubscribe;
+  }, [isAIEnabled, navigation, queryClient]);
 
-      if (currentKey && currentKey !== cachedKey) {
-        // Invalidate cache and bump seed to remount AI component
-        await AsyncStorage.removeItem(AI_CACHE_KEY);
-        setBecauseSeed(s => s + 1);
-      }
-    } catch (e) {}
-  }, []);
 
   const handleMoodComplete = async (answers: {[key: string]: string}) => {
     try {
-      // Clear old data first
-      await AsyncStorage.multiRemove([
-        '@theater_user_preferences',
-        '@theater_user_feedback',
-        '@theater_next_watch_onboarding',
-      ]);
-
-      // Save fresh mood data
-      const preferences = {
-        moodAnswers: answers,
-        timestamp: Date.now(),
-      };
-
-      await AsyncStorage.setItem(
-        '@theater_user_preferences',
-        JSON.stringify(preferences),
-      );
-      await AsyncStorage.setItem('@theater_next_watch_onboarding', 'true');
+      // Save fresh mood data to Realm
+      await UserPreferencesManager.setPreferences([], answers);
+      await RealmSettingsManager.setSetting('next_watch_onboarding', 'true');
 
       // Update local state
       setMoodAnswers(answers);
@@ -597,7 +558,7 @@ export const HomeScreen = React.memo(() => {
       // Clear AI recommendation cache so next fetch uses new mood
       await cache.clear(CACHE_KEYS.AI_RECOMMENDATION);
 
-      // Reload mood answers from storage to ensure consistency
+      // Reload mood answers from Realm to ensure consistency
       await loadMoodAnswers();
 
       // Invalidate all mood-related queries to force fresh data
@@ -679,15 +640,6 @@ export const HomeScreen = React.memo(() => {
       sectionsList.push({
         id: 'thematicGenres',
         type: 'thematicGenres',
-      });
-    }
-
-    // My OTTs Cards Row
-    if (allOttsNormalized.length > 0) {
-      sectionsList.push({
-        id: 'ottCardsRow',
-        type: 'ottCardsRow',
-        data: allOttsNormalized,
       });
     }
 
@@ -780,6 +732,15 @@ export const HomeScreen = React.memo(() => {
         isLoading: false,
         isSeeAll: false,
         isTop10: true,
+      });
+    }
+
+    // My OTTs Cards Row
+    if (allOttsNormalized.length > 0) {
+      sectionsList.push({
+        id: 'ottCardsRow',
+        type: 'ottCardsRow',
+        data: allOttsNormalized,
       });
     }
 

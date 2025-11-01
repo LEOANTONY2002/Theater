@@ -546,14 +546,30 @@ export const WatchlistsScreen: React.FC = () => {
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
                 {isAIEnabled && contentItems.length >= 2 && (
                   <TouchableOpacity
-                    style={{alignItems: 'center', padding: 5, marginRight: 6}}
+                    style={{
+                      alignItems: 'center',
+                      padding: 5,
+                      marginRight: 6,
+                      flexDirection: 'row',
+                      gap: spacing.sm,
+                      backgroundColor: colors.modal.blur,
+                      borderRadius: borderRadius.round,
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                      borderColor: colors.modal.content,
+                      borderWidth: 1,
+                    }}
                     activeOpacity={0.9}
                     onPress={() => handleQuickDecisionOpen(contentItems)}>
-                    <Ionicons
-                      name="git-compare-outline"
-                      size={16}
-                      color={colors.accent}
-                    />
+                    <Ionicons name="sparkles" size={16} color={colors.accent} />
+                    <Text
+                      style={{
+                        ...typography.body2,
+                        color: colors.text.primary,
+                        fontSize: 10,
+                      }}>
+                      AI Compare
+                    </Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity

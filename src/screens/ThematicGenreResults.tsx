@@ -87,8 +87,16 @@ export const ThematicGenreResultsScreen: React.FC = () => {
     queryFn: async () => {
       console.log(`🎬 Fetching content for thematic tag: "${tag}"`);
 
+      // Check Realm cache first
+      const {ThematicTagsManager} = await import('../store/thematicTags');
+      const cachedContent = await ThematicTagsManager.getContentForTag(tag.toLowerCase(), 'thematic');
+      
+      if (cachedContent && cachedContent.length > 0) {
+        console.log(`✅ Loaded ${cachedContent.length} items from Realm for "${tag}"`);
+        return cachedContent;
+      }
+
       // Get AI recommendations for this thematic genre
-      // Only send the tag name, not the description (which is movie-specific)
       const aiResults = await searchByThematicGenre(tag);
 
       if (!aiResults || aiResults.length === 0) {
@@ -100,7 +108,6 @@ export const ThematicGenreResultsScreen: React.FC = () => {
         try {
           if (item.type === 'movie') {
             const movieResults = await searchMovies(item.title, 1);
-            // Find best match by year if available
             const bestMatch =
               movieResults.results.find(
                 (m: Movie) =>
@@ -127,17 +134,27 @@ export const ThematicGenreResultsScreen: React.FC = () => {
         (item): item is Movie | TVShow => item !== null,
       );
 
+      // Save to Realm for next time
+      await ThematicTagsManager.saveContentForTag(tag.toLowerCase(), 'thematic', validContent);
+
       console.log(
-        `✅ Found ${validContent.length} items for "${tag}" (cached for 6 months)`,
+        `✅ Found ${validContent.length} items for "${tag}" (saved to Realm)`,
       );
       return validContent;
     },
-    staleTime: 1000 * 60 * 60 * 24 * 180, // Cache for 6 months
-    gcTime: 1000 * 60 * 60 * 24 * 180, // Keep in cache for 6 months
+    staleTime: 0, // Don't cache - Realm is the source of truth
+    gcTime: 1000 * 60 * 5, // Keep in memory for 5 minutes only
     retry: 1, // Retry once on failure
   });
 
   const error = queryError ? (queryError as Error).message : null;
+  
+  // Check if it's a quota error
+  const isQuotaError = error && (
+    error.includes('You exceeded your current quota') ||
+    error.includes('RESOURCE_EXHAUSTED') ||
+    error.includes('429')
+  );
 
   const handleItemPress = (item: ContentItem) => {
     const params =
@@ -205,8 +222,28 @@ export const ThematicGenreResultsScreen: React.FC = () => {
 
         {/* Error */}
         <View style={styles.emptyContainer}>
-          <Icon name="alert-circle" size={48} color={colors.text.muted} />
-          <Text style={styles.emptyText}>{error}</Text>
+          <Icon name="alert-circle" size={48} color={isQuotaError ? colors.accent : colors.text.muted} />
+          <Text style={styles.emptyText}>
+            {isQuotaError ? 'API Quota Exceeded' : error}
+          </Text>
+          {isQuotaError && (
+            <>
+              <Text style={styles.quotaSubtext}>
+                Please update your Gemini API key in settings or try again later
+              </Text>
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => {
+                  // Navigate to MySpace tab, then to AISettings
+                  (navigation as any).navigate('MySpace', {
+                    screen: 'AISettings',
+                  });
+                }}>
+                <Icon name="settings-outline" size={20} color={colors.background.primary} />
+                <Text style={styles.settingsButtonText}>AI Settings</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     );
@@ -308,9 +345,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   emptyText: {
-    ...typography.body1,
-    color: colors.text.secondary,
+    ...typography.h3,
+    color: colors.text.primary,
     textAlign: 'center',
     marginTop: spacing.md,
+  },
+  quotaSubtext: {
+    ...typography.body2,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  settingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.lg,
+  },
+  settingsButtonText: {
+    ...typography.body2,
+    fontWeight: '600',
+    color: colors.background.primary,
   },
 });

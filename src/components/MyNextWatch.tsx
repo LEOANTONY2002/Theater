@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import {InteractionManager} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {UserFeedbackManager, UserPreferencesManager} from '../database/managers';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
@@ -112,38 +112,46 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
     try {
       const [onboardingStatus, savedFeedback, savedPreferences] =
         await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE),
-          AsyncStorage.getItem(STORAGE_KEYS.USER_FEEDBACK),
-          AsyncStorage.getItem(STORAGE_KEYS.USER_PREFERENCES),
+          UserPreferencesManager.getOnboardingStatus(),
+          UserFeedbackManager.getAllFeedback(),
+          UserPreferencesManager.getPreferences(),
         ]);
 
-      setIsOnboardingComplete(onboardingStatus === 'true');
+      setIsOnboardingComplete(onboardingStatus);
 
-      if (savedFeedback) {
-        const feedback = JSON.parse(savedFeedback);
+      if (savedFeedback && savedFeedback.length > 0) {
+        const feedback = savedFeedback.map(f => ({
+          contentId: f.contentId,
+          title: f.title,
+          liked: f.liked,
+          timestamp: f.timestamp.getTime(),
+        }));
         setUserFeedback(feedback);
       }
 
       // Load saved mood answers if available
-      if (savedPreferences) {
-        const preferences = JSON.parse(savedPreferences);
-        if (preferences.moodAnswers) {
-          setMoodAnswers(preferences.moodAnswers);
-        }
+      if (savedPreferences && savedPreferences.moodAnswers) {
+        setMoodAnswers(savedPreferences.moodAnswers);
       }
 
       setIsInitialized(true);
 
       // If onboarding is complete and we don't have a recommendation yet, get first recommendation
       if (
-        onboardingStatus === 'true' &&
+        onboardingStatus &&
         !hasInitialRecommendation &&
         !currentRecommendation
       ) {
         setHasInitialRecommendation(true);
         // Run after initial interactions to keep Home scroll smooth
         InteractionManager.runAfterInteractions(() => {
-          getNextRecommendation(savedFeedback ? JSON.parse(savedFeedback) : []);
+          const feedbackForRec = savedFeedback ? savedFeedback.map(f => ({
+            contentId: f.contentId,
+            title: f.title,
+            liked: f.liked,
+            timestamp: f.timestamp.getTime(),
+          })) : [];
+          getNextRecommendation(feedbackForRec);
         });
       }
     } catch (error) {
@@ -158,12 +166,8 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
       InteractionManager.runAfterInteractions(async () => {
         setIsLoading(true);
         try {
-          const preferences = await AsyncStorage.getItem(
-            STORAGE_KEYS.USER_PREFERENCES,
-          );
-          if (!preferences) return;
-
-          const userPrefs = JSON.parse(preferences);
+          const userPrefs = await UserPreferencesManager.getPreferences();
+          if (!userPrefs) return;
           // Use mood answers if available, otherwise fall back to genres
           let recommendation;
           if (Object.keys(moodAnswers).length > 0) {
@@ -179,9 +183,9 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
               userPrefs.moodAnswers,
               feedbackHistory,
             );
-          } else if (userPrefs.genres && userPrefs.genres.length > 0) {
+          } else if (userPrefs.selectedGenres && userPrefs.selectedGenres.length > 0) {
             const selectedGenreNames = GENRES.filter(genre =>
-              userPrefs.genres.includes(genre.id),
+              userPrefs.selectedGenres.includes(genre.id),
             ).map(genre => genre.name);
 
             // Convert genre names to mood format for consistency
@@ -239,12 +243,11 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
     // Reload latest preferences (mood answers) and refresh recommendation
     (async () => {
       try {
-        const prefs = await AsyncStorage.getItem(STORAGE_KEYS.USER_PREFERENCES);
+        const prefs = await UserPreferencesManager.getPreferences();
         if (prefs) {
-          const parsed = JSON.parse(prefs);
-          if (parsed?.moodAnswers) {
+          if (prefs.moodAnswers) {
             // Update local state so UI uses the freshest mood answers
-            setMoodAnswers(parsed.moodAnswers);
+            setMoodAnswers(prefs.moodAnswers);
           }
         }
       } catch (e) {
@@ -263,8 +266,7 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
       try {
         const feedback: UserFeedback = {
           contentId: currentRecommendation.id,
-          title:
-            currentRecommendation.title || currentRecommendation.name || '',
+          title: currentRecommendation.title || currentRecommendation.name || '',
           liked,
           timestamp: Date.now(),
         };
@@ -276,10 +278,11 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
         const updatedFeedback = [...filtered, feedback];
         setUserFeedback(updatedFeedback);
 
-        // Save to storage
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.USER_FEEDBACK,
-          JSON.stringify(updatedFeedback),
+        // Save to Realm
+        await UserFeedbackManager.addFeedback(
+          currentRecommendation.id,
+          currentRecommendation.title || currentRecommendation.name || 'Unknown',
+          liked,
         );
 
         // Get next recommendation
@@ -304,11 +307,8 @@ const MyNextWatchComponent: React.FC<MyNextWatchProps> = ({
 
   const resetPreferences = async () => {
     try {
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.USER_PREFERENCES,
-        STORAGE_KEYS.USER_FEEDBACK,
-        STORAGE_KEYS.ONBOARDING_COMPLETE,
-      ]);
+      await UserPreferencesManager.clearPreferences();
+      await UserFeedbackManager.clearAllFeedback();
 
       setIsOnboardingComplete(false);
       setSelectedGenres([]);

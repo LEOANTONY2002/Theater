@@ -17,8 +17,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import {MaybeBlurView} from './MaybeBlurView';
 import {FilterParams} from '../types/filters';
 import {useQuery} from '@tanstack/react-query';
-import {getAvailableWatchProviders, getLanguages} from '../services/tmdb';
+import {getAvailableWatchProviders} from '../services/tmdb';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import languageData from '../utils/language.json';
 
 const AI_SEARCH_HISTORY_KEY = '@ai_search_history';
 const MAX_HISTORY_ITEMS = 5;
@@ -46,12 +47,8 @@ export const AISearchFilterBuilder: React.FC<AISearchFilterBuilderProps> = ({
   const {data: movieGenres = []} = useGenres('movie');
   const {data: tvGenres = []} = useGenres('tv');
 
-  // Fetch ALL available data from TMDB
-  const {data: languages = []} = useQuery({
-    queryKey: ['languages'],
-    queryFn: getLanguages,
-    staleTime: 1000 * 60 * 60 * 24,
-  });
+  // Languages are static - import directly
+  const languages = languageData;
 
   const {data: watchProviders = []} = useQuery({
     queryKey: ['available_watch_providers', 'movie'],

@@ -28,9 +28,11 @@ import {checkTMDB} from './src/services/tmdb';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors} from './src/styles/theme';
 import {BlurPreference} from './src/store/blurPreference';
+import {initializeRealm} from './src/database/realm';
 
 export default function App() {
   const [themeReady, setThemeReady] = useState(false);
+  const [dbReady, setDbReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const [hasCache, setHasCache] = useState(false);
@@ -38,11 +40,52 @@ export default function App() {
   const [showDNSModal, setShowDNSModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
+  // Initialize Realm database first
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        console.log('[App] Initializing Realm database...');
+        await initializeRealm();
+        console.log('[App] ✅ Realm initialized');
+
+        // Log database stats on startup
+        const {getRealm} = require('./src/database/realm');
+        const realm = getRealm();
+        const movies = realm.objects('Movie');
+        const searches = realm.objects('RecentSearch');
+        const threads = realm.objects('ChatThread');
+        const feedback = realm.objects('UserFeedback');
+        
+        console.log('[App] 📊 Database Stats on Startup:');
+        console.log('  🎬 Movies:', movies.length);
+        console.log('  🔍 Recent Searches:', searches.length);
+        console.log('  💬 Chat Threads:', threads.length);
+        console.log('  👍 User Feedback:', feedback.length);
+        
+        if (searches.length > 0) {
+          console.log('[App] Recent searches:', Array.from(searches).map((s: any) => s.query));
+        }
+      } catch (error) {
+        console.error('[App] ❌ Database initialization failed:', error);
+      } finally {
+        if (mounted) setDbReady(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Ensure theme preference is loaded before first render
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
+        // Wait for Realm to be ready
+        if (!dbReady) {
+          return;
+        }
         await BlurPreference.init();
       } finally {
         if (mounted) setThemeReady(true);
@@ -51,7 +94,7 @@ export default function App() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [dbReady]); // Run when Realm is ready
 
   enableScreens();
   LogBox.ignoreAllLogs();
@@ -73,6 +116,13 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Wait for Realm to be ready before checking onboarding
+        if (!dbReady) {
+          console.log('[App] Waiting for Realm to initialize...');
+          return;
+        }
+
+        console.log('[App] Realm is ready, checking onboarding state...');
         // Load onboarding state first
         const ob = await OnboardingManager.getState();
         setIsOnboarded(!!ob.isOnboarded);
@@ -101,7 +151,7 @@ export default function App() {
       }
     };
     initializeApp();
-  }, []);
+  }, [dbReady]); // Run when Realm is ready
 
   useEffect(() => {
     const check = async () => {
@@ -150,7 +200,7 @@ export default function App() {
   // }
 
   // Avoid flashing Home before theme/onboarding state is known
-  if (!themeReady || isLoading || isOnboarded === null) {
+  if (!dbReady || !themeReady || isLoading || isOnboarded === null) {
     return (
       <>
         <StatusBar

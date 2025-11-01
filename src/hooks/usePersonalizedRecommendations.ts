@@ -4,6 +4,7 @@ import {searchMovies, searchTVShows} from '../services/tmdb';
 import {HistoryManager} from '../store/history';
 import {useAIEnabled} from './useAIEnabled';
 import {ContentItem} from '../components/MovieList';
+import {AIPersonalizationCacheManager} from '../database/managers';
 
 export const usePersonalizedRecommendations = () => {
   const {isAIEnabled} = useAIEnabled();
@@ -22,7 +23,34 @@ export const usePersonalizedRecommendations = () => {
         return [];
       }
 
-      // Get AI recommendations
+      // Prepare top 10 history for comparison
+      const top10History = history.slice(0, 10).map(item => ({
+        id: item.id,
+        type: item.type,
+        title: (item as any).title || (item as any).name || '',
+      }));
+
+      // Check cache first
+      const cache = await AIPersonalizationCacheManager.get();
+
+      if (cache) {
+        // Compare history
+        const hasChanged = AIPersonalizationCacheManager.hasHistoryChanged(
+          top10History,
+          cache.inputHistoryIds,
+        );
+
+        if (!hasChanged) {
+          console.log('[PersonalizedRecs] ✅ Using cached AI recommendations');
+          return cache.aiRecommendations;
+        }
+
+        console.log('[PersonalizedRecs] 🔄 History changed, fetching new AI recommendations');
+      } else {
+        console.log('[PersonalizedRecs] 🆕 No cache, fetching AI recommendations');
+      }
+
+      // Get AI recommendations (fresh call)
       const recommendations = await getPersonalizedRecommendations(history);
 
       if (!recommendations || recommendations.length === 0) {
@@ -65,10 +93,17 @@ export const usePersonalizedRecommendations = () => {
       const filtered = results.filter(
         (item): item is ContentItem => item !== null,
       );
+
+      // Cache the results in Realm
+      if (filtered.length > 0) {
+        await AIPersonalizationCacheManager.set(top10History, filtered);
+        console.log('[PersonalizedRecs] ✅ Cached new recommendations');
+      }
+
       return filtered;
     },
-    staleTime: 1000 * 60 * 60 * 24 * 180, // 6 months - matches AI cache
-    gcTime: 1000 * 60 * 60 * 24 * 180, // 6 months
+    staleTime: 0, // Don't cache - Realm is the source of truth
+    gcTime: 1000 * 60 * 5, // 5 min memory cache for active session
     enabled: !!isAIEnabled,
     retry: 2,
   });

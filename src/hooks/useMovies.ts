@@ -16,14 +16,15 @@ import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
 import {getSimilarByStory} from '../services/gemini';
 import {Genre} from '../types/movie';
+import {batchCacheMovies, cacheMovieDetails} from '../database/contentCache';
 
 // Cache times
 const TMDB_LIST_STALE = 1000 * 60 * 60 * 24; // 1 day for trending/popular/latest
 const TMDB_LIST_GC = 1000 * 60 * 60 * 24 * 2; // 2 days GC
-const TMDB_DETAILS_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for details
-const TMDB_DETAILS_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
-const AI_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for AI
-const AI_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
+const TMDB_DETAILS_STALE = 0; // Don't cache - Realm is the source of truth
+const TMDB_DETAILS_GC = 1000 * 60 * 5; // 5 min memory cache for active session
+const AI_STALE = 0; // Don't cache - Realm is the source of truth
+const AI_GC = 1000 * 60 * 5; // 5 min memory cache for active session
 
 export const useMoviesList = (
   type:
@@ -39,6 +40,10 @@ export const useMoviesList = (
     queryKey: ['movies', type],
     queryFn: async ({pageParam = 1}) => {
       const result = await getMovies(type, pageParam as number);
+      // Cache movies in Realm
+      if (result?.results) {
+        batchCacheMovies(result.results);
+      }
       return result;
     },
     getNextPageParam: (lastPage: MoviesResponse) =>
@@ -52,7 +57,14 @@ export const useMoviesList = (
 export const useMovieDetails = (movieId: number) => {
   return useQuery({
     queryKey: ['movie', movieId],
-    queryFn: () => getMovieDetails(movieId),
+    queryFn: async () => {
+      const details = await getMovieDetails(movieId);
+      // Cache full details in Realm
+      if (details) {
+        cacheMovieDetails(details, details.credits?.cast, details.credits?.crew, details.videos?.results);
+      }
+      return details;
+    },
     gcTime: TMDB_DETAILS_GC,
     staleTime: TMDB_DETAILS_STALE,
   });
@@ -61,8 +73,13 @@ export const useMovieDetails = (movieId: number) => {
 export const useMovieSearch = (query: string, filters: FilterParams = {}) => {
   return useInfiniteQuery({
     queryKey: ['search', query, filters],
-    queryFn: ({pageParam = 1}) =>
-      searchMovies(query, pageParam as number, filters),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await searchMovies(query, pageParam as number, filters);
+      if (result?.results) {
+        batchCacheMovies(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -74,8 +91,13 @@ export const useMovieSearch = (query: string, filters: FilterParams = {}) => {
 export const useSimilarMovies = (movieId: number) => {
   return useInfiniteQuery({
     queryKey: ['movie', movieId, 'similar'],
-    queryFn: ({pageParam = 1}) =>
-      getSimilarMovies(movieId, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getSimilarMovies(movieId, pageParam as number);
+      if (result?.results) {
+        batchCacheMovies(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -87,8 +109,13 @@ export const useSimilarMovies = (movieId: number) => {
 export const useMovieRecommendations = (movieId: number) => {
   return useInfiniteQuery({
     queryKey: ['movie', movieId, 'recommendations'],
-    queryFn: ({pageParam = 1}) =>
-      getMovieRecommendations(movieId, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getMovieRecommendations(movieId, pageParam as number);
+      if (result?.results) {
+        batchCacheMovies(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -110,8 +137,13 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
       timeWindow,
       contentLanguages?.map(lang => lang.iso_639_1).join('|'),
     ],
-    queryFn: ({pageParam = 1}) =>
-      getTrendingMovies(timeWindow, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getTrendingMovies(timeWindow, pageParam as number);
+      if (result?.results) {
+        batchCacheMovies(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -126,7 +158,13 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
 export const useDiscoverMovies = (params: FilterParams) => {
   return useInfiniteQuery({
     queryKey: ['discover_movies', params],
-    queryFn: ({pageParam = 1}) => discoverMovies(params, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await discoverMovies(params, pageParam as number);
+      if (result?.results) {
+        batchCacheMovies(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -148,7 +186,13 @@ export const useTop10MoviesTodayByRegion = () => {
 
   return useQuery({
     queryKey: ['top_10_movies_today_by_region', region?.iso_3166_1],
-    queryFn: () => getTop10MoviesTodayByRegion(),
+    queryFn: async () => {
+      const result = await getTop10MoviesTodayByRegion();
+      if (result && Array.isArray(result)) {
+        batchCacheMovies(result);
+      }
+      return result;
+    },
     gcTime: TMDB_LIST_GC,
     staleTime: TMDB_LIST_STALE,
     enabled: !!region?.iso_3166_1,
@@ -165,10 +209,33 @@ export const useAISimilarMovies = (
   genres?: Genre[],
 ) => {
   return useQuery({
-    queryKey: ['ai_similar_movies', movieId, title, overview],
+    queryKey: ['ai_similar_movies', movieId],
     queryFn: async () => {
       if (!title || !overview) {
         return [];
+      }
+
+      // Import here to avoid circular dependency
+      const {getMovie} = await import('../database/contentCache');
+      
+      // Check if movie is in Realm and has AI similar data
+      const cached = getMovie(movieId);
+      if (cached?.ai_similar) {
+        try {
+          const parsed = JSON.parse(cached.ai_similar as string);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log('[useAISimilarMovies] Using cached AI similar from Realm');
+            const tmdbMovies = await fetchContentFromAI(parsed, 'movie');
+            return tmdbMovies
+              .filter((m: any) => m && m.poster_path)
+              .map((m: any) => ({
+                ...m,
+                type: 'movie' as const,
+              }));
+          }
+        } catch (e) {
+          console.warn('[useAISimilarMovies] Failed to parse cached similar');
+        }
       }
 
       try {
@@ -177,6 +244,7 @@ export const useAISimilarMovies = (
           overview,
           genres: genres?.map((g: Genre) => g?.name).join(', ') || '',
           type: 'movie',
+          contentId: movieId,
         });
 
         if (Array.isArray(aiResponse) && aiResponse.length > 0) {

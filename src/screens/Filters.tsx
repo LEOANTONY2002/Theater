@@ -170,6 +170,18 @@ export const FiltersScreen = React.memo(() => {
     [queryClient],
   );
 
+  const handleAISave = useCallback(
+    async (filter: SavedFilter) => {
+      try {
+        console.log('[Filters] AI filter saved:', filter);
+        queryClient.invalidateQueries({queryKey: ['savedFilters']});
+      } catch (error) {
+        console.error('Error refreshing filters after AI save:', error);
+      }
+    },
+    [queryClient],
+  );
+
   const handleFilterPress = useCallback(
     (filter: SavedFilter) => {
       // Build a normalized SavedFilter so Category uses useSavedFilterContent
@@ -330,10 +342,10 @@ export const FiltersScreen = React.memo(() => {
           style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
         />
         <View style={{height: spacing.xxl}} />
-        <QuickAddFilters onQuickAdd={handleQuickAdd} />
+        <QuickAddFilters onQuickAdd={handleQuickAdd} onAISave={handleAISave} />
       </View>
     );
-  }, [navigation, handleQuickAdd]);
+  }, [navigation, handleQuickAdd, handleAISave]);
 
   const renderFooter = useCallback(() => {
     if (savedFilters.length === 0) return null;

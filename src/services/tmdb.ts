@@ -424,6 +424,54 @@ export const searchFilterContent = async (
 };
 
 export const getMovieDetails = async (movieId: number) => {
+  // Check Realm cache first
+  try {
+    const {getMovie} = await import('../database/contentCache');
+    const cachedMovie = getMovie(movieId);
+    
+    if (cachedMovie && cachedMovie.has_full_details) {
+      // Check if cache is still valid (30 days)
+      const cacheAge = Date.now() - cachedMovie.cached_at.getTime();
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      
+      if (cacheAge < thirtyDays) {
+        console.log(`[TMDB] Using cached movie details from Realm: ${movieId}`);
+        
+        // Return in TMDB API format
+        return {
+          id: cachedMovie._id,
+          title: cachedMovie.title,
+          original_title: cachedMovie.original_title,
+          overview: cachedMovie.overview,
+          poster_path: cachedMovie.poster_path,
+          backdrop_path: cachedMovie.backdrop_path,
+          vote_average: cachedMovie.vote_average,
+          vote_count: cachedMovie.vote_count,
+          release_date: cachedMovie.release_date,
+          runtime: cachedMovie.runtime,
+          genres: cachedMovie.genres?.map((name: string, index: number) => ({
+            id: cachedMovie.genre_ids?.[index] || 0,
+            name,
+          })) || [],
+          original_language: cachedMovie.original_language,
+          popularity: cachedMovie.popularity,
+          adult: cachedMovie.adult,
+          credits: {
+            cast: cachedMovie.cast ? JSON.parse(cachedMovie.cast) : [],
+            crew: cachedMovie.crew ? JSON.parse(cachedMovie.crew) : [],
+          },
+          videos: {
+            results: cachedMovie.videos ? JSON.parse(cachedMovie.videos) : [],
+          },
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('[TMDB] Error reading from Realm cache, falling back to API:', error);
+  }
+  
+  // Cache miss or expired - fetch from TMDB
+  console.log(`[TMDB] Fetching movie details from API: ${movieId}`);
   const response = await tmdbApi.get(`/movie/${movieId}`, {
     params: {append_to_response: 'videos,credits'},
   });
@@ -431,6 +479,58 @@ export const getMovieDetails = async (movieId: number) => {
 };
 
 export const getTVShowDetails = async (tvId: number) => {
+  // Check Realm cache first
+  try {
+    const {getTVShow} = await import('../database/contentCache');
+    const cachedShow = getTVShow(tvId);
+    
+    if (cachedShow && cachedShow.has_full_details) {
+      // Check if cache is still valid (30 days)
+      const cacheAge = Date.now() - cachedShow.cached_at.getTime();
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      
+      if (cacheAge < thirtyDays) {
+        console.log(`[TMDB] Using cached TV show details from Realm: ${tvId}`);
+        
+        // Return in TMDB API format
+        return {
+          id: cachedShow._id,
+          name: cachedShow.name,
+          original_name: cachedShow.original_name,
+          overview: cachedShow.overview,
+          poster_path: cachedShow.poster_path,
+          backdrop_path: cachedShow.backdrop_path,
+          vote_average: cachedShow.vote_average,
+          vote_count: cachedShow.vote_count,
+          first_air_date: cachedShow.first_air_date,
+          last_air_date: cachedShow.last_air_date,
+          number_of_seasons: cachedShow.number_of_seasons,
+          number_of_episodes: cachedShow.number_of_episodes,
+          episode_run_time: cachedShow.episode_run_time ? Array.from(cachedShow.episode_run_time) : [],
+          genres: cachedShow.genres?.map((name: string, index: number) => ({
+            id: cachedShow.genre_ids?.[index] || 0,
+            name,
+          })) || [],
+          original_language: cachedShow.original_language,
+          popularity: cachedShow.popularity,
+          status: cachedShow.status,
+          type: cachedShow.type,
+          credits: {
+            cast: cachedShow.cast ? JSON.parse(cachedShow.cast) : [],
+            crew: cachedShow.crew ? JSON.parse(cachedShow.crew) : [],
+          },
+          videos: {
+            results: cachedShow.videos ? JSON.parse(cachedShow.videos) : [],
+          },
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('[TMDB] Error reading from Realm cache, falling back to API:', error);
+  }
+  
+  // Cache miss or expired - fetch from TMDB
+  console.log(`[TMDB] Fetching TV show details from API: ${tvId}`);
   const response = await tmdbApi.get(`/tv/${tvId}`, {
     params: {append_to_response: 'videos,credits'},
   });

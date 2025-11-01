@@ -18,6 +18,7 @@ import {InsightsSkeleton} from './InsightsSkeleton';
 import {HorizontalList} from './HorizontalList';
 import type {Movie} from '../types/movie';
 import {useNavigationState} from '../hooks/useNavigationState';
+import FastImage from 'react-native-fast-image';
 
 interface WatchlistAnalyzerProps {
   watchlistItems: Array<{
@@ -29,6 +30,7 @@ interface WatchlistAnalyzerProps {
     vote_average?: number;
     release_date?: string;
     first_air_date?: string;
+    poster_path?: string;
   }>;
 }
 
@@ -202,6 +204,7 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
       flexDirection: 'row',
       alignItems: 'center',
       flex: 1,
+      gap: spacing.sm,
       marginBottom: spacing.md,
     },
     title: {
@@ -380,6 +383,193 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
       ...typography.body2,
       color: colors.text.secondary,
     },
+    // Content Type Split styles
+    splitContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.modal.blur,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    splitItem: {
+      flex: 1,
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    splitDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: colors.modal.border,
+    },
+    splitLabel: {
+      ...typography.body2,
+      color: colors.text.secondary,
+    },
+    splitValue: {
+      ...typography.h3,
+      color: colors.accent,
+    },
+    // Mood Profile styles
+    moodContainer: {
+      backgroundColor: colors.modal.blur,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    moodRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    moodLabel: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      minWidth: 80,
+    },
+    moodValue: {
+      ...typography.body1,
+      color: colors.text.primary,
+      fontWeight: '600',
+    },
+    traitsContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      marginTop: spacing.xs,
+    },
+    traitChip: {
+      backgroundColor: colors.modal.border,
+      borderRadius: borderRadius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    traitText: {
+      ...typography.caption,
+      color: colors.accent,
+    },
+    // Hidden Gems styles
+    gemCard: {
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.md,
+      overflow: 'hidden',
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    gemGradient: {
+      flexDirection: 'row',
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+    },
+    gemPoster: {
+      width: 80,
+      height: 120,
+      backgroundColor: colors.modal.blur,
+    },
+    gemContent: {
+      flex: 1,
+      padding: spacing.md,
+      justifyContent: 'space-between',
+    },
+    gemHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    gemTitle: {
+      ...typography.body1,
+      color: colors.text.primary,
+      fontWeight: '600',
+      flex: 1,
+    },
+    gemType: {
+      fontSize: 14,
+    },
+    gemReason: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      lineHeight: 18,
+      marginBottom: spacing.xs,
+    },
+    gemFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: spacing.xs,
+    },
+    gemRating: {
+      ...typography.caption,
+      color: colors.accent,
+      fontWeight: '600',
+    },
+    // Content Freshness styles
+    freshnessCard: {
+      backgroundColor: colors.modal.blur,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    freshnessHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    freshnessPreference: {
+      ...typography.h3,
+      color: colors.accent,
+      flex: 1,
+    },
+    freshnessPercentage: {
+      ...typography.body2,
+      color: colors.text.secondary,
+    },
+    freshnessNote: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      fontStyle: 'italic',
+    },
+    // Completion Insight styles
+    completionCard: {
+      backgroundColor: colors.modal.blur,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    completionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    completionLabel: {
+      ...typography.body2,
+      color: colors.text.secondary,
+      flex: 1,
+    },
+    completionValue: {
+      ...typography.body1,
+      color: colors.accent,
+      fontWeight: '600',
+    },
+    suggestionBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      backgroundColor: colors.modal.border,
+      borderRadius: borderRadius.sm,
+      padding: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    suggestionText: {
+      ...typography.body2,
+      color: colors.text.primary,
+      flex: 1,
+    },
   });
 
   return (
@@ -455,7 +645,16 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
         {loading && (
           <>
             <View style={styles.headerLeft}>
-              <Icon name="analytics" size={24} color={colors.accent} />
+              <Icon
+                name="analytics"
+                size={24}
+                color={colors.accent}
+                style={{
+                  backgroundColor: colors.modal.blur,
+                  padding: spacing.md,
+                  borderRadius: borderRadius.md,
+                }}
+              />
               <Text style={styles.title}>Watchlist Insights</Text>
             </View>
             <InsightsSkeleton />
@@ -466,7 +665,16 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
         {expanded && analysis && !loading && (
           <>
             <View style={styles.headerLeft}>
-              <Icon name="analytics" size={24} color={colors.accent} />
+              <Icon
+                name="analytics"
+                size={24}
+                color={colors.accent}
+                style={{
+                  backgroundColor: colors.modal.blur,
+                  padding: spacing.md,
+                  borderRadius: borderRadius.md,
+                }}
+              />
               <Text style={styles.title}>Watchlist Insights</Text>
             </View>
             <ScrollView
@@ -518,11 +726,244 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                 </View>
               </View>
 
+              {/* Content Type Split */}
+              {analysis.contentTypeSplit && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Content Mix</Text>
+                  <View style={styles.splitContainer}>
+                    <View style={styles.splitItem}>
+                      <Icon name="film-outline" size={18} color={colors.accent} />
+                      <Text style={styles.splitLabel}>Movies</Text>
+                      <Text style={styles.splitValue}>
+                        {analysis.contentTypeSplit.movies}%
+                      </Text>
+                    </View>
+                    <View style={styles.splitDivider} />
+                    <View style={styles.splitItem}>
+                      <Icon name="tv-outline" size={18} color={colors.accent} />
+                      <Text style={styles.splitLabel}>TV Shows</Text>
+                      <Text style={styles.splitValue}>
+                        {analysis.contentTypeSplit.tvShows}%
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Mood Profile */}
+              {analysis.moodProfile && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Mood Profile</Text>
+                  <View style={styles.moodContainer}>
+                    <View style={styles.moodRow}>
+                      <Text style={styles.moodLabel}>Dominant:</Text>
+                      <Text style={styles.moodValue}>
+                        {analysis.moodProfile.dominant}
+                      </Text>
+                    </View>
+                    {analysis.moodProfile.secondary && (
+                      <View style={styles.moodRow}>
+                        <Text style={styles.moodLabel}>Secondary:</Text>
+                        <Text style={styles.moodValue}>
+                          {analysis.moodProfile.secondary}
+                        </Text>
+                      </View>
+                    )}
+                    {analysis.moodProfile.traits &&
+                      analysis.moodProfile.traits.length > 0 && (
+                        <View style={styles.traitsContainer}>
+                          {analysis.moodProfile.traits.map(
+                            (trait: string, index: number) => (
+                              <View key={index} style={styles.traitChip}>
+                                <Text style={styles.traitText}>{trait}</Text>
+                              </View>
+                            ),
+                          )}
+                        </View>
+                      )}
+                  </View>
+                </View>
+              )}
+
+              {/* Hidden Gems */}
+              {analysis.hiddenGems && analysis.hiddenGems.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>💎 Hidden Gems in Your List</Text>
+                  {analysis.hiddenGems.map((gem: any, index: number) => {
+                    // Find the actual item from watchlist to get poster
+                    // Try multiple matching strategies
+                    const gemItem = watchlistItems.find(item => {
+                      const itemTitle = (item.title || item.name || '').toLowerCase().trim();
+                      const gemTitle = (gem.title || '').toLowerCase().trim();
+                      
+                      // Exact match
+                      if (itemTitle === gemTitle) return true;
+                      
+                      // Partial match (gem title contains item title or vice versa)
+                      if (itemTitle.includes(gemTitle) || gemTitle.includes(itemTitle)) {
+                        return true;
+                      }
+                      
+                      return false;
+                    });
+
+                    // Skip if item not found
+                    if (!gemItem) {
+                      console.warn(
+                        `[HiddenGems] Could not find item for: "${gem.title}"`,
+                        '\nAvailable titles:',
+                        watchlistItems.slice(0, 5).map(i => i.title || i.name),
+                      );
+                      return null;
+                    }
+
+                    // Additional safety check
+                    if (!gemItem.id) {
+                      console.error(`[HiddenGems] Item found but has no ID:`, gemItem);
+                      return null;
+                    }
+
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.gemCard}
+                        onPress={() => {
+                          try {
+                            if (!gemItem.id) {
+                              console.error('[HiddenGems] Cannot navigate - no ID');
+                              return;
+                            }
+                            
+                            // Navigation expects full object, not just ID
+                            if (gem.type === 'movie') {
+                              navigateWithLimit('MovieDetails', {
+                                movie: {id: gemItem.id} as any,
+                              });
+                            } else {
+                              navigateWithLimit('TVShowDetails', {
+                                show: {id: gemItem.id} as any,
+                              });
+                            }
+                          } catch (error) {
+                            console.error('[HiddenGems] Navigation error:', error);
+                          }
+                        }}
+                        activeOpacity={0.7}>
+                        <LinearGradient
+                          colors={[
+                            'rgba(147, 51, 234, 0.15)',
+                            'rgba(168, 85, 247, 0.05)',
+                          ]}
+                          start={{x: 0, y: 0}}
+                          end={{x: 1, y: 1}}
+                          style={styles.gemGradient}>
+                          {gemItem.poster_path && (
+                            <FastImage
+                              source={{
+                                uri: `https://image.tmdb.org/t/p/w185${gemItem.poster_path}`,
+                                priority: FastImage.priority.normal,
+                              }}
+                              style={styles.gemPoster}
+                              resizeMode="cover"
+                            />
+                          )}
+                          <View style={styles.gemContent}>
+                            <View style={styles.gemHeader}>
+                              <Icon
+                                name="diamond"
+                                size={16}
+                                color={colors.accent}
+                              />
+                              <Text style={styles.gemTitle}>{gem.title}</Text>
+                              <Text style={styles.gemType}>
+                                {gem.type === 'movie' ? '🎬' : '📺'}
+                              </Text>
+                            </View>
+                            <Text style={styles.gemReason}>{gem.reason}</Text>
+                            <View style={styles.gemFooter}>
+                              <Icon
+                                name="star"
+                                size={12}
+                                color={colors.accent}
+                              />
+                              <Text style={styles.gemRating}>
+                                {gemItem.vote_average?.toFixed(1) || 'N/A'}
+                              </Text>
+                              <Icon
+                                name="arrow-forward"
+                                size={14}
+                                color={colors.text.secondary}
+                                style={{marginLeft: 'auto'}}
+                              />
+                            </View>
+                          </View>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    );
+                  }).filter(Boolean)}
+                </View>
+              )}
+
+              {/* Content Freshness */}
+              {analysis.contentFreshness && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Era Preference</Text>
+                  <View style={styles.freshnessCard}>
+                    <View style={styles.freshnessHeader}>
+                      <Icon name="time-outline" size={20} color={colors.accent} />
+                      <Text style={styles.freshnessPreference}>
+                        {analysis.contentFreshness.preference}
+                      </Text>
+                      <Text style={styles.freshnessPercentage}>
+                        {analysis.contentFreshness.recentPercentage}% Recent
+                      </Text>
+                    </View>
+                    {analysis.contentFreshness.note && (
+                      <Text style={styles.freshnessNote}>
+                        {analysis.contentFreshness.note}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Completion Insight */}
+              {analysis.completionInsight && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Watchlist Stats</Text>
+                  <View style={styles.completionCard}>
+                    <View style={styles.completionRow}>
+                      <Icon name="time" size={18} color={colors.accent} />
+                      <Text style={styles.completionLabel}>Watch Time:</Text>
+                      <Text style={styles.completionValue}>
+                        {analysis.completionInsight.estimatedWatchTime}
+                      </Text>
+                    </View>
+                    <View style={styles.completionRow}>
+                      <Icon name="flash" size={18} color={colors.accent} />
+                      <Text style={styles.completionLabel}>Binge Score:</Text>
+                      <Text style={styles.completionValue}>
+                        {analysis.completionInsight.bingeability.toFixed(1)}/10
+                      </Text>
+                    </View>
+                    {analysis.completionInsight.suggestion && (
+                      <View style={styles.suggestionBox}>
+                        <Icon name="bulb-outline" size={16} color={colors.accent} />
+                        <Text style={styles.suggestionText}>
+                          {analysis.completionInsight.suggestion}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
               {/* Decade Distribution */}
               {Object.keys(analysis.decadeDistribution).length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Content by Era</Text>
                   {Object.entries(analysis.decadeDistribution)
+                    .filter(([_, count]) => (count as number) > 0)
                     .sort(([a], [b]) => b.localeCompare(a))
                     .map(([decade, count]) => (
                       <View key={decade} style={styles.decadeRow}>
@@ -562,15 +1003,15 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
               {/* TMDB Recommendations List */}
               {recommendations.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>
-                    Based on Your Taste ({recommendations.length})
-                  </Text>
+                  <Text style={styles.sectionTitle}>Based on Your Taste</Text>
                   <HorizontalList
                     title=""
                     data={recommendations}
                     onItemPress={handleItemPress}
                     isLoading={false}
                     isSeeAll={false}
+                    showSeeAllText={false}
+                    hideTitle={true}
                   />
                 </View>
               )}
@@ -591,9 +1032,43 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                     // Force re-analyze
                     setAnalysis(null);
                     setRecommendations([]);
-                    setExpanded(false);
+                    setExpanded(true);
+                    setLoading(true);
+                    setError(null);
                     await WatchlistInsightsManager.clearAll();
-                    setTimeout(() => handleAnalyze(), 100);
+
+                    try {
+                      console.log('🤖 Re-analyzing watchlist with AI...');
+                      const result = await analyzeWatchlistPatterns(
+                        watchlistItems,
+                      );
+
+                      if (!result) {
+                        throw new Error(
+                          'Could not analyze patterns. Please try again.',
+                        );
+                      }
+
+                      await WatchlistInsightsManager.saveInsights(
+                        watchlistHash,
+                        result,
+                      );
+                      setAnalysis(result);
+
+                      if (
+                        result.recommendedTitles &&
+                        result.recommendedTitles.length > 0
+                      ) {
+                        fetchRecommendations(result.recommendedTitles);
+                      }
+                    } catch (err) {
+                      console.error('Error re-analyzing watchlist:', err);
+                      setError(
+                        'Failed to re-analyze watchlist. Please try again.',
+                      );
+                    } finally {
+                      setLoading(false);
+                    }
                   }}>
                   <Icon name="refresh" size={16} color={colors.accent} />
                   <Text

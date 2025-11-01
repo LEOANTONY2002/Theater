@@ -131,12 +131,19 @@ export const EmotionalToneResultsScreen: React.FC = () => {
       );
       return validContent;
     },
-    staleTime: 1000 * 60 * 60 * 24 * 180, // Cache for 6 months
-    gcTime: 1000 * 60 * 60 * 24 * 180, // Keep in cache for 6 months
+    staleTime: 0, // Don't cache - Realm is the source of truth
+    gcTime: 1000 * 60 * 5, // Keep in memory for 5 minutes only
     retry: 1, // Retry once on failure
   });
 
   const error = queryError ? (queryError as Error).message : null;
+  
+  // Check if it's a quota error
+  const isQuotaError = error && (
+    error.includes('You exceeded your current quota') ||
+    error.includes('RESOURCE_EXHAUSTED') ||
+    error.includes('429')
+  );
 
   const handleItemPress = (item: ContentItem) => {
     const params =
@@ -204,8 +211,28 @@ export const EmotionalToneResultsScreen: React.FC = () => {
 
         {/* Error */}
         <View style={styles.emptyContainer}>
-          <Icon name="alert-circle" size={48} color={colors.text.muted} />
-          <Text style={styles.emptyText}>{error}</Text>
+          <Icon name="alert-circle" size={48} color={isQuotaError ? colors.accent : colors.text.muted} />
+          <Text style={styles.emptyText}>
+            {isQuotaError ? 'API Quota Exceeded' : error}
+          </Text>
+          {isQuotaError && (
+            <>
+              <Text style={styles.quotaSubtext}>
+                Please update your Gemini API key in settings or try again later
+              </Text>
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => {
+                  // Navigate to MySpace tab, then to AISettings
+                  (navigation as any).navigate('MySpace', {
+                    screen: 'AISettings',
+                  });
+                }}>
+                <Icon name="settings-outline" size={20} color={colors.background.primary} />
+                <Text style={styles.settingsButtonText}>AI Settings</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     );
@@ -307,9 +334,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   emptyText: {
-    ...typography.body1,
-    color: colors.text.secondary,
+    ...typography.h3,
+    color: colors.text.primary,
     textAlign: 'center',
     marginTop: spacing.md,
+  },
+  quotaSubtext: {
+    ...typography.body2,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  settingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.lg,
+  },
+  settingsButtonText: {
+    ...typography.body2,
+    fontWeight: '600',
+    color: colors.background.primary,
   },
 });

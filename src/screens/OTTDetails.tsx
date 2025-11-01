@@ -1,5 +1,12 @@
 import React, {useCallback, useMemo, useState, useRef, useEffect} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Image, FlatList} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  FlatList,
+} from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useRegion} from '../hooks/useApp';
@@ -16,7 +23,11 @@ import {TVShow} from '../types/tvshow';
 import {ContentItem} from '../components/MovieList';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import {HeadingSkeleton, HorizontalListSkeleton, BannerSkeleton} from '../components/LoadingSkeleton';
+import {
+  HeadingSkeleton,
+  HorizontalListSkeleton,
+  BannerSkeleton,
+} from '../components/LoadingSkeleton';
 import {FeaturedBanner} from '../components/FeaturedBanner';
 import {offlineCache} from '../services/offlineCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,87 +48,18 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
   const {navigateWithLimit} = useNavigationState();
   const {data: region} = useRegion();
   const [isBannerVisible, setIsBannerVisible] = useState(true);
+  const [sectionsVersion, setSectionsVersion] = useState(0);
 
-  // ========== DEBUG: Check cache stats on mount ==========
-  useEffect(() => {
-    const checkCacheStats = async () => {
-      try {
-        const stats = await offlineCache.getStats();
-        console.log('=== OFFLINE CACHE STATS ===');
-        console.log('Total Items:', stats.totalItems);
-        console.log('Total Size (MB):', (stats.totalSize / 1024 / 1024).toFixed(2));
-        console.log('Total Size (bytes):', stats.totalSize);
-        console.log('Oldest Item:', new Date(stats.oldestItem).toLocaleString());
-        console.log('Newest Item:', new Date(stats.newestItem).toLocaleString());
-        console.log('Items by Type:', stats.itemsByType);
-        console.log('========================');
-        
-        // Check ALL AsyncStorage usage
-        console.log('\n=== ALL ASYNCSTORAGE USAGE ===');
-        const allKeys = await AsyncStorage.getAllKeys();
-        console.log('Total AsyncStorage keys:', allKeys.length);
-        
-        let totalSize = 0;
-        const largeSizes: {key: string; sizeKB: number}[] = [];
-        
-        for (const key of allKeys) {
-          const value = await AsyncStorage.getItem(key);
-          if (value) {
-            const sizeKB = value.length / 1024;
-            totalSize += sizeKB;
-            
-            // Track items larger than 10KB
-            if (sizeKB > 10) {
-              largeSizes.push({key, sizeKB});
-            }
-          }
-        }
-        
-        // Sort by size descending
-        largeSizes.sort((a, b) => b.sizeKB - a.sizeKB);
-        
-        console.log('Total AsyncStorage Size (MB):', (totalSize / 1024).toFixed(2));
-        console.log('\nLargest items (>10KB):');
-        largeSizes.forEach(item => {
-          console.log(`  ${item.key}: ${item.sizeKB.toFixed(2)} KB`);
-        });
-        
-        // Check specific categories
-        const watchlistKeys = allKeys.filter(k => k.includes('watchlist'));
-        const filterKeys = allKeys.filter(k => k.includes('filter'));
-        const historyKeys = allKeys.filter(k => k.includes('history'));
-        
-        console.log('\nKeys by category:');
-        console.log('  Watchlists:', watchlistKeys.length);
-        console.log('  Filters:', filterKeys.length);
-        console.log('  History:', historyKeys.length);
-        const cacheKeys = allKeys.filter(k => k.includes('@theater_offline_cache_'));
-        console.log('  Cache:', cacheKeys.length);
-        
-        // Find the "Other" keys
-        const otherKeys = allKeys.filter(k => 
-          !k.includes('watchlist') && 
-          !k.includes('filter') && 
-          !k.includes('history') && 
-          !k.includes('@theater_offline_cache_')
-        );
-        console.log('  Other:', otherKeys.length);
-        
-        // Show sample of "Other" keys
-        console.log('\nSample of "Other" keys (first 20):');
-        otherKeys.slice(0, 20).forEach(key => console.log(`    ${key}`));
-        
-        console.log('========================\n');
-      } catch (error) {
-        console.error('Failed to get cache stats:', error);
-      }
-    };
-    
-    checkCacheStats();
-  }, []);
+  // ========== DEBUG: Check cache stats on mount (DISABLED FOR PERFORMANCE) ==========
+  // useEffect(() => {
+  //   const checkCacheStats = async () => {
+  //     // ... debug code disabled
+  //   };
+  //   checkCacheStats();
+  // }, []);
 
   // ========== STEP 1: FETCH ALL DATA FIRST ==========
-  
+
   // Fetch popular content
   const {
     data: popularMoviesData,
@@ -154,10 +96,10 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Fetch user's language preference
   const {data: myLanguage} = useMyLanguage();
-  
+
   // Fetch language-specific content on this OTT (if user has language set)
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  
+
   const {
     data: myLanguageMoviesOnOTTData,
     hasNextPage: hasNextMyLanguageMovies,
@@ -699,11 +641,16 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
     [documentaryTVData],
   );
 
-  // ========== STEP 3: REFS FOR BANNER CACHING ==========
-  
+  // ========== STEP 3: REFS FOR BANNER CACHING & SECTIONS STABILITY ==========
+
   // Store featured items in ref to prevent re-shuffling after initial load
   const featuredItemsRef = useRef<any[]>([]);
   const hasInitializedRef = useRef(false);
+
+  // Store sections in ref to prevent re-renders during scroll
+  const sectionsRef = useRef<any[]>([]);
+  const lastSectionsLengthRef = useRef(0);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ========== STEP 4: CALLBACKS ==========
 
@@ -719,10 +666,19 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
   );
 
   const handleSeeAllPress = useCallback(
-    (title: string, contentType: 'movie' | 'tv', kind: 'latest' | 'popular') => {
+    (
+      title: string,
+      contentType: 'movie' | 'tv',
+      kind: 'latest' | 'popular',
+    ) => {
       const {buildOTTFilters} = require('../services/tmdbWithCache');
-      const filter = buildOTTFilters(ottId, kind, contentType, region?.iso_3166_1);
-      
+      const filter = buildOTTFilters(
+        ottId,
+        kind,
+        contentType,
+        region?.iso_3166_1,
+      );
+
       navigateWithLimit('Category', {
         title,
         contentType,
@@ -733,36 +689,33 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
   );
 
   // ========== STEP 5: CONSTRUCT BANNER DATA (BEFORE ANY RETURNS) ==========
-  
+
   // Get featured items for banner - use popular + latest (reliable and fast)
   const featuredItems = useMemo(() => {
     // If already initialized and we have items, use cached version
     if (hasInitializedRef.current && featuredItemsRef.current.length > 0) {
       return featuredItemsRef.current;
     }
-    
+
     // Use popular + latest content for banner
     const bannerMovies = [
       ...popularMovies.slice(0, 3),
       ...latestMovies.slice(0, 2),
     ];
-    const bannerTV = [
-      ...popularTV.slice(0, 3),
-      ...latestTV.slice(0, 2),
-    ];
-    
+    const bannerTV = [...popularTV.slice(0, 3), ...latestTV.slice(0, 2)];
+
     const allBannerContent = [...bannerMovies, ...bannerTV];
     const items = allBannerContent
       .filter(item => item.backdrop_path)
       .sort(() => Math.random() - 0.5)
       .slice(0, 5);
-    
+
     // Cache the items once we have them
     if (items.length > 0 && !hasInitializedRef.current) {
       featuredItemsRef.current = items;
       hasInitializedRef.current = true;
     }
-    
+
     return items;
   }, [popularMovies, latestMovies, popularTV, latestTV]);
 
@@ -792,7 +745,8 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         title: `Popular Movies on ${ottName}`,
         data: popularMovies,
         onEndReached: hasNextPopularMovies ? fetchNextPopularMovies : undefined,
-        onSeeAllPress: () => handleSeeAllPress(`Popular Movies on ${ottName}`, 'movie', 'popular'),
+        onSeeAllPress: () =>
+          handleSeeAllPress(`Popular Movies on ${ottName}`, 'movie', 'popular'),
       });
     }
 
@@ -804,7 +758,8 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         title: `Latest Movies on ${ottName}`,
         data: latestMovies,
         onEndReached: hasNextLatestMovies ? fetchNextLatestMovies : undefined,
-        onSeeAllPress: () => handleSeeAllPress(`Latest Movies on ${ottName}`, 'movie', 'latest'),
+        onSeeAllPress: () =>
+          handleSeeAllPress(`Latest Movies on ${ottName}`, 'movie', 'latest'),
       });
     }
 
@@ -816,7 +771,8 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         title: `Popular Shows on ${ottName}`,
         data: popularTV,
         onEndReached: hasNextPopularTV ? fetchNextPopularTV : undefined,
-        onSeeAllPress: () => handleSeeAllPress(`Popular Shows on ${ottName}`, 'tv', 'popular'),
+        onSeeAllPress: () =>
+          handleSeeAllPress(`Popular Shows on ${ottName}`, 'tv', 'popular'),
       });
     }
 
@@ -828,7 +784,8 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         title: `Latest Shows on ${ottName}`,
         data: latestTV,
         onEndReached: hasNextLatestTV ? fetchNextLatestTV : undefined,
-        onSeeAllPress: () => handleSeeAllPress(`Latest Shows on ${ottName}`, 'tv', 'latest'),
+        onSeeAllPress: () =>
+          handleSeeAllPress(`Latest Shows on ${ottName}`, 'tv', 'latest'),
       });
     }
 
@@ -839,7 +796,9 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         type: 'horizontalList',
         title: `${myLanguage.english_name} Movies on ${ottName}`,
         data: myLanguageMoviesOnOTT,
-        onEndReached: hasNextMyLanguageMovies ? fetchNextMyLanguageMovies : undefined,
+        onEndReached: hasNextMyLanguageMovies
+          ? fetchNextMyLanguageMovies
+          : undefined,
       });
     }
 
@@ -860,7 +819,9 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         type: 'horizontalList',
         title: `Top Rated Movies on ${ottName}`,
         data: topRatedMovies,
-        onEndReached: hasNextTopRatedMovies ? fetchNextTopRatedMovies : undefined,
+        onEndReached: hasNextTopRatedMovies
+          ? fetchNextTopRatedMovies
+          : undefined,
       });
     }
 
@@ -892,7 +853,9 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         type: 'horizontalList',
         title: `Critically Acclaimed on ${ottName}`,
         data: criticallyAcclaimedMovies,
-        onEndReached: hasNextCriticallyAcclaimedMovies ? fetchNextCriticallyAcclaimedMovies : undefined,
+        onEndReached: hasNextCriticallyAcclaimedMovies
+          ? fetchNextCriticallyAcclaimedMovies
+          : undefined,
       });
     }
 
@@ -903,7 +866,9 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         type: 'horizontalList',
         title: `Family-Friendly Movies on ${ottName}`,
         data: familyFriendlyMovies,
-        onEndReached: hasNextFamilyFriendlyMovies ? fetchNextFamilyFriendlyMovies : undefined,
+        onEndReached: hasNextFamilyFriendlyMovies
+          ? fetchNextFamilyFriendlyMovies
+          : undefined,
       });
     }
 
@@ -913,7 +878,9 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         type: 'horizontalList',
         title: `Family-Friendly Shows on ${ottName}`,
         data: familyFriendlyTV,
-        onEndReached: hasNextFamilyFriendlyTV ? fetchNextFamilyFriendlyTV : undefined,
+        onEndReached: hasNextFamilyFriendlyTV
+          ? fetchNextFamilyFriendlyTV
+          : undefined,
       });
     }
 
@@ -1014,7 +981,9 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         type: 'horizontalList',
         title: `Documentary Movies on ${ottName}`,
         data: documentaryMovies,
-        onEndReached: hasNextDocumentaryMovies ? fetchNextDocumentaryMovies : undefined,
+        onEndReached: hasNextDocumentaryMovies
+          ? fetchNextDocumentaryMovies
+          : undefined,
       });
     }
 
@@ -1028,7 +997,17 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
       });
     }
 
-    return sectionsList;
+    // Only update if sections count changed significantly (debounce minor updates)
+    if (Math.abs(sectionsList.length - lastSectionsLengthRef.current) >= 2) {
+      lastSectionsLengthRef.current = sectionsList.length;
+      sectionsRef.current = sectionsList;
+    } else if (sectionsRef.current.length === 0) {
+      // First load
+      sectionsRef.current = sectionsList;
+      lastSectionsLengthRef.current = sectionsList.length;
+    }
+
+    return sectionsRef.current.length > 0 ? sectionsRef.current : sectionsList;
   }, [
     featuredItems,
     popularMovies,
@@ -1058,99 +1037,112 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
     ottName,
   ]);
 
-  const renderSection = useCallback(({item}: {item: any}) => {
-    switch (item.type) {
-      case 'banner':
-        return (
-          <View style={styles.bannerContainer}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.8}>
-              <Icon name="chevron-back" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
-            <FeaturedBanner
-              item={item.data[0]}
-              type={item.data[0].type}
-              slides={item.data}
-              autoplayEnabled={isBannerVisible}
-            />
-            {ottLogo && (
-              <View style={styles.ottInfoOverlay}>
-                <Image
-                  source={{uri: `https://image.tmdb.org/t/p/w154${ottLogo}`}}
-                  style={styles.ottLogoSmall}
-                  resizeMode="contain"
+  const renderSection = useCallback(
+    ({item}: {item: any}) => {
+      switch (item.type) {
+        case 'banner':
+          return (
+            <View style={styles.bannerContainer}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.8}>
+                <Icon
+                  name="chevron-back"
+                  size={24}
+                  color={colors.text.primary}
                 />
-                <Text style={styles.ottNameOverlay}>{ottName}</Text>
-              </View>
-            )}
-          </View>
-        );
-      
-      case 'header':
-        return (
-          <LinearGradient
-            colors={[colors.background.secondary, colors.background.primary]}
-            style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.8}>
-              <Icon name="chevron-back" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
-            
-            <View style={styles.headerContent}>
-              {ottLogo ? (
-                <Image
-                  source={{uri: `https://image.tmdb.org/t/p/w154${ottLogo}`}}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={styles.logoPlaceholder}>
-                  <Text style={styles.logoPlaceholderText}>{ottName.charAt(0)}</Text>
+              </TouchableOpacity>
+              <FeaturedBanner
+                item={item.data[0]}
+                type={item.data[0].type}
+                slides={item.data}
+                autoplayEnabled={isBannerVisible}
+              />
+              {ottLogo && (
+                <View style={styles.ottInfoOverlay}>
+                  <Image
+                    source={{uri: `https://image.tmdb.org/t/p/w154${ottLogo}`}}
+                    style={styles.ottLogoSmall}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.ottNameOverlay}>{ottName}</Text>
                 </View>
               )}
-              <Text style={styles.title}>{ottName}</Text>
-              <Text style={styles.subtitle}>Discover content on {ottName}</Text>
             </View>
-          </LinearGradient>
-        );
+          );
 
-      case 'horizontalList':
-        return (
-          <HorizontalList
-            title={item.title}
-            data={item.data}
-            onItemPress={handleItemPress}
-            onEndReached={item.onEndReached}
-            onSeeAllPress={item.onSeeAllPress}
-            isSeeAll={!!item.onSeeAllPress}
-          />
-        );
+        case 'header':
+          return (
+            <LinearGradient
+              colors={[colors.background.secondary, colors.background.primary]}
+              style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.8}>
+                <Icon
+                  name="chevron-back"
+                  size={24}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
 
-      default:
-        return null;
-    }
-  }, [handleItemPress, navigation, ottLogo, ottName, isBannerVisible]);
+              <View style={styles.headerContent}>
+                {ottLogo ? (
+                  <Image
+                    source={{uri: `https://image.tmdb.org/t/p/w154${ottLogo}`}}
+                    style={styles.logo}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View style={styles.logoPlaceholder}>
+                    <Text style={styles.logoPlaceholderText}>
+                      {ottName.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.title}>{ottName}</Text>
+                <Text style={styles.subtitle}>
+                  Discover content on {ottName}
+                </Text>
+              </View>
+            </LinearGradient>
+          );
+
+        case 'horizontalList':
+          return (
+            <HorizontalList
+              title={item.title}
+              data={item.data}
+              onItemPress={handleItemPress}
+              onEndReached={item.onEndReached}
+              onSeeAllPress={item.onSeeAllPress}
+              isSeeAll={!!item.onSeeAllPress}
+            />
+          );
+
+        default:
+          return null;
+      }
+    },
+    [handleItemPress, navigation, ottLogo, ottName, isBannerVisible],
+  );
 
   const keyExtractor = useCallback((item: any) => item.id, []);
 
   const getItemLayout = useCallback(
     (_: any, index: number) => {
-      const item = sections[index];
-      let height = 320; // default for horizontalList
-      if (item?.type === 'banner') height = 500;
-      if (item?.type === 'header') height = 280;
-      
+      // Approximate heights - don't depend on sections to avoid recalculation
+      const height = index === 0 ? 500 : 320; // First item is banner, rest are lists
+
       return {
         length: height,
-        offset: height * index,
+        offset: index === 0 ? 0 : 500 + (index - 1) * 320,
         index,
       };
     },
-    [sections],
+    [], // No dependencies - stable function
   );
 
   const viewabilityConfig = useMemo(
@@ -1169,7 +1161,7 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
   }, []);
 
   // ========== CHECK LOADING STATE (AFTER ALL HOOKS) ==========
-  
+
   // Only wait for core data (popular/latest) - show content progressively
   const isInitialLoading =
     isLoadingPopularMovies ||
@@ -1211,9 +1203,7 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         viewabilityConfig={viewabilityConfig}
         onViewableItemsChanged={onViewableItemsChanged}
         removeClippedSubviews={true}
-        maxToRenderPerBatch={3}
-        windowSize={5}
-        initialNumToRender={3}
+        updateCellsBatchingPeriod={100}
       />
     </View>
   );

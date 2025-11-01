@@ -1,6 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {RealmSettingsManager} from '../database/managers';
 
-const AI_SETTINGS_KEY = 'ai_settings';
+const AI_MODEL_KEY = 'ai_model';
+const AI_API_KEY_KEY = 'ai_api_key';
+const AI_IS_DEFAULT_KEY = 'ai_is_default';
 
 export interface AISettings {
   model: string;
@@ -16,7 +18,7 @@ export interface AISettingsInput {
 }
 
 const DEFAULT_SETTINGS: AISettings = {
-  model: 'gemini-2.5-flash',
+  model: 'gemini-2.5-flash-lite',
   apiKey: null,
   isDefault: true,
 };
@@ -24,23 +26,21 @@ const DEFAULT_SETTINGS: AISettings = {
 export class AISettingsManager {
   static async getSettings(): Promise<AISettings> {
     try {
-      const stored = await AsyncStorage.getItem(AI_SETTINGS_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const apiKey = parsed.apiKey || DEFAULT_SETTINGS.apiKey;
-        const isDefault =
-          typeof parsed.isDefault === 'boolean'
-            ? parsed.isDefault
-            : apiKey === DEFAULT_SETTINGS.apiKey;
-        return {
-          model: parsed.model || DEFAULT_SETTINGS.model,
-          apiKey,
-          isDefault,
-        };
-      }
-      return DEFAULT_SETTINGS;
+      const model = await RealmSettingsManager.getSetting(AI_MODEL_KEY);
+      const apiKey = await RealmSettingsManager.getSetting(AI_API_KEY_KEY);
+      const isDefaultStr = await RealmSettingsManager.getSetting(
+        AI_IS_DEFAULT_KEY,
+      );
+
+      const isDefault = isDefaultStr === 'true' || isDefaultStr === null;
+
+      return {
+        model: model || DEFAULT_SETTINGS.model,
+        apiKey: apiKey || DEFAULT_SETTINGS.apiKey,
+        isDefault,
+      };
     } catch (error) {
-      console.error('Error getting AI settings:', error);
+      console.error('[AISettings] Error getting settings from Realm:', error);
       return DEFAULT_SETTINGS;
     }
   }
@@ -51,12 +51,18 @@ export class AISettingsManager {
         typeof settings.isDefault === 'boolean'
           ? settings.isDefault
           : settings.apiKey === DEFAULT_SETTINGS.apiKey;
-      await AsyncStorage.setItem(
-        AI_SETTINGS_KEY,
-        JSON.stringify({...settings, isDefault}),
+
+      await RealmSettingsManager.setSetting(AI_MODEL_KEY, settings.model);
+      await RealmSettingsManager.setSetting(
+        AI_API_KEY_KEY,
+        settings.apiKey || '',
+      );
+      await RealmSettingsManager.setSetting(
+        AI_IS_DEFAULT_KEY,
+        isDefault.toString(),
       );
     } catch (error) {
-      console.error('Error saving AI settings:', error);
+      console.error('[AISettings] Error saving settings to Realm:', error);
       throw error;
     }
   }
@@ -69,7 +75,7 @@ export class AISettingsManager {
         model,
       });
     } catch (error) {
-      console.error('Error updating model:', error);
+      console.error('[AISettings] Error updating model:', error);
       throw error;
     }
   }
@@ -83,7 +89,7 @@ export class AISettingsManager {
         // isDefault will auto-compute based on apiKey
       });
     } catch (error) {
-      console.error('Error updating API key:', error);
+      console.error('[AISettings] Error updating API key:', error);
       throw error;
     }
   }

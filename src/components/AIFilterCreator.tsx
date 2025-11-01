@@ -16,9 +16,10 @@ import LinearGradient from 'react-native-linear-gradient';
 import {MaybeBlurView} from './MaybeBlurView';
 import {FilterParams, SavedFilter} from '../types/filters';
 import {useQuery} from '@tanstack/react-query';
-import {getAvailableWatchProviders, getLanguages} from '../services/tmdb';
+import {getAvailableWatchProviders} from '../services/tmdb';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FiltersManager} from '../store/filters';
+import languageData from '../utils/language.json';
 
 const AI_SEARCH_HISTORY_KEY = '@ai_search_history';
 const MAX_HISTORY_ITEMS = 5;
@@ -45,12 +46,8 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
   const {data: movieGenres = []} = useGenres('movie');
   const {data: tvGenres = []} = useGenres('tv');
 
-  // Fetch ALL available data from TMDB
-  const {data: languages = []} = useQuery({
-    queryKey: ['languages'],
-    queryFn: getLanguages,
-    staleTime: 1000 * 60 * 60 * 24,
-  });
+  // Languages are static - import directly
+  const languages = languageData;
 
   const {data: watchProviders = []} = useQuery({
     queryKey: ['available_watch_providers', 'movie'],
@@ -111,6 +108,7 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
     setError(null);
 
     try {
+      console.log('[AIFilterCreator] Starting AI parse...');
       const result = await parseNaturalLanguageToFilters(
         query,
         movieGenres,
@@ -118,8 +116,10 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
         languages,
         watchProviders,
       );
+      console.log('[AIFilterCreator] AI result:', result);
 
       if (result) {
+        console.log('[AIFilterCreator] Saving to history...');
         await saveToHistory(query);
         
         // Save to FiltersManager storage
@@ -130,6 +130,7 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
         });
         
         if (editingFilter) {
+          console.log('[AIFilterCreator] Updating existing filter...');
           const updatedFilter: SavedFilter = {
             ...editingFilter,
             name: filterName.trim(),
@@ -137,32 +138,40 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
             type: result.contentType,
           };
           await FiltersManager.updateFilter(editingFilter.id, updatedFilter);
+          console.log('[AIFilterCreator] ✅ Filter updated');
           onSave(updatedFilter);
         } else {
-          await FiltersManager.saveFilter(
+          console.log('[AIFilterCreator] Creating new filter...');
+          const filterId = await FiltersManager.saveFilter(
             filterName.trim(),
             result.filters as FilterParams,
             result.contentType,
           );
+          console.log('[AIFilterCreator] ✅ Filter saved with ID:', filterId);
           
-          // Create filter object for callback
+          // Create filter object for callback with the actual ID from storage
           const newFilter: SavedFilter = {
-            id: Date.now().toString(),
+            id: filterId, // Use the ID returned from FiltersManager
             name: filterName.trim(),
             params: result.filters as FilterParams,
             type: result.contentType,
             createdAt: Date.now(),
           };
+          console.log('[AIFilterCreator] Calling onSave callback...');
           onSave(newFilter);
+          console.log('[AIFilterCreator] ✅ Callback complete');
         }
         setQuery('');
         setFilterName('');
         onClose();
       } else {
+        console.warn('[AIFilterCreator] AI returned null result');
         setError('Could not parse your query. Try being more specific.');
       }
     } catch (err) {
-      setError('AI service error. Please check your settings.');
+      console.error('[AIFilterCreator] ❌ Exception caught:', err);
+      const errorMessage = err instanceof Error ? err.message : 'AI service error. Please check your settings.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

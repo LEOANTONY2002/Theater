@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import {useAIEnabled} from './useAIEnabled';
-import {thematicTagsManager} from '../store/thematicTags';
+import {ThematicTagsManager} from '../store/thematicTags';
 import {useIsFocused} from '@react-navigation/native';
 
 /**
@@ -19,7 +19,7 @@ export function useThematicGenres(limit: number = 10) {
       }
 
       // Get top thematic tags from storage (instant, no AI call)
-      const tags = await thematicTagsManager.getTopTags(limit, 'thematic');
+      const tags = await ThematicTagsManager.getTopTags(limit, 'thematic');
       
       console.log(`[useThematicGenres] 📊 Found ${tags.length} thematic tags:`, 
         tags.map(t => `${t.tag}(count:${t.count})`).join(', '));
@@ -59,7 +59,7 @@ export function useEmotionalTags(limit: number = 10) {
       }
 
       // Get top emotional tags from storage
-      const tags = await thematicTagsManager.getTopTags(limit, 'emotional');
+      const tags = await ThematicTagsManager.getTopTags(limit, 'emotional');
 
       if (tags.length === 0) {
         return null;

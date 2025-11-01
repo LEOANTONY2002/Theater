@@ -319,12 +319,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     overview: movie.overview,
     genres: movieDetails?.genres?.map((g: Genre) => g.name).join(', ') || '',
     type: 'movie',
+    contentId: movie.id,
     enabled: !!(movieDetails && isAIEnabled),
   });
 
   // Set loading to false when data is available
   useEffect(() => {
     if (movieDetails && !isLoadingDetails) {
+      setIsInitialLoading(false);
       const timer = setTimeout(() => {
         setIsInitialLoading(false);
       }, 100);
@@ -348,6 +350,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           title: movie.title,
           year: yearStr,
           type: 'movie',
+          contentId: movie.id,
         });
         if (__DEV__) {
           console.log('[AI Ratings][Movie]', movie.title, yearStr, res);
@@ -1543,6 +1546,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     title={movie.title}
                     year={new Date(movie.release_date).getFullYear().toString()}
                     type="movie"
+                    contentId={movie.id}
                   />
                 </View>
               );

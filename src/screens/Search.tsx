@@ -26,7 +26,6 @@ import {
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {SearchStackParamList} from '../types/navigation';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {HorizontalList} from '../components/HorizontalList';
 import {TrendingGrid} from '../components/TrendingGrid';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
@@ -43,11 +42,11 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {HistoryManager} from '../store/history';
+import {RecentSearchItemsManager} from '../store/recentSearchItems';
 import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
 import {AISearchFilterBuilder} from '../components/AISearchFilterBuilder';
 
-const RECENT_ITEMS_KEY = '@recent_search_items';
 const MAX_RECENT_ITEMS = 10;
 
 const NoResults = ({query}: {query: string}) => (
@@ -132,33 +131,25 @@ export const SearchScreen = React.memo(() => {
     isFetchingNextPage: isFetchingTrendingPage,
   } = useTrending('day');
 
-  // Load recent items on mount
-  useEffect(() => {
-    const loadRecentItems = async () => {
-      try {
-        const savedItems = await AsyncStorage.getItem(RECENT_ITEMS_KEY);
-        if (savedItems) {
-          setRecentItems(JSON.parse(savedItems));
-        }
-      } catch (error) {
-        console.error('Error loading recent items:', error);
-      }
-    };
-    loadRecentItems();
-  }, []);
 
-  // Load view history on mount and when returning to tab
+  // Load view history and recent search items from Realm on mount and when returning to tab
   useEffect(() => {
-    const loadHistory = async () => {
+    const loadData = async () => {
       try {
-        const items = await HistoryManager.getAll();
-        setHistoryItems(items as unknown as ContentItem[]);
+        // Load history from Realm (for History tab)
+        const historyData = await HistoryManager.getAll();
+        setHistoryItems(historyData as unknown as ContentItem[]);
+        
+        // Load recent search items from Realm (for Recent Searches section)
+        const recentSearchData = await RecentSearchItemsManager.getAll();
+        const recentSearchItems = recentSearchData.slice(0, MAX_RECENT_ITEMS);
+        setRecentItems(recentSearchItems as unknown as ContentItem[]);
       } catch (e) {
-        console.error('Error loading history items:', e);
+        console.error('Error loading data from Realm:', e);
       }
     };
-    loadHistory();
-    const unsubscribe = navigation.addListener('focus', loadHistory);
+    loadData();
+    const unsubscribe = navigation.addListener('focus', loadData);
     return unsubscribe;
   }, [navigation]);
 
@@ -205,36 +196,43 @@ export const SearchScreen = React.memo(() => {
     );
   };
 
-  // Save recent item
-  const saveRecentItem = async (item: ContentItem) => {
+  // Save recent search item (clicked content from search screen) to Realm
+  const saveRecentItem = async (item: ContentItem, isFromSearch: boolean = false) => {
     try {
-      const savedItems = await AsyncStorage.getItem(RECENT_ITEMS_KEY);
-      const currentItems: ContentItem[] = savedItems
-        ? JSON.parse(savedItems)
-        : [];
-
+      const itemData: any = item;
+      // Save to RecentSearchItems (specific to search screen) with full data
+      await RecentSearchItemsManager.add({
+        id: item.id,
+        type: item.type,
+        isSearch: isFromSearch, // true if from search query, false if from trending
+        title: item.type === 'movie' ? itemData.title : undefined,
+        name: item.type === 'tv' ? itemData.name : undefined,
+        poster_path: item.poster_path,
+        backdrop_path: item.backdrop_path,
+        vote_average: item.vote_average,
+        release_date: item.type === 'movie' ? itemData.release_date : undefined,
+        first_air_date: item.type === 'tv' ? itemData.first_air_date : undefined,
+        overview: item.overview,
+      });
+      
+      // Update local state
       const updatedItems = [
         item,
-        ...currentItems.filter(i => i.id !== item.id),
+        ...recentItems.filter(i => i.id !== item.id),
       ].slice(0, MAX_RECENT_ITEMS);
-
       setRecentItems(updatedItems);
-      await AsyncStorage.setItem(
-        RECENT_ITEMS_KEY,
-        JSON.stringify(updatedItems),
-      );
     } catch (error) {
-      console.error('Error saving recent item:', error);
+      console.error('Error saving recent search item to Realm:', error);
     }
   };
 
-  // Clear all recent items
+  // Clear all recent search items from Realm
   const clearRecentItems = async () => {
     try {
-      await AsyncStorage.removeItem(RECENT_ITEMS_KEY);
+      await RecentSearchItemsManager.clear();
       setRecentItems([]);
     } catch (error) {
-      console.error('Error clearing recent items:', error);
+      console.error('Error clearing recent search items from Realm:', error);
     }
   };
 
@@ -287,16 +285,31 @@ export const SearchScreen = React.memo(() => {
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
-      // When search query changes, refetch with current filters
     }, 500);
 
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Handler for items clicked from search results (isSearch = true)
+  const handleSearchItemPress = useCallback(
+    (item: ContentItem) => {
+      // Save to recent searches with isSearch = true
+      saveRecentItem(item, true);
+
+      if (item.type === 'movie') {
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
+      }
+    },
+    [navigateWithLimit, saveRecentItem],
+  );
+
+  // Handler for items clicked from trending/history/watchlists (isSearch = false)
   const handleItemPress = useCallback(
     (item: ContentItem) => {
-      // Save to recent searches
-      saveRecentItem(item);
+      // Save to recent searches with isSearch = false
+      saveRecentItem(item, false);
 
       if (item.type === 'movie') {
         navigateWithLimit('MovieDetails', {movie: item as Movie});
@@ -787,7 +800,7 @@ export const SearchScreen = React.memo(() => {
               <MovieList
                 data={displayedContent}
                 isLoading={isFetchingMoviePage || isFetchingTVPage}
-                onMoviePress={handleItemPress}
+                onMoviePress={handleSearchItemPress}
                 onLoadMore={
                   contentType === 'all'
                     ? hasNextMoviePage || hasNextTVPage

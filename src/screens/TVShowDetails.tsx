@@ -111,6 +111,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     overview: show.overview,
     genres: showDetails?.genres?.map((g: Genre) => g.name).join(', ') || '',
     type: 'tv',
+    contentId: show.id,
     enabled: !!(showDetails && isAIEnabled),
   });
 
@@ -249,6 +250,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           title: show.name,
           year: yearStr,
           type: 'tv',
+          contentId: show.id,
         });
         setAiRatings(res);
       } catch (e) {
@@ -293,6 +295,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         title: show.name,
         year: yearStr,
         type: 'tv',
+        contentId: show.id,
       });
       if (__DEV__) {
         console.log('[AI Ratings][TV]', show.name, yearStr, res);
@@ -1661,6 +1664,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         : undefined
                     }
                     type="tv"
+                    contentId={show.id}
                   />
                 </View>
               );

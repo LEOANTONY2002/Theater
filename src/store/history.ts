@@ -1,47 +1,64 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import type {ContentItem} from '../components/MovieList';
-
-const STORAGE_KEY = '@theater_history_items_v1';
-const MAX_ITEMS = 100;
-
-export type HistoryItem = ContentItem & {
-  viewedAt: number;
-};
+import {RealmHistoryManager} from '../database/managers';
 
 export const HistoryManager = {
-  async getAll(): Promise<HistoryItem[]> {
-    try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const parsed: HistoryItem[] = JSON.parse(raw);
-      // sort desc by viewedAt
-      return parsed.sort((a, b) => (b.viewedAt || 0) - (a.viewedAt || 0));
-    } catch (e) {
-      console.warn('HistoryManager.getAll error', e);
-      return [];
-    }
+  async getAll(): Promise<any[]> {
+    const history = await RealmHistoryManager.getAll();
+    
+    // Return history items directly (no longer depends on Movie/TVShow cache)
+    return history.map(item => ({
+      id: item.contentId,
+      title: item.title,
+      name: item.name,
+      overview: item.overview,
+      poster_path: item.poster_path,
+      backdrop_path: item.backdrop_path,
+      vote_average: item.vote_average,
+      release_date: item.release_date,
+      first_air_date: item.first_air_date,
+      genre_ids: [], // Not stored in HistoryItem
+      type: item.type,
+      viewedAt: item.viewedAt,
+    }));
   },
 
-  async add(item: ContentItem): Promise<void> {
-    try {
-      const list = await this.getAll();
-      const withoutDupes = list.filter(i => i.id !== item.id);
-      const toSave: HistoryItem = {
-        ...item,
-        viewedAt: Date.now(),
-      };
-      const updated = [toSave, ...withoutDupes].slice(0, MAX_ITEMS);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('HistoryManager.add error', e);
+  async getHistory(): Promise<any[]> {
+    return await this.getAll();
+  },
+
+  async add(item: any): Promise<void> {
+    // Validate that we have a valid ID
+    if (!item || !item.id) {
+      console.warn('[History] Cannot add item without ID:', item);
+      return;
     }
+
+    await RealmHistoryManager.add({
+      contentId: item.id,
+      type: item.type,
+      title: item.title,
+      name: item.name,
+      poster_path: item.poster_path,
+      backdrop_path: item.backdrop_path,
+      vote_average: item.vote_average,
+      release_date: item.release_date,
+      first_air_date: item.first_air_date,
+      overview: item.overview,
+    });
+  },
+
+  async addToHistory(contentId: number, type: 'movie' | 'tv'): Promise<void> {
+    // This method needs more data - should be deprecated
+    await RealmHistoryManager.add({
+      contentId,
+      type,
+    });
+  },
+
+  async clearHistory(): Promise<void> {
+    await RealmHistoryManager.clear();
   },
 
   async clear(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch (e) {
-      console.warn('HistoryManager.clear error', e);
-    }
+    await RealmHistoryManager.clear();
   },
 };

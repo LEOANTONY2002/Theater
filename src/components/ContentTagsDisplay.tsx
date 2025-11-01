@@ -7,9 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicon from 'react-native-vector-icons/Ionicons';
-import {useResponsive} from '../hooks/useResponsive';
 import {GradientSpinner} from './GradientSpinner';
 
 interface Tag {
@@ -35,8 +33,6 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
   isLoading = false,
   onTagPress,
 }) => {
-  const {isTablet} = useResponsive();
-
   if (isLoading) {
     return (
       <View
@@ -207,7 +203,7 @@ const styles = StyleSheet.create({
   },
   confidenceText: {
     ...typography.caption,
-    color: colors.text.muted,
+    color: 'rgb(145, 145, 145)',
     fontSize: 30,
     fontWeight: '700',
     textAlign: 'right',

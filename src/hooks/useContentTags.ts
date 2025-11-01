@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {generateTagsForContent} from '../services/gemini';
-import {thematicTagsManager} from '../store/thematicTags';
+import {ThematicTagsManager} from '../store/thematicTags';
 import {useAIEnabled} from './useAIEnabled';
 
 interface ContentTagsParams {
@@ -8,6 +8,7 @@ interface ContentTagsParams {
   overview: string;
   genres: string;
   type: 'movie' | 'tv';
+  contentId?: number;
   enabled?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function useContentTags({
   overview,
   genres,
   type,
+  contentId,
   enabled = true,
 }: ContentTagsParams) {
   const {isAIEnabled} = useAIEnabled();
@@ -48,6 +50,7 @@ export function useContentTags({
           overview,
           genres,
           type,
+          contentId,
         );
 
         if (result) {
@@ -70,7 +73,7 @@ export function useContentTags({
           ];
 
           // This runs async - even if user leaves, it will complete
-          await thematicTagsManager.addTags(allTags);
+          await ThematicTagsManager.addTags(allTags);
           console.log(
             `[ContentTags] ✅ Counted tags for "${title}" (visit recorded)`,
           );

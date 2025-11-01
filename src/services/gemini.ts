@@ -1,6 +1,12 @@
 import {AISettingsManager} from '../store/aiSettings';
 import {cache, CACHE_KEYS} from '../utils/cache';
 import {searchMovies, searchTVShows} from './tmdb';
+import {
+  getMovie,
+  getTVShow,
+  cacheMovieAI,
+  cacheTVShowAI,
+} from '../database/contentCache';
 
 // Default fallback values
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -38,31 +44,35 @@ export async function getCriticRatings({
   title,
   year,
   type,
+  contentId,
 }: {
   title: string;
   year?: string;
   type: 'movie' | 'tv';
+  contentId?: number;
 }): Promise<{
   imdb?: number | null;
   rotten_tomatoes?: number | null;
   imdb_votes?: number | null;
   source?: string;
 } | null> {
-  const cacheKey = `ratings:${type}:${title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')}${year ? `:${year}` : ''}`;
-
-  // Try cache first
-  try {
-    const cached = await cache.get(CACHE_KEYS.AI_TRIVIA, cacheKey);
-    if (cached) {
-      if (typeof cached === 'string') {
-        return JSON.parse(cached);
+  // Check Realm cache first if contentId provided
+  if (contentId) {
+    const cached =
+      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
+    if (cached?.ai_ratings_cached_at) {
+      // Check if ratings are still valid (6 months)
+      const age = Date.now() - (cached.ai_ratings_cached_at as Date).getTime();
+      if (age < 180 * 24 * 60 * 60 * 1000) {
+        console.log('[getCriticRatings] Using cached ratings from Realm');
+        return {
+          imdb: cached.ai_imdb_rating as number | null,
+          rotten_tomatoes: cached.ai_rotten_tomatoes as number | null,
+          imdb_votes: cached.ai_imdb_votes as number | null,
+          source: 'ai',
+        };
       }
-      return cached as any;
     }
-  } catch (e) {
-    // proceed to fetch fresh
   }
 
   const yearSuffix = year ? ` (${year})` : '';
@@ -112,12 +122,25 @@ If a value is unknown, set it to null. Do not include extra fields.`;
           }
         : null;
 
-    await cache.set(
-      CACHE_KEYS.AI_TRIVIA,
-      cacheKey,
-      JSON.stringify(normalized),
-      180 * 24 * 60 * 60 * 1000, // 6 months
-    );
+    // Cache in Realm if contentId provided
+    if (contentId && normalized) {
+      const {getRealm} = await import('../database/realm');
+      const realm = getRealm();
+      realm.write(() => {
+        const content =
+          type === 'movie'
+            ? realm.objectForPrimaryKey('Movie', contentId)
+            : realm.objectForPrimaryKey('TVShow', contentId);
+
+        if (content) {
+          content.ai_imdb_rating = normalized.imdb;
+          content.ai_rotten_tomatoes = normalized.rotten_tomatoes;
+          content.ai_imdb_votes = normalized.imdb_votes;
+          content.ai_ratings_cached_at = new Date();
+        }
+      });
+      console.log('[getCriticRatings] Cached ratings in Realm');
+    }
 
     return normalized;
   } catch (error) {
@@ -292,34 +315,28 @@ export async function getSimilarByStory({
   overview,
   genres,
   type,
+  contentId,
 }: {
   title: string;
   overview: string;
   genres: string;
   type: 'movie' | 'tv';
+  contentId?: number;
 }) {
-  const cacheKey = `${type}:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-
-  // Try to get from cache first
-  const cachedResponse = await cache.get(CACHE_KEYS.AI_SIMILAR, cacheKey);
-  if (cachedResponse) {
-    try {
-      // If cache stored an array already
-      if (Array.isArray(cachedResponse)) {
-        return cachedResponse;
-      }
-      // If cache stored a string, try to extract/parse JSON array
-      if (typeof cachedResponse === 'string') {
-        const match = cachedResponse.match(/\[[\s\S]*\]/);
-        if (match) {
-          const parsed = JSON.parse(match[0]);
-          return Array.isArray(parsed) ? parsed : [];
+  // Check Realm cache first
+  if (contentId) {
+    const cached =
+      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
+    if (cached?.ai_similar) {
+      try {
+        const parsed = JSON.parse(cached.ai_similar);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          console.log('[Gemini] Using cached AI similar from Realm');
+          return parsed;
         }
-        const parsed = JSON.parse(cachedResponse);
-        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('[Gemini] Failed to parse cached similar');
       }
-    } catch (e) {
-      // Fall through to fetch fresh if cache is malformed
     }
   }
 
@@ -349,13 +366,15 @@ export async function getSimilarByStory({
       parsedArray = Array.isArray(parsed) ? parsed : [];
     }
 
-    // Cache the parsed array for 6 months to avoid type mismatch later
-    await cache.set(
-      CACHE_KEYS.AI_SIMILAR,
-      cacheKey,
-      Array.isArray(parsedArray) ? parsedArray : [],
-      180 * 24 * 60 * 60 * 1000, // 6 months
-    );
+    // Cache in Realm if contentId provided
+    if (contentId && Array.isArray(parsedArray)) {
+      if (type === 'movie') {
+        cacheMovieAI(contentId, {similar: parsedArray});
+      } else {
+        cacheTVShowAI(contentId, {similar: parsedArray});
+      }
+      console.log('[Gemini] Cached AI similar in Realm');
+    }
 
     return Array.isArray(parsedArray) ? parsedArray : [];
   } catch (error) {
@@ -409,35 +428,28 @@ export async function getMovieTrivia({
   title,
   year,
   type,
+  contentId,
 }: {
   title: string;
   year?: string;
   type: 'movie' | 'tv';
+  contentId?: number;
 }) {
-  // Generate a consistent cache key
-  const cacheKey = `trivia:${type}:${title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')}${year ? `:${year}` : ''}`;
-
-  // Try to get from cache first
-  try {
-    const cached = await cache.get<string>(CACHE_KEYS.AI_TRIVIA, cacheKey);
-    if (cached) {
-      // If we have a cached string, parse it
-      if (typeof cached === 'string') {
-        const parsed = JSON.parse(cached);
+  // Check Realm cache first
+  if (contentId) {
+    const cached =
+      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
+    if (cached?.ai_trivia) {
+      try {
+        const parsed = JSON.parse(cached.ai_trivia);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          console.log('[Gemini] Using cached AI trivia from Realm');
           return parsed;
         }
+      } catch (e) {
+        console.warn('[Gemini] Failed to parse cached trivia');
       }
-      // If it's already an array, return it
-      else if (Array.isArray(cached)) {
-        return cached;
-      }
-      console.warn('Invalid cached trivia format, fetching fresh data');
     }
-  } catch (e) {
-    console.warn('Error reading from cache:', e);
   }
 
   const yearSuffix = year ? ` (${year})` : '';
@@ -496,13 +508,15 @@ export async function getMovieTrivia({
       ] as 'Production' | 'Cast' | 'Behind the Scenes' | 'Fun Fact',
     }));
 
-    // Cache the formatted trivia
-    await cache.set(
-      CACHE_KEYS.AI_TRIVIA,
-      cacheKey,
-      JSON.stringify(triviaFacts),
-      180 * 24 * 60 * 60 * 1000, // 6 months
-    );
+    // Cache in Realm if contentId provided
+    if (contentId) {
+      if (type === 'movie') {
+        cacheMovieAI(contentId, {trivia: triviaItems});
+      } else {
+        cacheTVShowAI(contentId, {trivia: triviaItems});
+      }
+      console.log('[Gemini] Cached AI trivia in Realm');
+    }
 
     return triviaFacts;
   } catch (error) {
@@ -855,6 +869,38 @@ STREAMING PROVIDERS: ${providersList}
 }
 
 // Feature 2: Watchlist Pattern Analysis
+// Genre ID to name mapping (TMDB standard genres)
+const GENRE_MAP: Record<number, string> = {
+  28: 'Action',
+  12: 'Adventure',
+  16: 'Animation',
+  35: 'Comedy',
+  80: 'Crime',
+  99: 'Documentary',
+  18: 'Drama',
+  10751: 'Family',
+  14: 'Fantasy',
+  36: 'History',
+  27: 'Horror',
+  10402: 'Music',
+  9648: 'Mystery',
+  10749: 'Romance',
+  878: 'Science Fiction',
+  10770: 'TV Movie',
+  53: 'Thriller',
+  10752: 'War',
+  37: 'Western',
+  // TV-specific genres
+  10759: 'Action & Adventure',
+  10762: 'Kids',
+  10763: 'News',
+  10764: 'Reality',
+  10765: 'Sci-Fi & Fantasy',
+  10766: 'Soap',
+  10767: 'Talk',
+  10768: 'War & Politics',
+};
+
 export async function analyzeWatchlistPatterns(
   watchlistItems: Array<{
     id: number;
@@ -871,39 +917,96 @@ export async function analyzeWatchlistPatterns(
   topGenres: string[];
   averageRating: number;
   decadeDistribution: Record<string, number>;
+  contentTypeSplit: {movies: number; tvShows: number};
+  moodProfile: {
+    dominant: string;
+    secondary: string;
+    traits: string[];
+  };
+  hiddenGems: Array<{title: string; type: string; reason: string}>;
+  contentFreshness: {
+    preference: string;
+    recentPercentage: number;
+    note: string;
+  };
+  completionInsight: {
+    estimatedWatchTime: string;
+    bingeability: number;
+    suggestion: string;
+  };
   recommendations: string;
-  recommendedTitles: Array<{title: string; type: 'movie' | 'tv'}>;
+  recommendedTitles: Array<{
+    title: string;
+    type: 'movie' | 'tv';
+    matchReason?: string;
+  }>;
 } | null> {
   if (!watchlistItems || watchlistItems.length === 0) {
     return null;
   }
 
+  // Helper to convert genre IDs to names
+  const getGenreNames = (genreIds?: number[]): string => {
+    if (!genreIds || genreIds.length === 0) return 'none';
+    return genreIds
+      .map(id => GENRE_MAP[id] || `Unknown(${id})`)
+      .join(', ');
+  };
+
   // Prepare summary
   const summary = watchlistItems
     .slice(0, 30)
-    .map(
-      item =>
-        `- "${item.title || item.name}" (${item.type}, rating: ${
-          item.vote_average || 'N/A'
-        }, genres: ${item.genre_ids?.join(',') || 'none'})`,
-    )
+    .map(item => {
+      const date = item.type === 'movie' ? item.release_date : item.first_air_date;
+      const year = date ? date.split('-')[0] : 'Unknown';
+      
+      return `- "${item.title || item.name}" (${item.type}, ${year}, rating: ${
+        item.vote_average || 'N/A'
+      }, genres: ${getGenreNames(item.genre_ids)})`;
+    })
     .join('\n');
 
   const system = {
     role: 'system' as const,
-    content: `You are Theater AI's pattern analyzer. Analyze user's watchlist and provide insights.
+    content: `You are Theater AI's pattern analyzer. Analyze user's watchlist and provide deep, interesting insights.
+
+IMPORTANT: For hiddenGems, you MUST use the EXACT title as it appears in the watchlist. Copy it character-by-character.
 
 Return ONLY a JSON object with these exact fields:
 {
-  "insights": ["insight 1", "insight 2", "insight 3"] (3-5 key patterns you notice),
+  "insights": ["insight 1", "insight 2", "insight 3"] (3-4 SHORT, punchy insights - max 10 words each),
   "topGenres": ["genre1", "genre2", "genre3"] (most common genre names),
   "averageRating": 7.5 (average rating preference),
-  "decadeDistribution": {"2020s": 15, "2010s": 10, "2000s": 5} (content by decade),
-  "recommendations": "Based on your patterns, you might enjoy...",
+  "decadeDistribution": {"2020s": 15, "2010s": 10, "2000s": 5} (content by decade - use the YEAR provided for each item, skip items with "Unknown" year),
+  
+  "contentTypeSplit": {"movies": 45, "tvShows": 55} (percentage split between movies and TV shows),
+  
+  "moodProfile": {
+    "dominant": "Dark & Intense" (primary mood/tone),
+    "secondary": "Heartwarming" (secondary mood),
+    "traits": ["Complex narratives", "Character-driven"] (2-3 key characteristics)
+  },
+  
+  "hiddenGems": [
+    {"title": "EXACT title from watchlist", "type": "movie", "reason": "Why it's underrated"}
+  ] (1-3 high-rated but less popular items - USE EXACT TITLES FROM THE WATCHLIST ABOVE),
+  
+  "contentFreshness": {
+    "preference": "Modern" or "Balanced" or "Classic",
+    "recentPercentage": 60,
+    "note": "Brief explanation of their era preference"
+  },
+  
+  "completionInsight": {
+    "estimatedWatchTime": "45 hours" (total runtime estimate),
+    "bingeability": 7.5 (score 1-10 for how binge-worthy their list is),
+    "suggestion": "Practical tip about their watchlist"
+  },
+  
+  "recommendations": "2-3 sentences summarizing what the user clearly loves based on their watchlist patterns (genres, themes, styles, eras). Be specific and insightful about their taste. Then suggest what they might enjoy next.",
   "recommendedTitles": [
-    {"title": "Movie/Show Name", "type": "movie or tv"},
-    {"title": "Another Title", "type": "movie or tv"}
-  ] (5-7 specific movie/show recommendations based on their taste)
+    {"title": "Movie/Show Name", "type": "movie or tv"}
+  ] (5-7 specific recommendations with EXACT titles from TMDB)
 }`,
   };
 
@@ -922,6 +1025,23 @@ Return ONLY a JSON object with these exact fields:
         topGenres: parsed.topGenres || [],
         averageRating: parsed.averageRating || 0,
         decadeDistribution: parsed.decadeDistribution || {},
+        contentTypeSplit: parsed.contentTypeSplit || {movies: 50, tvShows: 50},
+        moodProfile: parsed.moodProfile || {
+          dominant: 'Varied',
+          secondary: 'Diverse',
+          traits: [],
+        },
+        hiddenGems: parsed.hiddenGems || [],
+        contentFreshness: parsed.contentFreshness || {
+          preference: 'Balanced',
+          recentPercentage: 50,
+          note: '',
+        },
+        completionInsight: parsed.completionInsight || {
+          estimatedWatchTime: 'Unknown',
+          bingeability: 5,
+          suggestion: '',
+        },
         recommendations: parsed.recommendations || '',
         recommendedTitles: parsed.recommendedTitles || [],
       };
@@ -945,10 +1065,6 @@ export async function compareContent(
     genre_ids?: number[];
     type: 'movie' | 'tv';
   }>,
-  userPreferences?: {
-    thematicTags?: Array<{tag: string; description: string}>;
-    emotionalTags?: Array<{tag: string; description: string}>;
-  },
 ): Promise<{
   comparisons: Array<{
     title: string;
@@ -971,30 +1087,6 @@ export async function compareContent(
         }/10) - ${item.overview?.slice(0, 150) || 'No overview'}`,
     )
     .join('\n\n');
-
-  // Build user preference context
-  let preferenceContext = '';
-  if (userPreferences) {
-    const thematicList = userPreferences.thematicTags
-      ?.slice(0, 5)
-      .map(t => `"${t.tag}" (${t.description})`)
-      .join(', ');
-    const emotionalList = userPreferences.emotionalTags
-      ?.slice(0, 5)
-      .map(t => `"${t.tag}" (${t.description})`)
-      .join(', ');
-
-    if (thematicList || emotionalList) {
-      preferenceContext = `\n\nUSER'S PROVEN PREFERENCES (based on browse history):`;
-      if (thematicList) {
-        preferenceContext += `\n- Thematic Tags: ${thematicList}`;
-      }
-      if (emotionalList) {
-        preferenceContext += `\n- Emotional Tags: ${emotionalList}`;
-      }
-      preferenceContext += `\n\nPrioritize content that matches these preferences. Mention specific preference matches in your reasoning.`;
-    }
-  }
 
   const system = {
     role: 'system' as const,
@@ -1044,26 +1136,28 @@ export async function generateTagsForContent(
   overview: string,
   genres: string,
   type: 'movie' | 'tv',
+  contentId?: number,
 ): Promise<{
   thematicTags: Array<{tag: string; description: string; confidence: number}>;
   emotionalTags: Array<{tag: string; description: string; confidence: number}>;
 } | null> {
-  const cacheKey = `tags:${type}:${title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')}`;
-
-  // Try cache first
-  try {
-    const cached = await cache.get(CACHE_KEYS.AI_TRIVIA, cacheKey);
-    if (cached) {
-      console.log(`[generateTagsForContent] 📂 Using cached tags for "${title}"`);
-      if (typeof cached === 'string') {
-        return JSON.parse(cached);
+  // Check Realm cache first if contentId provided
+  if (contentId) {
+    const cached =
+      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
+    if (cached?.ai_tags) {
+      try {
+        const parsed = JSON.parse(cached.ai_tags);
+        if (parsed && parsed.thematicTags && parsed.emotionalTags) {
+          console.log(
+            `[generateTagsForContent] 📂 Using cached tags from Realm for "${title}"`,
+          );
+          return parsed;
+        }
+      } catch (e) {
+        console.warn('[generateTagsForContent] Failed to parse cached tags');
       }
-      return cached as any;
     }
-  } catch (e) {
-    // proceed to fetch fresh
   }
 
   const system = {
@@ -1106,16 +1200,19 @@ Identify the key thematic and emotional tags.`,
         thematicTags: parsed.thematicTags || [],
         emotionalTags: parsed.emotionalTags || [],
       };
-      
-      // Cache for 6 months
-      await cache.set(
-        CACHE_KEYS.AI_TRIVIA,
-        cacheKey,
-        JSON.stringify(tags),
-        180 * 24 * 60 * 60 * 1000, // 6 months
-      );
-      
-      console.log(`[generateTagsForContent] ✅ Generated and cached tags for "${title}" (6 months)`);
+
+      // Cache in Realm if contentId provided
+      if (contentId) {
+        if (type === 'movie') {
+          cacheMovieAI(contentId, {tags});
+        } else {
+          cacheTVShowAI(contentId, {tags});
+        }
+        console.log(
+          `[generateTagsForContent] ✅ Generated and cached tags in Realm for "${title}"`,
+        );
+      }
+
       return tags;
     }
     return null;
@@ -1157,7 +1254,7 @@ Focus on content that truly embodies the thematic essence, not just surface-leve
     return null;
   } catch (error) {
     console.error('Error searching by thematic genre:', error);
-    return null;
+    throw error; // Re-throw to let UI handle it
   }
 }
 
@@ -1166,8 +1263,13 @@ export async function searchByEmotionalTone(
   emotionalTag: string,
   contentType?: 'movie' | 'tv',
 ): Promise<Array<{title: string; year: string; type: 'movie' | 'tv'}> | null> {
-  const typeFilter = contentType === 'movie' ? 'movies only' : contentType === 'tv' ? 'TV shows only' : 'movies and TV shows';
-  
+  const typeFilter =
+    contentType === 'movie'
+      ? 'movies only'
+      : contentType === 'tv'
+      ? 'TV shows only'
+      : 'movies and TV shows';
+
   const system = {
     role: 'system' as const,
     content: `You are Theater AI's content discovery assistant. Given an emotional tone/mood, recommend content that matches this emotional atmosphere.
@@ -1183,7 +1285,13 @@ Focus on content that truly captures the emotional tone and atmosphere, not just
 
   const user = {
     role: 'user' as const,
-    content: `Find ${typeFilter} that match this emotional tone: "${emotionalTag}"\n\nRecommend content that captures this emotional atmosphere and mood.${contentType ? ` IMPORTANT: Return ONLY ${contentType === 'movie' ? 'movies' : 'TV shows'} (type: "${contentType}").` : ''}`,
+    content: `Find ${typeFilter} that match this emotional tone: "${emotionalTag}"\n\nRecommend content that captures this emotional atmosphere and mood.${
+      contentType
+        ? ` IMPORTANT: Return ONLY ${
+            contentType === 'movie' ? 'movies' : 'TV shows'
+          } (type: "${contentType}").`
+        : ''
+    }`,
   };
 
   try {
@@ -1196,7 +1304,7 @@ Focus on content that truly captures the emotional tone and atmosphere, not just
     return null;
   } catch (error) {
     console.error('Error searching by emotional tone:', error);
-    return null;
+    throw error; // Re-throw to let UI handle it
   }
 }
 

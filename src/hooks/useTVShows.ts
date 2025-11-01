@@ -16,20 +16,25 @@ import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
 import {getSimilarByStory} from '../services/gemini';
 import {Genre} from '../types/movie';
+import {batchCacheTVShows, cacheTVShowDetails} from '../database/contentCache';
 
 // Cache times
 const TMDB_LIST_STALE = 1000 * 60 * 60 * 24; // 1 day for trending/popular/latest
 const TMDB_LIST_GC = 1000 * 60 * 60 * 24 * 2; // 2 days GC
-const TMDB_DETAILS_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for details
-const TMDB_DETAILS_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
-const AI_STALE = 1000 * 60 * 60 * 24 * 180; // 6 months for AI
-const AI_GC = 1000 * 60 * 60 * 24 * 180; // 6 months GC
+const TMDB_DETAILS_STALE = 0; // Don't cache - Realm is the source of truth
+const TMDB_DETAILS_GC = 1000 * 60 * 5; // 5 min memory cache for active session
+const AI_STALE = 0; // Don't cache - Realm is the source of truth
+const AI_GC = 1000 * 60 * 5; // 5 min memory cache for active session
 
 export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
   return useInfiniteQuery({
     queryKey: ['tvshows', type],
     queryFn: async ({pageParam = 1}) => {
       const result = await getTVShows(type, pageParam as number);
+      // Cache TV shows in Realm
+      if (result?.results) {
+        batchCacheTVShows(result.results);
+      }
       return result;
     },
     getNextPageParam: (lastPage: TVShowsResponse) => {
@@ -45,7 +50,14 @@ export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
 export const useTVShowDetails = (tvShowId: number) => {
   return useQuery({
     queryKey: ['tvshow', tvShowId],
-    queryFn: () => getTVShowDetails(tvShowId),
+    queryFn: async () => {
+      const details = await getTVShowDetails(tvShowId);
+      // Cache full details in Realm
+      if (details) {
+        cacheTVShowDetails(details, details.credits?.cast, details.credits?.crew, details.videos?.results);
+      }
+      return details;
+    },
     gcTime: TMDB_DETAILS_GC,
     staleTime: TMDB_DETAILS_STALE,
   });
@@ -54,8 +66,13 @@ export const useTVShowDetails = (tvShowId: number) => {
 export const useTVShowSearch = (query: string, filters: FilterParams = {}) => {
   return useInfiniteQuery({
     queryKey: ['search_tv', query, filters],
-    queryFn: ({pageParam = 1}) =>
-      searchTVShows(query, pageParam as number, filters),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await searchTVShows(query, pageParam as number, filters);
+      if (result?.results) {
+        batchCacheTVShows(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -67,7 +84,13 @@ export const useTVShowSearch = (query: string, filters: FilterParams = {}) => {
 export const useDiscoverTVShows = (params: FilterParams) => {
   return useInfiniteQuery({
     queryKey: ['discover_tv', params],
-    queryFn: ({pageParam = 1}) => discoverTVShows(params, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await discoverTVShows(params, pageParam as number);
+      if (result?.results) {
+        batchCacheTVShows(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -80,7 +103,13 @@ export const useDiscoverTVShows = (params: FilterParams) => {
 export const useSimilarTVShows = (tvId: number) => {
   return useInfiniteQuery({
     queryKey: ['tv', tvId, 'similar'],
-    queryFn: ({pageParam = 1}) => getSimilarTVShows(tvId, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getSimilarTVShows(tvId, pageParam as number);
+      if (result?.results) {
+        batchCacheTVShows(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -92,8 +121,13 @@ export const useSimilarTVShows = (tvId: number) => {
 export const useTVShowRecommendations = (tvId: number) => {
   return useInfiniteQuery({
     queryKey: ['tv', tvId, 'recommendations'],
-    queryFn: ({pageParam = 1}) =>
-      getTVShowRecommendations(tvId, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getTVShowRecommendations(tvId, pageParam as number);
+      if (result?.results) {
+        batchCacheTVShows(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -115,8 +149,13 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
       timeWindow,
       contentLanguages?.map(lang => lang.iso_639_1).join('|'),
     ],
-    queryFn: ({pageParam = 1}) =>
-      getTrendingTVShows(timeWindow, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getTrendingTVShows(timeWindow, pageParam as number);
+      if (result?.results) {
+        batchCacheTVShows(result.results);
+      }
+      return result;
+    },
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -171,9 +210,27 @@ export const useAISimilarTVShows = (
   genres?: Genre[],
 ) => {
   return useQuery({
-    queryKey: ['ai_similar_tvshows', tvShowId, title, overview],
+    queryKey: ['ai_similar_tvshows', tvShowId],
     queryFn: async () => {
       if (!title || !overview) return [];
+
+      // Import here to avoid circular dependency
+      const {getTVShow} = await import('../database/contentCache');
+      
+      // Check if TV show is in Realm and has AI similar data
+      const cached = getTVShow(tvShowId);
+      if (cached?.ai_similar) {
+        try {
+          const parsed = JSON.parse(cached.ai_similar as string);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log('[useAISimilarTVShows] Using cached AI similar from Realm');
+            const shows = await fetchContentFromAI(parsed, 'tv');
+            return shows;
+          }
+        } catch (e) {
+          console.warn('[useAISimilarTVShows] Failed to parse cached similar');
+        }
+      }
 
       try {
         const aiResponse = await getSimilarByStory({
@@ -181,6 +238,7 @@ export const useAISimilarTVShows = (
           overview,
           genres: genres?.map((g: Genre) => g?.name).join(', ') || '',
           type: 'tv',
+          contentId: tvShowId,
         });
 
         if (Array.isArray(aiResponse) && aiResponse.length > 0) {

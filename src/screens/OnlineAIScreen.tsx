@@ -29,8 +29,8 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {MicButton} from '../components/MicButton';
 import {AISettingsManager} from '../store/aiSettings';
 import {useResponsive} from '../hooks/useResponsive';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
+import {ChatManager, RealmSettingsManager} from '../database/managers';
 import {AIReportFlag} from '../components/AIReportFlag';
 import {HorizontalList} from '../components/HorizontalList';
 import {ContentItem} from '../components/MovieList';
@@ -72,35 +72,20 @@ export const OnlineAIScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [animatedContent, setAnimatedContent] = useState('');
-  const flatListRef = useRef<FlatList>(null);
   const [isDefaultKey, setIsDefaultKey] = useState<boolean>(false);
+  const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
   const [showMenu, setShowMenu] = useState(false);
   const [isRateLimitExceeded, setIsRateLimitExceeded] = useState(false);
   const androidInset = useAndroidKeyboardInset(10);
-  // Legacy single-history key (for migration)
-  const HISTORY_KEY = '@theater_online_ai_history';
-  // New multi-thread storage
-  const THREADS_KEY = '@theater_online_ai_threads';
-  const CURRENT_THREAD_KEY = '@theater_online_ai_current_thread';
 
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<string>('');
   const [showThreadPicker, setShowThreadPicker] = useState(false);
   const {height} = useWindowDimensions();
-
   // Helpers to work with threads
   const cap20 = (msgs: Message[]) => msgs.slice(-20);
-
-  const persistThreads = async (all: ChatThread[], currentId: string) => {
-    try {
-      await AsyncStorage.multiSet([
-        [THREADS_KEY, JSON.stringify(all)],
-        [CURRENT_THREAD_KEY, currentId],
-      ]);
-    } catch (e) {}
-  };
 
   const findCurrentIndex = (all: ChatThread[], id: string) =>
     Math.max(
@@ -110,15 +95,52 @@ export const OnlineAIScreen: React.FC = () => {
 
   const setAndPersistMessages = async (msgs: Message[]) => {
     const capped = cap20(msgs);
+    
+    // Get current count from Realm to avoid duplicates
+    const savedMessages = await ChatManager.getMessages(currentThreadId);
+    const savedCount = savedMessages.length;
+    
+    // Only save new messages
+    const newMessages = capped.slice(savedCount);
+    
+    for (let i = 0; i < newMessages.length; i++) {
+      const msg = newMessages[i];
+      await ChatManager.addMessage(currentThreadId, msg.role, msg.content);
+      
+      // Save recommendations if assistant message has them
+      if (msg.role === 'assistant' && msg.tmdbResults && msg.tmdbResults.length > 0) {
+        const messageIndex = savedCount + i;
+        console.log(`[OnlineAI] Saving ${msg.tmdbResults.length} recommendations at index ${messageIndex}`);
+        console.log('[OnlineAI] First tmdbResult:', msg.tmdbResults[0]);
+        const recommendations = msg.tmdbResults
+          .filter(r => {
+            const valid = r.id && r.id !== 0 && r.type;
+            if (!valid) console.log('[OnlineAI] Filtering out invalid rec:', r);
+            return valid;
+          })
+          .map(r => ({
+            id: r.id,
+            type: r.type || 'movie',
+            title: r.title || '',
+            name: r.title || '',
+            poster_path: r.poster_path,
+            vote_average: 0, // Don't use year as vote_average!
+            release_date: r.release_date || '',
+            first_air_date: r.first_air_date || '',
+            overview: r.overview || '',
+          }));
+        console.log(`[OnlineAI] After filter: ${recommendations.length} recommendations`);
+        await ChatManager.saveRecommendations(currentThreadId, messageIndex, recommendations);
+      }
+    }
+    
+    // Update UI state
     setMessages(capped);
-    // Update into threads and persist
     setThreads(prev => {
       const idx = findCurrentIndex(prev, currentThreadId);
       if (idx === -1) return prev;
       const updated: ChatThread = {...prev[idx], messages: capped};
-      const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
-      persistThreads(next, currentThreadId);
-      return next;
+      return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
     });
   };
 
@@ -172,40 +194,77 @@ export const OnlineAIScreen: React.FC = () => {
     ]).start();
   }, []);
 
-  // Load threads (with migration from legacy single-history)
+  // Load threads from Realm
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [threadsRaw, currentIdRaw, legacyRaw] =
-          await AsyncStorage.multiGet([
-            THREADS_KEY,
-            CURRENT_THREAD_KEY,
-            HISTORY_KEY,
-          ]).then(entries => entries.map(([, v]) => v));
-
+        const realmThreads = await ChatManager.getThreads();
+        
         let loadedThreads: ChatThread[] = [];
         let loadedCurrentId = '';
 
-        if (threadsRaw) {
-          loadedThreads = JSON.parse(threadsRaw) || [];
-        }
-        if (currentIdRaw) {
-          loadedCurrentId = currentIdRaw;
+        if (realmThreads && realmThreads.length > 0) {
+          // Load messages for each thread
+          loadedThreads = await Promise.all(
+            realmThreads.map(async (t) => {
+              const realmMessages = await ChatManager.getMessages(t.threadId);
+              
+              // Load recommendations for each assistant message
+              const messagesWithRecs = await Promise.all(
+                realmMessages.map(async (msg, index) => {
+                  console.log(`[OnlineAI] Loading message ${index}: ${msg.role}`);
+                  if (msg.role === 'assistant') {
+                    const recs = await ChatManager.getRecommendations(t.threadId, index);
+                    console.log(`[OnlineAI] Found ${recs?.length || 0} recommendations for message ${index}`);
+                    if (recs && recs.length > 0) {
+                      console.log('[OnlineAI] First rec:', recs[0]);
+                      return {
+                        ...msg,
+                        tmdbResults: recs.map(r => ({
+                          id: r.id,
+                          type: r.type,
+                          title: r.title || r.name,
+                          year: r.release_date ? parseInt(r.release_date.slice(0, 4)) :
+                                r.first_air_date ? parseInt(r.first_air_date.slice(0, 4)) : 0,
+                          poster_path: r.poster_path,
+                          overview: r.overview,
+                        })),
+                      };
+                    }
+                  }
+                  return msg;
+                })
+              );
+              console.log('[OnlineAI] Final messages with recs:', messagesWithRecs.length);
+              
+              return {
+                id: t.threadId,
+                title: t.title,
+                messages: messagesWithRecs,
+              };
+            })
+          );
+          
+          // Load last active thread ID
+          const savedThreadId = await RealmSettingsManager.getSetting('lastActiveThreadId');
+          if (savedThreadId && loadedThreads.find(t => t.id === savedThreadId)) {
+            loadedCurrentId = savedThreadId;
+          } else {
+            loadedCurrentId = realmThreads[0].threadId;
+          }
         }
 
-        // Migrate legacy single-history into first thread if no threads exist
-        if ((!loadedThreads || loadedThreads.length === 0) && legacyRaw) {
-          const parsed: Message[] = JSON.parse(legacyRaw) || [];
-          const initialThread: ChatThread = {
-            id: String(Date.now()),
-            title: 'Chat 1',
-            messages: cap20(parsed),
-          };
-          loadedThreads = [initialThread];
-          loadedCurrentId = initialThread.id;
-          // Clear legacy storage
-          await AsyncStorage.removeItem(HISTORY_KEY);
+        // Create default thread if none exist
+        if (loadedThreads.length === 0) {
+          const threadId = String(Date.now());
+          await ChatManager.createThread(threadId, '');
+          loadedThreads = [{
+            id: threadId,
+            title: '',
+            messages: [],
+          }];
+          loadedCurrentId = threadId;
         }
 
         // Normalize titles: replace default 'Chat N' with first user message preview if available
@@ -245,11 +304,6 @@ export const OnlineAIScreen: React.FC = () => {
           );
           setMessages(cap20(current?.messages || []));
         }
-        // Persist normalized structure
-        await persistThreads(
-          loadedThreads,
-          loadedCurrentId || loadedThreads[0].id,
-        );
       } catch (e) {
         // ignore
       }
@@ -337,8 +391,8 @@ export const OnlineAIScreen: React.FC = () => {
           .slice(0, 6)
           .join(' ');
         const updated: ChatThread = {...t, title: firstWords || t.title};
+        ChatManager.updateThread(currentThreadId, {title: firstWords || t.title});
         const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
-        persistThreads(next, currentThreadId);
         return next;
       }
       return prev;
@@ -645,7 +699,8 @@ export const OnlineAIScreen: React.FC = () => {
     setThreads(nextThreads);
     setCurrentThreadId(newThread.id);
     setMessages([]);
-    await persistThreads(nextThreads, newThread.id);
+    await ChatManager.createThread(newThread.id, newThread.title);
+    await RealmSettingsManager.setSetting('lastActiveThreadId', newThread.id);
   };
 
   const handleClearCurrent = () => {
@@ -656,8 +711,9 @@ export const OnlineAIScreen: React.FC = () => {
         {text: 'Cancel', style: 'cancel'},
         {
           text: 'Delete',
-          style: 'destructive',
           onPress: async () => {
+            await ChatManager.deleteThread(currentThreadId);
+            await ChatManager.createThread(currentThreadId, threads.find(t => t.id === currentThreadId)?.title || '');
             setMessages([]);
             setThreads(prev => {
               const idx = findCurrentIndex(prev, currentThreadId);
@@ -668,7 +724,6 @@ export const OnlineAIScreen: React.FC = () => {
                 updated,
                 ...prev.slice(idx + 1),
               ];
-              persistThreads(next, currentThreadId);
               return next;
             });
           },
@@ -682,40 +737,42 @@ export const OnlineAIScreen: React.FC = () => {
     setCurrentThreadId(id);
     const t = threads.find(th => th.id === id);
     setMessages(cap20(t?.messages || []));
-    await persistThreads(threads, id);
     setShowThreadPicker(false);
+    // Save last active thread
+    await RealmSettingsManager.setSetting('lastActiveThreadId', id);
   };
 
   const deleteThread = async (id: string) => {
-    setThreads(prev => {
-      const remaining = prev.filter(t => t.id !== id);
-      // If deleting current thread, choose a new current
-      if (id === currentThreadId) {
-        if (remaining.length > 0) {
-          const nextId = remaining[0].id;
-          setCurrentThreadId(nextId);
-          const nextThread = remaining.find(t => t.id === nextId);
-          setMessages(cap20(nextThread?.messages || []));
-          persistThreads(remaining, nextId);
-          return remaining;
-        } else {
-          // No threads left: create a new empty thread
-          const newThread: ChatThread = {
-            id: String(Date.now()),
-            title: '',
-            messages: [],
-          };
-          setCurrentThreadId(newThread.id);
-          setMessages([]);
-          const list = [newThread];
-          persistThreads(list, newThread.id);
-          return list;
-        }
+    await ChatManager.deleteThread(id);
+    
+    const remaining = threads.filter(t => t.id !== id);
+    
+    // If deleting current thread, choose a new current
+    if (id === currentThreadId) {
+      if (remaining.length > 0) {
+        const nextId = remaining[0].id;
+        setCurrentThreadId(nextId);
+        const nextThread = remaining.find(t => t.id === nextId);
+        setMessages(cap20(nextThread?.messages || []));
+        setThreads(remaining);
+        await RealmSettingsManager.setSetting('lastActiveThreadId', nextId);
+      } else {
+        // No threads left: create a new empty thread
+        const newThread: ChatThread = {
+          id: String(Date.now()),
+          title: '',
+          messages: [],
+        };
+        await ChatManager.createThread(newThread.id, newThread.title);
+        setCurrentThreadId(newThread.id);
+        setMessages([]);
+        setThreads([newThread]);
+        await RealmSettingsManager.setSetting('lastActiveThreadId', newThread.id);
       }
+    } else {
       // If deleting a non-current thread
-      persistThreads(remaining, currentThreadId);
-      return remaining;
-    });
+      setThreads(remaining);
+    }
   };
 
   const renderItem = ({item, index}: {item: Message; index: number}) => {
