@@ -6,6 +6,7 @@ import {CategoryScreen} from '../screens/CategoryScreen';
 import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
+import {CinemaScreen} from '../screens/CinemaScreen';
 import {MoviesStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 
@@ -20,7 +21,6 @@ export const MoviesNavigator = () => {
           backgroundColor: colors.background.primary,
         },
       }}>
-      <Stack.Screen name="MoviesScreen" component={MoviesScreen} />
       <Stack.Screen name="MovieDetails" component={MovieDetailsScreen} />
       <Stack.Screen
         name="Category"
@@ -34,6 +34,16 @@ export const MoviesNavigator = () => {
       <Stack.Screen
         name="EmotionalToneResults"
         component={EmotionalToneResultsScreen}
+      />
+      <Stack.Screen
+        name="CinemaScreen"
+        component={CinemaScreen}
+        options={{
+          orientation: 'landscape',
+          animation: 'fade',
+          presentation: 'fullScreenModal',
+          contentStyle: {backgroundColor: '#000000'},
+        }}
       />
     </Stack.Navigator>
   );

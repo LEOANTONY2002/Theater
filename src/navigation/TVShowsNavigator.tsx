@@ -6,6 +6,7 @@ import {CategoryScreen} from '../screens/CategoryScreen';
 import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
+import {CinemaScreen} from '../screens/CinemaScreen';
 import {TVShowsStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 
@@ -20,7 +21,6 @@ export const TVShowsNavigator = () => {
           backgroundColor: colors.background.primary,
         },
       }}>
-      <Stack.Screen name="TVShowsScreen" component={TVShowsScreen} />
       <Stack.Screen name="TVShowDetails" component={TVShowDetailsScreen} />
       <Stack.Screen
         name="Category"
@@ -31,7 +31,20 @@ export const TVShowsNavigator = () => {
       />
       <Stack.Screen name="Genre" component={GenreScreen} />
       <Stack.Screen name="PersonCredits" component={PersonCreditsScreen} />
-      <Stack.Screen name="EmotionalToneResults" component={EmotionalToneResultsScreen} />
+      <Stack.Screen
+        name="EmotionalToneResults"
+        component={EmotionalToneResultsScreen}
+      />
+      <Stack.Screen
+        name="CinemaScreen"
+        component={CinemaScreen}
+        options={{
+          orientation: 'landscape',
+          animation: 'fade',
+          presentation: 'fullScreenModal',
+          contentStyle: {backgroundColor: '#000000'},
+        }}
+      />
     </Stack.Navigator>
   );
 };

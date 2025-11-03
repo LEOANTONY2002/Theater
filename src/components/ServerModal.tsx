@@ -14,6 +14,7 @@ import {modalStyles} from '../styles/styles';
 import {MaybeBlurView} from './MaybeBlurView';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
+import {CINEMA_SERVERS} from '../config/servers';
 
 interface ServerModalProps {
   visible: boolean;
@@ -21,8 +22,6 @@ interface ServerModalProps {
   currentServer: number | null;
   setCurrentServer: (server: number) => void;
 }
-
-const SERVERS = [1, 2, 3, 4];
 
 export const ServerModal: React.FC<ServerModalProps> = ({
   visible,
@@ -57,7 +56,10 @@ export const ServerModal: React.FC<ServerModalProps> = ({
         />
       )}
       <TouchableOpacity
-        style={{flex: 1, backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'transparent'}}
+        style={{
+          flex: 1,
+          backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
+        }}
         activeOpacity={1}
         onPress={onClose}>
         <View style={{flex: 1, justifyContent: 'flex-end'}}>
@@ -122,15 +124,15 @@ export const ServerModal: React.FC<ServerModalProps> = ({
                       paddingHorizontal: isTablet ? spacing.lg : spacing.md,
                     }}
                     style={{paddingTop: spacing.sm, paddingBottom: spacing.lg}}>
-                    {SERVERS.map(server => (
+                    {CINEMA_SERVERS.map(server => (
                       <TouchableOpacity
-                        key={server}
+                        key={server.id}
                         style={[
                           styles.serverItem,
-                          currentServer === server && styles.selectedServer,
+                          currentServer === server.id && styles.selectedServer,
                         ]}
                         onPress={() => {
-                          setCurrentServer(server);
+                          setCurrentServer(server.id);
                           onClose();
                         }}>
                         <View style={styles.serverIconWrapper}>
@@ -138,7 +140,7 @@ export const ServerModal: React.FC<ServerModalProps> = ({
                             name="server-outline"
                             size={36}
                             color={
-                              currentServer === server
+                              currentServer === server.id
                                 ? colors.text.primary
                                 : colors.text.secondary
                             }
@@ -147,12 +149,12 @@ export const ServerModal: React.FC<ServerModalProps> = ({
                         <Text
                           style={[
                             styles.serverName,
-                            currentServer === server &&
+                            currentServer === server.id &&
                               styles.selectedServerText,
                           ]}>
-                          {`Server ${server}`}
+                          {server.title}
                         </Text>
-                        {currentServer === server && (
+                        {currentServer === server.id && (
                           <Ionicons
                             name="checkmark-circle"
                             size={24}

@@ -7,6 +7,7 @@ import {
   ScrollView,
   ListRenderItem,
   FlatList,
+  TextInput,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import languageData from '../utils/language.json';
@@ -45,6 +46,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Languages are static - use directly from JSON
   const languages = languageData as Language[];
@@ -151,6 +153,20 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
     [sortedLanguages],
   );
 
+  // Filter languages based on search query
+  const filteredLanguages = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return sortedLanguages;
+    }
+    const query = searchQuery.toLowerCase();
+    return sortedLanguages.filter(
+      lang =>
+        lang.english_name.toLowerCase().includes(query) ||
+        lang.name?.toLowerCase().includes(query) ||
+        lang.iso_639_1.toLowerCase().includes(query),
+    );
+  }, [sortedLanguages, searchQuery]);
+
   const renderLanguageItem: ListRenderItem<Language> = ({item}) => {
     const isSelected = selectedLanguages.some(
       (lang: Language) => lang.iso_639_1 === item.iso_639_1,
@@ -173,59 +189,77 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
     );
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.description}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.description}>Loading...</Text>
-        </View>
-      ) : (
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={{padding: spacing.lg}}
+      showsVerticalScrollIndicator={false}
+      data={filteredLanguages}
+      keyExtractor={item => item.iso_639_1}
+      renderItem={renderLanguageItem}
+      removeClippedSubviews
+      initialNumToRender={20}
+      windowSize={12}
+      maxToRenderPerBatch={20}
+      updateCellsBatchingPeriod={50}
+      ListHeaderComponent={
         <>
           {isTitle && (
             <Text style={styles.sectionTitle}>
               Choose your preferred content languages
             </Text>
           )}
-          {/* Suggested languages (virtualized) */}
-          <View style={styles.suggestedSection}>
-            <ScrollView>
-              <FlatList
-                data={suggestedLanguages}
-                keyExtractor={item => item.iso_639_1}
-                renderItem={renderLanguageItem}
-                removeClippedSubviews
-                initialNumToRender={10}
-                windowSize={10}
-                scrollEnabled={false}
-              />
-            </ScrollView>
-          </View>
-
-          {/* All other languages (virtualized) */}
-          <View style={styles.moreLanguagesSection}>
-            <Text style={styles.description}>More Languages</Text>
-            <FlatList
-              data={otherLanguages}
-              keyExtractor={item => item.iso_639_1}
-              renderItem={renderLanguageItem}
-              removeClippedSubviews
-              initialNumToRender={20}
-              windowSize={12}
-              maxToRenderPerBatch={20}
-              updateCellsBatchingPeriod={50}
-              showsVerticalScrollIndicator={false}
+          <View style={styles.searchContainer}>
+            <Icon
+              name="search"
+              size={20}
+              color={colors.text.secondary}
+              style={styles.searchIcon}
             />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search languages..."
+              placeholderTextColor={colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.clearButton}>
+                <Icon name="close-circle" size={20} color={colors.text.secondary} />
+              </TouchableOpacity>
+            )}
           </View>
+          <Text style={styles.description}>
+            {searchQuery ? `${filteredLanguages.length} results` : 'All Languages'}
+          </Text>
         </>
-      )}
-    </ScrollView>
+      }
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Icon name="search-outline" size={48} color={colors.text.tertiary} />
+          <Text style={styles.emptyText}>No languages found</Text>
+          <Text style={styles.emptySubtext}>Try a different search term</Text>
+        </View>
+      }
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
   },
   loadingContainer: {
     flex: 1,
@@ -288,5 +322,44 @@ const styles = StyleSheet.create({
   nativeName: {
     ...typography.body2,
     color: colors.text.secondary,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.modal.blur,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.modal.content,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    ...typography.body1,
+    color: colors.text.primary,
+    paddingVertical: spacing.md,
+    fontFamily: 'Inter_18pt-Regular',
+  },
+  clearButton: {
+    padding: spacing.xs,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xxl * 2,
+  },
+  emptyText: {
+    ...typography.h3,
+    color: colors.text.secondary,
+    marginTop: spacing.md,
+  },
+  emptySubtext: {
+    ...typography.body2,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
   },
 });

@@ -9,6 +9,18 @@
 
 # Add any project specific keep options here:
 
+# ===== Optimization Settings =====
+# Enable aggressive optimizations
+-optimizationpasses 5
+-dontusemixedcaseclassnames
+-dontskipnonpubliclibraryclasses
+-verbose
+
+# Optimize and remove unused code
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+-allowaccessmodification
+-repackageclasses ''
+
 # ===== React Native Core =====
 -keep class com.facebook.react.** { *; }
 -keep class com.facebook.hermes.** { *; }
@@ -69,6 +81,13 @@
 -keep class io.realm.RealmResults { *; }
 -keep class io.realm.RealmQuery { *; }
 -keep class io.realm.RealmConfiguration { *; }
+
+# Strip Realm debug info to reduce size
+-assumenosideeffects class io.realm.log.RealmLog {
+    public static void trace(...);
+    public static void debug(...);
+    public static void info(...);
+}
 
 # ===== React Navigation =====
 -keep class com.swmansion.reanimated.** { *; }

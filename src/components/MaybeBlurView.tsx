@@ -13,7 +13,6 @@ interface MaybeBlurViewProps {
   overlayColor?: string;
   gradientColors?: string[];
   pointerEvents?: ViewProps['pointerEvents'];
-  modal?: boolean;
   radius?: number;
   bottomBar?: boolean;
   dialog?: boolean;
@@ -27,13 +26,8 @@ export const MaybeBlurView: React.FC<
   React.PropsWithChildren<MaybeBlurViewProps>
 > = ({
   style,
-  blurType = 'dark',
-  blurAmount = 10,
-  overlayColor,
-  gradientColors,
   children,
   pointerEvents,
-  modal = false,
   radius = borderRadius.round,
   bottomBar = false,
   dialog = false,
@@ -400,7 +394,30 @@ export const MaybeBlurView: React.FC<
     }
   }
 
-  if (!useFallback) {
-    return <View style={style}>{children}</View>;
-  }
+  return (
+    <LinearGradient
+      colors={[colors.background.primary, colors.background.secondary]}
+      useAngle={true}
+      angle={45}
+      style={[
+        style,
+        {
+          overflow: 'hidden',
+          position: 'relative',
+          borderRadius: borderRadius.xl,
+        },
+      ]}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background.primary,
+          borderWidth: 3,
+          borderColor: 'rgba(255, 254, 254, 0.04)',
+          borderRadius: borderRadius.xl,
+          zIndex: 10,
+        }}>
+        {children}
+      </View>
+    </LinearGradient>
+  );
 };

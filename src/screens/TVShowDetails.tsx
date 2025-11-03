@@ -38,7 +38,14 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import {useContentTags} from '../hooks/useContentTags';
 import {ContentTagsDisplay} from '../components/ContentTagsDisplay';
 import {ContentItem} from '../components/MovieList';
-import {MySpaceStackParamList} from '../types/navigation';
+import {
+  MySpaceStackParamList,
+  HomeStackParamList,
+  SearchStackParamList,
+  MoviesStackParamList,
+  TVShowsStackParamList,
+  FiltersStackParamList,
+} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
@@ -76,8 +83,14 @@ import {getCriticRatings} from '../services/gemini';
 import {IMDBModal} from '../components/IMDBModal';
 import {BlurPreference} from '../store/blurPreference';
 
-type TVShowDetailsScreenNavigationProp =
-  NativeStackNavigationProp<MySpaceStackParamList>;
+type TVShowDetailsScreenNavigationProp = NativeStackNavigationProp<
+  MySpaceStackParamList &
+    HomeStackParamList &
+    SearchStackParamList &
+    MoviesStackParamList &
+    TVShowsStackParamList &
+    FiltersStackParamList
+>;
 
 interface TVShowDetailsScreenProps {
   route: {
@@ -109,7 +122,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {isGenerating: isGeneratingTags, tags: contentTags} = useContentTags({
     title: show.name,
     overview: show.overview,
-    genres: showDetails?.genres?.map((g: Genre) => g.name).join(', ') || '',
+    genres:
+      (showDetails?.genres || []).map((g: Genre) => g.name).join(', ') || '',
     type: 'tv',
     contentId: show.id,
     enabled: !!(showDetails && isAIEnabled),
@@ -119,7 +133,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
   const queryClient = useQueryClient();
-  const cinema = false;
+  const cinema = true;
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -373,7 +387,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   } = useTVShowRecommendations(show.id);
 
   const [showSeasonModal, setShowSeasonModal] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState(showDetails?.seasons[0]);
+  const [selectedSeason, setSelectedSeason] = useState<
+    TVShowDetailsType['seasons'][0] | undefined
+  >(undefined);
 
   const {data: episodes} = useSeasonDetails(
     show.id,
@@ -414,7 +430,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         }
       })(),
       rating: (showDetails as any)?.vote_average ?? (show as any)?.vote_average,
-      genres: showDetails?.genres?.map((g: any) => g.name) || [],
+      genres: (showDetails?.genres || []).map((g: any) => g.name),
     };
   }, [show, showDetails]);
 
@@ -597,7 +613,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       showDetails?.genres,
     );
 
-  const trailer = showDetails?.videos.results.find(
+  const trailer = showDetails?.videos?.results?.find(
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
   );
 
@@ -1081,7 +1097,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     return <NoInternet onRetry={handleRetry} isRetrying={retrying} />;
   }
 
-  if (isLoading) {
+  if (isLoading || !showDetails) {
     return (
       <View style={styles.loadingContainer}>
         <DetailScreenSkeleton />
@@ -1089,13 +1105,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     );
   }
 
-  const similarShowsData = showDetails?.genres?.some(
-    (genre: Genre) => genre.id === 10749,
-  )
-    ? []
-    : similarShows?.pages.flatMap(page =>
-        page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
-      ) || [];
+  const similarShowsData =
+    showDetails?.genres &&
+    Array.isArray(showDetails.genres) &&
+    showDetails.genres.some((genre: Genre) => genre.id === 10749)
+      ? []
+      : similarShows?.pages?.flatMap(page =>
+          page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
+        ) || [];
 
   // const recommendedShowsData =
   //   recommendedShows?.pages.flatMap(page =>
@@ -1406,17 +1423,20 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   ]}>
                   <Text style={styles.title}>{show.name}</Text>
                   <View style={styles.infoContainer}>
-                    <Text style={styles.info}>
-                      {new Date(showDetails?.first_air_date).getFullYear()}
-                    </Text>
-                    {showDetails?.number_of_seasons && (
-                      <>
+                    {showDetails?.first_air_date && (
+                      <Text style={styles.info}>
+                        {new Date(showDetails.first_air_date).getFullYear()}
+                      </Text>
+                    )}
+                    {showDetails?.first_air_date &&
+                      showDetails?.number_of_seasons && (
                         <Text style={styles.infoDot}>•</Text>
-                        <Text style={styles.info}>
-                          {showDetails.number_of_seasons} Season
-                          {showDetails.number_of_seasons !== 1 ? 's' : ''}
-                        </Text>
-                      </>
+                      )}
+                    {showDetails?.number_of_seasons && (
+                      <Text style={styles.info}>
+                        {showDetails.number_of_seasons} Season
+                        {showDetails.number_of_seasons !== 1 ? 's' : ''}
+                      </Text>
                     )}
                     {showDetails?.number_of_episodes && (
                       <>
@@ -1469,7 +1489,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         <GradientButton
                           title="Watch Now"
                           onPress={() => {
-                            setIsPlaying(true);
+                            navigation.navigate('CinemaScreen', {
+                              id: show.id.toString(),
+                              type: 'tv',
+                              title: show.name,
+                              season,
+                              episode,
+                            });
                           }}
                           style={styles.watchButton}
                           textStyle={styles.watchButtonText}
@@ -1508,17 +1534,19 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     </TouchableOpacity>
                   </View>
                   <View style={styles.genreContainer}>
-                    {showDetails?.genres
-                      ?.slice(0, 3)
-                      .map((genre: Genre, index: number) => (
-                        <View key={index} style={styles.genreWrapper}>
-                          <Text style={styles.genre}>{genre?.name}</Text>
-                          {index <
-                            Math.min(showDetails.genres.length - 1, 2) && (
-                            <Text style={styles.genreDivider}>|</Text>
-                          )}
-                        </View>
-                      ))}
+                    {showDetails?.genres &&
+                      Array.isArray(showDetails.genres) &&
+                      showDetails.genres
+                        .slice(0, 3)
+                        .map((genre: Genre, index: number) => (
+                          <View key={index} style={styles.genreWrapper}>
+                            <Text style={styles.genre}>{genre?.name}</Text>
+                            {index <
+                              Math.min(showDetails.genres.length - 1, 2) && (
+                              <Text style={styles.genreDivider}>|</Text>
+                            )}
+                          </View>
+                        ))}
                   </View>
                   {isLoadingAiImdb ? (
                     <View
@@ -1669,7 +1697,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 </View>
               );
             case 'cast':
-              return showDetails?.credits?.cast?.length > 0 ? (
+              return showDetails?.credits?.cast &&
+                Array.isArray(showDetails.credits.cast) &&
+                showDetails.credits.cast.length > 0 ? (
                 <Animated.View
                   style={{
                     marginVertical: spacing.lg,
@@ -1724,7 +1754,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 />
               ) : null;
             case 'seasons':
-              return showDetails?.seasons ? (
+              return showDetails?.seasons &&
+                Array.isArray(showDetails.seasons) &&
+                showDetails.seasons.length > 0 ? (
                 <View style={styles.seasonsSection}>
                   <Text style={styles.sectionTitle}>Seasons</Text>
                   <TouchableOpacity
@@ -1744,6 +1776,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
                   {selectedSeason &&
                   episodes &&
+                  episodes.episodes &&
+                  Array.isArray(episodes.episodes) &&
                   episodes.episodes.length > 0 ? (
                     <FlatList
                       data={episodes.episodes}
@@ -1756,19 +1790,19 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     />
                   ) : (
                     <View style={styles.noEpisodesContainer}>
-                      <View style={styles.noEpisodesContainer}>
+                      <View
+                        style={[
+                          styles.noEpisodesContainer,
+                          {marginVertical: 50},
+                        ]}>
                         <GradientSpinner
                           size={30}
                           style={{
-                            marginVertical: 50,
                             alignItems: 'center',
                             alignSelf: 'center',
                           }}
-                          color={colors.modal.activeBorder}
+                          color={colors.text.primary}
                         />
-                        <Text style={styles.noEpisodesText}>
-                          Fetching episodes...
-                        </Text>
                       </View>
                     </View>
                   )}
@@ -1852,43 +1886,45 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                               paddingBottom: spacing.lg,
                             }}
                             showsVerticalScrollIndicator={false}>
-                            {showDetails.seasons.map(
-                              (s: TVShowDetailsType['seasons'][0]) => (
-                                <TouchableOpacity
-                                  key={s.season_number}
-                                  activeOpacity={0.9}
-                                  style={[
-                                    styles.seasonItem,
-                                    selectedSeason?.id === s.id && {
-                                      backgroundColor: colors.modal.active,
-                                      borderWidth: 1,
-                                      borderColor: colors.text.tertiary,
-                                    },
-                                  ]}
-                                  onPress={() => {
-                                    setSelectedSeason(s);
-                                    setSeason(s.season_number);
-                                    setShowSeasonModal(false);
-                                  }}>
-                                  <Image
-                                    source={{
-                                      uri: s?.poster_path
-                                        ? getImageUrl(s?.poster_path, 'w185')
-                                        : 'https://via.placeholder.com/100x150',
-                                    }}
-                                    style={styles.seasonItemPoster}
-                                  />
-                                  <View style={styles.seasonItemInfo}>
-                                    <Text style={styles.seasonItemName}>
-                                      {getSeasonTitle(s)}
-                                    </Text>
-                                    <Text style={styles.seasonItemEpisodes}>
-                                      {s.episode_count} Episodes
-                                    </Text>
-                                  </View>
-                                </TouchableOpacity>
-                              ),
-                            )}
+                            {showDetails?.seasons &&
+                              Array.isArray(showDetails.seasons) &&
+                              showDetails.seasons.map(
+                                (s: TVShowDetailsType['seasons'][0]) => (
+                                  <TouchableOpacity
+                                    key={s.season_number}
+                                    activeOpacity={0.9}
+                                    style={[
+                                      styles.seasonItem,
+                                      selectedSeason?.id === s.id && {
+                                        backgroundColor: colors.modal.active,
+                                        borderWidth: 1,
+                                        borderColor: colors.text.tertiary,
+                                      },
+                                    ]}
+                                    onPress={() => {
+                                      setSelectedSeason(s);
+                                      setSeason(s.season_number);
+                                      setShowSeasonModal(false);
+                                    }}>
+                                    <Image
+                                      source={{
+                                        uri: s?.poster_path
+                                          ? getImageUrl(s?.poster_path, 'w185')
+                                          : 'https://via.placeholder.com/100x150',
+                                      }}
+                                      style={styles.seasonItemPoster}
+                                    />
+                                    <View style={styles.seasonItemInfo}>
+                                      <Text style={styles.seasonItemName}>
+                                        {getSeasonTitle(s)}
+                                      </Text>
+                                      <Text style={styles.seasonItemEpisodes}>
+                                        {s.episode_count} Episodes
+                                      </Text>
+                                    </View>
+                                  </TouchableOpacity>
+                                ),
+                              )}
                           </ScrollView>
                         </MaybeBlurView>
                       </View>
@@ -2001,7 +2037,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             : new Date().getFullYear()
         }
         movieOverview={show.overview}
-        movieGenres={showDetails?.genres?.map((g: any) => g.name) || []}
+        movieGenres={(showDetails?.genres || []).map((g: any) => g.name)}
         contentType="tv"
       />
 

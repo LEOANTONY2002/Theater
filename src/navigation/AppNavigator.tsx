@@ -40,11 +40,11 @@ export const AppNavigator = () => {
       <Stack.Navigator
         screenOptions={{
           contentStyle: {backgroundColor: colors.background.primary},
+          headerShown: false,
         }}>
         <Stack.Screen
           name="Main"
           component={BottomTabNavigator}
-          options={{headerShown: false}}
         />
       </Stack.Navigator>
     </NavigationContainer>

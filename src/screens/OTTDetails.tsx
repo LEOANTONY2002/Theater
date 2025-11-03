@@ -723,17 +723,17 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
   const sections = useMemo(() => {
     const sectionsList = [];
 
+    sectionsList.push({
+      id: 'header',
+      type: 'header',
+    });
+
     // Banner section
     if (featuredItems.length > 0) {
       sectionsList.push({
         id: 'banner',
         type: 'banner',
         data: featuredItems,
-      });
-    } else {
-      sectionsList.push({
-        id: 'header',
-        type: 'header',
       });
     }
 
@@ -1066,48 +1066,10 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
                     style={styles.ottLogoSmall}
                     resizeMode="contain"
                   />
-                  <Text style={styles.ottNameOverlay}>{ottName}</Text>
+                  {/* <Text style={styles.ottNameOverlay}>{ottName}</Text> */}
                 </View>
               )}
             </View>
-          );
-
-        case 'header':
-          return (
-            <LinearGradient
-              colors={[colors.background.secondary, colors.background.primary]}
-              style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-                activeOpacity={0.8}>
-                <Icon
-                  name="chevron-back"
-                  size={24}
-                  color={colors.text.primary}
-                />
-              </TouchableOpacity>
-
-              <View style={styles.headerContent}>
-                {ottLogo ? (
-                  <Image
-                    source={{uri: `https://image.tmdb.org/t/p/w154${ottLogo}`}}
-                    style={styles.logo}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <View style={styles.logoPlaceholder}>
-                    <Text style={styles.logoPlaceholderText}>
-                      {ottName.charAt(0)}
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.title}>{ottName}</Text>
-                <Text style={styles.subtitle}>
-                  Discover content on {ottName}
-                </Text>
-              </View>
-            </LinearGradient>
           );
 
         case 'horizontalList':
@@ -1229,10 +1191,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: spacing.md,
+    backgroundColor: colors.modal.blur,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.md,
     zIndex: 100,
   },
   ottLogoSmall: {
@@ -1247,21 +1209,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_18pt-SemiBold',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: spacing.xxl,
-    paddingHorizontal: spacing.lg,
+    position: 'absolute',
+    top: 10,
+    paddingHorizontal: spacing.md,
     alignItems: 'center',
+    zIndex: 10,
   },
   backButton: {
     position: 'absolute',
-    top: 60,
+    top: 65,
     left: spacing.lg,
     padding: spacing.sm,
     backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.round,
     borderWidth: 1,
     borderColor: colors.modal.border,
-    zIndex: 100,
+    zIndex: 10,
   },
   headerContent: {
     alignItems: 'center',

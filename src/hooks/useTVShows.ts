@@ -193,7 +193,13 @@ export const useTop10ShowsTodayByRegion = () => {
 
   return useQuery({
     queryKey: ['top_10_shows_today_by_region', region?.iso_3166_1],
-    queryFn: () => getTop10TVShowsTodayByRegion(),
+    queryFn: async () => {
+      const result = await getTop10TVShowsTodayByRegion();
+      if (result && Array.isArray(result)) {
+        batchCacheTVShows(result);
+      }
+      return result;
+    },
     gcTime: TMDB_LIST_GC,
     staleTime: TMDB_LIST_STALE,
     enabled: !!region?.iso_3166_1,

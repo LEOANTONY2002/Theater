@@ -25,6 +25,7 @@ import AboutLegalScreen from '../screens/AboutLegal';
 import {ThematicGenreResultsScreen} from '../screens/ThematicGenreResults';
 import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
 import {OTTDetailsScreen} from '../screens/OTTDetails';
+import {CinemaScreen} from '../screens/CinemaScreen';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -42,17 +43,17 @@ const defaultScreenOptions = {
     fontWeight: '600' as const,
   },
   contentStyle: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#000000',
   },
   animation: 'none' as const,
-  presentation: 'transparentModal' as const,
+  presentation: 'card' as const,
   unmountOnBlur: true,
   detachInactiveScreens: true,
 };
 
 const modalScreenOptions = {
   ...defaultScreenOptions,
-  presentation: 'transparentModal' as const,
+  presentation: 'card' as const,
   unmountOnBlur: true,
   detachInactiveScreens: true,
 };
@@ -120,6 +121,17 @@ export const HomeStackNavigator = () => (
         ...modalScreenOptions,
       }}
     />
+    <HomeStack.Screen
+      name="CinemaScreen"
+      component={CinemaScreen}
+      options={{
+        headerShown: false,
+        orientation: 'landscape',
+        animation: 'fade',
+        presentation: 'fullScreenModal',
+        contentStyle: {backgroundColor: '#000000'},
+      }}
+    />
   </HomeStack.Navigator>
 );
 
@@ -160,6 +172,17 @@ export const SearchStackNavigator = () => (
       options={{
         headerShown: false,
         ...modalScreenOptions,
+      }}
+    />
+    <SearchStack.Screen
+      name="CinemaScreen"
+      component={CinemaScreen}
+      options={{
+        headerShown: false,
+        orientation: 'landscape',
+        animation: 'fade',
+        presentation: 'fullScreenModal',
+        contentStyle: {backgroundColor: '#000000'},
       }}
     />
   </SearchStack.Navigator>
@@ -220,6 +243,17 @@ export const MoviesAndSeriesStackNavigator = () => (
         ...modalScreenOptions,
       }}
     />
+    <MoviesAndSeriesStack.Screen
+      name="CinemaScreen"
+      component={CinemaScreen}
+      options={{
+        headerShown: false,
+        orientation: 'landscape',
+        animation: 'fade',
+        presentation: 'fullScreenModal',
+        contentStyle: {backgroundColor: '#000000'},
+      }}
+    />
   </MoviesAndSeriesStack.Navigator>
 );
 
@@ -268,6 +302,17 @@ export const FiltersStackNavigator = () => (
       options={{
         headerShown: false,
         ...modalScreenOptions,
+      }}
+    />
+    <FiltersStack.Screen
+      name="CinemaScreen"
+      component={CinemaScreen}
+      options={{
+        headerShown: false,
+        orientation: 'landscape',
+        animation: 'fade',
+        presentation: 'fullScreenModal',
+        contentStyle: {backgroundColor: '#000000'},
       }}
     />
   </FiltersStack.Navigator>
@@ -328,6 +373,17 @@ export const MySpaceStackNavigator = () => (
       name="AboutLegalScreen"
       component={AboutLegalScreen}
       options={{headerShown: false}}
+    />
+    <MySpaceStack.Screen
+      name="CinemaScreen"
+      component={CinemaScreen}
+      options={{
+        headerShown: false,
+        orientation: 'landscape',
+        animation: 'fade',
+        presentation: 'fullScreenModal',
+        contentStyle: {backgroundColor: '#000000'},
+      }}
     />
   </MySpaceStack.Navigator>
 );

@@ -50,6 +50,13 @@ export type HomeStackParamList = {
     ottName: string;
     ottLogo?: string;
   };
+  CinemaScreen: {
+    id: string;
+    type: 'movie' | 'tv';
+    title: string;
+    season?: number;
+    episode?: number;
+  };
 };
 
 export type SearchStackParamList = {
@@ -69,6 +76,13 @@ export type SearchStackParamList = {
     // Use a concrete content type; when using SavedFilter, the hook ignores this
     contentType: 'movie' | 'tv';
     filter?: SavedFilter | FilterParams;
+  };
+  CinemaScreen: {
+    id: string;
+    type: 'movie' | 'tv';
+    title: string;
+    season?: number;
+    episode?: number;
   };
 };
 
@@ -97,6 +111,13 @@ export type MoviesAndSeriesStackParamList = {
     tag: string;
     contentType: 'movie' | 'tv';
   };
+  CinemaScreen: {
+    id: string;
+    type: 'movie' | 'tv';
+    title: string;
+    season?: number;
+    episode?: number;
+  };
 };
 
 export type MoviesStackParamList = {
@@ -122,6 +143,13 @@ export type MoviesStackParamList = {
   EmotionalToneResults: {
     tag: string;
     contentType: 'movie';
+  };
+  CinemaScreen: {
+    id: string;
+    type: 'movie' | 'tv';
+    title: string;
+    season?: number;
+    episode?: number;
   };
 };
 
@@ -149,6 +177,13 @@ export type TVShowsStackParamList = {
     tag: string;
     contentType: 'tv';
   };
+  CinemaScreen: {
+    id: string;
+    type: 'movie' | 'tv';
+    title: string;
+    season?: number;
+    episode?: number;
+  };
 };
 
 export type FiltersStackParamList = {
@@ -172,6 +207,13 @@ export type FiltersStackParamList = {
     personName: string;
     contentType: ContentType;
   };
+  CinemaScreen: {
+    id: string;
+    type: 'movie' | 'tv';
+    title: string;
+    season?: number;
+    episode?: number;
+  };
 };
 
 export type MySpaceStackParamList = {
@@ -194,6 +236,13 @@ export type MySpaceStackParamList = {
   OnlineAIScreen: undefined;
   AISettingsScreen: undefined;
   AboutLegalScreen: undefined;
+  CinemaScreen: {
+    id: string;
+    type: 'movie' | 'tv';
+    title: string;
+    season?: number;
+    episode?: number;
+  };
 };
 
 export type TabParamList = {

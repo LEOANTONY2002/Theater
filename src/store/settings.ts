@@ -1,5 +1,6 @@
 import {queryClient} from '../services/queryClient';
 import {RealmSettingsManager} from '../database/managers';
+import languagesData from '../utils/language.json';
 
 export interface Language {
   iso_639_1: string;
@@ -148,6 +149,20 @@ export const SettingsManager = {
     }
   },
 
+  async getCachedLanguages(): Promise<Language[]> {
+    try {
+      // Always return from local JSON file
+      return languagesData as Language[];
+    } catch (error) {
+      console.error('Error loading cached languages:', error);
+      return [];
+    }
+  },
+
+  async setCachedLanguages(languages: Language[]): Promise<void> {
+    // No-op since we're using static JSON file
+    // This method exists for compatibility but doesn't need to do anything
+  },
 
   addChangeListener(listener: SettingsChangeListener): void {
     listeners.add(listener);

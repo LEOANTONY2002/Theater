@@ -20,14 +20,21 @@ import {
   useAISimilarMovies,
 } from '../hooks/useMovies';
 import {getImageUrl} from '../services/tmdb';
-import {Movie} from '../types/movie';
-import {Video, Genre, Cast} from '../types/movie';
+import {Cast, Genre, Movie, Video} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {MovieTrivia} from '../components/MovieTrivia';
 import {useNavigation, RouteProp} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
-import {MySpaceStackParamList} from '../types/navigation';
+import {
+  MySpaceStackParamList,
+  HomeStackParamList,
+  SearchStackParamList,
+  MoviesStackParamList,
+  TVShowsStackParamList,
+  FiltersStackParamList,
+  MovieCategoryType,
+} from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {
@@ -72,8 +79,14 @@ import {BlurPreference} from '../store/blurPreference';
 import {getCriticRatings} from '../services/gemini';
 import {IMDBModal} from '../components/IMDBModal';
 
-type MovieDetailsScreenNavigationProp =
-  NativeStackNavigationProp<MySpaceStackParamList>;
+type MovieDetailsScreenNavigationProp = NativeStackNavigationProp<
+  MySpaceStackParamList &
+    HomeStackParamList &
+    SearchStackParamList &
+    MoviesStackParamList &
+    TVShowsStackParamList &
+    FiltersStackParamList
+>;
 type MovieDetailsScreenRouteProp = RouteProp<
   MySpaceStackParamList,
   'MovieDetails'
@@ -103,7 +116,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
-  const cinema = false;
+  const cinema = true;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -988,8 +1001,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         backdropColor={colors.modal.blurDark}
         onRequestClose={() => setShowPosterModal(false)}>
         <MaybeBlurView
-          blurAmount={20}
-          blurType="dark"
+          body
           style={{
             flex: 1,
             alignItems: 'center',
@@ -1306,7 +1318,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         <GradientButton
                           title="Watch Now"
                           onPress={() => {
-                            setIsPlaying(true);
+                            navigation.navigate('CinemaScreen', {
+                              id: movie.id.toString(),
+                              type: 'movie',
+                              title: movie.title,
+                            });
                           }}
                           style={styles.watchButton}
                           textStyle={styles.watchButtonText}

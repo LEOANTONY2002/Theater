@@ -8,6 +8,7 @@ import {GenreScreen} from '../screens/Genre';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {ThematicGenreResultsScreen} from '../screens/ThematicGenreResults';
 import {OTTDetailsScreen} from '../screens/OTTDetails';
+import {CinemaScreen} from '../screens/CinemaScreen';
 import {HomeStackParamList} from '../types/navigation';
 import {colors} from '../styles/theme';
 
@@ -33,6 +34,16 @@ export const HomeNavigator = () => {
         component={ThematicGenreResultsScreen}
       />
       <Stack.Screen name="OTTDetails" component={OTTDetailsScreen} />
+      <Stack.Screen
+        name="CinemaScreen"
+        component={CinemaScreen}
+        options={{
+          orientation: 'landscape',
+          animation: 'fade',
+          presentation: 'fullScreenModal',
+          contentStyle: {backgroundColor: '#000000'},
+        }}
+      />
     </Stack.Navigator>
   );
 };

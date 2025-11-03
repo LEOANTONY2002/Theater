@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useRef, useEffect, useState, useMemo, useCallback} from 'react';
 import {
   Alert,
   StyleSheet,
@@ -8,135 +8,153 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
-import {colors} from '../styles/theme';
+import {borderRadius, colors} from '../styles/theme';
 import {GradientSpinner} from './GradientSpinner';
+import {getServerUrl} from '../config/servers';
 
-const Cinema = ({
-  id,
-  type,
-  season,
-  episode,
-  currentServer = 1,
-}: {
-  id: string;
-  type: string;
-  season?: number;
-  episode?: number;
-  currentServer?: number;
-}) => {
-  const webviewRef = useRef<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingText, setLoadingText] = useState('Loading...');
+const Cinema = React.memo(
+  ({
+    id,
+    type,
+    season,
+    episode,
+    currentServer = 1,
+  }: {
+    id: string;
+    type: string;
+    season?: number;
+    episode?: number;
+    currentServer?: number;
+  }) => {
+    const webviewRef = useRef<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadingText, setLoadingText] = useState('Loading...');
+    const [webViewKey, setWebViewKey] = useState(0);
 
-  const servers = [
-    type === 'movie'
-      ? `https://vidfast.pro/movie/${id}`
-      : `https://vidfast.pro/tv/${id}/${season}/${episode}`,
-    type === 'movie'
-      ? `https://vidsrc.xyz/embed/movie?tmdb=${id}`
-      : `https://vidsrc.xyz/embed/tv?tmdb=${id}?season=${season}&episode=${episode}`,
-    type === 'movie'
-      ? `https://player.videasy.net/movie/${id}`
-      : `https://player.videasy.net/tv/${id}/${season}/${episode}`,
-    type === 'movie'
-      ? `https://vidfast.pro/movie/${id}`
-      : `https://vidfast.pro/tv/${id}/${season}/${episode}`,
-    type === 'movie'
-      ? `https://111movies.com/movie/${id}`
-      : `https://111movies.com/tv/${id}/${season}/${episode}`,
-  ];
+    // Memoize URL to prevent recalculation on every render
+    const currentUrl = useMemo(() => {
+      return (
+        getServerUrl(currentServer, {
+          id,
+          type: type as 'movie' | 'tv',
+          season,
+          episode,
+        }) || ''
+      );
+    }, [currentServer, id, type, season, episode]);
 
-  const initialUrl = servers[currentServer - 1];
-
-  const handleShouldStartLoadWithRequest = (request: {url: string}) => {
-    return false;
-  };
-
-  const handleLoadStart = () => {
-    setIsLoading(true);
-    setLoadingText('Loading content...');
-  };
-
-  const handleLoadEnd = () => {
-    setIsLoading(false);
-    // Reapply fit-to-screen CSS when loading ends
-  };
-
-  const handleError = (syntheticEvent: any) => {
-    setIsLoading(false);
-    setLoadingText('Failed to load content');
-  };
-
-  const handleHttpError = (syntheticEvent: any) => {
-    setIsLoading(false);
-    setLoadingText('Connection error');
-  };
-
-  // Reset loading state when server changes
-  useEffect(() => {
-    setIsLoading(true);
-    setLoadingText('Switching server...');
-  }, [currentServer]);
-
-  useEffect(() => {
-    return () => {
-      // Cleanup: clear the ref to help GC and stop loading if possible
-      if (webviewRef.current) {
+    const handleShouldStartLoadWithRequest = useCallback(
+      (request: {url: string}) => {
+        // Allow the initial URL to load
+        if (!currentUrl) return true;
+        
+        // Extract domain from initial URL
         try {
-          webviewRef.current.stopLoading?.();
-        } catch (e) {}
-        webviewRef.current = null;
-      }
-    };
-  }, []);
+          const initialDomain = new URL(currentUrl).hostname;
+          const requestDomain = new URL(request.url).hostname;
+          
+          // Only allow navigation within the same domain
+          // Block any external redirects (ads, popups, etc.)
+          return requestDomain === initialDomain;
+        } catch (e) {
+          // If URL parsing fails, block it
+          return false;
+        }
+      },
+      [currentUrl],
+    );
 
-  return (
-    <View style={styles.container}>
-      <WebView
-        ref={webviewRef}
-        source={{uri: initialUrl}}
-        style={{flex: 1}}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        mediaPlaybackRequiresUserAction={false}
-        allowsFullscreenVideo={true}
-        setSupportMultipleWindows={false}
-        javaScriptCanOpenWindowsAutomatically={false}
-        onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
-        onLoadStart={handleLoadStart}
-        onLoadEnd={handleLoadEnd}
-        onError={handleError}
-        onHttpError={handleHttpError}
-        scalesPageToFit={true}
-        bounces={true}
-        scrollEnabled={true}
-        // renderToHardwareTextureAndroid={true}
-        // androidLayerType="hardware"
-      />
+    const handleLoadStart = useCallback(() => {
+      setIsLoading(true);
+      setLoadingText('Loading content...');
+    }, []);
 
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingContainer}>
-            <GradientSpinner
-              size={30}
-              style={{
-                alignItems: 'center',
-                alignSelf: 'center',
-              }}
-              color={colors.modal.activeBorder}
-            />
-            <Text style={styles.loadingText}>{loadingText}</Text>
+    const handleLoadEnd = useCallback(() => {
+      setIsLoading(false);
+      // Reapply fit-to-screen CSS when loading ends
+    }, []);
+
+    const handleError = useCallback((syntheticEvent: any) => {
+      setIsLoading(false);
+      setLoadingText('Failed to load content');
+    }, []);
+
+    const handleHttpError = useCallback((syntheticEvent: any) => {
+      setIsLoading(false);
+      setLoadingText('Connection error');
+    }, []);
+
+    // Only remount WebView when server changes, not on every render
+    useEffect(() => {
+      setIsLoading(true);
+      setLoadingText('Switching server...');
+      setWebViewKey(prev => prev + 1);
+    }, [currentServer]);
+
+    useEffect(() => {
+      return () => {
+        // Cleanup: clear the ref to help GC and stop loading if possible
+        if (webviewRef.current) {
+          try {
+            webviewRef.current.stopLoading?.();
+          } catch (e) {}
+          webviewRef.current = null;
+        }
+      };
+    }, []);
+
+    return (
+      <View style={styles.container}>
+        <WebView
+          key={webViewKey}
+          ref={webviewRef}
+          source={{uri: currentUrl}}
+          style={{flex: 1, backgroundColor: '#000000'}}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          mediaPlaybackRequiresUserAction={false}
+          allowsFullscreenVideo={true}
+          allowsInlineMediaPlayback={true}
+          setSupportMultipleWindows={false}
+          javaScriptCanOpenWindowsAutomatically={false}
+          onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
+          onLoadEnd={handleLoadEnd}
+          onError={handleError}
+          scalesPageToFit={false}
+          scrollEnabled={false}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          nestedScrollEnabled={false}
+          overScrollMode="never"
+          androidLayerType="hardware"
+        />
+
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
+              <GradientSpinner
+                size={30}
+                style={{
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                }}
+                color={colors.modal.activeBorder}
+              />
+              <Text style={styles.loadingText}>{loadingText}</Text>
+            </View>
           </View>
-        </View>
-      )}
-    </View>
-  );
-};
+        )}
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
   },
   loadingOverlay: {
     position: 'absolute',
