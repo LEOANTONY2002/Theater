@@ -50,15 +50,6 @@ export const colors = {
   },
   divider: 'rgba(255, 255, 255, 0.08)',
   modal: {
-    // background: 'rgba(1, 19, 46, 0.1)',
-    // blur: 'rgba(255, 255, 255, 0.18)',
-    // header: 'rgba(147, 146, 146, 0.24)',
-    // content: 'rgba(0, 0, 0, 0.41)',
-    // border: 'rgba(97, 97, 97, 0.18)',
-    // active: 'rgba(205, 205, 205, 0.37)',
-    // activeBorder: 'rgba(255, 255, 255, 0.46)',
-    // activeText: 'rgba(255, 255, 255, 0.87)',
-
     background: 'rgba(1, 19, 46, 0.1)',
     blur: 'rgba(255, 255, 255, 0.08)',
     blurDark: 'rgba(37, 37, 37, 0.3)',

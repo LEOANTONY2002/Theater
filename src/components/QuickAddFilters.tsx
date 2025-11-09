@@ -123,7 +123,6 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.md,
     marginTop: spacing.md,
     marginBottom: spacing.xl,
   },
@@ -166,7 +165,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.round,
     borderWidth: 1,
@@ -176,5 +175,6 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.text.primary,
     fontWeight: '600',
+    fontSize: 10,
   },
 });

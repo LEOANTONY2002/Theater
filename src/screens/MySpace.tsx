@@ -10,6 +10,7 @@ import {
   Switch,
   ImageBackground,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -36,10 +37,15 @@ import {useNavigationState} from '../hooks/useNavigationState';
 import packageJson from '../../package.json';
 import {AISettingsManager} from '../store/aiSettings';
 import {useResponsive} from '../hooks/useResponsive';
-import {UserPreferencesManager, RealmSettingsManager} from '../database/managers';
+import {
+  UserPreferencesManager,
+  RealmSettingsManager,
+} from '../database/managers';
 import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {BlurPreference} from '../store/blurPreference';
+import {getCinemaDNA, CinemaDNA, getTypeEmoji} from '../utils/cinemaDNA';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -70,6 +76,8 @@ export const MySpaceScreen = React.memo(() => {
   const [showMyLanguageModal, setShowMyLanguageModal] = useState(false);
   const [showOTTsModal, setShowOTTsModal] = useState(false);
   const [localOTTs, setLocalOTTs] = useState<any[]>([]);
+  const [cinemaDNA, setCinemaDNA] = useState<CinemaDNA | null>(null);
+  const {width} = useWindowDimensions();
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -128,29 +136,47 @@ export const MySpaceScreen = React.memo(() => {
     }
   }, [myOTTs]);
   const {data: availableProviders = []} = useQuery({
-    queryKey: ['available_watch_providers', 'movie', currentRegion?.iso_3166_1 || 'US'],
+    queryKey: [
+      'available_watch_providers',
+      'movie',
+      currentRegion?.iso_3166_1 || 'US',
+    ],
     queryFn: async () => {
       const region = currentRegion?.iso_3166_1 || 'US';
       console.log('[MySpace] Fetching providers for region:', region);
       const m = await import('../services/tmdbWithCache');
       let result = await m.getAvailableWatchProviders(region);
-      
+
       // Fallback to US if current region has no providers
       if (!result || result.length === 0) {
-        console.log('[MySpace] No providers for', region, '- falling back to US');
+        console.log(
+          '[MySpace] No providers for',
+          region,
+          '- falling back to US',
+        );
         result = await m.getAvailableWatchProviders('US');
       }
-      
-      console.log('[MySpace] Providers loaded:', result?.length || 0, 'providers');
+
+      console.log(
+        '[MySpace] Providers loaded:',
+        result?.length || 0,
+        'providers',
+      );
       return result;
     },
     staleTime: 1000 * 60 * 60,
   });
 
-  // Load mood answers on component mount
+  // Load mood answers and cinema DNA on component mount
   useEffect(() => {
     loadMoodAnswers();
+    loadCinemaDNA();
   }, []);
+
+  const loadCinemaDNA = async () => {
+    const dna = await getCinemaDNA();
+    setCinemaDNA(dna);
+  };
 
   // Initialize and subscribe to blur preference changes
   useEffect(() => {
@@ -173,6 +199,7 @@ export const MySpaceScreen = React.memo(() => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
       queryClient.invalidateQueries({queryKey: ['watchlists']});
       loadMoodAnswers(); // Refresh mood answers when screen comes into focus
+      loadCinemaDNA(); // Refresh cinema DNA when screen comes into focus
     });
 
     return unsubscribe;
@@ -789,14 +816,135 @@ export const MySpaceScreen = React.memo(() => {
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
       <View style={{padding: spacing.md}}>
-        <Text
+        {/* Header with Cinema DNA Badge */}
+        <View
           style={{
-            color: colors.text.primary,
-            ...typography.h2,
-            marginBottom: spacing.md,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: isTablet ? spacing.md : spacing.sm,
           }}>
-          My Space
-        </Text>
+          <Text
+            style={{
+              color: colors.text.primary,
+              ...typography.h3,
+            }}>
+            My Space
+          </Text>
+
+          {/* Cinema DNA Badge */}
+          {cinemaDNA && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => navigateWithLimit('CinemaInsightsScreen')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: forceBlurAll
+                  ? colors.background.tertiaryGlass
+                  : colors.background.tertiarySolid,
+                borderRadius: 50,
+                paddingVertical: spacing.xs,
+                paddingLeft: isTablet ? spacing.lg : spacing.md,
+                paddingRight: spacing.xs,
+                gap: spacing.sm,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: forceBlurAll
+                  ? colors.modal.content
+                  : colors.background.border,
+                width: width * 0.32,
+                minWidth: isTablet ? 200 : 130,
+                height: isTablet ? 80 : 50,
+                marginBottom: 0,
+              }}>
+              <Image
+                source={require('../assets/dna.png')}
+                style={styles.icon}
+              />
+              <Text
+                style={[
+                  styles.tileTitle,
+                  {
+                    zIndex: 1,
+                  },
+                ]}>
+                Cinema DNA
+              </Text>
+              {/* Profile Image with Gradient */}
+              <View
+                style={{
+                  width: isTablet ? 80 : 60,
+                  borderTopRightRadius: 50,
+                  borderBottomRightRadius: 50,
+                  overflow: 'hidden',
+                  backgroundColor: colors.background.secondary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}>
+                <>
+                  {cinemaDNA.topPerson.profile_path ? (
+                    <Image
+                      source={{
+                        uri: `https://image.tmdb.org/t/p/w185${cinemaDNA.topPerson.profile_path}`,
+                      }}
+                      style={{width: '100%', height: '100%'}}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Icon
+                      name="user-secret"
+                      size={isTablet ? 40 : 30}
+                      color={colors.text.primary}
+                      style={{
+                        marginRight: isTablet ? 0 : -spacing.md,
+                      }}
+                    />
+                  )}
+                  <LinearGradient
+                    colors={[
+                      forceBlurAll
+                        ? colors.background.tertiaryGlass
+                        : colors.background.tertiarySolid,
+                      'transparent',
+                    ]}
+                    useAngle
+                    angle={90}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: -50,
+                      bottom: 0,
+                    }}
+                  />
+                  <LinearGradient
+                    colors={[
+                      forceBlurAll
+                        ? colors.background.tertiaryGlass
+                        : colors.background.tertiarySolid,
+                      'transparent',
+                    ]}
+                    useAngle
+                    angle={90}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: -50,
+                      bottom: 0,
+                    }}
+                  />
+                </>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
         {/* Two-column layout */}
         <View
           style={{

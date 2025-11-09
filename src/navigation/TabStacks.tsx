@@ -26,6 +26,7 @@ import {ThematicGenreResultsScreen} from '../screens/ThematicGenreResults';
 import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
 import {OTTDetailsScreen} from '../screens/OTTDetails';
 import {CinemaScreen} from '../screens/CinemaScreen';
+import {CinemaInsightsScreen} from '../screens/CinemaInsightsScreen';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -383,6 +384,14 @@ export const MySpaceStackNavigator = () => (
         animation: 'fade',
         presentation: 'fullScreenModal',
         contentStyle: {backgroundColor: '#000000'},
+      }}
+    />
+    <MySpaceStack.Screen
+      name="CinemaInsightsScreen"
+      component={CinemaInsightsScreen}
+      options={{
+        headerShown: false,
+        animation: 'fade',
       }}
     />
   </MySpaceStack.Navigator>

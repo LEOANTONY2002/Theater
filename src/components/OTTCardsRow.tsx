@@ -55,24 +55,35 @@ export const OTTCardsRow: React.FC<Props> = ({otts, title = 'My OTTs'}) => {
             key={`ott-${ott.id}-${index}`}
             onPress={() => handleOTTPress(ott)}
             activeOpacity={0.8}>
-            <View style={styles.logoContainer}>
-              {ott.logo_path && !failedLogos.has(ott.id) ? (
-                <Image
-                  source={{
-                    uri: `https://image.tmdb.org/t/p/w154${ott.logo_path}`,
-                  }}
-                  style={styles.logo}
-                  resizeMode="contain"
-                  onError={() => handleImageError(ott.id)}
-                />
-              ) : (
-                <View style={styles.placeholderLogo}>
-                  <Text numberOfLines={1} style={styles.placeholderText}>
-                    {ott.provider_name.charAt(0)}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <LinearGradient
+              colors={['rgba(1, 0, 14, 0.2)', 'rgb(3, 0, 25)']}
+              useAngle
+              angle={135}
+              style={{
+                position: 'absolute',
+                top: -1,
+                left: -1,
+                right: -1,
+                bottom: -1,
+                borderRadius: borderRadius.lg,
+              }}
+            />
+            {ott.logo_path && !failedLogos.has(ott.id) ? (
+              <Image
+                source={{
+                  uri: `https://image.tmdb.org/t/p/w154${ott.logo_path}`,
+                }}
+                style={styles.logo}
+                resizeMode="contain"
+                onError={() => handleImageError(ott.id)}
+              />
+            ) : (
+              <View style={styles.placeholderLogo}>
+                <Text numberOfLines={1} style={styles.placeholderText}>
+                  {ott.provider_name.charAt(0)}
+                </Text>
+              </View>
+            )}
             <Text style={styles.ottName} numberOfLines={1}>
               {ott.provider_name}
             </Text>
@@ -91,7 +102,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
   },
   title: {
@@ -102,29 +113,28 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     gap: spacing.md,
     paddingRight: spacing.xl,
   },
   card: {
     borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.modal.header,
+    backgroundColor: '#1B192F',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     padding: spacing.sm,
     paddingRight: spacing.lg,
-    flexDirection: 'row',
-    gap: spacing.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.modal.blur,
-    width: 200,
-    backgroundColor: colors.modal.blur,
   },
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     borderRadius: borderRadius.md,
   },
   placeholderLogo: {
@@ -141,12 +151,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   ottName: {
-    ...typography.h3,
-    color: colors.text.muted,
-    textAlign: 'center',
-    fontWeight: '700',
+    ...typography.body1,
+    color: colors.text.primary,
     maxWidth: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

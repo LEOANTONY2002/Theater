@@ -40,16 +40,19 @@ interface GeminiMessage {
 }
 
 // Fetch critic ratings (IMDb and Rotten Tomatoes) via AI with caching
+// Note: For movies, IMDB should be scraped first. This is fallback only.
 export async function getCriticRatings({
   title,
   year,
   type,
   contentId,
+  skipImdb = false, // Set to true if IMDB was already scraped successfully
 }: {
   title: string;
   year?: string;
   type: 'movie' | 'tv';
   contentId?: number;
+  skipImdb?: boolean;
 }): Promise<{
   imdb?: number | null;
   rotten_tomatoes?: number | null;
@@ -69,14 +72,21 @@ export async function getCriticRatings({
           imdb: cached.ai_imdb_rating as number | null,
           rotten_tomatoes: cached.ai_rotten_tomatoes as number | null,
           imdb_votes: cached.ai_imdb_votes as number | null,
-          source: 'ai',
+          source: 'cached',
         };
       }
     }
   }
 
   const yearSuffix = year ? ` (${year})` : '';
-  const prompt = `Provide the latest critic ratings for the ${type} "${title}${yearSuffix}" as a strict JSON object with numeric values if available.
+  
+  // If skipImdb is true (scraping succeeded), only fetch Rotten Tomatoes
+  const prompt = skipImdb
+    ? `Provide the Rotten Tomatoes rating for the ${type} "${title}${yearSuffix}" as a strict JSON object.
+Return ONLY this JSON, no prose:
+{"rotten_tomatoes": <0-100 as number or null>}
+If unknown, set it to null.`
+    : `Provide the latest critic ratings for the ${type} "${title}${yearSuffix}" as a strict JSON object with numeric values if available.
 Return ONLY this JSON, no prose:
 {"imdb": <0-10 scale as number or null>, "rotten_tomatoes": <0-100 as number or null>, "imdb_votes": <integer number of votes or null>}
 If a value is unknown, set it to null. Do not include extra fields.`;
@@ -99,12 +109,13 @@ If a value is unknown, set it to null. Do not include extra fields.`;
     const normalized =
       parsed && typeof parsed === 'object'
         ? {
-            imdb:
-              typeof parsed.imdb === 'number'
-                ? parsed.imdb
-                : parsed.imdb && !isNaN(Number(parsed.imdb))
-                ? Number(parsed.imdb)
-                : null,
+            imdb: skipImdb
+              ? undefined // Don't overwrite scraped IMDB rating
+              : typeof parsed.imdb === 'number'
+              ? parsed.imdb
+              : parsed.imdb && !isNaN(Number(parsed.imdb))
+              ? Number(parsed.imdb)
+              : null,
             rotten_tomatoes:
               typeof parsed.rotten_tomatoes === 'number'
                 ? parsed.rotten_tomatoes
@@ -112,12 +123,13 @@ If a value is unknown, set it to null. Do not include extra fields.`;
                   !isNaN(Number(parsed.rotten_tomatoes))
                 ? Number(parsed.rotten_tomatoes)
                 : null,
-            imdb_votes:
-              typeof parsed.imdb_votes === 'number'
-                ? parsed.imdb_votes
-                : parsed.imdb_votes && !isNaN(Number(parsed.imdb_votes))
-                ? Number(parsed.imdb_votes)
-                : null,
+            imdb_votes: skipImdb
+              ? undefined // Don't overwrite scraped IMDB votes
+              : typeof parsed.imdb_votes === 'number'
+              ? parsed.imdb_votes
+              : parsed.imdb_votes && !isNaN(Number(parsed.imdb_votes))
+              ? Number(parsed.imdb_votes)
+              : null,
             source: 'ai',
           }
         : null;
@@ -133,13 +145,19 @@ If a value is unknown, set it to null. Do not include extra fields.`;
             : realm.objectForPrimaryKey('TVShow', contentId);
 
         if (content) {
-          content.ai_imdb_rating = normalized.imdb;
+          // Only update IMDB if not skipped (not already scraped)
+          if (!skipImdb && normalized.imdb !== undefined) {
+            content.ai_imdb_rating = normalized.imdb;
+          }
+          if (!skipImdb && normalized.imdb_votes !== undefined) {
+            content.ai_imdb_votes = normalized.imdb_votes;
+          }
+          // Always update Rotten Tomatoes
           content.ai_rotten_tomatoes = normalized.rotten_tomatoes;
-          content.ai_imdb_votes = normalized.imdb_votes;
           content.ai_ratings_cached_at = new Date();
         }
       });
-      console.log('[getCriticRatings] Cached ratings in Realm');
+      console.log('[getCriticRatings] Cached ratings in Realm', {skipImdb});
     }
 
     return normalized;
@@ -1399,6 +1417,287 @@ Focus on narrative themes, not standard genres like "Action" or "Drama".`,
     return null;
   } catch (error) {
     console.error('Error generating thematic genres:', error);
+    return null;
+  }
+}
+
+/**
+ * AI-powered search that understands natural language queries
+ * Handles: fuzzy names, descriptions, vibes, comparisons, plot elements
+ */
+export async function aiSearch({
+  query,
+}: {
+  query: string;
+}): Promise<{
+  bestMatch: {
+    id: number;
+    type: 'movie' | 'tv';
+    title: string;
+    year?: string;
+    poster_path?: string;
+    vote_average?: number;
+    overview?: string;
+    confidence: number;
+    explanation: string;
+  } | null;
+  moreResults: Array<{
+    id: number;
+    type: 'movie' | 'tv';
+    title: string;
+    year?: string;
+    poster_path?: string;
+    vote_average?: number;
+    overview?: string;
+    reason: string;
+  }>;
+  source: 'ai' | 'tmdb_fallback';
+} | null> {
+  try {
+    console.log('[AI Search] Query:', query);
+
+    const prompt = `You are a movie/TV show search assistant. Analyze this user query and find the best matching content.
+
+User Query: "${query}"
+
+Your task:
+1. Identify what the user is looking for (specific title, description, vibe, comparison, etc.)
+2. Find the BEST MATCH (single most relevant movie or TV show)
+3. Suggest 5-8 MORE RESULTS that are also relevant
+
+Return ONLY valid JSON in this exact format:
+{
+  "bestMatch": {
+    "title": "Exact title",
+    "year": "Release year (YYYY format)",
+    "type": "movie or tv",
+    "confidence": 0.0-1.0,
+    "explanation": "1-2 sentences explaining why this matches the query"
+  },
+  "moreResults": [
+    {
+      "title": "Title",
+      "year": "YYYY",
+      "type": "movie or tv",
+      "reason": "Brief reason (5-10 words)"
+    }
+  ]
+}
+
+Rules:
+- bestMatch must be the SINGLE most relevant result
+- confidence: 0.9+ for exact matches, 0.7-0.9 for good matches, 0.5-0.7 for loose matches
+- moreResults should have 5-8 items
+- Use real movie/TV show titles and years
+- If query is vague, interpret it intelligently
+- For misspellings, find the correct title
+- For descriptions, match by plot/theme
+- For comparisons ("like X"), find similar content
+
+Examples:
+- "intersteller" → Interstellar (2014), confidence: 0.95
+- "space movie about time" → Interstellar (2014), confidence: 0.85
+- "shows like Breaking Bad" → Better Call Saul, confidence: 0.9
+- "feel good animated movies" → Toy Story, confidence: 0.75`;
+
+    const response = await callGemini([{role: 'user', content: prompt}]);
+
+    // Parse AI response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn('[AI Search] No JSON found in response');
+      return await fallbackToTMDBSearch(query);
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    if (!parsed.bestMatch || !parsed.bestMatch.title) {
+      console.warn('[AI Search] Invalid response format');
+      return await fallbackToTMDBSearch(query);
+    }
+
+    // Search TMDB for the AI-suggested titles to get full data
+    const bestMatchData = await searchTMDBForTitle(
+      parsed.bestMatch.title,
+      parsed.bestMatch.year,
+      parsed.bestMatch.type,
+    );
+
+    if (!bestMatchData) {
+      console.warn('[AI Search] Could not find best match on TMDB');
+      return await fallbackToTMDBSearch(query);
+    }
+
+    // Search for more results
+    const moreResultsData = await Promise.all(
+      (parsed.moreResults || []).slice(0, 8).map(async (item: any) => {
+        const data = await searchTMDBForTitle(item.title, item.year, item.type);
+        if (data) {
+          return {
+            ...data,
+            reason: item.reason || 'Related content',
+          };
+        }
+        return null;
+      }),
+    );
+
+    const validMoreResults = moreResultsData.filter(
+      (item): item is NonNullable<typeof item> => item !== null,
+    );
+
+    return {
+      bestMatch: {
+        ...bestMatchData,
+        confidence: parsed.bestMatch.confidence || 0.8,
+        explanation: parsed.bestMatch.explanation || 'Matches your search query',
+      },
+      moreResults: validMoreResults,
+      source: 'ai',
+    };
+  } catch (error) {
+    console.error('[AI Search] Error:', error);
+    return await fallbackToTMDBSearch(query);
+  }
+}
+
+/**
+ * Search TMDB for a specific title
+ */
+async function searchTMDBForTitle(
+  title: string,
+  year?: string,
+  type?: 'movie' | 'tv',
+): Promise<{
+  id: number;
+  type: 'movie' | 'tv';
+  title: string;
+  year?: string;
+  poster_path?: string;
+  backdrop_path?: string;
+  vote_average?: number;
+  overview?: string;
+} | null> {
+  try {
+    // Try movie search first if type is movie or unspecified
+    if (!type || type === 'movie') {
+      const movieResults = await searchMovies(title, 1, {});
+      if (movieResults?.results && movieResults.results.length > 0) {
+        // Find best match by title similarity and year
+        let bestMatch = movieResults.results[0];
+        if (year) {
+          const yearMatch = movieResults.results.find((m: any) =>
+            m.release_date?.startsWith(year),
+          );
+          if (yearMatch) bestMatch = yearMatch;
+        }
+
+        return {
+          id: bestMatch.id,
+          type: 'movie',
+          title: bestMatch.title,
+          year: bestMatch.release_date?.split('-')[0],
+          poster_path: bestMatch.poster_path,
+          backdrop_path: bestMatch.backdrop_path,
+          vote_average: bestMatch.vote_average,
+          overview: bestMatch.overview,
+        };
+      }
+    }
+
+    // Try TV search if type is tv or movie search failed
+    if (!type || type === 'tv') {
+      const tvResults = await searchTVShows(title, 1, {});
+      if (tvResults?.results && tvResults.results.length > 0) {
+        let bestMatch = tvResults.results[0];
+        if (year) {
+          const yearMatch = tvResults.results.find((s: any) =>
+            s.first_air_date?.startsWith(year),
+          );
+          if (yearMatch) bestMatch = yearMatch;
+        }
+
+        return {
+          id: bestMatch.id,
+          type: 'tv',
+          title: bestMatch.name,
+          year: bestMatch.first_air_date?.split('-')[0],
+          poster_path: bestMatch.poster_path,
+          backdrop_path: bestMatch.backdrop_path,
+          vote_average: bestMatch.vote_average,
+          overview: bestMatch.overview,
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[AI Search] TMDB search error:', error);
+    return null;
+  }
+}
+
+/**
+ * Fallback to regular TMDB search if AI fails
+ */
+async function fallbackToTMDBSearch(query: string): Promise<{
+  bestMatch: any;
+  moreResults: any[];
+  source: 'ai' | 'tmdb_fallback';
+} | null> {
+  try {
+    console.log('[AI Search] Falling back to TMDB search');
+
+    // Search both movies and TV shows
+    const [movieResults, tvResults] = await Promise.all([
+      searchMovies(query, 1, {}),
+      searchTVShows(query, 1, {}),
+    ]);
+
+    const allResults = [
+      ...(movieResults?.results || []).map((m: any) => ({
+        id: m.id,
+        type: 'movie' as const,
+        title: m.title,
+        year: m.release_date?.split('-')[0],
+        poster_path: m.poster_path,
+        backdrop_path: m.backdrop_path,
+        vote_average: m.vote_average,
+        overview: m.overview,
+      })),
+      ...(tvResults?.results || []).map((s: any) => ({
+        id: s.id,
+        type: 'tv' as const,
+        title: s.name,
+        year: s.first_air_date?.split('-')[0],
+        poster_path: s.poster_path,
+        backdrop_path: s.backdrop_path,
+        vote_average: s.vote_average,
+        overview: s.overview,
+      })),
+    ];
+
+    if (allResults.length === 0) {
+      return null;
+    }
+
+    // Sort by vote_average to get best match
+    allResults.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
+
+    return {
+      bestMatch: {
+        ...allResults[0],
+        confidence: 0.6,
+        explanation: 'Found via keyword search',
+      },
+      moreResults: allResults.slice(1, 9).map(item => ({
+        ...item,
+        reason: 'Related to your search',
+      })),
+      source: 'tmdb_fallback',
+    };
+  } catch (error) {
+    console.error('[AI Search] Fallback error:', error);
     return null;
   }
 }

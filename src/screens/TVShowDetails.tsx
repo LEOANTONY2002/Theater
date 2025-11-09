@@ -23,7 +23,14 @@ import {
   useSeasonDetails,
   useAISimilarTVShows,
 } from '../hooks/useTVShows';
-import {getImageUrl, getLanguage} from '../services/tmdb';
+import {
+  getImageUrl,
+  getLanguage,
+  getDirectors,
+  getWriters,
+  getComposer,
+  getCinematographer,
+} from '../services/tmdb';
 import {
   TVShow,
   TVShowDetails as TVShowDetailsType,
@@ -200,6 +207,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         ? (showDetails as any).genres.map((g: any) => g.id)
         : (show as any).genre_ids) ?? [];
 
+    const credits = showDetails?.credits;
     const item = {
       id: show?.id,
       title: show?.name,
@@ -211,7 +219,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       release_date: undefined,
       first_air_date: firstAir,
       genre_ids: genres,
+      original_language: (show as any).original_language,
+      origin_country: (show as any).origin_country,
       type: 'tv' as const,
+      runtime: showDetails?.episode_run_time?.[0],
+      // Crew data (stringify for Realm)
+      directors: credits ? JSON.stringify(getDirectors(credits)) : undefined,
+      writers: credits ? JSON.stringify(getWriters(credits)) : undefined,
+      cast: credits ? JSON.stringify(credits.cast.slice(0, 10)) : undefined,
+      composer: credits ? JSON.stringify(getComposer(credits)) : undefined,
+      cinematographer: credits ? JSON.stringify(getCinematographer(credits)) : undefined,
     };
     HistoryManager.add(item as any);
   }, [show, showDetails]);
@@ -1278,6 +1295,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
           ...(isAIEnabled ? [{type: 'trivia', id: 'trivia'}] : []),
+          {type: 'crew', id: 'crew'},
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
           {type: 'seasons', id: 'seasons'},
@@ -1696,6 +1714,72 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   />
                 </View>
               );
+            case 'crew':
+              const crewRaw = showDetails?.credits ? [
+                ...getDirectors(showDetails.credits).map((p: any) => ({...p, job: 'Director'})),
+                ...getWriters(showDetails.credits).map((p: any) => ({...p, job: p.job || 'Writer'})),
+                ...getComposer(showDetails.credits).map((p: any) => ({...p, job: 'Original Music Composer'})),
+                getCinematographer(showDetails.credits),
+              ].filter(Boolean) : [];
+              
+              // Deduplicate crew members with multiple roles
+              const crewMap = new Map();
+              crewRaw.forEach((person: any) => {
+                if (crewMap.has(person.id)) {
+                  // Add role to existing person
+                  const existing = crewMap.get(person.id);
+                  existing.job = `${existing.job}, ${person.job}`;
+                } else {
+                  crewMap.set(person.id, {...person});
+                }
+              });
+              const crew = Array.from(crewMap.values());
+              
+              return crew.length > 0 ? (
+                <Animated.View
+                  style={{
+                    marginVertical: spacing.lg,
+                    marginTop: 0,
+                    opacity: castFadeAnim,
+                    transform: [
+                      {
+                        translateY: castFadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [20, 0],
+                        }),
+                      },
+                    ],
+                  }}>
+                  <Text style={styles.sectionTitle}>Crew</Text>
+                  <FlatList
+                    data={crew}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{paddingHorizontal: spacing.md}}
+                    renderItem={({item: person}: {item: any}) => (
+                      <TouchableOpacity
+                        style={styles.castItem}
+                        onPress={() =>
+                          handlePersonPress(person.id, person.name)
+                        }>
+                        <PersonCard
+                          item={getImageUrl(person.profile_path || '', 'w154')}
+                          onPress={() =>
+                            handlePersonPress(person.id, person.name)
+                          }
+                        />
+                        <Text style={styles.castName} numberOfLines={2}>
+                          {person.name}
+                        </Text>
+                        <Text style={styles.character} numberOfLines={1}>
+                          {person.job}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    keyExtractor={(person: any) => `${person.id}-${person.job}`}
+                  />
+                </Animated.View>
+              ) : null;
             case 'cast':
               return showDetails?.credits?.cast &&
                 Array.isArray(showDetails.credits.cast) &&

@@ -46,31 +46,9 @@ import {RecentSearchItemsManager} from '../store/recentSearchItems';
 import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
 import {AISearchFilterBuilder} from '../components/AISearchFilterBuilder';
+import {AISearchView} from '../components/AISearchView';
 
 const MAX_RECENT_ITEMS = 10;
-
-const NoResults = ({query}: {query: string}) => (
-  <View style={styles.noResultsContainer}>
-    <Image
-      source={require('../assets/search.png')}
-      style={{width: 220, opacity: 0.5, marginBottom: -30}}
-      resizeMode="contain"
-    />
-    <View style={{position: 'relative'}}>
-      <LinearGradient
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: '100%',
-          height: 40,
-          zIndex: 1,
-        }}
-        colors={['transparent', colors.background.primary]}
-      />
-      <Text style={styles.noResultsTitle}>No results found</Text>
-    </View>
-  </View>
-);
 
 type TabType = 'trending' | 'watchlists' | 'history';
 
@@ -86,6 +64,7 @@ export const SearchScreen = React.memo(() => {
   );
   const [showFilters, setShowFilters] = React.useState(false);
   const [showAISearch, setShowAISearch] = React.useState(false);
+  const [isAISearchMode, setIsAISearchMode] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<TabType>('trending');
   const isFocused = useIsFocused();
   const {isAIEnabled} = useAIEnabled();
@@ -131,7 +110,6 @@ export const SearchScreen = React.memo(() => {
     isFetchingNextPage: isFetchingTrendingPage,
   } = useTrending('day');
 
-
   // Load view history and recent search items from Realm on mount and when returning to tab
   useEffect(() => {
     const loadData = async () => {
@@ -139,7 +117,7 @@ export const SearchScreen = React.memo(() => {
         // Load history from Realm (for History tab)
         const historyData = await HistoryManager.getAll();
         setHistoryItems(historyData as unknown as ContentItem[]);
-        
+
         // Load recent search items from Realm (for Recent Searches section)
         const recentSearchData = await RecentSearchItemsManager.getAll();
         const recentSearchItems = recentSearchData.slice(0, MAX_RECENT_ITEMS);
@@ -196,25 +174,60 @@ export const SearchScreen = React.memo(() => {
     );
   };
 
+  const NoResults = ({query}: {query: string}) => (
+    <View style={styles.noResultsContainer}>
+      <Image
+        source={require('../assets/search.png')}
+        style={{width: 220, opacity: 0.5, marginBottom: -30}}
+        resizeMode="contain"
+      />
+      <View style={{position: 'relative'}}>
+        <LinearGradient
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            width: '100%',
+            height: 40,
+            zIndex: 1,
+          }}
+          colors={['transparent', colors.background.primary]}
+        />
+        <Text style={styles.noResultsTitle}>No results found</Text>
+      </View>
+    </View>
+  );
+
   // Save recent search item (clicked content from search screen) to Realm
-  const saveRecentItem = async (item: ContentItem, isFromSearch: boolean = false) => {
+  const saveRecentItem = async (
+    item: ContentItem,
+    isFromSearch: boolean = false,
+  ) => {
     try {
       const itemData: any = item;
+
+      console.log('[Search] Saving recent item:', {
+        id: item.id,
+        type: item.type,
+        title: itemData.title,
+        name: itemData.name,
+        poster_path: item.poster_path,
+      });
+
       // Save to RecentSearchItems (specific to search screen) with full data
       await RecentSearchItemsManager.add({
         id: item.id,
         type: item.type,
         isSearch: isFromSearch, // true if from search query, false if from trending
-        title: item.type === 'movie' ? itemData.title : undefined,
-        name: item.type === 'tv' ? itemData.name : undefined,
+        title: itemData.title || itemData.name, // Use title or name
+        name: itemData.name || itemData.title, // Use name or title
         poster_path: item.poster_path,
         backdrop_path: item.backdrop_path,
         vote_average: item.vote_average,
-        release_date: item.type === 'movie' ? itemData.release_date : undefined,
-        first_air_date: item.type === 'tv' ? itemData.first_air_date : undefined,
+        release_date: itemData.release_date,
+        first_air_date: itemData.first_air_date,
         overview: item.overview,
       });
-      
+
       // Update local state
       const updatedItems = [
         item,
@@ -393,6 +406,273 @@ export const SearchScreen = React.memo(() => {
   const hasActiveFilters = Object.keys(activeFilters).length > 0;
   const showSearchResults = debouncedQuery.length > 0 || hasActiveFilters;
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+      position: 'relative',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.sm,
+      marginTop: spacing.xl,
+      marginBottom: spacing.md,
+      backgroundColor: 'transparent',
+      position: 'absolute',
+      top: 0,
+      zIndex: 1,
+      overflow: 'hidden',
+      paddingVertical: spacing.sm,
+      margin: 20,
+      borderRadius: borderRadius.round,
+      width: '90%',
+      alignSelf: 'center',
+    },
+    blurView: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 0,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: borderRadius.round,
+      paddingLeft: spacing.sm,
+    },
+    searchInput: {
+      flex: 1,
+      height: 48,
+      paddingHorizontal: spacing.sm,
+      color: colors.text.primary,
+      ...typography.body1,
+    },
+    clearButton: {
+      padding: spacing.xs,
+    },
+    filterButton: {
+      width: 48,
+      height: 48,
+      borderRadius: borderRadius.round,
+      // backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+    },
+    filterButtonActive: {
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      backgroundColor: colors.modal.activeText,
+    },
+    inlineFilterButton: {
+      padding: spacing.sm,
+      marginRight: spacing.sm,
+      borderRadius: borderRadius.round,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      borderColor: colors.modal.blur,
+    },
+    recentItemsContainer: {
+      paddingTop: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.card.border,
+    },
+    recentItemsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    sectionTitle: {
+      color: colors.text.primary,
+      ...typography.h3,
+    },
+    clearAllText: {
+      color: colors.text.muted,
+      ...typography.body2,
+    },
+    loadingContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 400,
+    },
+    loadingText: {
+      color: colors.text.muted,
+      ...typography.body1,
+      marginTop: spacing.sm,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.xl,
+    },
+    errorTitle: {
+      color: colors.text.primary,
+      ...typography.h2,
+      marginTop: spacing.md,
+    },
+    errorText: {
+      color: colors.text.secondary,
+      ...typography.body1,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    retryButton: {
+      backgroundColor: colors.button.primary,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+      marginTop: spacing.xl,
+    },
+    retryText: {
+      color: colors.text.primary,
+      ...typography.body1,
+      fontWeight: '600',
+    },
+    noResultsContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.xl,
+    },
+    noResultsTitle: {
+      color: colors.text.muted,
+      fontSize: 40,
+      opacity: 0.5,
+      fontWeight: '900',
+      textAlign: 'center',
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    noResultsText: {
+      color: colors.text.secondary,
+      ...typography.body1,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    noResultsSubtext: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    // Tab styles
+    tabContainer: {
+      flexDirection: 'row',
+      padding: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      marginVertical: spacing.md,
+    },
+    tabButton: {
+      padding: spacing.sm,
+      borderRadius: borderRadius.sm,
+      marginHorizontal: spacing.xs,
+      alignItems: 'center',
+      backgroundColor: colors.modal.blur,
+      borderWidth: 1,
+      borderColor: colors.modal.content,
+    },
+    activeTabButton: {
+      backgroundColor: colors.modal.border,
+      borderWidth: 1,
+      borderColor: colors.modal.active,
+    },
+    tabText: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      fontWeight: '500',
+    },
+    activeTabText: {
+      color: colors.text.primary,
+    },
+    tabContent: {
+      padding: spacing.md,
+    },
+    sectionSubtitle: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      marginBottom: spacing.lg,
+    },
+    emptyStateContainer: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+    },
+    emptyStateTitle: {
+      color: colors.text.primary,
+      ...typography.h3,
+      marginTop: spacing.md,
+    },
+    emptyStateText: {
+      color: colors.text.secondary,
+      ...typography.body2,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    // Watchlist tab styles
+    watchlistsContainer: {
+      marginTop: spacing.md,
+    },
+    watchlistItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background.secondary,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+    },
+    watchlistIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: borderRadius.round,
+      backgroundColor: colors.modal.active,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    watchlistInfo: {
+      flex: 1,
+    },
+    watchlistName: {
+      color: colors.text.primary,
+      ...typography.body1,
+      fontWeight: '600',
+    },
+    watchlistDescription: {
+      color: colors.text.secondary,
+      ...typography.caption,
+      marginTop: spacing.xs,
+    },
+    // FAB Button styles
+    fabButton: {
+      position: 'absolute',
+      bottom: isTablet ? 60 : 110,
+      right: 60,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      zIndex: 999,
+    },
+    fabGradient: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });
+
   // Tab rendering functions
   const renderTabButton = (tab: TabType, label: string) => (
     <TouchableOpacity
@@ -528,6 +808,17 @@ export const SearchScreen = React.memo(() => {
     };
   }, [queryClient]);
 
+  // If in AI Search mode, show AI Search View
+  if (isAISearchMode) {
+    return (
+      <AISearchView
+        onResultPress={handleSearchItemPress}
+        onBack={() => setIsAISearchMode(false)}
+        onSaveToRecentSearches={item => saveRecentItem(item, false)}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -571,13 +862,6 @@ export const SearchScreen = React.memo(() => {
             value={query}
             onChangeText={setQuery}
           />
-          {isAIEnabled && (
-            <TouchableOpacity
-              style={styles.inlineFilterButton}
-              onPress={() => setShowAISearch(true)}>
-              <Icon name="sparkles" size={20} color={colors.text.muted} />
-            </TouchableOpacity>
-          )}
           <TouchableOpacity
             style={styles.inlineFilterButton}
             onPress={() => setShowFilters(true)}>
@@ -624,7 +908,9 @@ export const SearchScreen = React.memo(() => {
                 {recentItems.length > 0 && (
                   <View style={styles.recentItemsContainer}>
                     <View style={styles.recentItemsHeader}>
-                      <Text style={styles.sectionTitle}>Recent Searches</Text>
+                      <Text style={[styles.sectionTitle, {fontSize: 14}]}>
+                        Recent Searches
+                      </Text>
                       <TouchableOpacity onPress={clearRecentItems}>
                         <Text style={styles.clearAllText}>Clear All</Text>
                       </TouchableOpacity>
@@ -833,255 +1119,19 @@ export const SearchScreen = React.memo(() => {
         savedFilters={[]}
       />
 
-      <AISearchFilterBuilder
-        visible={showAISearch}
-        onClose={() => setShowAISearch(false)}
-        onApplyFilters={handleApplyAIFilters}
-      />
+      {/* AI Search FAB Button */}
+      {isAIEnabled && (
+        <TouchableOpacity
+          style={styles.fabButton}
+          onPress={() => setIsAISearchMode(true)}
+          activeOpacity={0.8}>
+          <Image
+            source={require('../assets/aisearch.png')}
+            style={{width: 70, height: 70}}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
-});
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-    position: 'relative',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    marginTop: spacing.xl,
-    marginBottom: spacing.md,
-    backgroundColor: 'transparent',
-    position: 'absolute',
-    top: 0,
-    zIndex: 1,
-    overflow: 'hidden',
-    paddingVertical: spacing.sm,
-    margin: 20,
-    borderRadius: borderRadius.round,
-    width: '90%',
-    alignSelf: 'center',
-  },
-  blurView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: borderRadius.round,
-  },
-  searchInput: {
-    flex: 1,
-    height: 48,
-    paddingHorizontal: spacing.sm,
-    color: colors.text.primary,
-    ...typography.body1,
-  },
-  clearButton: {
-    padding: spacing.xs,
-  },
-  filterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.round,
-    // backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-  },
-  filterButtonActive: {
-    borderWidth: 1,
-    borderColor: colors.modal.border,
-    backgroundColor: colors.modal.activeText,
-  },
-  inlineFilterButton: {
-    padding: spacing.sm,
-    marginRight: spacing.sm,
-    borderRadius: borderRadius.round,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    backgroundColor: colors.modal.blur,
-    borderColor: colors.modal.content,
-  },
-  recentItemsContainer: {
-    paddingTop: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.card.border,
-  },
-  recentItemsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  sectionTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-  },
-  clearAllText: {
-    color: colors.text.muted,
-    ...typography.body2,
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 400,
-  },
-  loadingText: {
-    color: colors.text.muted,
-    ...typography.body1,
-    marginTop: spacing.sm,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  errorTitle: {
-    color: colors.text.primary,
-    ...typography.h2,
-    marginTop: spacing.md,
-  },
-  errorText: {
-    color: colors.text.secondary,
-    ...typography.body1,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  retryButton: {
-    backgroundColor: colors.button.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.xl,
-  },
-  retryText: {
-    color: colors.text.primary,
-    ...typography.body1,
-    fontWeight: '600',
-  },
-  noResultsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  noResultsTitle: {
-    color: colors.text.muted,
-    fontSize: 40,
-    opacity: 0.5,
-    fontWeight: '900',
-    textAlign: 'center',
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  noResultsText: {
-    color: colors.text.secondary,
-    ...typography.body1,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  noResultsSubtext: {
-    color: colors.text.secondary,
-    ...typography.body2,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  // Tab styles
-  tabContainer: {
-    flexDirection: 'row',
-    padding: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginVertical: spacing.md,
-  },
-  tabButton: {
-    padding: spacing.sm,
-    borderRadius: borderRadius.sm,
-    marginHorizontal: spacing.xs,
-    alignItems: 'center',
-    backgroundColor: colors.modal.blur,
-    borderWidth: 1,
-    borderColor: colors.modal.content,
-  },
-  activeTabButton: {
-    backgroundColor: colors.modal.border,
-    borderWidth: 1,
-    borderColor: colors.modal.active,
-  },
-  tabText: {
-    color: colors.text.secondary,
-    ...typography.body2,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: colors.text.primary,
-  },
-  tabContent: {
-    padding: spacing.md,
-  },
-  sectionSubtitle: {
-    color: colors.text.secondary,
-    ...typography.body2,
-    marginBottom: spacing.lg,
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  emptyStateTitle: {
-    color: colors.text.primary,
-    ...typography.h3,
-    marginTop: spacing.md,
-  },
-  emptyStateText: {
-    color: colors.text.secondary,
-    ...typography.body2,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  // Watchlist tab styles
-  watchlistsContainer: {
-    marginTop: spacing.md,
-  },
-  watchlistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-  },
-  watchlistIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.round,
-    backgroundColor: colors.modal.active,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  watchlistInfo: {
-    flex: 1,
-  },
-  watchlistName: {
-    color: colors.text.primary,
-    ...typography.body1,
-    fontWeight: '600',
-  },
-  watchlistDescription: {
-    color: colors.text.secondary,
-    ...typography.caption,
-    marginTop: spacing.xs,
-  },
 });

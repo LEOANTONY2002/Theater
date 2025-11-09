@@ -84,7 +84,10 @@ export const AISearchFilterBuilder: React.FC<AISearchFilterBuilderProps> = ({
         ...searchHistory.filter(item => item !== trimmed),
       ].slice(0, MAX_HISTORY_ITEMS);
 
-      await AsyncStorage.setItem(AI_SEARCH_HISTORY_KEY, JSON.stringify(updated));
+      await AsyncStorage.setItem(
+        AI_SEARCH_HISTORY_KEY,
+        JSON.stringify(updated),
+      );
       setSearchHistory(updated);
     } catch (error) {
       console.error('Error saving AI search history:', error);
@@ -149,7 +152,7 @@ export const AISearchFilterBuilder: React.FC<AISearchFilterBuilderProps> = ({
           }}>
           <View style={styles.header}>
             <Icon name="sparkles" size={24} color={colors.accent} />
-            <Text style={styles.title}>AI Search</Text>
+            <Text style={styles.title}>AI Filter Generator</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Icon name="close" size={24} color={colors.text.secondary} />
             </TouchableOpacity>
@@ -161,7 +164,9 @@ export const AISearchFilterBuilder: React.FC<AISearchFilterBuilderProps> = ({
 
           <View style={styles.examplesContainer}>
             <Text style={styles.examplesTitle}>
-              {searchHistory.length > 0 ? 'Recent Searches:' : 'Quick Searches:'}
+              {searchHistory.length > 0
+                ? 'Recent Searches:'
+                : 'Quick Searches:'}
             </Text>
             {searchHistory.length > 0 ? (
               <>
@@ -170,7 +175,11 @@ export const AISearchFilterBuilder: React.FC<AISearchFilterBuilderProps> = ({
                     key={index}
                     style={styles.exampleChip}
                     onPress={() => setQuery(item)}>
-                    <Icon name="time-outline" size={14} color={colors.text.muted} />
+                    <Icon
+                      name="time-outline"
+                      size={14}
+                      color={colors.text.muted}
+                    />
                     <Text style={styles.exampleChipText}>{item}</Text>
                   </TouchableOpacity>
                 ))}
@@ -179,13 +188,19 @@ export const AISearchFilterBuilder: React.FC<AISearchFilterBuilderProps> = ({
               <>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() => setQuery('90s romantic comedies with happy endings')}>
+                  onPress={() =>
+                    setQuery('90s romantic comedies with happy endings')
+                  }>
                   <Icon name="flash" size={14} color={colors.accent} />
-                  <Text style={styles.exampleChipText}>90s romantic comedies</Text>
+                  <Text style={styles.exampleChipText}>
+                    90s romantic comedies
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() => setQuery('highly rated sci-fi movies from 2020s')}>
+                  onPress={() =>
+                    setQuery('highly rated sci-fi movies from 2020s')
+                  }>
                   <Icon name="flash" size={14} color={colors.accent} />
                   <Text style={styles.exampleChipText}>
                     Highly rated sci-fi (2020s)
@@ -193,9 +208,13 @@ export const AISearchFilterBuilder: React.FC<AISearchFilterBuilderProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() => setQuery('thriller TV shows under 45 minutes')}>
+                  onPress={() =>
+                    setQuery('thriller TV shows under 45 minutes')
+                  }>
                   <Icon name="flash" size={14} color={colors.accent} />
-                  <Text style={styles.exampleChipText}>Short thriller shows</Text>
+                  <Text style={styles.exampleChipText}>
+                    Short thriller shows
+                  </Text>
                 </TouchableOpacity>
               </>
             )}

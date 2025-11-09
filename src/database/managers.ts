@@ -16,7 +16,10 @@ export const RealmSettingsManager = {
       const realm = getRealm();
       const settings = realm.objects('Settings').filtered('key == $0', key);
       const result = settings.length > 0 ? (settings[0].value as string) : null;
-      console.log(`[RealmSettings] GET "${key}":`, result ? `"${result}"` : 'null');
+      console.log(
+        `[RealmSettings] GET "${key}":`,
+        result ? `"${result}"` : 'null',
+      );
       return result;
     } catch (error) {
       console.error('[RealmSettings] Error getting setting:', error);
@@ -86,16 +89,27 @@ export const RealmHistoryManager = {
         release_date: item.release_date as string | undefined,
         first_air_date: item.first_air_date as string | undefined,
         overview: item.overview as string | undefined,
+        runtime: item.runtime as number | undefined,
+        // Analytics data for Cinema Insights
+        genre_ids: item.genre_ids as string | undefined,
+        original_language: item.original_language as string | undefined,
+        origin_country: item.origin_country as string | undefined,
+        // Crew data
+        directors: item.directors as string | undefined,
+        writers: item.writers as string | undefined,
+        cast: item.cast as string | undefined,
+        composer: item.composer as string | undefined,
+        cinematographer: item.cinematographer as string | undefined,
+        viewCount: item.viewCount as number | undefined,
       }));
     } catch (error) {
       console.error('[RealmHistory] Error getting history:', error);
-      return [];
     }
   },
 
   async add(item: {
     contentId: number;
-    type: 'movie' | 'tv';
+    type: string;
     title?: string;
     name?: string;
     poster_path?: string;
@@ -104,33 +118,75 @@ export const RealmHistoryManager = {
     release_date?: string;
     first_air_date?: string;
     overview?: string;
+    runtime?: number;
+    genre_ids?: string;
+    original_language?: string;
+    origin_country?: string;
+    directors?: string;
+    writers?: string;
+    cast?: string;
+    composer?: string;
+    cinematographer?: string;
   }): Promise<void> {
     try {
       const realm = getRealm();
       realm.write(() => {
-        // Remove existing entry for this content
+        // Check if entry already exists
         const existing = realm
           .objects('HistoryItem')
-          .filtered('contentId == $0 AND type == $1', item.contentId, item.type);
-        realm.delete(existing);
+          .filtered(
+            'contentId == $0 AND type == $1',
+            item.contentId,
+            item.type,
+          );
 
-        // Add new entry with display data
-        realm.create('HistoryItem', {
-          _id: new Realm.BSON.ObjectId(),
-          contentId: item.contentId,
-          type: item.type,
-          viewedAt: new Date(),
-          title: item.title,
-          name: item.name,
-          poster_path: item.poster_path,
-          backdrop_path: item.backdrop_path,
-          vote_average: item.vote_average,
-          release_date: item.release_date,
-          first_air_date: item.first_air_date,
-          overview: item.overview,
-        });
+        if (existing.length > 0) {
+          // Update view count instead of deleting
+          const existingItem = existing[0] as any;
+          existingItem.viewCount = (existingItem.viewCount || 1) + 1;
+          existingItem.viewedAt = new Date();
+          // Update crew data if provided (in case it wasn't available before)
+          if (item.directors) existingItem.directors = item.directors;
+          if (item.writers) existingItem.writers = item.writers;
+          if (item.cast) existingItem.cast = item.cast;
+          if (item.composer) existingItem.composer = item.composer;
+          if (item.cinematographer)
+            existingItem.cinematographer = item.cinematographer;
+          if (item.runtime) existingItem.runtime = item.runtime;
+          if (item.genre_ids) existingItem.genre_ids = item.genre_ids;
+          if (item.original_language)
+            existingItem.original_language = item.original_language;
+          if (item.origin_country)
+            existingItem.origin_country = item.origin_country;
+        } else {
+          // Add new entry with display data and crew data
+          realm.create('HistoryItem', {
+            _id: new Realm.BSON.ObjectId(),
+            contentId: item.contentId,
+            type: item.type,
+            viewedAt: new Date(),
+            title: item.title,
+            name: item.name,
+            poster_path: item.poster_path,
+            backdrop_path: item.backdrop_path,
+            vote_average: item.vote_average,
+            release_date: item.release_date,
+            first_air_date: item.first_air_date,
+            overview: item.overview,
+            runtime: item.runtime,
+            genre_ids: item.genre_ids,
+            original_language: item.original_language,
+            origin_country: item.origin_country,
+            directors: item.directors,
+            writers: item.writers,
+            cast: item.cast,
+            composer: item.composer,
+            cinematographer: item.cinematographer,
+            viewCount: 1,
+          });
+        }
 
-        // Keep only last 100 items
+        // Keep only last 100 unique items
         const allHistory = realm
           .objects('HistoryItem')
           .sorted('viewedAt', true);
@@ -205,7 +261,7 @@ export const RealmFiltersManager = {
           createdAt: new Date(),
         });
       });
-      
+
       return id; // Return the generated ID
     } catch (error) {
       console.error('[RealmFilters] Error saving filter:', error);
@@ -939,7 +995,9 @@ export const RecentSearchItemManager = {
   async getAll(): Promise<any[]> {
     try {
       const realm = getRealm();
-      const items = realm.objects('RecentSearchItem').sorted('searchedAt', true);
+      const items = realm
+        .objects('RecentSearchItem')
+        .sorted('searchedAt', true);
       return Array.from(items).map(item => ({
         contentId: item.contentId as number,
         type: item.type as string,
@@ -979,7 +1037,11 @@ export const RecentSearchItemManager = {
         // Remove existing entry for this content
         const existing = realm
           .objects('RecentSearchItem')
-          .filtered('contentId == $0 AND type == $1', item.contentId, item.type);
+          .filtered(
+            'contentId == $0 AND type == $1',
+            item.contentId,
+            item.type,
+          );
         realm.delete(existing);
 
         // Add new entry with display data
@@ -1036,9 +1098,7 @@ export const UserFeedbackManager = {
   > {
     try {
       const realm = getRealm();
-      const feedback = realm
-        .objects('UserFeedback')
-        .sorted('timestamp', false);
+      const feedback = realm.objects('UserFeedback').sorted('timestamp', false);
       return Array.from(feedback).map(f => ({
         contentId: f.contentId as number,
         title: f.title as string,
@@ -1261,9 +1321,7 @@ export const RealmDebugger = {
       });
 
       // User data
-      const feedback = realm
-        .objects('UserFeedback')
-        .sorted('timestamp', false);
+      const feedback = realm.objects('UserFeedback').sorted('timestamp', false);
       console.log(`\n👍👎 UserFeedback: ${feedback.length}`);
       console.log(
         '─────────────────────────────────────────────────────────────',
@@ -1295,7 +1353,9 @@ export const RealmDebugger = {
           console.log(`    - ${key}: ${value}`);
         });
         console.log(
-          `  Last Updated: ${new Date(prefs.timestamp as Date).toLocaleString()}`,
+          `  Last Updated: ${new Date(
+            prefs.timestamp as Date,
+          ).toLocaleString()}`,
         );
         console.log('');
       }
@@ -1367,9 +1427,7 @@ export const RealmDebugger = {
       console.log('');
 
       // Search
-      const searches = realm
-        .objects('RecentSearch')
-        .sorted('timestamp', false);
+      const searches = realm.objects('RecentSearch').sorted('timestamp', false);
       console.log(`\n🔍 RecentSearches: ${searches.length}`);
       console.log(
         '─────────────────────────────────────────────────────────────',
@@ -1393,7 +1451,9 @@ export const RealmDebugger = {
           console.log(`  ${idx + 1}. "${tag.tag}" (${tag.category})`);
           console.log(`     Description: ${tag.description}`);
           console.log(
-            `     Count: ${tag.count}, Confidence: ${tag.confidence.toFixed(2)}`,
+            `     Count: ${tag.count}, Confidence: ${tag.confidence.toFixed(
+              2,
+            )}`,
           );
           console.log(
             `     Last Seen: ${new Date(tag.lastSeen).toLocaleString()}`,
@@ -1424,7 +1484,9 @@ export const RealmDebugger = {
         console.log(`     ${items.length} content items:`);
         items.slice(0, 3).forEach((item: any) => {
           console.log(
-            `       - ${item.title || item.name} (${item.type}, ID: ${item.contentId})`,
+            `       - ${item.title || item.name} (${item.type}, ID: ${
+              item.contentId
+            })`,
           );
           if (item.relevance) {
             console.log(
@@ -1459,9 +1521,7 @@ export const RealmDebugger = {
       console.log(`  Tags: ${tags.length}`);
       console.log(`  Tag Content: ${tagContent.length}`);
       console.log(`  Settings: ${settings.length}`);
-      console.log(
-        `  User Preferences: ${prefs ? 'Configured' : 'Not Set'}`,
-      );
+      console.log(`  User Preferences: ${prefs ? 'Configured' : 'Not Set'}`);
       console.log(
         '\n════════════════════════════════════════════════════════════\n',
       );
@@ -1533,8 +1593,11 @@ export const AIPersonalizationCacheManager = {
   } | null> {
     try {
       const realm = getRealm();
-      const cache = realm.objectForPrimaryKey('AIPersonalizationCache', 'history_personalization');
-      
+      const cache = realm.objectForPrimaryKey(
+        'AIPersonalizationCache',
+        'history_personalization',
+      );
+
       if (!cache) {
         return null;
       }
@@ -1556,7 +1619,7 @@ export const AIPersonalizationCacheManager = {
   ): Promise<void> {
     try {
       const realm = getRealm();
-      
+
       realm.write(() => {
         realm.create(
           'AIPersonalizationCache',
@@ -1569,7 +1632,7 @@ export const AIPersonalizationCacheManager = {
           Realm.UpdateMode.Modified,
         );
       });
-      
+
       console.log('[AIPersonalizationCache] ✅ Cache updated');
     } catch (error) {
       console.error('[AIPersonalizationCache] Error setting cache:', error);
@@ -1580,14 +1643,17 @@ export const AIPersonalizationCacheManager = {
   async clear(): Promise<void> {
     try {
       const realm = getRealm();
-      
+
       realm.write(() => {
-        const cache = realm.objectForPrimaryKey('AIPersonalizationCache', 'history_personalization');
+        const cache = realm.objectForPrimaryKey(
+          'AIPersonalizationCache',
+          'history_personalization',
+        );
         if (cache) {
           realm.delete(cache);
         }
       });
-      
+
       console.log('[AIPersonalizationCache] ✅ Cache cleared');
     } catch (error) {
       console.error('[AIPersonalizationCache] Error clearing cache:', error);

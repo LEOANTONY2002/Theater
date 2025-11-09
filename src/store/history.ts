@@ -32,6 +32,15 @@ export const HistoryManager = {
       return;
     }
 
+    console.log('[History] Adding to history:', {
+      id: item.id,
+      type: item.type,
+      title: item.title || item.name,
+      genre_ids: item.genre_ids,
+      original_language: item.original_language,
+      origin_country: item.origin_country,
+    });
+
     await RealmHistoryManager.add({
       contentId: item.id,
       type: item.type,
@@ -43,6 +52,17 @@ export const HistoryManager = {
       release_date: item.release_date,
       first_air_date: item.first_air_date,
       overview: item.overview,
+      runtime: item.runtime,
+      // Analytics data for Cinema Insights
+      genre_ids: item.genre_ids ? JSON.stringify(item.genre_ids) : undefined,
+      original_language: item.original_language,
+      origin_country: item.origin_country ? JSON.stringify(item.origin_country) : undefined,
+      // Crew data (already JSON stringified)
+      directors: item.directors,
+      writers: item.writers,
+      cast: item.cast,
+      composer: item.composer,
+      cinematographer: item.cinematographer,
     });
   },
 

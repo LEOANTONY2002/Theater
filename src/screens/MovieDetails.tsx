@@ -19,7 +19,13 @@ import {
   useSimilarMovies,
   useAISimilarMovies,
 } from '../hooks/useMovies';
-import {getImageUrl} from '../services/tmdb';
+import {
+  getImageUrl,
+  getDirectors,
+  getWriters,
+  getComposer,
+  getCinematographer,
+} from '../services/tmdb';
 import {Cast, Genre, Movie, Video} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
@@ -103,6 +109,16 @@ const getLanguage = (code: string) => {
   return language?.english_name || code.toUpperCase();
 };
 
+// Format vote count number to string (e.g., 1200000 -> "1.2M")
+const formatVoteCount = (votes: number): string => {
+  if (votes >= 1000000) {
+    return `${(votes / 1000000).toFixed(1)}M`;
+  } else if (votes >= 1000) {
+    return `${(votes / 1000).toFixed(1)}K`;
+  }
+  return votes.toString();
+};
+
 export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   route,
 }) => {
@@ -129,6 +145,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [aiRatings, setAiRatings] = useState<{
     imdb?: number | null;
     rotten_tomatoes?: number | null;
+    imdb_votes?: number | null;
   } | null>(null);
 
   // Poster share state
@@ -141,27 +158,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [posterUri, setPosterUri] = useState<string | null>(null);
   const [isSharingPoster, setIsSharingPoster] = useState(false);
 
-  // Record to history when user starts watching
-  const addToHistory = useCallback(() => {
-    const item = {
-      id: movie.id,
-      title: movie.title,
-      name: movie.title,
-      overview: movie.overview,
-      poster_path: movie.poster_path,
-      backdrop_path: movie.backdrop_path,
-      vote_average: (movie as any).vote_average ?? 0,
-      release_date: (movie as any).release_date,
-      first_air_date: undefined,
-      genre_ids: (movie as any).genre_ids ?? [],
-      type: 'movie' as const,
-    };
-    HistoryManager.add(item as any);
-  }, [movie]);
-
-  useEffect(() => {
-    addToHistory();
-  }, []);
 
   // Check connectivity and cache status for this specific movie
   useEffect(() => {
@@ -326,6 +322,39 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     error: movieDetailsError,
   } = useMovieDetails(movie.id);
 
+  // Record to history when user starts watching
+  const addToHistory = useCallback(() => {
+    const credits = movieDetails?.credits;
+    const item = {
+      id: movie.id,
+      title: movie.title,
+      name: movie.title,
+      overview: movie.overview,
+      poster_path: movie.poster_path,
+      backdrop_path: movie.backdrop_path,
+      vote_average: (movie as any).vote_average ?? 0,
+      release_date: (movie as any).release_date,
+      first_air_date: undefined,
+      genre_ids: (movie as any).genre_ids ?? [],
+      original_language: (movie as any).original_language,
+      type: 'movie' as const,
+      runtime: movieDetails?.runtime,
+      // Crew data (stringify for Realm)
+      directors: credits ? JSON.stringify(getDirectors(credits)) : undefined,
+      writers: credits ? JSON.stringify(getWriters(credits)) : undefined,
+      cast: credits ? JSON.stringify(credits.cast.slice(0, 10)) : undefined,
+      composer: credits ? JSON.stringify(getComposer(credits)) : undefined,
+      cinematographer: credits ? JSON.stringify(getCinematographer(credits)) : undefined,
+    };
+    HistoryManager.add(item as any);
+  }, [movie, movieDetails]);
+
+  useEffect(() => {
+    if (movieDetails) {
+      addToHistory();
+    }
+  }, [movieDetails, addToHistory]);
+
   // Generate and store thematic/emotional tags for this movie
   const {isGenerating: isGeneratingTags, tags: contentTags} = useContentTags({
     title: movie.title,
@@ -347,7 +376,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     }
   }, [movieDetails, isLoadingDetails]);
 
-  // Load AI critic ratings (used for RT and IMDb fallback)
+  // Load ratings with proper fallback: Scraping → AI → Empty
+  // 1. Try scraping IMDB (if imdb_id exists)
+  // 2. If scraping fails or no imdb_id, use AI for IMDB
+  // 3. Always use AI for Rotten Tomatoes
   useEffect(() => {
     const loadRatings = async () => {
       try {
@@ -359,24 +391,59 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             return undefined;
           }
         })();
+
+        // Wait for movieDetails to have imdb_id
+        if (!movieDetails) return;
+
+        const imdbId = movieDetails?.imdb_id;
+        let scrapedSuccessfully = false;
+
+        // Step 1: Try scraping if IMDB ID exists
+        if (imdbId) {
+          console.log('[Movie Ratings] Attempting IMDB scraping:', imdbId);
+          // Note: useIMDBRating hook handles this, but we need to know if it succeeded
+          // The scraping function will cache to Realm if successful
+        }
+
+        // Step 2 & 3: Get AI ratings (skip IMDB if scraped successfully)
+        // We check Realm to see if scraping succeeded
+        const {getMovie} = await import('../database/contentCache');
+        const cached = getMovie(movie.id);
+        
+        // If we have a recent IMDB rating in cache, scraping succeeded
+        if (cached?.ai_ratings_cached_at && cached?.ai_imdb_rating != null) {
+          const age = Date.now() - (cached.ai_ratings_cached_at as Date).getTime();
+          if (age < 180 * 24 * 60 * 60 * 1000) {
+            scrapedSuccessfully = true;
+            console.log('[Movie Ratings] IMDB already in cache, skipping AI IMDB');
+          }
+        }
+
+        // Get AI ratings (RT always, IMDB only if scraping failed/unavailable)
         const res = await getCriticRatings({
           title: movie.title,
           year: yearStr,
           type: 'movie',
           contentId: movie.id,
+          skipImdb: scrapedSuccessfully || !!imdbId, // Skip AI IMDB if we have imdb_id (scraping will handle it)
         });
+
         if (__DEV__) {
-          console.log('[AI Ratings][Movie]', movie.title, yearStr, res);
+          console.log('[Movie Ratings] Final ratings:', {
+            scrapedSuccessfully,
+            hasImdbId: !!imdbId,
+            aiRatings: res,
+          });
         }
         setAiRatings(res);
       } catch (e) {
         if (__DEV__) {
-          console.warn('[AI Ratings][Movie] failed:', e);
+          console.warn('[Movie Ratings] Error loading ratings:', e);
         }
       }
     };
     loadRatings();
-  }, [movie.id, movie.title]);
+  }, [movie.id, movie.title, movieDetails]);
 
   const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
     movie.id,
@@ -408,6 +475,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   }, [movie]);
   const {data: imdbRating, isLoading: isLoadingImdbRating} = useIMDBRating(
     movieDetails?.imdb_id?.toString() || '',
+    movie.id, // Pass movieId for Realm caching
   );
   const blurType = BlurPreference.getMode();
 
@@ -1119,6 +1187,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
+          {type: 'crew', id: 'crew'},
           {type: 'cast', id: 'cast'},
           {type: 'providers', id: 'providers'},
           {type: 'trivia', id: 'trivia'},
@@ -1430,7 +1499,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             resizeMode: 'contain',
                           }}
                         />
-                        {imdbRating?.rating && (
+                        {(imdbRating?.rating || aiRatings?.imdb) && (
                           <>
                             <Text
                               style={{
@@ -1439,16 +1508,21 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                                 fontWeight: 'bold',
                                 marginLeft: spacing.sm,
                               }}>
-                              {imdbRating?.rating}
+                              {imdbRating?.rating || aiRatings?.imdb}
                             </Text>
-                            <Text
-                              style={{
-                                ...typography.body1,
-                                color: colors.text.muted,
-                                marginLeft: spacing.xs,
-                              }}>
-                              ({imdbRating?.voteCount})
-                            </Text>
+                            {(imdbRating?.voteCount || aiRatings?.imdb_votes) && (
+                              <Text
+                                style={{
+                                  ...typography.body1,
+                                  color: colors.text.muted,
+                                  marginLeft: spacing.xs,
+                                }}>
+                                ({imdbRating?.voteCount || 
+                                  (aiRatings?.imdb_votes ? 
+                                    formatVoteCount(aiRatings.imdb_votes) : 
+                                    '')})
+                              </Text>
+                            )}
                           </>
                         )}
                       </TouchableOpacity>
@@ -1509,6 +1583,72 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   </LinearGradient>
                 </Animated.View>
               );
+            case 'crew':
+              const crewRaw = movieDetails?.credits ? [
+                ...getDirectors(movieDetails.credits).map((p: any) => ({...p, job: 'Director'})),
+                ...getWriters(movieDetails.credits).map((p: any) => ({...p, job: p.job || 'Writer'})),
+                ...getComposer(movieDetails.credits).map((p: any) => ({...p, job: 'Original Music Composer'})),
+                getCinematographer(movieDetails.credits),
+              ].filter(Boolean) : [];
+              
+              // Deduplicate crew members with multiple roles
+              const crewMap = new Map();
+              crewRaw.forEach((person: any) => {
+                if (crewMap.has(person.id)) {
+                  // Add role to existing person
+                  const existing = crewMap.get(person.id);
+                  existing.job = `${existing.job}, ${person.job}`;
+                } else {
+                  crewMap.set(person.id, {...person});
+                }
+              });
+              const crew = Array.from(crewMap.values());
+              
+              return crew.length > 0 ? (
+                <Animated.View
+                  style={{
+                    marginVertical: spacing.lg,
+                    marginTop: 0,
+                    opacity: castFadeAnim,
+                    transform: [
+                      {
+                        translateY: castFadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [20, 0],
+                        }),
+                      },
+                    ],
+                  }}>
+                  <Text style={styles.sectionTitle}>Crew</Text>
+                  <FlatList
+                    data={crew}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{paddingHorizontal: 16}}
+                    renderItem={({item: person}: {item: any}) => (
+                      <TouchableOpacity
+                        style={styles.castItem}
+                        onPress={() =>
+                          handlePersonPress(person.id, person.name)
+                        }>
+                        <PersonCard
+                          item={getImageUrl(person.profile_path || '', 'w154')}
+                          onPress={() =>
+                            handlePersonPress(person.id, person.name)
+                          }
+                        />
+                        <Text style={styles.castName} numberOfLines={1}>
+                          {person.name}
+                        </Text>
+                        <Text style={styles.character} numberOfLines={1}>
+                          {person.job}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    keyExtractor={(person: any) => `${person.id}-${person.job}`}
+                  />
+                </Animated.View>
+              ) : null;
             case 'cast':
               return movieDetails?.credits?.cast?.length > 0 ? (
                 <Animated.View

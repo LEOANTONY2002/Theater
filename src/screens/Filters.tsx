@@ -26,7 +26,7 @@ export const FiltersScreen = React.memo(() => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const [bannerContent, setBannerContent] = useState<ContentItem[]>([]);
-  const {isTablet} = useResponsive();
+  const {isTablet, orientation} = useResponsive();
 
   // Get real saved filters data
   const {data: savedFilters = [], isLoading} = useQuery({
@@ -130,7 +130,7 @@ export const FiltersScreen = React.memo(() => {
               // filterType is 'all', detect from item properties
               actualType = (item as any).first_air_date ? 'tv' : 'movie';
             }
-            
+
             return {
               ...item,
               _filterType: actualType,
@@ -236,8 +236,8 @@ export const FiltersScreen = React.memo(() => {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      paddingHorizontal: spacing.xl,
-      paddingVertical: isTablet ? '50%' : '25%',
+      paddingHorizontal: spacing.md,
+      paddingVertical: orientation === 'landscape' ? '20%' : '50%',
     },
     emptyTitle: {
       ...typography.h2,
@@ -280,7 +280,7 @@ export const FiltersScreen = React.memo(() => {
     if (isLoading || savedFilters.length === 0 || bannerContent.length === 0) {
       return null;
     }
-    
+
     return <FiltersBanner items={bannerContent} />;
   }, [isLoading, savedFilters.length, bannerContent]);
 
@@ -324,11 +324,9 @@ export const FiltersScreen = React.memo(() => {
   const renderEmpty = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No Filters Yet</Text>
+        <Text style={styles.emptyTitle}>My Filters</Text>
         <Text style={styles.emptyText}>
-          Customize the app content with your filters. You can see your filter
-          contents in Home and Explore screen. You can Quick add the filter in
-          the search.
+          Customize this screen with your own filters.
         </Text>
         <GradientButton
           onPress={() =>

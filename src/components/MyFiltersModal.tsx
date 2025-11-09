@@ -18,12 +18,27 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BlurView} from '@react-native-community/blur';
 import {MaybeBlurView} from './MaybeBlurView';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
-import {FilterParams, SORT_OPTIONS, SavedFilter} from '../types/filters';
+import {
+  FilterParams,
+  SORT_OPTIONS,
+  SavedFilter,
+  US_CERTIFICATIONS,
+  US_TV_RATINGS,
+  RELEASE_TYPES,
+} from '../types/filters';
 import {
   getLanguages,
   getGenres,
   searchFilterContent,
   getAvailableWatchProviders,
+  searchPeople,
+  searchKeywords,
+  searchCompanies,
+  searchNetworks,
+  getPersonById,
+  getKeywordById,
+  getCompanyById,
+  getNetworkById,
 } from '../services/tmdb';
 import {FiltersManager} from '../store/filters';
 import {Chip} from './Chip';
@@ -35,6 +50,7 @@ import {Language as SettingsLanguage, SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
 import {AISearchFilterBuilder} from './AISearchFilterBuilder';
+import {AdvancedFilterSearch} from './AdvancedFilterSearch';
 
 interface Language {
   iso_639_1: string;
@@ -104,6 +120,14 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [isLoadingWatchProviders, setIsLoadingWatchProviders] = useState(false);
   const [showAllGenresModal, setShowAllGenresModal] = useState(false);
   const [showAllProvidersModal, setShowAllProvidersModal] = useState(false);
+  
+  // Phase 2: Advanced filter states
+  const [selectedCast, setSelectedCast] = useState<any[]>([]);
+  const [selectedCrew, setSelectedCrew] = useState<any[]>([]);
+  const [selectedKeywords, setSelectedKeywords] = useState<any[]>([]);
+  const [selectedCompanies, setSelectedCompanies] = useState<any[]>([]);
+  const [selectedNetworks, setSelectedNetworks] = useState<any[]>([]);
+  
   const {isTablet} = useResponsive();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
@@ -125,6 +149,124 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
               }
             : params;
         setFilters(normalized);
+
+        // Populate advanced filter states from saved params
+        // Fetch actual details from TMDB
+        const loadAdvancedFilterDetails = async () => {
+          try {
+            // Load cast
+            if (params.with_cast) {
+              const castIds = params.with_cast.split(',').map((id: string) => parseInt(id));
+              const castDetails = await Promise.all(
+                castIds.map(async (id) => {
+                  try {
+                    const person = await getPersonById(id);
+                    return {
+                      id: person.id,
+                      name: person.name,
+                      profile_path: person.profile_path,
+                      known_for_department: person.known_for_department,
+                    };
+                  } catch {
+                    return {id, name: `Person ${id}`};
+                  }
+                })
+              );
+              setSelectedCast(castDetails);
+            } else {
+              setSelectedCast([]);
+            }
+
+            // Load crew
+            if (params.with_crew) {
+              const crewIds = params.with_crew.split(',').map((id: string) => parseInt(id));
+              const crewDetails = await Promise.all(
+                crewIds.map(async (id) => {
+                  try {
+                    const person = await getPersonById(id);
+                    return {
+                      id: person.id,
+                      name: person.name,
+                      profile_path: person.profile_path,
+                      known_for_department: person.known_for_department,
+                    };
+                  } catch {
+                    return {id, name: `Person ${id}`};
+                  }
+                })
+              );
+              setSelectedCrew(crewDetails);
+            } else {
+              setSelectedCrew([]);
+            }
+
+            // Load keywords
+            if (params.with_keywords) {
+              const keywordIds = params.with_keywords.split(',').map((id: string) => parseInt(id));
+              const keywordDetails = await Promise.all(
+                keywordIds.map(async (id) => {
+                  try {
+                    const keyword = await getKeywordById(id);
+                    return {id: keyword.id, name: keyword.name};
+                  } catch {
+                    return {id, name: `Keyword ${id}`};
+                  }
+                })
+              );
+              setSelectedKeywords(keywordDetails);
+            } else {
+              setSelectedKeywords([]);
+            }
+
+            // Load companies
+            if (params.with_companies) {
+              const companyIds = params.with_companies.split(',').map((id: string) => parseInt(id));
+              const companyDetails = await Promise.all(
+                companyIds.map(async (id) => {
+                  try {
+                    const company = await getCompanyById(id);
+                    return {
+                      id: company.id,
+                      name: company.name,
+                      logo_path: company.logo_path,
+                    };
+                  } catch {
+                    return {id, name: `Company ${id}`};
+                  }
+                })
+              );
+              setSelectedCompanies(companyDetails);
+            } else {
+              setSelectedCompanies([]);
+            }
+
+            // Load networks
+            if (params.with_networks) {
+              const networkIds = params.with_networks.split(',').map((id: string) => parseInt(id));
+              const networkDetails = await Promise.all(
+                networkIds.map(async (id) => {
+                  try {
+                    const network = await getNetworkById(id);
+                    return {
+                      id: network.id,
+                      name: network.name,
+                      logo_path: network.logo_path,
+                    };
+                  } catch {
+                    return {id, name: `Network ${id}`};
+                  }
+                })
+              );
+              setSelectedNetworks(networkDetails);
+            } else {
+              setSelectedNetworks([]);
+            }
+          } catch (error) {
+            console.error('Error loading advanced filter details:', error);
+          }
+        };
+
+        loadAdvancedFilterDetails();
       } else {
         setFilterName('');
         setContentType('all');
@@ -135,6 +277,12 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         setHasAttemptedSave(false);
         setFilterNameError(null);
         setValidationError(null);
+        // Clear advanced filter states
+        setSelectedCast([]);
+        setSelectedCrew([]);
+        setSelectedKeywords([]);
+        setSelectedCompanies([]);
+        setSelectedNetworks([]);
       }
     }
   }, [visible, editingFilter]);
@@ -339,6 +487,12 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     setValidationError(null);
     setFilterNameError(null);
     setHasAttemptedSave(false);
+    // Clear Phase 2 advanced filter states
+    setSelectedCast([]);
+    setSelectedCrew([]);
+    setSelectedKeywords([]);
+    setSelectedCompanies([]);
+    setSelectedNetworks([]);
   };
 
   const handleSave = async () => {
@@ -539,6 +693,19 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </Text>
           </View>
           <View style={{flexDirection: 'row', gap: spacing.sm}}>
+            <TouchableOpacity
+              onPress={handleReset}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: colors.modal.content,
+              }}>
+              <Ionicons name="refresh" size={20} color={colors.status.warning} />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowAISearch(true)}
               style={{
@@ -757,6 +924,213 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 }}
                 ItemSeparatorComponent={() => <View style={{width: 8}} />}
               />
+
+              {/* Genre Operator Toggle */}
+              {filters.with_genres && filters.with_genres.includes('|') && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    marginTop: spacing.sm,
+                  }}>
+                  <Text
+                    style={{
+                      ...typography.caption,
+                      color: colors.text.secondary,
+                    }}>
+                    Match:
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      backgroundColor: colors.modal.blur,
+                      borderRadius: borderRadius.sm,
+                      padding: 2,
+                    }}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setFilters(prev => ({...prev, genre_operator: 'OR'}))
+                      }
+                      style={{
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.xs,
+                        borderRadius: borderRadius.sm,
+                        backgroundColor:
+                          filters.genre_operator !== 'AND'
+                            ? colors.modal.active
+                            : 'transparent',
+                      }}>
+                      <Text
+                        style={{
+                          ...typography.caption,
+                          color:
+                            filters.genre_operator !== 'AND'
+                              ? colors.text.primary
+                              : colors.text.secondary,
+                          fontWeight:
+                            filters.genre_operator !== 'AND' ? '600' : '400',
+                        }}>
+                        ANY
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setFilters(prev => ({...prev, genre_operator: 'AND'}))
+                      }
+                      style={{
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.xs,
+                        borderRadius: borderRadius.sm,
+                        backgroundColor:
+                          filters.genre_operator === 'AND'
+                            ? colors.modal.active
+                            : 'transparent',
+                      }}>
+                      <Text
+                        style={{
+                          ...typography.caption,
+                          color:
+                            filters.genre_operator === 'AND'
+                              ? colors.text.primary
+                              : colors.text.secondary,
+                          fontWeight:
+                            filters.genre_operator === 'AND' ? '600' : '400',
+                        }}>
+                        ALL
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text
+                    style={{
+                      ...typography.caption,
+                      color: colors.text.muted,
+                      fontStyle: 'italic',
+                    }}>
+                    {filters.genre_operator === 'AND'
+                      ? '(must have all genres)'
+                      : '(can have any genre)'}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Exclude Genres */}
+            <View style={[styles.section, {paddingHorizontal: 0}]}>
+              <View style={styles.sectionHeader}>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: spacing.xs}}>
+                  <Ionicons name="close-circle-outline" size={18} color={colors.status.error} />
+                  <Text style={[styles.sectionTitle, {color: colors.text.secondary}]}>
+                    Exclude Genres
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}>
+                  {!!filters.without_genres && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        setFilters(prev => ({...prev, without_genres: undefined}))
+                      }>
+                      <Text style={styles.showAllText}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+              <FlatList
+                data={getFilteredGenres()}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                renderItem={({item: genre}) => {
+                  const isExcluded = (() => {
+                    if (!filters.without_genres) return false;
+                    const tokens = filters.without_genres.split(',');
+                    if (contentType !== 'all') {
+                      return tokens.includes(genre.id.toString());
+                    }
+                    const movieMatch = movieGenres.find(
+                      g => g.name === genre.name,
+                    );
+                    const tvMatch = tvGenres.find(g => g.name === genre.name);
+                    const ids = [movieMatch?.id, tvMatch?.id]
+                      .filter(Boolean)
+                      .map(String) as string[];
+                    return ids.some(id => tokens.includes(id));
+                  })();
+
+                  return (
+                    <Chip
+                      key={genre.id}
+                      label={genre.name}
+                      selected={isExcluded}
+                      onPress={() => {
+                        if (contentType === 'all') {
+                          const movieMatch = movieGenres.find(
+                            g => g.name === genre.name,
+                          );
+                          const tvMatch = tvGenres.find(g => g.name === genre.name);
+                          const ids: number[] = [];
+                          if (movieMatch) ids.push(movieMatch.id);
+                          if (tvMatch) ids.push(tvMatch.id);
+
+                          setFilters(prev => {
+                            const current = prev.without_genres
+                              ? prev.without_genres.split(',')
+                              : [];
+                            const idsStr = ids.map(String);
+                            const allPresent = idsStr.every(id =>
+                              current.includes(id),
+                            );
+
+                            let updated: string[];
+                            if (allPresent) {
+                              updated = current.filter(
+                                id => !idsStr.includes(id),
+                              );
+                            } else {
+                              updated = [...current, ...idsStr];
+                            }
+
+                            return {
+                              ...prev,
+                              without_genres:
+                                updated.length > 0 ? updated.join(',') : undefined,
+                            };
+                          });
+                        } else {
+                          setFilters(prev => {
+                            const current = prev.without_genres
+                              ? prev.without_genres.split(',')
+                              : [];
+                            const genreIdStr = genre.id.toString();
+                            const updated = current.includes(genreIdStr)
+                              ? current.filter(id => id !== genreIdStr)
+                              : [...current, genreIdStr];
+
+                            return {
+                              ...prev,
+                              without_genres:
+                                updated.length > 0 ? updated.join(',') : undefined,
+                            };
+                          });
+                        }
+                      }}
+                    />
+                  );
+                }}
+                keyExtractor={(genre) => `exclude-${genre.id}`}
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingRight: 32,
+                }}
+                ItemSeparatorComponent={() => <View style={{width: 8}} />}
+              />
             </View>
 
             {/* Sort By with Order Toggle */}
@@ -835,6 +1209,298 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 showValue={true}
                 height={16}
               />
+            </View>
+
+            {/* Vote Count Range */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Vote Count Range</Text>
+              <View style={{gap: spacing.md}}>
+                <GradientProgressBar
+                  value={filters['vote_count.gte'] || 0}
+                  minValue={0}
+                  maxValue={10000}
+                  step={100}
+                  onValueChange={value =>
+                    setFilters(prev => ({...prev, 'vote_count.gte': value}))
+                  }
+                  label="Minimum Votes"
+                  showValue={true}
+                  height={16}
+                />
+                <GradientProgressBar
+                  value={filters['vote_count.lte'] || 10000}
+                  minValue={0}
+                  maxValue={10000}
+                  step={100}
+                  onValueChange={value =>
+                    setFilters(prev => ({...prev, 'vote_count.lte': value}))
+                  }
+                  label="Maximum Votes"
+                  showValue={true}
+                  height={16}
+                />
+              </View>
+            </View>
+
+            {/* Popularity Range */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Popularity Range</Text>
+              <View style={{gap: spacing.md}}>
+                <GradientProgressBar
+                  value={filters['with_popularity.gte'] || 0}
+                  minValue={0}
+                  maxValue={1000}
+                  step={10}
+                  onValueChange={value =>
+                    setFilters(prev => ({...prev, 'with_popularity.gte': value}))
+                  }
+                  label="Minimum Popularity"
+                  showValue={true}
+                  height={16}
+                />
+                <GradientProgressBar
+                  value={filters['with_popularity.lte'] || 1000}
+                  minValue={0}
+                  maxValue={1000}
+                  step={10}
+                  onValueChange={value =>
+                    setFilters(prev => ({...prev, 'with_popularity.lte': value}))
+                  }
+                  label="Maximum Popularity"
+                  showValue={true}
+                  height={16}
+                />
+              </View>
+            </View>
+
+            {/* Cast & Crew */}
+            <View style={styles.section}>
+              <AdvancedFilterSearch
+                title="Cast"
+                placeholder="Search for actors..."
+                selectedItems={selectedCast}
+                onItemsChange={items => {
+                  setSelectedCast(items);
+                  setFilters(prev => ({
+                    ...prev,
+                    with_cast: items.map(i => i.id).join(',') || undefined,
+                  }));
+                }}
+                searchFunction={searchPeople}
+                icon="people"
+              />
+            </View>
+
+            <View style={styles.section}>
+              <AdvancedFilterSearch
+                title="Crew (Directors, Writers, etc.)"
+                placeholder="Search for crew members..."
+                selectedItems={selectedCrew}
+                onItemsChange={items => {
+                  setSelectedCrew(items);
+                  setFilters(prev => ({
+                    ...prev,
+                    with_crew: items.map(i => i.id).join(',') || undefined,
+                  }));
+                }}
+                searchFunction={searchPeople}
+                icon="film"
+              />
+            </View>
+
+            {/* Keywords */}
+            <View style={styles.section}>
+              <AdvancedFilterSearch
+                title="Keywords"
+                placeholder="Search for keywords..."
+                selectedItems={selectedKeywords}
+                onItemsChange={items => {
+                  setSelectedKeywords(items);
+                  setFilters(prev => ({
+                    ...prev,
+                    with_keywords: items.map(i => i.id).join(',') || undefined,
+                  }));
+                }}
+                searchFunction={searchKeywords}
+                icon="pricetag"
+              />
+            </View>
+
+            {/* Companies (Movies) / Networks (TV) */}
+            {contentType === 'movie' || contentType === 'all' ? (
+              <View style={styles.section}>
+                <AdvancedFilterSearch
+                  title="Production Companies"
+                  placeholder="Search for companies..."
+                  selectedItems={selectedCompanies}
+                  onItemsChange={items => {
+                    setSelectedCompanies(items);
+                    setFilters(prev => ({
+                      ...prev,
+                      with_companies: items.map(i => i.id).join(',') || undefined,
+                    }));
+                  }}
+                  searchFunction={searchCompanies}
+                  icon="business"
+                />
+              </View>
+            ) : null}
+
+            {contentType === 'tv' || contentType === 'all' ? (
+              <View style={styles.section}>
+                <AdvancedFilterSearch
+                  title="TV Networks"
+                  placeholder="Search for networks..."
+                  selectedItems={selectedNetworks}
+                  onItemsChange={items => {
+                    setSelectedNetworks(items);
+                    setFilters(prev => ({
+                      ...prev,
+                      with_networks: items.map(i => i.id).join(',') || undefined,
+                    }));
+                  }}
+                  searchFunction={searchNetworks}
+                  icon="tv"
+                />
+              </View>
+            ) : null}
+
+            {/* Age Certification */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Age Rating</Text>
+              <View
+                style={
+                  isSolid ? styles.pickerContainerSolid : styles.pickerContainer
+                }>
+                <Picker
+                  selectedValue={filters.certification || ''}
+                  onValueChange={value =>
+                    setFilters(prev => ({
+                      ...prev,
+                      certification: value || undefined,
+                      certification_country: 'US',
+                    }))
+                  }
+                  style={styles.picker}
+                  dropdownIconColor={colors.text.primary}>
+                  <Picker.Item label="Any Rating" value="" />
+                  {contentType === 'tv'
+                    ? US_TV_RATINGS.map(cert => (
+                        <Picker.Item
+                          key={cert.value}
+                          label={cert.label}
+                          value={cert.value}
+                        />
+                      ))
+                    : US_CERTIFICATIONS.map(cert => (
+                        <Picker.Item
+                          key={cert.value}
+                          label={cert.label}
+                          value={cert.value}
+                        />
+                      ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Release Type (Movies only) */}
+            {contentType === 'movie' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Release Type</Text>
+                <View style={{gap: spacing.xs}}>
+                  {RELEASE_TYPES.map(type => {
+                    const isSelected = filters.with_release_type
+                      ?.split('|')
+                      .includes(type.value);
+                    return (
+                      <TouchableOpacity
+                        key={type.value}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          padding: spacing.sm,
+                          backgroundColor: isSelected
+                            ? colors.modal.active
+                            : isSolid
+                            ? colors.modal.blur
+                            : colors.modal.border,
+                          borderRadius: borderRadius.md,
+                        }}
+                        onPress={() => {
+                          setFilters(prev => {
+                            const current = prev.with_release_type
+                              ? prev.with_release_type.split('|')
+                              : [];
+                            const updated = current.includes(type.value)
+                              ? current.filter(t => t !== type.value)
+                              : [...current, type.value];
+                            return {
+                              ...prev,
+                              with_release_type:
+                                updated.length > 0
+                                  ? updated.join('|')
+                                  : undefined,
+                            };
+                          });
+                        }}>
+                        <Ionicons
+                          name={
+                            isSelected
+                              ? 'checkmark-circle'
+                              : 'ellipse-outline'
+                          }
+                          size={20}
+                          color={
+                            isSelected ? colors.accent : colors.text.secondary
+                          }
+                          style={{marginRight: spacing.sm}}
+                        />
+                        <Text
+                          style={{
+                            ...typography.body2,
+                            color: isSelected
+                              ? colors.text.primary
+                              : colors.text.secondary,
+                            fontWeight: isSelected ? '600' : '400',
+                          }}>
+                          {type.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Runtime Range */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Runtime (minutes)</Text>
+              <View style={{gap: spacing.md}}>
+                <GradientProgressBar
+                  value={filters.with_runtime_gte || 0}
+                  minValue={0}
+                  maxValue={300}
+                  step={5}
+                  onValueChange={value =>
+                    setFilters(prev => ({...prev, with_runtime_gte: value}))
+                  }
+                  label="Minimum Runtime"
+                  showValue={true}
+                  height={16}
+                />
+                <GradientProgressBar
+                  value={filters.with_runtime_lte || 300}
+                  minValue={0}
+                  maxValue={300}
+                  step={5}
+                  onValueChange={value =>
+                    setFilters(prev => ({...prev, with_runtime_lte: value}))
+                  }
+                  label="Maximum Runtime"
+                  showValue={true}
+                  height={16}
+                />
+              </View>
             </View>
 
             {/* Release Date */}
@@ -1507,7 +2173,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         </View>
       )}
 
-      {/* AI Search Modal */}
+      {/* AI Filter Generator Modal */}
       <AISearchFilterBuilder
         visible={showAISearch}
         onClose={() => setShowAISearch(false)}

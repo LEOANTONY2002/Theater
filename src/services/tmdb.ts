@@ -303,19 +303,41 @@ export const getTVShows = async (
   return result;
 };
 
+// Helper function to process genre operator
+const processGenreOperator = (filters: FilterParams) => {
+  const processedFilters = {...filters};
+  
+  // Handle genre operator: convert OR to comma, AND to ampersand
+  if (processedFilters.with_genres && processedFilters.genre_operator) {
+    const genres = processedFilters.with_genres.split('|').filter(Boolean);
+    if (processedFilters.genre_operator === 'AND') {
+      // TMDB uses comma for AND when multiple genres
+      processedFilters.with_genres = genres.join(',');
+    } else {
+      // OR is default, use pipe separator
+      processedFilters.with_genres = genres.join('|');
+    }
+    // Remove genre_operator as it's not a TMDB API param
+    delete processedFilters.genre_operator;
+  }
+  
+  return processedFilters;
+};
+
 export const searchMovies = async (
   query: string,
   page = 1,
   filters: FilterParams = {},
 ) => {
+  const processedFilters = processGenreOperator(filters);
   const params = {
     page,
-    ...filters,
+    ...processedFilters,
   };
 
   // Add watch region if watch providers are specified
-  if (filters.with_watch_providers) {
-    params.watch_region = filters.watch_region || 'US';
+  if (processedFilters.with_watch_providers) {
+    params.watch_region = processedFilters.watch_region || 'US';
   }
 
   if (!query) {
@@ -326,16 +348,16 @@ export const searchMovies = async (
   const params2 = {
     query,
     page,
-    ...filters,
-    sort_by: filters.sort_by || 'popularity.desc',
+    ...processedFilters,
+    sort_by: processedFilters.sort_by || 'popularity.desc',
     include_adult: false,
-    'vote_count.gte': filters?.['vote_average.lte'] || filters?.sort_by || 200,
-    'vote_average.gte': filters['vote_average.gte'] || 4,
+    'vote_count.gte': processedFilters?.['vote_average.lte'] || processedFilters?.sort_by || 200,
+    'vote_average.gte': processedFilters['vote_average.gte'] || 4,
   };
 
   // Add watch region for search queries too
-  if (filters.with_watch_providers) {
-    params2.watch_region = filters.watch_region || 'US';
+  if (processedFilters.with_watch_providers) {
+    params2.watch_region = processedFilters.watch_region || 'US';
   }
 
   let searchResponse = await tmdbApi.get('/search/movie', {
@@ -350,15 +372,16 @@ export const searchTVShows = async (
   page = 1,
   filters: FilterParams = {},
 ) => {
+  const processedFilters = processGenreOperator(filters);
   const params = {
     page,
-    ...filters,
+    ...processedFilters,
     include_adult: false,
   };
 
   // Add watch region if watch providers are specified
-  if (filters.with_watch_providers) {
-    params.watch_region = filters.watch_region || 'US';
+  if (processedFilters.with_watch_providers) {
+    params.watch_region = processedFilters.watch_region || 'US';
   }
 
   if (!query) {
@@ -369,16 +392,16 @@ export const searchTVShows = async (
   const searchParams = {
     query,
     page,
-    ...filters,
-    sort_by: filters.sort_by || 'popularity.desc',
+    ...processedFilters,
+    sort_by: processedFilters.sort_by || 'popularity.desc',
     include_adult: false,
     'vote_count.gte': 100,
-    'vote_average.gte': filters['vote_average.gte'] || 4,
+    'vote_average.gte': processedFilters['vote_average.gte'] || 4,
   };
 
   // Add watch region for search queries too
-  if (filters.with_watch_providers) {
-    searchParams.watch_region = filters.watch_region || 'US';
+  if (processedFilters.with_watch_providers) {
+    searchParams.watch_region = processedFilters.watch_region || 'US';
   }
 
   // For search queries, we need to use the search endpoint
@@ -879,9 +902,16 @@ export const getAvailableWatchProviders = async (region = 'US') => {
 
 export const getPersonMovieCredits = async (personId: number, page = 1) => {
   const response = await tmdbApi.get(`/person/${personId}/movie_credits`);
-  const {cast} = response.data;
+  const {cast, crew} = response.data;
+  
+  // Combine cast and crew, removing duplicates by movie ID
+  const allCredits = [...cast, ...crew];
+  const uniqueCredits = Array.from(
+    new Map(allCredits.map(item => [item.id, item])).values()
+  );
+  
   // Sort by release date, most recent first
-  const sortedCast = cast.sort((a: any, b: any) => {
+  const sortedCredits = uniqueCredits.sort((a: any, b: any) => {
     if (!a.release_date) return 1;
     if (!b.release_date) return -1;
     return (
@@ -893,21 +923,28 @@ export const getPersonMovieCredits = async (personId: number, page = 1) => {
   const itemsPerPage = 20;
   const start = (page - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  const paginatedCast = sortedCast.slice(start, end);
+  const paginatedCredits = sortedCredits.slice(start, end);
 
   return {
     page,
-    results: paginatedCast,
-    total_pages: Math.ceil(sortedCast.length / itemsPerPage),
-    total_results: sortedCast.length,
+    results: paginatedCredits,
+    total_pages: Math.ceil(sortedCredits.length / itemsPerPage),
+    total_results: sortedCredits.length,
   };
 };
 
 export const getPersonTVCredits = async (personId: number, page = 1) => {
   const response = await tmdbApi.get(`/person/${personId}/tv_credits`);
-  const {cast} = response.data;
+  const {cast, crew} = response.data;
+  
+  // Combine cast and crew, removing duplicates by TV show ID
+  const allCredits = [...cast, ...crew];
+  const uniqueCredits = Array.from(
+    new Map(allCredits.map(item => [item.id, item])).values()
+  );
+  
   // Sort by first air date, most recent first
-  const sortedCast = cast.sort((a: any, b: any) => {
+  const sortedCredits = uniqueCredits.sort((a: any, b: any) => {
     if (!a.first_air_date) return 1;
     if (!b.first_air_date) return -1;
     return (
@@ -920,13 +957,13 @@ export const getPersonTVCredits = async (personId: number, page = 1) => {
   const itemsPerPage = 20;
   const start = (page - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  const paginatedCast = sortedCast.slice(start, end);
+  const paginatedCredits = sortedCredits.slice(start, end);
 
   return {
     page,
-    results: paginatedCast,
-    total_pages: Math.ceil(sortedCast.length / itemsPerPage),
-    total_results: sortedCast.length,
+    results: paginatedCredits,
+    total_pages: Math.ceil(sortedCredits.length / itemsPerPage),
+    total_results: sortedCredits.length,
   };
 };
 
@@ -1049,6 +1086,174 @@ export const getPersonDetails = async (personId: number) => {
     },
   });
   return response.data;
+};
+
+// Search for people (actors, directors, etc.)
+export const searchPeople = async (query: string) => {
+  if (!query.trim()) return {results: []};
+  const response = await tmdbApi.get('/search/person', {
+    params: {
+      query,
+      include_adult: false,
+    },
+  });
+  return response.data;
+};
+
+// Get person details by ID
+export const getPersonById = async (personId: number) => {
+  const response = await tmdbApi.get(`/person/${personId}`);
+  return response.data;
+};
+
+// Search for keywords
+export const searchKeywords = async (query: string) => {
+  if (!query.trim()) return {results: []};
+  const response = await tmdbApi.get('/search/keyword', {
+    params: {
+      query,
+    },
+  });
+  return response.data;
+};
+
+// Get keyword details by ID
+export const getKeywordById = async (keywordId: number) => {
+  const response = await tmdbApi.get(`/keyword/${keywordId}`);
+  return response.data;
+};
+
+// Search for production companies
+export const searchCompanies = async (query: string) => {
+  if (!query.trim()) return {results: []};
+  const response = await tmdbApi.get('/search/company', {
+    params: {
+      query,
+    },
+  });
+  return response.data;
+};
+
+// Get company details by ID
+export const getCompanyById = async (companyId: number) => {
+  const response = await tmdbApi.get(`/company/${companyId}`);
+  return response.data;
+};
+
+// Search for TV networks
+export const searchNetworks = async (query: string) => {
+  if (!query.trim()) return {results: []};
+  const response = await tmdbApi.get('/search/network', {
+    params: {
+      query,
+    },
+  });
+  return response.data;
+};
+
+// Get network details by ID
+export const getNetworkById = async (networkId: number) => {
+  const response = await tmdbApi.get(`/network/${networkId}`);
+  return response.data;
+};
+
+// ============================================================================
+// CREDITS & CREW FUNCTIONS
+// ============================================================================
+
+// Get movie credits (cast + crew)
+export const getMovieCredits = async (movieId: number) => {
+  const response = await tmdbApi.get(`/movie/${movieId}/credits`);
+  return response.data;
+};
+
+// Get TV show credits (cast + crew)
+export const getTVCredits = async (tvId: number) => {
+  const response = await tmdbApi.get(`/tv/${tvId}/credits`);
+  return response.data;
+};
+
+// Helper: Extract specific crew members by job
+export const extractCrewByJob = (credits: any, job: string) => {
+  return credits.crew?.filter((member: any) => member.job === job) || [];
+};
+
+// Helper: Get director(s)
+export const getDirectors = (credits: any) => {
+  return extractCrewByJob(credits, 'Director');
+};
+
+// Helper: Get writers
+export const getWriters = (credits: any) => {
+  const writers = extractCrewByJob(credits, 'Writer');
+  const screenplay = extractCrewByJob(credits, 'Screenplay');
+  const story = extractCrewByJob(credits, 'Story');
+  // Deduplicate by person ID
+  const uniqueWriters = new Map();
+  [...writers, ...screenplay, ...story].forEach(writer => {
+    if (!uniqueWriters.has(writer.id)) {
+      uniqueWriters.set(writer.id, writer);
+    }
+  });
+  return Array.from(uniqueWriters.values());
+};
+
+// Helper: Get composer(s) - returns array to handle multiple composers
+export const getComposer = (credits: any) => {
+  // Collect all possible composer job titles
+  const composers = [
+    ...extractCrewByJob(credits, 'Original Music Composer'),
+    ...extractCrewByJob(credits, 'Music'),
+    ...extractCrewByJob(credits, 'Original Score'),
+    ...extractCrewByJob(credits, 'Composer'),
+  ];
+  
+  // Deduplicate by person ID
+  const uniqueComposers = Array.from(
+    new Map(composers.map(c => [c.id, c])).values()
+  );
+  
+  return uniqueComposers;
+};
+
+// Helper: Get cinematographer (Director of Photography)
+export const getCinematographer = (credits: any) => {
+  return extractCrewByJob(credits, 'Director of Photography')[0];
+};
+
+// Helper: Get producers
+export const getProducers = (credits: any) => {
+  const producers = extractCrewByJob(credits, 'Producer');
+  const executiveProducers = extractCrewByJob(credits, 'Executive Producer');
+  return [...producers, ...executiveProducers];
+};
+
+// Get all movies by a specific director
+export const getMoviesByDirector = async (directorId: number) => {
+  const response = await tmdbApi.get(`/person/${directorId}/movie_credits`);
+  // Filter only movies where they were director
+  const directedMovies = response.data.crew?.filter(
+    (credit: any) => credit.job === 'Director'
+  ) || [];
+  return directedMovies;
+};
+
+// Get all TV shows by a specific creator/director
+export const getTVShowsByCreator = async (creatorId: number) => {
+  const response = await tmdbApi.get(`/person/${creatorId}/tv_credits`);
+  return response.data.crew || [];
+};
+
+// Get all movies by a specific actor
+export const getMoviesByActor = async (actorId: number) => {
+  const response = await tmdbApi.get(`/person/${actorId}/movie_credits`);
+  return response.data.cast || [];
+};
+
+// Get all TV shows by a specific actor
+export const getTVShowsByActor = async (actorId: number) => {
+  const response = await tmdbApi.get(`/person/${actorId}/tv_credits`);
+  return response.data.cast || [];
 };
 
 export const checkTMDB = async (): Promise<boolean> => {

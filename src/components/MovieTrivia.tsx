@@ -72,7 +72,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
   const navigation = useNavigation();
 
   const loadTrivia = async () => {
-    if (hasLoaded) return;
+    // Don't check hasLoaded here - let useEffect control when to load
 
     setIsLoading(true);
     try {
@@ -166,10 +166,14 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
     }
   };
 
-  // Load trivia immediately when component mounts
+  // Reset and load trivia when content changes
   useEffect(() => {
+    setHasLoaded(false);
+    setTrivia([]);
+    setIsLoading(true);
+    setQuotaError(false);
     loadTrivia();
-  }, [title, year, type]);
+  }, [title, year, type, contentId]);
 
   const styles = StyleSheet.create({
     container: {

@@ -13,15 +13,14 @@ export interface MicButtonProps {
   locale?: string; // e.g., 'en-US', 'en-IN'
   mode?: 'toggle' | 'hold';
   useModal?: boolean; // if true, open voice capture modal on tap (recommended UX)
+  color?: string;
 }
 
 export const MicButton: React.FC<MicButtonProps> = ({
   onFinalText,
-  onPartialText,
-  setIsHintVisible,
+  color = colors.modal.active,
   size = 44,
   locale,
-  mode = Platform.OS === 'android' ? 'hold' : 'toggle',
   useModal = true,
 }) => {
   const {supported} = useSpeechToText(
@@ -45,26 +44,13 @@ export const MicButton: React.FC<MicButtonProps> = ({
     return null;
   }
 
-  const borderColor = colors.modal.border;
-  const bgColor = 'transparent';
-  const iconColor = colors.modal.active;
-
   return (
     <View style={{position: 'relative', overflow: 'visible'}}>
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.8}
-        disabled={!supported}
-        style={[
-          styles.button,
-          {
-            borderRadius: borderRadius.round,
-            borderColor,
-            backgroundColor: bgColor,
-            opacity: supported ? 1 : 0.4,
-          },
-        ]}>
-        <Icon name={'mic-outline'} size={20} color={iconColor} />
+        disabled={!supported}>
+        <Icon name={'mic'} size={20} color={color} />
       </TouchableOpacity>
 
       {/* Voice capture modal (pattern B) */}

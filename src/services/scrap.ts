@@ -1,6 +1,7 @@
 import axios from 'axios';
 // @ts-ignore
 import * as cheerio from 'cheerio-without-node-native';
+import {getMovie} from '../database/contentCache';
 
 const headers = {
   'User-Agent': 'PostmanRuntime/7.45.0',
@@ -17,10 +18,47 @@ const headers = {
   Referer: 'https://www.google.com/',
 };
 
-export const getIMDBRating = async (id: string) => {
+/**
+ * Get IMDB rating by scraping with Realm caching
+ * @param id - IMDB ID (e.g., "tt1234567")
+ * @param movieId - TMDB movie ID for caching in Realm
+ */
+export const getIMDBRating = async (
+  id: string,
+  movieId?: number,
+): Promise<{rating: string; voteCount: string; director?: string} | null> => {
+  // Check Realm cache first if movieId provided
+  if (movieId) {
+    const cached = getMovie(movieId);
+    if (cached?.ai_ratings_cached_at) {
+      // Check if ratings are still valid (6 months)
+      const age = Date.now() - (cached.ai_ratings_cached_at as Date).getTime();
+      if (age < 180 * 24 * 60 * 60 * 1000) {
+        if (cached.ai_imdb_rating != null) {
+          console.log('[IMDB Scraping] Using cached rating from Realm');
+          return {
+            rating: cached.ai_imdb_rating.toString(),
+            voteCount: cached.ai_imdb_votes
+              ? formatVoteCount(cached.ai_imdb_votes)
+              : '',
+            director: undefined,
+          };
+        }
+      }
+    }
+  }
+
+  // If no cache or stale, scrape from IMDB
   try {
+    if (!id || id === '') {
+      console.log('[IMDB Scraping] No IMDB ID provided');
+      return null;
+    }
+
+    console.log('[IMDB Scraping] Fetching from IMDB:', id);
     const response = await axios.get(`https://imdb.com/title/${id}`, {
       headers,
+      timeout: 10000,
     });
 
     const $ = cheerio.load(response.data);
@@ -37,7 +75,7 @@ export const getIMDBRating = async (id: string) => {
       .trim();
 
     // Vote count is in the element that comes after the score element
-    const voteCount = ratingContainer
+    const voteCountText = ratingContainer
       .find('[data-testid="hero-rating-bar__aggregate-rating__score"]')
       .first()
       .next() // Skip the empty div (.sc-4dc495c1-5)
@@ -52,9 +90,68 @@ export const getIMDBRating = async (id: string) => {
       .text()
       .trim();
 
-    return {rating, voteCount, director};
-  } catch (error) {}
+    if (!rating) {
+      console.log('[IMDB Scraping] No rating found on page');
+      return null;
+    }
+
+    // Cache in Realm if movieId provided
+    if (movieId) {
+      try {
+        const {getRealm} = await import('../database/realm');
+        const realm = getRealm();
+        realm.write(() => {
+          const movie = realm.objectForPrimaryKey('Movie', movieId);
+          if (movie) {
+            movie.ai_imdb_rating = parseFloat(rating);
+            movie.ai_imdb_votes = parseVoteCount(voteCountText);
+            movie.ai_ratings_cached_at = new Date();
+            console.log('[IMDB Scraping] Cached rating in Realm:', rating);
+          }
+        });
+      } catch (cacheError) {
+        console.error('[IMDB Scraping] Error caching to Realm:', cacheError);
+      }
+    }
+
+    return {rating, voteCount: voteCountText, director};
+  } catch (error) {
+    console.error('[IMDB Scraping] Error:', error);
+    return null;
+  }
 };
+
+/**
+ * Parse vote count string to number (e.g., "1.2M" -> 1200000)
+ */
+function parseVoteCount(voteCountText: string): number | null {
+  if (!voteCountText) return null;
+  try {
+    // Remove parentheses and commas
+    const cleaned = voteCountText.replace(/[(),]/g, '').trim();
+    if (cleaned.endsWith('M')) {
+      return Math.round(parseFloat(cleaned) * 1000000);
+    } else if (cleaned.endsWith('K')) {
+      return Math.round(parseFloat(cleaned) * 1000);
+    } else {
+      return parseInt(cleaned.replace(/\D/g, ''), 10) || null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Format vote count number to string (e.g., 1200000 -> "1.2M")
+ */
+function formatVoteCount(votes: number): string {
+  if (votes >= 1000000) {
+    return `${(votes / 1000000).toFixed(1)}M`;
+  } else if (votes >= 1000) {
+    return `${(votes / 1000).toFixed(1)}K`;
+  }
+  return votes.toString();
+}
 
 export const getIMDBSeriesRating = async (title: string, year: string) => {
   try {
