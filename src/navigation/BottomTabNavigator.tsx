@@ -2,7 +2,11 @@ import React from 'react';
 import {View, StyleSheet, TouchableOpacity} from 'react-native';
 import type {BottomTabBarButtonProps} from '@react-navigation/bottom-tabs';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {useNavigationState, NavigationState} from '@react-navigation/native';
+import {
+  useNavigationState,
+  NavigationState,
+  getFocusedRouteNameFromRoute,
+} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicon from 'react-native-vector-icons/Ionicons';
 import {TabParamList} from '../types/navigation';
@@ -125,32 +129,8 @@ const TabBarBackground = () => {
 };
 
 export const BottomTabNavigator = () => {
-  const navigationState = useNavigationState((state: NavigationState) => state);
   // Use inside so rotation triggers rerenders
   const {isTablet, orientation} = useResponsive();
-
-  // Function to check if we're currently on OnlineAI screen
-  const isOnOnlineAIScreen = (): boolean => {
-    try {
-      if (!navigationState) return false;
-      const tabIndex = navigationState.index ?? 0;
-      const currentTab = navigationState.routes?.[tabIndex];
-      if (!currentTab || typeof currentTab !== 'object') return false;
-
-      // MySpace tab is the 5th tab (index 4)
-      const tabState = (currentTab as any).state;
-      if (!tabState || tabState.index !== 4) return false;
-
-      const mySpaceStack = tabState.routes?.[tabState.index];
-      const mySpaceState = mySpaceStack?.state;
-      if (!mySpaceState || typeof mySpaceState.index !== 'number') return false;
-
-      const currentMySpaceRoute = mySpaceState.routes?.[mySpaceState.index];
-      return currentMySpaceRoute?.name === 'OnlineAIScreen';
-    } catch {
-      return false;
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -183,7 +163,6 @@ export const BottomTabNavigator = () => {
             alignItems: 'center',
             justifyContent:
               orientation === 'landscape' ? 'space-between' : 'center',
-            display: isOnOnlineAIScreen() ? 'none' : 'flex',
           },
           // Keep label under icon even on tablets (avoids beside-icon layout)
           tabBarLabelPosition: 'below-icon',
@@ -286,17 +265,49 @@ export const BottomTabNavigator = () => {
               });
             },
           })}
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({focused, color}: any) => (
-              <TabIcon
-                focused={focused}
-                name="user"
-                color={color}
-                type="feather"
-              />
-            ),
-            tabBarLabel: 'My space',
+          options={({route}: any) => {
+            const routeName =
+              getFocusedRouteNameFromRoute(route) ?? 'MySpaceScreen';
+            const shouldHide =
+              routeName === 'OnlineAIScreen' ||
+              routeName === 'CinemaInsightsScreen' ||
+              routeName === 'AboutLegalScreen';
+
+            return {
+              title: 'Profile',
+              tabBarIcon: ({focused, color}: any) => (
+                <TabIcon
+                  focused={focused}
+                  name="user"
+                  color={color}
+                  type="feather"
+                />
+              ),
+              tabBarLabel: 'My space',
+              tabBarStyle: shouldHide
+                ? {display: 'none'}
+                : {
+                    backgroundColor: 'transparent',
+                    height: isTablet ? 90 : 70,
+                    borderTopWidth: 0,
+                    paddingTop: isTablet ? spacing.md : spacing.sm,
+                    position: 'absolute',
+                    bottom: isTablet ? 30 : 16,
+                    shadowOpacity: 0,
+                    marginHorizontal:
+                      isTablet && orientation === 'portrait'
+                        ? '18%'
+                        : isTablet && orientation === 'landscape'
+                        ? '27%'
+                        : !isTablet && orientation === 'landscape'
+                        ? '24%'
+                        : 24,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    justifyContent:
+                      orientation === 'landscape' ? 'space-between' : 'center',
+                  },
+            };
           }}
         />
       </Tab.Navigator>

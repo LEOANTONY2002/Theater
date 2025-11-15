@@ -26,6 +26,12 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useResponsive} from '../hooks/useResponsive';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MySpaceStackParamList} from '../types/navigation';
+import {
+  getImageUrl,
+  getPersonMovieCredits,
+  getPersonTVCredits,
+} from '../services/tmdb';
+import FastImage from 'react-native-fast-image';
 
 export const CinemaInsightsScreen = () => {
   const navigation =
@@ -38,6 +44,7 @@ export const CinemaInsightsScreen = () => {
   const [diversity, setDiversity] = useState<LanguageDiversity | null>(null);
   const [collections, setCollections] = useState<CollectionProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [topPersonWork, setTopPersonWork] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -45,24 +52,51 @@ export const CinemaInsightsScreen = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const [dna, explorationStats, genrePrefs, langDiversity, collectionProgress] =
-      await Promise.all([
-        getCinemaDNA(),
-        getExplorationStats(),
-        getGenrePreferences(),
-        getLanguageDiversity(),
-        getCollectionProgress(),
-      ]);
-    
+    const [
+      dna,
+      explorationStats,
+      genrePrefs,
+      langDiversity,
+      collectionProgress,
+    ] = await Promise.all([
+      getCinemaDNA(),
+      getExplorationStats(),
+      getGenrePreferences(),
+      getLanguageDiversity(),
+      getCollectionProgress(),
+    ]);
+
     console.log('[CinemaInsights] Genre Preferences:', genrePrefs);
     console.log('[CinemaInsights] Language Diversity:', langDiversity);
     console.log('[CinemaInsights] Collections:', collectionProgress);
-    
+
     setCinemaDNA(dna);
     setStats(explorationStats);
     setGenres(genrePrefs);
     setDiversity(langDiversity);
     setCollections(collectionProgress);
+
+    // Load top person's work
+    if (dna?.topPerson) {
+      try {
+        const movieCredits = await getPersonMovieCredits(dna.topPerson.id);
+        const tvCredits = await getPersonTVCredits(dna.topPerson.id);
+        const allWork = [
+          ...(movieCredits.results || []).map((m: any) => ({
+            ...m,
+            media_type: 'movie',
+          })),
+          ...(tvCredits.results || []).map((t: any) => ({
+            ...t,
+            media_type: 'tv',
+          })),
+        ].slice(0, 12);
+        setTopPersonWork(allWork);
+      } catch (e) {
+        setTopPersonWork([]);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -96,91 +130,122 @@ export const CinemaInsightsScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}>
-          <Icon name="arrow-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cinema Insights</Text>
-      </View>
-
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Top Person Profile Section */}
-        <View style={styles.profileSection}>
-          {/* Background Gradient */}
-          <LinearGradient
-            colors={[colors.background.secondary, colors.background.primary]}
-            style={styles.profileBackground}
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}>
+            <Icon name="chevron-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View
+          style={[
+            styles.profileContainer,
+            {
+              height: isTablet ? 600 : 400,
+            },
+          ]}>
+          <FastImage
+            source={{
+              uri: getImageUrl(
+                topPerson.profile_path || '',
+                isTablet ? 'original' : 'w185',
+              ),
+              priority: FastImage.priority.high,
+              cache: FastImage.cacheControl.immutable,
+            }}
+            style={styles.profileImage}
+            resizeMode={FastImage.resizeMode.cover}
           />
+          <LinearGradient
+            colors={['transparent', colors.background.primary]}
+            style={styles.profileGradient}
+          />
+          <LinearGradient
+            colors={['transparent', colors.background.primary]}
+            style={styles.profileGradient}
+          />
+          <LinearGradient
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}}
+            colors={[colors.background.primary, 'transparent']}
+            style={styles.profileGradientHorizontal}
+          />
+          <LinearGradient
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}}
+            colors={[colors.background.primary, 'transparent']}
+            style={styles.profileGradientHorizontal}
+          />
+        </View>
 
-          {/* Profile Image */}
-          <View style={styles.profileImageContainer}>
-            {topPerson.profile_path ? (
-              <Image
-                source={{
-                  uri: `https://image.tmdb.org/t/p/w500${topPerson.profile_path}`,
-                }}
-                style={styles.profileImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-                <Text style={styles.profileImageInitial}>
-                  {topPerson.name.slice(0, 1)}
-                </Text>
-              </View>
-            )}
-          </View>
+        <Text
+          style={{
+            position: 'absolute',
+            top: spacing.xl,
+            right: spacing.lg,
+            fontSize: 32,
+            fontWeight: '900',
+            color: colors.modal.blur,
+          }}>
+          Your Top Interest
+        </Text>
 
-          {/* Top Person Info */}
-          <View style={styles.profileInfo}>
-            <Text style={styles.topInterestLabel}>Your Top Interest</Text>
-            <Text style={styles.topPersonName}>{topPerson.name}</Text>
-            <View style={styles.topPersonMeta}>
-              <Text style={styles.topPersonType}>
-                {getTypeEmoji(topPerson.type)}{' '}
-                {topPerson.type.charAt(0).toUpperCase() + topPerson.type.slice(1)}
-              </Text>
-              <Text style={styles.topPersonDot}>•</Text>
-              <Text style={styles.topPersonCount}>
-                {topPerson.count} films explored
+        {/* Top Person Profile */}
+        <View style={styles.section}>
+          <View style={styles.topPersonCard}>
+            <View style={styles.topPersonInfo}>
+              <Text style={styles.topPersonName}>{topPerson.name}</Text>
+              <Text style={styles.topPersonRole}>
+                {topPerson.type.charAt(0).toUpperCase() +
+                  topPerson.type.slice(1)}
               </Text>
             </View>
           </View>
+
+          {/* Top Person's Work */}
+          {topPersonWork.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.worksScroll}>
+              {topPersonWork.map((item, idx) => (
+                <TouchableOpacity
+                  key={`${item.id}-${idx}`}
+                  style={styles.workPosterCard}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (item.media_type === 'movie') {
+                      navigation.navigate('MovieDetails', {movie: item});
+                    } else {
+                      navigation.navigate('TVShowDetails', {show: item});
+                    }
+                  }}>
+                  <Image
+                    source={{
+                      uri: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+                    }}
+                    style={styles.workPoster}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
-        {/* Stats Overview */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{cinemaDNA.totalFilms}</Text>
-            <Text style={styles.statLabel}>Films</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{cinemaDNA.counts.directors}</Text>
-            <Text style={styles.statLabel}>Directors</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{cinemaDNA.counts.actors}</Text>
-            <Text style={styles.statLabel}>Actors</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{cinemaDNA.counts.composers}</Text>
-            <Text style={styles.statLabel}>Composers</Text>
-          </View>
-        </View>
-
-        {/* Top Directors Section */}
+        {/* Top Directors */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎬 Top Directors</Text>
+          <Text style={styles.sectionTitle}>Top Directors</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScroll}>
+            contentContainerStyle={styles.peopleScroll}>
             {cinemaDNA.otherTop
               .filter(p => p.type === 'director')
-              .slice(0, 10)
+              .slice(0, 6)
               .map((person, index) => (
                 <TouchableOpacity
                   key={person.id}
@@ -196,8 +261,8 @@ export const CinemaInsightsScreen = () => {
                       resizeMode="cover"
                     />
                   ) : (
-                    <View style={[styles.personImage, styles.personImagePlaceholder]}>
-                      <Text style={styles.personImageInitial}>
+                    <View style={[styles.personImage, styles.imagePlaceholder]}>
+                      <Text style={styles.placeholderTextSmall}>
                         {person.name.slice(0, 1)}
                       </Text>
                     </View>
@@ -205,22 +270,21 @@ export const CinemaInsightsScreen = () => {
                   <Text style={styles.personName} numberOfLines={2}>
                     {person.name}
                   </Text>
-                  <Text style={styles.personCount}>{person.count} films</Text>
                 </TouchableOpacity>
               ))}
           </ScrollView>
         </View>
 
-        {/* Top Actors Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎭 Top Actors</Text>
+        {/* Top Actors */}
+        <View style={[styles.section, {marginBottom: spacing.xl * 2}]}>
+          <Text style={styles.sectionTitle}>Top Actors</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScroll}>
+            contentContainerStyle={styles.peopleScroll}>
             {cinemaDNA.otherTop
               .filter(p => p.type === 'actor')
-              .slice(0, 10)
+              .slice(0, 6)
               .map((person, index) => (
                 <TouchableOpacity
                   key={person.id}
@@ -236,8 +300,8 @@ export const CinemaInsightsScreen = () => {
                       resizeMode="cover"
                     />
                   ) : (
-                    <View style={[styles.personImage, styles.personImagePlaceholder]}>
-                      <Text style={styles.personImageInitial}>
+                    <View style={[styles.personImage, styles.imagePlaceholder]}>
+                      <Text style={styles.placeholderTextSmall}>
                         {person.name.slice(0, 1)}
                       </Text>
                     </View>
@@ -245,228 +309,147 @@ export const CinemaInsightsScreen = () => {
                   <Text style={styles.personName} numberOfLines={2}>
                     {person.name}
                   </Text>
-                  <Text style={styles.personCount}>{person.count} films</Text>
                 </TouchableOpacity>
               ))}
           </ScrollView>
         </View>
 
-        {/* Top Composers Section */}
-        {cinemaDNA.counts.composers > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎵 Favorite Composers</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScroll}>
-              {cinemaDNA.otherTop
-                .filter(p => p.type === 'composer')
-                .slice(0, 10)
-                .map((person, index) => (
-                  <TouchableOpacity
-                    key={person.id}
-                    style={styles.personCard}
-                    activeOpacity={0.8}>
-                    {person.profile_path ? (
-                      <Image
-                        source={{
-                          uri: `https://image.tmdb.org/t/p/w185${person.profile_path}`,
-                        }}
-                        style={styles.personImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={[styles.personImage, styles.personImagePlaceholder]}>
-                        <Text style={styles.personImageInitial}>
-                          {person.name.slice(0, 1)}
-                        </Text>
-                      </View>
-                    )}
-                    <Text style={styles.personName} numberOfLines={2}>
-                      {person.name}
-                    </Text>
-                    <Text style={styles.personCount}>{person.count} scores</Text>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Cinematographers Section */}
-        {cinemaDNA.counts.cinematographers > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📸 Cinematographers</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScroll}>
-              {cinemaDNA.otherTop
-                .filter(p => p.type === 'cinematographer')
-                .slice(0, 10)
-                .map((person, index) => (
-                  <TouchableOpacity
-                    key={person.id}
-                    style={styles.personCard}
-                    activeOpacity={0.8}
-                    onPress={() => navigateToPerson(person.id, person.name)}>
-                    {person.profile_path ? (
-                      <Image
-                        source={{
-                          uri: `https://image.tmdb.org/t/p/w185${person.profile_path}`,
-                        }}
-                        style={styles.personImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={[styles.personImage, styles.personImagePlaceholder]}>
-                        <Text style={styles.personImageInitial}>
-                          {person.name.slice(0, 1)}
-                        </Text>
-                      </View>
-                    )}
-                    <Text style={styles.personName} numberOfLines={2}>
-                      {person.name}
-                    </Text>
-                    <Text style={styles.personCount}>{person.count} films</Text>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Genre Preferences Section */}
+        {/* Genre Distribution */}
         {genres.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎭 Your Genre DNA</Text>
-            <View style={styles.genreContainer}>
-              {genres.map((genre, index) => (
+          <View
+            style={[
+              styles.section,
+              {
+                marginTop: spacing.xl,
+              },
+            ]}>
+            <Text style={styles.sectionTitle}>Genre Distribution</Text>
+            <View>
+              {genres.slice(0, 8).map((genre, index) => (
                 <View key={genre.id} style={styles.genreItem}>
-                  <View style={styles.genreHeader}>
+                  <View style={styles.genreRow}>
                     <Text style={styles.genreName}>{genre.name}</Text>
                     <Text style={styles.genrePercentage}>
                       {genre.percentage.toFixed(0)}%
                     </Text>
                   </View>
-                  <View style={styles.progressBarContainer}>
+                  <View style={styles.genreBar}>
                     <View
                       style={[
-                        styles.progressBar,
+                        styles.genreBarFill,
                         {width: `${genre.percentage}%`},
                       ]}
                     />
                   </View>
-                  <Text style={styles.genreCount}>{genre.count} films</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Collection Progress Section */}
+        {/* Time Exploration */}
+        {stats && (stats.mostExploredYear || stats.favoriteDecade) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Time Exploration</Text>
+            <View style={styles.timeCards}>
+              {stats.mostExploredYear && (
+                <View style={styles.timeCard}>
+                  <Icon
+                    name="calendar-outline"
+                    size={24}
+                    color={colors.text.secondary}
+                  />
+                  <Text style={styles.timeValue}>{stats.mostExploredYear}</Text>
+                  <Text style={styles.timeLabel}>Most Explored Year</Text>
+                </View>
+              )}
+              {stats.favoriteDecade && (
+                <View style={styles.timeCard}>
+                  <Icon
+                    name="calendar"
+                    size={24}
+                    color={colors.text.secondary}
+                  />
+                  <Text style={styles.timeValue}>{stats.favoriteDecade}</Text>
+                  <Text style={styles.timeLabel}>Favorite Decade</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Language Diversity */}
+        {diversity && diversity.totalLanguages > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Language Diversity</Text>
+            <View style={styles.diversityCard}>
+              {diversity.topLanguages.length > 0 && (
+                <View style={styles.languageList}>
+                  {diversity.topLanguages.slice(0, 5).map((lang, index) => (
+                    <View key={lang.code} style={styles.languageItem}>
+                      <Text style={styles.languageName}>{lang.name}</Text>
+                      <Text style={styles.languagePercentage}>
+                        {lang.percentage.toFixed(0)}%
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Director Collections */}
         {collections.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📚 Collections</Text>
-            <View style={styles.collectionsContainer}>
-              {collections.map((collection, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.collectionCard}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    if (collection.directorId && collection.directorName) {
-                      navigateToPerson(collection.directorId, collection.directorName);
-                    }
-                  }}>
-                  <View style={styles.collectionHeader}>
+            <Text style={styles.sectionTitle}>Director Collections</Text>
+            {collections.slice(0, 4).map((collection, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.collectionCard}
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (collection.directorId && collection.directorName) {
+                    navigateToPerson(
+                      collection.directorId,
+                      collection.directorName,
+                    );
+                  }
+                }}>
+                <View style={styles.collectionHeader}>
+                  <View style={styles.collectionIconWrapper}>
+                    <Icon
+                      name="film-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <View style={styles.collectionInfo}>
                     <Text style={styles.collectionName} numberOfLines={1}>
                       {collection.name}
                     </Text>
                     <Text style={styles.collectionProgress}>
-                      {collection.completed}/{collection.total}
+                      {collection.completed} of {collection.total} films
                     </Text>
                   </View>
-                  <View style={styles.progressBarContainer}>
-                    <View
-                      style={[
-                        styles.progressBar,
-                        {width: `${collection.percentage}%`},
-                      ]}
-                    />
-                  </View>
                   <Text style={styles.collectionPercentage}>
-                    {collection.percentage.toFixed(0)}% complete
+                    {collection.percentage.toFixed(0)}%
                   </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                </View>
+                <View style={styles.collectionProgressBar}>
+                  <View
+                    style={[
+                      styles.collectionProgressFill,
+                      {width: `${collection.percentage}%`},
+                    ]}
+                  />
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
 
-        {/* Language Diversity Section */}
-        {diversity && diversity.totalLanguages > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🌍 Language Diversity</Text>
-            <View style={styles.diversityContainer}>
-              <View style={styles.diversityCard}>
-                <Text style={styles.diversityLabel}>Languages Explored</Text>
-                <Text style={styles.diversityValue}>
-                  {diversity.totalLanguages}
-                </Text>
-                {diversity.topLanguages.length > 0 && (
-                  <View style={styles.diversityList}>
-                    {diversity.topLanguages.map((lang, index) => (
-                      <Text key={lang.code} style={styles.diversityItem}>
-                        {lang.name} ({lang.percentage.toFixed(0)}%)
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Exploration Stats Section */}
-        {stats && (
-          <View style={[styles.section, {marginBottom: spacing.xl}]}>
-            <Text style={styles.sectionTitle}>📈 Exploration Stats</Text>
-            <View style={styles.statsGrid}>
-              {stats.mostExploredYear && (
-                <View style={styles.statItem}>
-                  <Text style={styles.statItemLabel}>Most Explored Year</Text>
-                  <Text style={styles.statItemValue}>
-                    {stats.mostExploredYear}
-                  </Text>
-                </View>
-              )}
-              {stats.favoriteDecade && (
-                <View style={styles.statItem}>
-                  <Text style={styles.statItemLabel}>Favorite Decade</Text>
-                  <Text style={styles.statItemValue}>
-                    {stats.favoriteDecade}
-                  </Text>
-                </View>
-              )}
-              {stats.averageRating > 0 && (
-                <View style={styles.statItem}>
-                  <Text style={styles.statItemLabel}>Average Rating</Text>
-                  <Text style={styles.statItemValue}>
-                    ⭐ {stats.averageRating.toFixed(1)}/10
-                  </Text>
-                </View>
-              )}
-              {stats.totalRuntime > 0 && (
-                <View style={styles.statItem}>
-                  <Text style={styles.statItemLabel}>Total Watch Time</Text>
-                  <Text style={styles.statItemValue}>
-                    {Math.floor(stats.totalRuntime / 60)}h{' '}
-                    {stats.totalRuntime % 60}m
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+        <View style={{height: 200}} />
       </ScrollView>
     </View>
   );
@@ -480,17 +463,53 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.border,
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
   },
   backButton: {
-    padding: spacing.xs,
+    width: 50,
+    height: 50,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.modal.blurDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.modal.blur,
     marginRight: spacing.sm,
   },
   headerTitle: {
-    ...typography.h3,
+    ...typography.h2,
     color: colors.text.primary,
+  },
+  profileContainer: {
+    width: '70%',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 0,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  profileGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    height: '100%',
+  },
+  profileGradientHorizontal: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
   },
   loadingContainer: {
     flex: 1,
@@ -501,174 +520,151 @@ const styles = StyleSheet.create({
     ...typography.body1,
     color: colors.text.secondary,
   },
-  profileSection: {
-    alignItems: 'center',
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-    position: 'relative',
+  // Overview Section
+  overviewSection: {
+    paddingVertical: spacing.xl,
+    gap: spacing.md,
   },
-  profileBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 200,
-  },
-  profileImageContainer: {
-    marginBottom: spacing.md,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: colors.background.primary,
-  },
-  profileImagePlaceholder: {
+  statCardLarge: {
     backgroundColor: colors.background.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileImageInitial: {
-    ...typography.h1,
-    color: colors.text.primary,
-    opacity: 0.5,
-  },
-  profileInfo: {
-    alignItems: 'center',
-  },
-  topInterestLabel: {
-    ...typography.caption,
-    color: colors.text.tertiary,
-    marginBottom: spacing.xs,
-  },
-  topPersonName: {
-    ...typography.h2,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  topPersonMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  topPersonType: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  topPersonDot: {
-    ...typography.body2,
-    color: colors.text.tertiary,
-  },
-  topPersonCount: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-    gap: spacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.background.border,
   },
-  statValue: {
-    ...typography.h2,
+  statNumber: {
+    ...typography.h1,
+    fontSize: 56,
     color: colors.text.primary,
-    marginBottom: spacing.xs,
+    fontWeight: '700',
   },
   statLabel: {
-    ...typography.caption,
-    color: colors.text.tertiary,
+    ...typography.body1,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
   },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  statCardSmall: {
+    flex: 1,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.background.border,
+  },
+  statNumberSmall: {
+    ...typography.h2,
+    color: colors.text.primary,
+    fontWeight: '700',
+  },
+  statLabelSmall: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  statCardMedium: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.background.border,
+  },
+  statTextMedium: {
+    ...typography.body2,
+    color: colors.text.secondary,
+  },
+  statDivider: {
+    ...typography.body2,
+    color: colors.text.tertiary,
+    marginHorizontal: spacing.sm,
+  },
+  // Sections
   section: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   sectionTitle: {
     ...typography.h3,
     color: colors.text.primary,
     marginBottom: spacing.md,
+    fontWeight: '600',
     paddingHorizontal: spacing.md,
   },
-  horizontalScroll: {
-    paddingHorizontal: spacing.md,
-    gap: spacing.md,
-  },
-  personCard: {
-    width: 100,
+  // Top Person
+  topPersonCard: {
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
-  personImage: {
+  topPersonImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    marginBottom: spacing.sm,
-    borderWidth: 2,
-    borderColor: colors.background.border,
   },
-  personImagePlaceholder: {
+  topPersonInfo: {
+    flex: 1,
+  },
+  topPersonName: {
+    ...typography.h2,
+    fontSize: 24,
+    color: colors.text.primary,
+    fontWeight: '600',
+  },
+  topPersonRole: {
+    ...typography.body2,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  topPersonCount: {
+    ...typography.caption,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
+  },
+  imagePlaceholder: {
     backgroundColor: colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  personImageInitial: {
-    ...typography.h3,
-    color: colors.text.primary,
-    opacity: 0.5,
-  },
-  personName: {
-    ...typography.caption,
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  personCount: {
-    ...typography.caption,
+  placeholderText: {
+    ...typography.h2,
     color: colors.text.tertiary,
-    fontSize: 10,
   },
-  // Exploration stats styles
-  statsGrid: {
+  placeholderTextSmall: {
+    ...typography.h3,
+    color: colors.text.tertiary,
+  },
+  // Works
+  worksScroll: {
+    marginTop: spacing.md,
     paddingHorizontal: spacing.md,
-    gap: spacing.md,
   },
-  statItem: {
-    backgroundColor: colors.background.secondary,
+  workPosterCard: {
+    marginRight: spacing.sm,
+  },
+  workPoster: {
+    width: 100,
+    height: 150,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.background.border,
-  },
-  statItemLabel: {
-    ...typography.caption,
-    color: colors.text.tertiary,
-    marginBottom: spacing.xs,
-  },
-  statItemValue: {
-    ...typography.h3,
-    color: colors.text.primary,
-  },
-  // Genre styles
-  genreContainer: {
-    paddingHorizontal: spacing.md,
-    gap: spacing.md,
+    backgroundColor: colors.background.secondary,
   },
   genreItem: {
-    marginBottom: spacing.sm,
+    padding: spacing.md,
   },
-  genreHeader: {
+  genreRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   genreName: {
     ...typography.body1,
@@ -676,88 +672,181 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   genrePercentage: {
-    ...typography.body2,
+    ...typography.body1,
     color: colors.text.secondary,
+    fontWeight: '700',
   },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: colors.background.secondary,
-    borderRadius: 4,
+  genreBar: {
+    height: 6,
+    backgroundColor: colors.background.border,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: spacing.xs,
   },
-  progressBar: {
+  genreBarFill: {
     height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 4,
+    backgroundColor: colors.text.primary,
+    borderRadius: 3,
   },
   genreCount: {
     ...typography.caption,
     color: colors.text.tertiary,
-    fontSize: 10,
   },
-  // Collection styles
-  collectionsContainer: {
+  // Time Cards
+  timeCards: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    gap: spacing.md,
   },
+  timeCard: {
+    flex: 1,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.background.border,
+  },
+  timeValue: {
+    ...typography.h2,
+    color: colors.text.primary,
+    fontWeight: '700',
+    marginTop: spacing.sm,
+  },
+  timeLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  // Diversity
+  diversityCard: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.background.border,
+    marginHorizontal: spacing.md,
+  },
+  diversityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  diversityHeaderText: {
+    flex: 1,
+  },
+  diversityNumber: {
+    ...typography.h1,
+    fontSize: 48,
+    color: colors.text.primary,
+    fontWeight: '700',
+  },
+  diversityLabel: {
+    ...typography.body1,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  languageList: {
+    gap: spacing.sm,
+  },
+  languageItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background.border,
+  },
+  languageName: {
+    ...typography.body2,
+    color: colors.text.primary,
+  },
+  languagePercentage: {
+    ...typography.body2,
+    color: colors.text.secondary,
+    fontWeight: '600',
+  },
+  // Collections
   collectionCard: {
     backgroundColor: colors.background.secondary,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.background.border,
+    marginBottom: spacing.md,
   },
   collectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  collectionIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.background.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  collectionInfo: {
+    flex: 1,
   },
   collectionName: {
     ...typography.body1,
     color: colors.text.primary,
     fontWeight: '600',
-    flex: 1,
   },
   collectionProgress: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    marginLeft: spacing.sm,
-  },
-  collectionPercentage: {
     ...typography.caption,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
     marginTop: spacing.xs,
   },
-  // Diversity styles
-  diversityContainer: {
+  collectionPercentage: {
+    ...typography.body1,
+    color: colors.text.secondary,
+    fontWeight: '700',
+  },
+  collectionProgressBar: {
+    height: 6,
+    backgroundColor: colors.background.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  collectionProgressFill: {
+    height: '100%',
+    backgroundColor: colors.text.primary,
+    borderRadius: 3,
+  },
+  // People Grid
+  peopleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  peopleScroll: {
     paddingHorizontal: spacing.md,
     gap: spacing.md,
   },
-  diversityCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.background.border,
-    marginBottom: spacing.sm,
+  personCard: {
+    alignItems: 'center',
   },
-  diversityLabel: {
+  personImage: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing.sm,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.modal.blur,
+  },
+  personName: {
     ...typography.caption,
-    color: colors.text.tertiary,
-    marginBottom: spacing.xs,
-  },
-  diversityValue: {
-    ...typography.h2,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  diversityList: {
-    gap: spacing.xs,
-  },
-  diversityItem: {
-    ...typography.body2,
     color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+    width: 80,
   },
 });

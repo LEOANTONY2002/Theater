@@ -46,17 +46,21 @@ const defaultScreenOptions = {
   contentStyle: {
     backgroundColor: '#000000',
   },
-  animation: 'none' as const,
+  animation: 'fade_from_bottom' as const,
   presentation: 'card' as const,
   unmountOnBlur: true,
   detachInactiveScreens: true,
+  headerShown: false,
 };
 
 const modalScreenOptions = {
   ...defaultScreenOptions,
-  presentation: 'card' as const,
-  unmountOnBlur: true,
-  detachInactiveScreens: true,
+  animation: 'slide_from_bottom' as const,
+};
+
+const slideFromRightOptions = {
+  ...defaultScreenOptions,
+  animation: 'slide_from_right' as const,
 };
 
 export const HomeStackNavigator = () => (
@@ -64,69 +68,47 @@ export const HomeStackNavigator = () => (
     <HomeStack.Screen
       name="HomeScreen"
       component={HomeScreen}
-      options={{headerShown: false, title: 'Home'}}
+      options={{title: 'Home'}}
     />
     <HomeStack.Screen
       name="MovieDetails"
       component={MovieDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <HomeStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <HomeStack.Screen
       name="Category"
       component={CategoryScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <HomeStack.Screen
       name="Genre"
       component={GenreScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <HomeStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <HomeStack.Screen
       name="ThematicGenreResults"
       component={ThematicGenreResultsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <HomeStack.Screen
       name="OTTDetails"
       component={OTTDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <HomeStack.Screen
       name="CinemaScreen"
       component={CinemaScreen}
       options={{
-        headerShown: false,
         orientation: 'landscape',
         animation: 'fade',
         presentation: 'fullScreenModal',
@@ -141,45 +123,32 @@ export const SearchStackNavigator = () => (
     <SearchStack.Screen
       name="SearchScreen"
       component={SearchScreen}
-      options={{headerShown: false, title: 'Search'}}
+      options={{title: 'Search'}}
     />
     <SearchStack.Screen
       name="MovieDetails"
       component={MovieDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <SearchStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <SearchStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <SearchStack.Screen
       name="Category"
       component={CategoryScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <SearchStack.Screen
       name="CinemaScreen"
       component={CinemaScreen}
       options={{
-        headerShown: false,
         orientation: 'landscape',
         animation: 'fade',
         presentation: 'fullScreenModal',
@@ -194,61 +163,42 @@ export const MoviesAndSeriesStackNavigator = () => (
     <MoviesAndSeriesStack.Screen
       name="MoviesAndSeriesScreen"
       component={MoviesAndSeriesScreen}
-      options={{headerShown: false, title: 'Browse'}}
+      options={{title: 'Browse'}}
     />
     <MoviesAndSeriesStack.Screen
       name="MovieDetails"
       component={MovieDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <MoviesAndSeriesStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <MoviesAndSeriesStack.Screen
       name="Category"
       component={CategoryScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <MoviesAndSeriesStack.Screen
       name="Genre"
       component={GenreScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <MoviesAndSeriesStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <MoviesAndSeriesStack.Screen
       name="EmotionalToneResults"
       component={EmotionalToneResultsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <MoviesAndSeriesStack.Screen
       name="CinemaScreen"
       component={CinemaScreen}
       options={{
-        headerShown: false,
         orientation: 'landscape',
         animation: 'fade',
         presentation: 'fullScreenModal',
@@ -263,53 +213,37 @@ export const FiltersStackNavigator = () => (
     <FiltersStack.Screen
       name="FiltersScreen"
       component={FiltersScreen}
-      options={{headerShown: false, title: 'My Filters'}}
+      options={{title: 'My Filters'}}
     />
     <FiltersStack.Screen
       name="MovieDetails"
       component={MovieDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <FiltersStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <FiltersStack.Screen
       name="Category"
       component={CategoryScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <FiltersStack.Screen
       name="Genre"
       component={GenreScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={slideFromRightOptions}
     />
     <FiltersStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <FiltersStack.Screen
       name="CinemaScreen"
       component={CinemaScreen}
       options={{
-        headerShown: false,
         orientation: 'landscape',
         animation: 'fade',
         presentation: 'fullScreenModal',
@@ -324,62 +258,32 @@ export const MySpaceStackNavigator = () => (
     <MySpaceStack.Screen
       name="MySpaceScreen"
       component={MySpaceScreen}
-      options={{title: 'My Space', headerShown: false}}
+      options={{title: 'My Space'}}
     />
     <MySpaceStack.Screen
       name="MovieDetails"
       component={MovieDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <MySpaceStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
     <MySpaceStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
-      options={{
-        headerShown: false,
-        ...modalScreenOptions,
-      }}
+      options={modalScreenOptions}
     />
-    <MySpaceStack.Screen
-      name="WatchlistsScreen"
-      component={WatchlistsScreen}
-      options={{headerShown: false}}
-    />
-    <MySpaceStack.Screen
-      name="MyFiltersScreen"
-      component={MyFiltersScreen}
-      options={{headerShown: false}}
-    />
-    <MySpaceStack.Screen
-      name="OnlineAIScreen"
-      component={OnlineAIScreen}
-      options={{headerShown: false}}
-    />
-    <MySpaceStack.Screen
-      name="AISettingsScreen"
-      component={AISettingsScreen}
-      options={{headerShown: false}}
-    />
-    <MySpaceStack.Screen
-      name="AboutLegalScreen"
-      component={AboutLegalScreen}
-      options={{headerShown: false}}
-    />
+    <MySpaceStack.Screen name="WatchlistsScreen" component={WatchlistsScreen} />
+    <MySpaceStack.Screen name="MyFiltersScreen" component={MyFiltersScreen} />
+    <MySpaceStack.Screen name="OnlineAIScreen" component={OnlineAIScreen} />
+    <MySpaceStack.Screen name="AISettingsScreen" component={AISettingsScreen} />
+    <MySpaceStack.Screen name="AboutLegalScreen" component={AboutLegalScreen} />
     <MySpaceStack.Screen
       name="CinemaScreen"
       component={CinemaScreen}
       options={{
-        headerShown: false,
         orientation: 'landscape',
         animation: 'fade',
         presentation: 'fullScreenModal',
@@ -390,7 +294,6 @@ export const MySpaceStackNavigator = () => (
       name="CinemaInsightsScreen"
       component={CinemaInsightsScreen}
       options={{
-        headerShown: false,
         animation: 'fade',
       }}
     />

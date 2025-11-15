@@ -73,7 +73,10 @@ import {LanguageMoviesTabbedSection} from '../components/LanguageMoviesTabbedSec
 import {LanguageTVShowsTabbedSection} from '../components/LanguageTVShowsTabbedSection';
 import {MyLanguageMoviesInOTTsSection} from '../components/MyLanguageMoviesInOTTsSection';
 import {MyLanguageTVShowsInOTTsSection} from '../components/MyLanguageTVShowsInOTTsSection';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, CompositeNavigationProp} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
+import {HomeStackParamList, TabParamList} from '../types/navigation';
 import {usePersonalizedRecommendations} from '../hooks/usePersonalizedRecommendations';
 import {PersonalizedBanner} from '../components/PersonalizedBanner';
 import {useIsFocused} from '@react-navigation/native';
@@ -92,7 +95,7 @@ import {
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const {navigateWithLimit} = useNavigationState();
   const isFocused = useIsFocused();
   const {isAIEnabled} = useAIEnabled();
@@ -867,9 +870,10 @@ export const HomeScreen = React.memo(() => {
           data: combinedContent,
           onSeeAllPress: () => {
             // Navigate to person credits screen
-            navigation.navigate('PersonCredits' as any, {
+            navigation.navigate('PersonCredits', {
               personId: topDirectorData.director!.id,
               personName: topDirectorData.director!.name,
+              contentType: 'movie',
             });
           },
           isSeeAll: true,
@@ -895,9 +899,10 @@ export const HomeScreen = React.memo(() => {
           data: combinedContent,
           onSeeAllPress: () => {
             // Navigate to person credits screen
-            navigation.navigate('PersonCredits' as any, {
+            navigation.navigate('PersonCredits', {
               personId: topActorData.actor!.id,
               personName: topActorData.actor!.name,
+              contentType: 'movie',
             });
           },
           isSeeAll: true,
