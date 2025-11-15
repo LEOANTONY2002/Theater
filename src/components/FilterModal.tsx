@@ -1010,11 +1010,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     alignItems: 'center',
                     gap: spacing.xs,
                   }}>
-                  <Ionicons
-                    name="close-circle-outline"
-                    size={18}
-                    color={colors.status.error}
-                  />
                   <Text
                     style={[
                       styles.sectionTitle,

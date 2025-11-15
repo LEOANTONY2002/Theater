@@ -285,6 +285,20 @@ export class HistoryItem extends Realm.Object<HistoryItem> {
   release_date?: string;
   first_air_date?: string;
   overview?: string;
+  runtime?: number;
+  
+  // Analytics data for Cinema Insights
+  genre_ids?: string; // JSON stringified array
+  original_language?: string;
+  origin_country?: string; // JSON stringified array
+  
+  // Crew data for CinemaDNA
+  directors?: string; // JSON stringified array
+  writers?: string; // JSON stringified array
+  cast?: string; // JSON stringified array
+  composer?: string; // JSON stringified object
+  cinematographer?: string; // JSON stringified object
+  viewCount?: number;
 
   static schema: Realm.ObjectSchema = {
     name: 'HistoryItem',
@@ -302,6 +316,18 @@ export class HistoryItem extends Realm.Object<HistoryItem> {
       release_date: 'string?',
       first_air_date: 'string?',
       overview: 'string?',
+      runtime: 'int?',
+      // Analytics fields
+      genre_ids: 'string?',
+      original_language: 'string?',
+      origin_country: 'string?',
+      // Crew fields for CinemaDNA
+      directors: 'string?',
+      writers: 'string?',
+      cast: 'string?',
+      composer: 'string?',
+      cinematographer: 'string?',
+      viewCount: 'int?',
     },
   };
 }

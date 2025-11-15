@@ -40,6 +40,7 @@ import {Video, Genre, Cast, Movie} from '../types/movie';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {MovieTrivia} from '../components/MovieTrivia';
+import {CastCrewTabbedSection} from '../components/CastCrewTabbedSection';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useContentTags} from '../hooks/useContentTags';
@@ -81,8 +82,8 @@ import {MovieAIChatModal} from '../components/MovieAIChatModal';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
-import {offlineCache} from '../services/offlineCache';
 import {HistoryManager} from '../store/history';
+import {getRealm} from '../database/realm';
 import ShareLib from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
@@ -298,9 +299,11 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     const checkStatus = async () => {
       try {
         const online = await checkInternet();
-        const showCache = await offlineCache.getCachedTVShow(show.id);
+        // Check if TV show is cached in Realm
+        const realm = getRealm();
+        const cachedShow = realm.objectForPrimaryKey('TVShow', show.id);
         setIsOnline(online);
-        setHasCache(!!showCache);
+        setHasCache(!!cachedShow);
       } catch (error) {
         console.error('Error checking connectivity/cache status:', error);
         setIsOnline(true); // Default to online if check fails
@@ -373,8 +376,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       }
 
       // Re-check cache status after retry
-      const showCache = await offlineCache.getCachedTVShow(show.id);
-      setHasCache(!!showCache);
+      const realm = getRealm();
+      const cachedShow = realm.objectForPrimaryKey('TVShow', show.id);
+      setHasCache(!!cachedShow);
     } catch (error) {
       console.error('Error during retry:', error);
     } finally {
@@ -1295,8 +1299,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
           ...(isAIEnabled ? [{type: 'trivia', id: 'trivia'}] : []),
-          {type: 'crew', id: 'crew'},
-          {type: 'cast', id: 'cast'},
+          {type: 'castCrew', id: 'castCrew'},
           {type: 'providers', id: 'providers'},
           {type: 'seasons', id: 'seasons'},
           ...(isAIEnabled ? [{type: 'aiSimilar', id: 'aiSimilar'}] : []),
@@ -1714,17 +1717,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   />
                 </View>
               );
-            case 'crew':
-              const crewRaw = showDetails?.credits ? [
-                ...getDirectors(showDetails.credits).map((p: any) => ({...p, job: 'Director'})),
-                ...getWriters(showDetails.credits).map((p: any) => ({...p, job: p.job || 'Writer'})),
-                ...getComposer(showDetails.credits).map((p: any) => ({...p, job: 'Original Music Composer'})),
-                getCinematographer(showDetails.credits),
-              ].filter(Boolean) : [];
-              
-              // Deduplicate crew members with multiple roles
+            case 'castCrew':
+              // Deduplicate crew by person ID and combine roles
               const crewMap = new Map();
-              crewRaw.forEach((person: any) => {
+              showDetails?.credits?.crew?.forEach((person: any) => {
                 if (crewMap.has(person.id)) {
                   // Add role to existing person
                   const existing = crewMap.get(person.id);
@@ -1735,7 +1731,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
               });
               const crew = Array.from(crewMap.values());
               
-              return crew.length > 0 ? (
+              return (
                 <Animated.View
                   style={{
                     marginVertical: spacing.lg,
@@ -1750,84 +1746,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       },
                     ],
                   }}>
-                  <Text style={styles.sectionTitle}>Crew</Text>
-                  <FlatList
-                    data={crew}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingHorizontal: spacing.md}}
-                    renderItem={({item: person}: {item: any}) => (
-                      <TouchableOpacity
-                        style={styles.castItem}
-                        onPress={() =>
-                          handlePersonPress(person.id, person.name)
-                        }>
-                        <PersonCard
-                          item={getImageUrl(person.profile_path || '', 'w154')}
-                          onPress={() =>
-                            handlePersonPress(person.id, person.name)
-                          }
-                        />
-                        <Text style={styles.castName} numberOfLines={2}>
-                          {person.name}
-                        </Text>
-                        <Text style={styles.character} numberOfLines={1}>
-                          {person.job}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    keyExtractor={(person: any) => `${person.id}-${person.job}`}
+                  <CastCrewTabbedSection
+                    cast={showDetails?.credits?.cast || []}
+                    crew={crew}
+                    onPersonPress={handlePersonPress}
                   />
                 </Animated.View>
-              ) : null;
-            case 'cast':
-              return showDetails?.credits?.cast &&
-                Array.isArray(showDetails.credits.cast) &&
-                showDetails.credits.cast.length > 0 ? (
-                <Animated.View
-                  style={{
-                    marginVertical: spacing.lg,
-                    marginTop: 0,
-                    opacity: castFadeAnim,
-                    transform: [
-                      {
-                        translateY: castFadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [20, 0],
-                        }),
-                      },
-                    ],
-                  }}>
-                  <Text style={styles.sectionTitle}>Cast</Text>
-                  <FlatList
-                    data={showDetails.credits.cast.slice(0, 10)}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingHorizontal: spacing.md}}
-                    renderItem={({item: person}: {item: Cast}) => (
-                      <TouchableOpacity
-                        style={styles.castItem}
-                        onPress={() =>
-                          handlePersonPress(person.id, person.name)
-                        }>
-                        <PersonCard
-                          item={getImageUrl(person.profile_path || '', 'w154')}
-                          onPress={() =>
-                            handlePersonPress(person.id, person.name)
-                          }
-                        />
-                        <Text style={styles.castName} numberOfLines={2}>
-                          {person.name}
-                        </Text>
-                        <Text style={styles.character} numberOfLines={1}>
-                          {person.character}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    keyExtractor={(person: Cast) => person.id.toString()}
-                  />
-                </Animated.View>
-              ) : null;
+              );
             case 'providers':
               return watchProviders ? (
                 <WatchProviders

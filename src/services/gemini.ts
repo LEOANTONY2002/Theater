@@ -1243,23 +1243,42 @@ Identify the key thematic and emotional tags.`,
 // Search content by thematic genre using AI
 export async function searchByThematicGenre(
   thematicTag: string,
-): Promise<Array<{title: string; year: string; type: 'movie' | 'tv'}> | null> {
+): Promise<Array<{
+  title: string;
+  year: string;
+  type: 'movie' | 'tv';
+  confidence: number;
+  matchReason: string;
+  imdbRating?: number;
+}> | null> {
   const system = {
     role: 'system' as const,
     content: `You are Theater AI's content discovery assistant. Given a thematic genre/tag, recommend movies and TV shows that match this theme.
 
-Return ONLY a JSON array of 10-15 recommendations with exact titles and years:
+Return ONLY a JSON array of 10-15 recommendations with exact titles, years, confidence scores, IMDb ratings, and match explanations:
 [
-  {"title": "Movie/Show Title", "year": "2024", "type": "movie"},
-  {"title": "Another Title", "year": "2023", "type": "tv"}
+  {
+    "title": "Movie/Show Title",
+    "year": "2024",
+    "type": "movie",
+    "confidence": 0.95,
+    "imdbRating": 8.5,
+    "matchReason": "Brief explanation (1-2 sentences) of why this content perfectly matches the thematic tag"
+  }
 ]
 
-Focus on content that truly embodies the thematic essence, not just surface-level genre matches. Recommend diverse, well-known content that clearly represents the theme.`,
+Focus on content that truly embodies the thematic essence, not just surface-level genre matches. Recommend diverse, well-known content that clearly represents the theme.
+
+Confidence scoring:
+- 0.9-1.0: Perfect thematic match, core narrative embodies the theme
+- 0.8-0.9: Strong match, major story elements align with theme
+- 0.7-0.8: Good match, clear thematic connections
+- 0.6-0.7: Moderate match, some thematic elements present`,
   };
 
   const user = {
     role: 'user' as const,
-    content: `Find movies and TV shows that match this thematic genre: "${thematicTag}"\n\nRecommend a diverse mix of movies and TV shows that capture this thematic essence.`,
+    content: `Find movies and TV shows that match this thematic genre: "${thematicTag}"\n\nRecommend a diverse mix of movies and TV shows that capture this thematic essence. Include confidence scores and explain why each matches.`,
   };
 
   try {
@@ -1280,7 +1299,14 @@ Focus on content that truly embodies the thematic essence, not just surface-leve
 export async function searchByEmotionalTone(
   emotionalTag: string,
   contentType?: 'movie' | 'tv',
-): Promise<Array<{title: string; year: string; type: 'movie' | 'tv'}> | null> {
+): Promise<Array<{
+  title: string;
+  year: string;
+  type: 'movie' | 'tv';
+  confidence: number;
+  matchReason: string;
+  imdbRating?: number;
+}> | null> {
   const typeFilter =
     contentType === 'movie'
       ? 'movies only'
@@ -1292,18 +1318,30 @@ export async function searchByEmotionalTone(
     role: 'system' as const,
     content: `You are Theater AI's content discovery assistant. Given an emotional tone/mood, recommend content that matches this emotional atmosphere.
 
-Return ONLY a JSON array of 10-15 recommendations with exact titles and years:
+Return ONLY a JSON array of 10-15 recommendations with exact titles, years, confidence scores, IMDb ratings, and match explanations:
 [
-  {"title": "Movie/Show Title", "year": "2024", "type": "movie"},
-  {"title": "Another Title", "year": "2023", "type": "tv"}
+  {
+    "title": "Movie/Show Title",
+    "year": "2024",
+    "type": "movie",
+    "confidence": 0.92,
+    "imdbRating": 8.3,
+    "matchReason": "Brief explanation (1-2 sentences) of why this content perfectly captures the emotional tone"
+  }
 ]
 
-Focus on content that truly captures the emotional tone and atmosphere, not just genre. Recommend diverse, well-known content.`,
+Focus on content that truly captures the emotional tone and atmosphere, not just genre. Recommend diverse, well-known content.
+
+Confidence scoring:
+- 0.9-1.0: Perfect emotional match, core atmosphere embodies the tone
+- 0.8-0.9: Strong match, dominant emotional elements align
+- 0.7-0.8: Good match, clear emotional connections
+- 0.6-0.7: Moderate match, some emotional elements present`,
   };
 
   const user = {
     role: 'user' as const,
-    content: `Find ${typeFilter} that match this emotional tone: "${emotionalTag}"\n\nRecommend content that captures this emotional atmosphere and mood.${
+    content: `Find ${typeFilter} that match this emotional tone: "${emotionalTag}"\n\nRecommend content that captures this emotional atmosphere and mood. Include confidence scores and explain why each matches.${
       contentType
         ? ` IMPORTANT: Return ONLY ${
             contentType === 'movie' ? 'movies' : 'TV shows'

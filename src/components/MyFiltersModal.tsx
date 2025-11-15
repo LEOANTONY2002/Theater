@@ -120,14 +120,14 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   const [isLoadingWatchProviders, setIsLoadingWatchProviders] = useState(false);
   const [showAllGenresModal, setShowAllGenresModal] = useState(false);
   const [showAllProvidersModal, setShowAllProvidersModal] = useState(false);
-  
+
   // Phase 2: Advanced filter states
   const [selectedCast, setSelectedCast] = useState<any[]>([]);
   const [selectedCrew, setSelectedCrew] = useState<any[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<any[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<any[]>([]);
   const [selectedNetworks, setSelectedNetworks] = useState<any[]>([]);
-  
+
   const {isTablet} = useResponsive();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
@@ -156,9 +156,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
           try {
             // Load cast
             if (params.with_cast) {
-              const castIds = params.with_cast.split(',').map((id: string) => parseInt(id));
+              const castIds = params.with_cast
+                .split(',')
+                .map((id: string) => parseInt(id));
               const castDetails = await Promise.all(
-                castIds.map(async (id) => {
+                castIds.map(async id => {
                   try {
                     const person = await getPersonById(id);
                     return {
@@ -170,7 +172,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   } catch {
                     return {id, name: `Person ${id}`};
                   }
-                })
+                }),
               );
               setSelectedCast(castDetails);
             } else {
@@ -179,9 +181,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             // Load crew
             if (params.with_crew) {
-              const crewIds = params.with_crew.split(',').map((id: string) => parseInt(id));
+              const crewIds = params.with_crew
+                .split(',')
+                .map((id: string) => parseInt(id));
               const crewDetails = await Promise.all(
-                crewIds.map(async (id) => {
+                crewIds.map(async id => {
                   try {
                     const person = await getPersonById(id);
                     return {
@@ -193,7 +197,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   } catch {
                     return {id, name: `Person ${id}`};
                   }
-                })
+                }),
               );
               setSelectedCrew(crewDetails);
             } else {
@@ -202,16 +206,18 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             // Load keywords
             if (params.with_keywords) {
-              const keywordIds = params.with_keywords.split(',').map((id: string) => parseInt(id));
+              const keywordIds = params.with_keywords
+                .split(',')
+                .map((id: string) => parseInt(id));
               const keywordDetails = await Promise.all(
-                keywordIds.map(async (id) => {
+                keywordIds.map(async id => {
                   try {
                     const keyword = await getKeywordById(id);
                     return {id: keyword.id, name: keyword.name};
                   } catch {
                     return {id, name: `Keyword ${id}`};
                   }
-                })
+                }),
               );
               setSelectedKeywords(keywordDetails);
             } else {
@@ -220,9 +226,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             // Load companies
             if (params.with_companies) {
-              const companyIds = params.with_companies.split(',').map((id: string) => parseInt(id));
+              const companyIds = params.with_companies
+                .split(',')
+                .map((id: string) => parseInt(id));
               const companyDetails = await Promise.all(
-                companyIds.map(async (id) => {
+                companyIds.map(async id => {
                   try {
                     const company = await getCompanyById(id);
                     return {
@@ -233,7 +241,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   } catch {
                     return {id, name: `Company ${id}`};
                   }
-                })
+                }),
               );
               setSelectedCompanies(companyDetails);
             } else {
@@ -242,9 +250,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             // Load networks
             if (params.with_networks) {
-              const networkIds = params.with_networks.split(',').map((id: string) => parseInt(id));
+              const networkIds = params.with_networks
+                .split(',')
+                .map((id: string) => parseInt(id));
               const networkDetails = await Promise.all(
-                networkIds.map(async (id) => {
+                networkIds.map(async id => {
                   try {
                     const network = await getNetworkById(id);
                     return {
@@ -255,7 +265,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   } catch {
                     return {id, name: `Network ${id}`};
                   }
-                })
+                }),
               );
               setSelectedNetworks(networkDetails);
             } else {
@@ -704,7 +714,11 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 borderRightWidth: 1,
                 borderColor: colors.modal.content,
               }}>
-              <Ionicons name="refresh" size={20} color={colors.status.warning} />
+              <Ionicons
+                name="refresh"
+                size={20}
+                color={colors.status.warning}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowAISearch(true)}
@@ -1019,9 +1033,17 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             {/* Exclude Genres */}
             <View style={[styles.section, {paddingHorizontal: 0}]}>
               <View style={styles.sectionHeader}>
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: spacing.xs}}>
-                  <Ionicons name="close-circle-outline" size={18} color={colors.status.error} />
-                  <Text style={[styles.sectionTitle, {color: colors.text.secondary}]}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                  }}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      {color: colors.text.secondary},
+                    ]}>
                     Exclude Genres
                   </Text>
                 </View>
@@ -1034,7 +1056,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   {!!filters.without_genres && (
                     <TouchableOpacity
                       onPress={() =>
-                        setFilters(prev => ({...prev, without_genres: undefined}))
+                        setFilters(prev => ({
+                          ...prev,
+                          without_genres: undefined,
+                        }))
                       }>
                       <Text style={styles.showAllText}>Clear</Text>
                     </TouchableOpacity>
@@ -1074,7 +1099,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                           const movieMatch = movieGenres.find(
                             g => g.name === genre.name,
                           );
-                          const tvMatch = tvGenres.find(g => g.name === genre.name);
+                          const tvMatch = tvGenres.find(
+                            g => g.name === genre.name,
+                          );
                           const ids: number[] = [];
                           if (movieMatch) ids.push(movieMatch.id);
                           if (tvMatch) ids.push(tvMatch.id);
@@ -1100,7 +1127,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                             return {
                               ...prev,
                               without_genres:
-                                updated.length > 0 ? updated.join(',') : undefined,
+                                updated.length > 0
+                                  ? updated.join(',')
+                                  : undefined,
                             };
                           });
                         } else {
@@ -1116,7 +1145,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                             return {
                               ...prev,
                               without_genres:
-                                updated.length > 0 ? updated.join(',') : undefined,
+                                updated.length > 0
+                                  ? updated.join(',')
+                                  : undefined,
                             };
                           });
                         }
@@ -1124,7 +1155,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     />
                   );
                 }}
-                keyExtractor={(genre) => `exclude-${genre.id}`}
+                keyExtractor={genre => `exclude-${genre.id}`}
                 contentContainerStyle={{
                   paddingHorizontal: 16,
                   paddingRight: 32,
@@ -1252,7 +1283,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   maxValue={1000}
                   step={10}
                   onValueChange={value =>
-                    setFilters(prev => ({...prev, 'with_popularity.gte': value}))
+                    setFilters(prev => ({
+                      ...prev,
+                      'with_popularity.gte': value,
+                    }))
                   }
                   label="Minimum Popularity"
                   showValue={true}
@@ -1264,7 +1298,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   maxValue={1000}
                   step={10}
                   onValueChange={value =>
-                    setFilters(prev => ({...prev, 'with_popularity.lte': value}))
+                    setFilters(prev => ({
+                      ...prev,
+                      'with_popularity.lte': value,
+                    }))
                   }
                   label="Maximum Popularity"
                   showValue={true}
@@ -1337,7 +1374,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     setSelectedCompanies(items);
                     setFilters(prev => ({
                       ...prev,
-                      with_companies: items.map(i => i.id).join(',') || undefined,
+                      with_companies:
+                        items.map(i => i.id).join(',') || undefined,
                     }));
                   }}
                   searchFunction={searchCompanies}
@@ -1356,7 +1394,8 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                     setSelectedNetworks(items);
                     setFilters(prev => ({
                       ...prev,
-                      with_networks: items.map(i => i.id).join(',') || undefined,
+                      with_networks:
+                        items.map(i => i.id).join(',') || undefined,
                     }));
                   }}
                   searchFunction={searchNetworks}
@@ -1445,9 +1484,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                         }}>
                         <Ionicons
                           name={
-                            isSelected
-                              ? 'checkmark-circle'
-                              : 'ellipse-outline'
+                            isSelected ? 'checkmark-circle' : 'ellipse-outline'
                           }
                           size={20}
                           color={

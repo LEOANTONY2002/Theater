@@ -835,7 +835,7 @@ export const MySpaceScreen = React.memo(() => {
           {/* Cinema DNA Badge */}
           {cinemaDNA && (
             <TouchableOpacity
-              activeOpacity={0.8}
+              activeOpacity={1}
               onPress={() => navigateWithLimit('CinemaInsightsScreen')}
               style={{
                 flexDirection: 'row',

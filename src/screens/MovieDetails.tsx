@@ -30,6 +30,7 @@ import {Cast, Genre, Movie, Video} from '../types/movie';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {MovieTrivia} from '../components/MovieTrivia';
+import {CastCrewTabbedSection} from '../components/CastCrewTabbedSection';
 import {useNavigation, RouteProp} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 import {
@@ -76,8 +77,8 @@ import {MovieAIChatModal} from '../components/MovieAIChatModal';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
-import {offlineCache} from '../services/offlineCache';
 import {HistoryManager} from '../store/history';
+import {getRealm} from '../database/realm';
 import ShareLib from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
@@ -164,9 +165,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     const checkStatus = async () => {
       try {
         const online = await checkInternet();
-        const movieCache = await offlineCache.getCachedMovie(movie.id);
+        // Check if movie is cached in Realm
+        const realm = getRealm();
+        const cachedMovie = realm.objectForPrimaryKey('Movie', movie.id);
         setIsOnline(online);
-        setHasCache(!!movieCache);
+        setHasCache(!!cachedMovie);
       } catch (error) {
         console.error('Error checking connectivity/cache status:', error);
         setIsOnline(true); // Default to online if check fails
@@ -208,8 +211,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       }
 
       // Re-check cache status after retry
-      const movieCache = await offlineCache.getCachedMovie(movie.id);
-      setHasCache(!!movieCache);
+      const realm = getRealm();
+      const cachedMovie = realm.objectForPrimaryKey('Movie', movie.id);
+      setHasCache(!!cachedMovie);
     } catch (error) {
       console.error('Error during retry:', error);
     } finally {
@@ -1187,8 +1191,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
-          {type: 'crew', id: 'crew'},
-          {type: 'cast', id: 'cast'},
+          {type: 'castCrew', id: 'castCrew'},
           {type: 'providers', id: 'providers'},
           {type: 'trivia', id: 'trivia'},
           {type: 'similar', id: 'similar'},
@@ -1583,17 +1586,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   </LinearGradient>
                 </Animated.View>
               );
-            case 'crew':
-              const crewRaw = movieDetails?.credits ? [
-                ...getDirectors(movieDetails.credits).map((p: any) => ({...p, job: 'Director'})),
-                ...getWriters(movieDetails.credits).map((p: any) => ({...p, job: p.job || 'Writer'})),
-                ...getComposer(movieDetails.credits).map((p: any) => ({...p, job: 'Original Music Composer'})),
-                getCinematographer(movieDetails.credits),
-              ].filter(Boolean) : [];
-              
-              // Deduplicate crew members with multiple roles
+            case 'castCrew':
+              // Deduplicate crew by person ID and combine roles
               const crewMap = new Map();
-              crewRaw.forEach((person: any) => {
+              movieDetails?.credits?.crew?.forEach((person: any) => {
                 if (crewMap.has(person.id)) {
                   // Add role to existing person
                   const existing = crewMap.get(person.id);
@@ -1604,7 +1600,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               });
               const crew = Array.from(crewMap.values());
               
-              return crew.length > 0 ? (
+              return (
                 <Animated.View
                   style={{
                     marginVertical: spacing.lg,
@@ -1619,82 +1615,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       },
                     ],
                   }}>
-                  <Text style={styles.sectionTitle}>Crew</Text>
-                  <FlatList
-                    data={crew}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingHorizontal: 16}}
-                    renderItem={({item: person}: {item: any}) => (
-                      <TouchableOpacity
-                        style={styles.castItem}
-                        onPress={() =>
-                          handlePersonPress(person.id, person.name)
-                        }>
-                        <PersonCard
-                          item={getImageUrl(person.profile_path || '', 'w154')}
-                          onPress={() =>
-                            handlePersonPress(person.id, person.name)
-                          }
-                        />
-                        <Text style={styles.castName} numberOfLines={1}>
-                          {person.name}
-                        </Text>
-                        <Text style={styles.character} numberOfLines={1}>
-                          {person.job}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    keyExtractor={(person: any) => `${person.id}-${person.job}`}
+                  <CastCrewTabbedSection
+                    cast={movieDetails?.credits?.cast || []}
+                    crew={crew}
+                    onPersonPress={handlePersonPress}
                   />
                 </Animated.View>
-              ) : null;
-            case 'cast':
-              return movieDetails?.credits?.cast?.length > 0 ? (
-                <Animated.View
-                  style={{
-                    marginVertical: spacing.lg,
-                    marginTop: 0,
-                    opacity: castFadeAnim,
-                    transform: [
-                      {
-                        translateY: castFadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [20, 0],
-                        }),
-                      },
-                    ],
-                  }}>
-                  <Text style={styles.sectionTitle}>Cast</Text>
-                  <FlatList
-                    data={movieDetails.credits.cast.slice(0, 10)}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingHorizontal: 16}}
-                    renderItem={({item: person}: {item: Cast}) => (
-                      <TouchableOpacity
-                        style={styles.castItem}
-                        onPress={() =>
-                          handlePersonPress(person.id, person.name)
-                        }>
-                        <PersonCard
-                          item={getImageUrl(person.profile_path || '', 'w154')}
-                          onPress={() =>
-                            handlePersonPress(person.id, person.name)
-                          }
-                        />
-                        <Text style={styles.castName} numberOfLines={1}>
-                          {person.name}
-                        </Text>
-                        <Text style={styles.character} numberOfLines={1}>
-                          {person.character}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    keyExtractor={(person: Cast) => person.id.toString()}
-                  />
-                </Animated.View>
-              ) : null;
+              );
             case 'trivia':
               return (
                 <View style={{paddingHorizontal: spacing.md}}>

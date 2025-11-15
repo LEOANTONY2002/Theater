@@ -80,6 +80,15 @@ import {useIsFocused} from '@react-navigation/native';
 import {WatchlistAISection} from '../components/WatchlistAISection';
 import {ThematicGenres} from '../components/ThematicGenres';
 import {OTTCardsRow} from '../components/OTTCardsRow';
+import {
+  useCinemaDNA,
+  useTopDirectorContent,
+  useTopActorContent,
+} from '../hooks/useCinemaDNA';
+import {
+  useRewatchFavorites,
+  useRecentlyWatched,
+} from '../hooks/useRewatchFavorites';
 
 export const HomeScreen = React.memo(() => {
   const {data: region} = useRegion();
@@ -281,6 +290,17 @@ export const HomeScreen = React.memo(() => {
   // My OTTs (Home): get first 3 or fallback to Netflix/Prime/Disney
   const {data: myOTTs = []} = useMyOTTs();
   const {data: myLanguage} = useMyLanguage();
+
+  // CinemaDNA: Top Director and Actor content
+  const {data: cinemaDNA} = useCinemaDNA();
+  const topDirectorData = useTopDirectorContent(!!cinemaDNA);
+  const topActorData = useTopActorContent(!!cinemaDNA);
+
+  // Rewatch Favorites and Recently Watched (no API calls - just Realm)
+  const {data: rewatchFavorites = [], isLoading: isLoadingRewatch} =
+    useRewatchFavorites();
+  const {data: recentlyWatched = [], isLoading: isLoadingRecent} =
+    useRecentlyWatched();
 
   // Fetch available providers to enrich fallback OTTs with logos
   const {data: availableProviders = []} = useAvailableProviders(
@@ -544,7 +564,6 @@ export const HomeScreen = React.memo(() => {
 
     return unsubscribe;
   }, [isAIEnabled, navigation, queryClient]);
-
 
   const handleMoodComplete = async (answers: {[key: string]: string}) => {
     try {
@@ -829,6 +848,95 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
+    // Top Director Content section
+    if (cinemaDNA && topDirectorData.director && topDirectorData.isEnabled) {
+      const directorMovies =
+        topDirectorData.movieCredits.data?.pages?.[0]?.results || [];
+      const directorShows =
+        topDirectorData.tvCredits.data?.pages?.[0]?.results || [];
+      const combinedContent = [
+        ...directorMovies.map((m: any) => ({...m, type: 'movie' as const})),
+        ...directorShows.map((s: any) => ({...s, type: 'tv' as const})),
+      ].slice(0, 20);
+
+      if (combinedContent.length > 0) {
+        sectionsList.push({
+          id: 'topDirectorContent',
+          type: 'horizontalList',
+          title: `${topDirectorData.director.name}'s Work`,
+          data: combinedContent,
+          onSeeAllPress: () => {
+            // Navigate to person credits screen
+            navigation.navigate('PersonCredits' as any, {
+              personId: topDirectorData.director!.id,
+              personName: topDirectorData.director!.name,
+            });
+          },
+          isSeeAll: true,
+        });
+      }
+    }
+
+    // Top Actor Content section
+    if (cinemaDNA && topActorData.actor && topActorData.isEnabled) {
+      const actorMovies =
+        topActorData.movieCredits.data?.pages?.[0]?.results || [];
+      const actorShows = topActorData.tvCredits.data?.pages?.[0]?.results || [];
+      const combinedContent = [
+        ...actorMovies.map((m: any) => ({...m, type: 'movie' as const})),
+        ...actorShows.map((s: any) => ({...s, type: 'tv' as const})),
+      ].slice(0, 20);
+
+      if (combinedContent.length > 0) {
+        sectionsList.push({
+          id: 'topActorContent',
+          type: 'horizontalList',
+          title: `${topActorData.actor.name}'s Work`,
+          data: combinedContent,
+          onSeeAllPress: () => {
+            // Navigate to person credits screen
+            navigation.navigate('PersonCredits' as any, {
+              personId: topActorData.actor!.id,
+              personName: topActorData.actor!.name,
+            });
+          },
+          isSeeAll: true,
+        });
+      }
+    }
+
+    // Rewatch Favorites section (no API calls!)
+    if (rewatchFavorites.length > 0) {
+      sectionsList.push({
+        id: 'rewatchFavorites',
+        type: 'horizontalList',
+        title: 'Your Comfort Watches',
+        data: rewatchFavorites,
+        isSeeAll: false,
+      });
+    } else if (isLoadingRewatch) {
+      sectionsList.push({
+        id: 'rewatchFavoritesSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
+
+    // Recently Watched section (no API calls!)
+    if (recentlyWatched.length > 0) {
+      sectionsList.push({
+        id: 'recentlyWatched',
+        type: 'horizontalList',
+        title: 'Recently Visited',
+        data: recentlyWatched,
+        isSeeAll: false,
+      });
+    } else if (isLoadingRecent) {
+      sectionsList.push({
+        id: 'recentlyWatchedSkeleton',
+        type: 'horizontalListSkeleton',
+      });
+    }
+
     // Saved Filters section
     if (!isLoadingSavedFilters && savedFilters && savedFilters.length > 0) {
       sectionsList.push({
@@ -890,6 +998,22 @@ export const HomeScreen = React.memo(() => {
     personalizedRecommendations,
     isLoadingPersonalized,
     isFetchingPersonalized,
+    // CinemaDNA deps
+    cinemaDNA,
+    topDirectorData.director,
+    topDirectorData.isEnabled,
+    topDirectorData.movieCredits.data,
+    topDirectorData.tvCredits.data,
+    topActorData.actor,
+    topActorData.isEnabled,
+    topActorData.movieCredits.data,
+    topActorData.tvCredits.data,
+    navigation,
+    // Rewatch & Recently Watched deps
+    rewatchFavorites,
+    isLoadingRewatch,
+    recentlyWatched,
+    isLoadingRecent,
     // OTT deps
     baseOTTs,
     allOttsNormalized,

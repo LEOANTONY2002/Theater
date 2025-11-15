@@ -29,7 +29,6 @@ import {
   BannerSkeleton,
 } from '../components/LoadingSkeleton';
 import {FeaturedBanner} from '../components/FeaturedBanner';
-import {offlineCache} from '../services/offlineCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Props {

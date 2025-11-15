@@ -35,6 +35,17 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    
+    // Increase AsyncStorage size limit from 6MB to 50MB
+    val maxSize: Long = 50 * 1024 * 1024 // 50MB
+    try {
+      Class.forName("com.reactnativecommunity.asyncstorage.AsyncStorageModule")
+        .getField("sMaxInMemoryDatabaseSize")
+        .setLong(null, maxSize)
+    } catch (e: Exception) {
+      // AsyncStorage module not found or field doesn't exist, ignore
+    }
+    
     SoLoader.init(this, OpenSourceMergedSoMapping)
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
       // If you opted-in for the New Architecture, we load the native entry point for this app.

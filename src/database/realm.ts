@@ -1,7 +1,7 @@
 import Realm from 'realm';
 import {schemas} from './schema';
 
-export const SCHEMA_VERSION = 12; // Added new fields to WatchlistInsight: contentTypeSplit, moodProfile, hiddenGems, contentFreshness, completionInsight, recommendedTitles
+export const SCHEMA_VERSION = 15; // Added crew fields to HistoryItem for CinemaDNA: directors, writers, cast, composer, cinematographer, viewCount, runtime, genre_ids, original_language, origin_country
 
 let realmInstance: Realm | null = null;
 
