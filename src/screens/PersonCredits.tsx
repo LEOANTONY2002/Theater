@@ -252,9 +252,9 @@ export const PersonCreditsScreen = () => {
   });
 
   // If not focused, avoid rendering heavy content
-  if (!isFocused) {
-    return <View style={styles.container} />;
-  }
+  // if (!isFocused) {
+  //   return <View style={styles.container} />;
+  // }
 
   // Only render content after renderPhase allows it
   if (movieCredits.isLoading || tvCredits.isLoading) {

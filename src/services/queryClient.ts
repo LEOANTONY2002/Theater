@@ -44,7 +44,6 @@ setInterval(() => {
   const allQueries = queryClient.getQueryCache().getAll();
   if (allQueries.length > 200) {
     // Increased threshold from 100
-    console.warn('Too many queries - clearing cache');
     queryClient.clear();
   }
 }, 5 * 60 * 1000); // Check every 5 minutes (increased from 1 minute)

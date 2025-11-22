@@ -25,7 +25,6 @@ const getGeminiConfig = async () => {
       }:generateContent`,
     };
   } catch (error) {
-    console.error('Error getting AI settings, using defaults:', error);
     return {
       model: DEFAULT_MODEL,
       apiKey: settings.apiKey,
@@ -67,32 +66,52 @@ export async function getCriticRatings({
       // Check if ratings are still valid (6 months)
       const age = Date.now() - (cached.ai_ratings_cached_at as Date).getTime();
       if (age < 180 * 24 * 60 * 60 * 1000) {
-        console.log('[getCriticRatings] Using cached ratings from Realm');
-        return {
-          imdb: cached.ai_imdb_rating as number | null,
-          rotten_tomatoes: cached.ai_rotten_tomatoes as number | null,
-          imdb_votes: cached.ai_imdb_votes as number | null,
-          source: 'cached',
-        };
+        // If we're skipping IMDB (it was scraped) but don't have RT, re-fetch
+        const hasRottenTomatoes = cached.ai_rotten_tomatoes != null;
+
+        if (skipImdb && !hasRottenTomatoes) {
+          console.log('[getCriticRatings] Cache has no RT, refetching...');
+          // Don't return cache, continue to fetch RT below
+        } else {
+          return {
+            imdb: cached.ai_imdb_rating as number | null,
+            rotten_tomatoes: cached.ai_rotten_tomatoes as number | null,
+            imdb_votes: cached.ai_imdb_votes as number | null,
+            source: 'cached',
+          };
+        }
       }
     }
   }
 
   const yearSuffix = year ? ` (${year})` : '';
-  
+
   // If skipImdb is true (scraping succeeded), only fetch Rotten Tomatoes
   const prompt = skipImdb
-    ? `Provide the Rotten Tomatoes rating for the ${type} "${title}${yearSuffix}" as a strict JSON object.
-Return ONLY this JSON, no prose:
-{"rotten_tomatoes": <0-100 as number or null>}
-If unknown, set it to null.`
-    : `Provide the latest critic ratings for the ${type} "${title}${yearSuffix}" as a strict JSON object with numeric values if available.
-Return ONLY this JSON, no prose:
-{"imdb": <0-10 scale as number or null>, "rotten_tomatoes": <0-100 as number or null>, "imdb_votes": <integer number of votes or null>}
-If a value is unknown, set it to null. Do not include extra fields.`;
+    ? `You are a movie database expert. Provide the current Rotten Tomatoes Tomatometer rating (critic score, not audience score) for the ${type} "${title}${yearSuffix}".
+
+Return ONLY a JSON object in this exact format, with no additional text:
+{"rotten_tomatoes": <number from 0-100, or null if not available>}
+
+Example valid responses:
+{"rotten_tomatoes": 85}
+{"rotten_tomatoes": null}
+
+Your response:`
+    : `You are a movie database expert. Provide the latest critic ratings for the ${type} "${title}${yearSuffix}".
+
+Return ONLY a JSON object in this exact format, with no additional text:
+{"imdb": <number from 0-10, or null>, "rotten_tomatoes": <number from 0-100, or null>, "imdb_votes": <integer, or null>}
+
+Example valid response:
+{"imdb": 7.2, "rotten_tomatoes": 85, "imdb_votes": 125000}
+
+Your response:`;
 
   try {
     const response = await callGemini([{role: 'user', content: prompt}]);
+
+    console.log('[getCriticRatings] AI raw response:', response);
 
     let parsed: any = null;
     try {
@@ -102,7 +121,9 @@ If a value is unknown, set it to null. Do not include extra fields.`;
       } else {
         parsed = JSON.parse(response);
       }
-    } catch {
+      console.log('[getCriticRatings] Parsed JSON:', parsed);
+    } catch (e) {
+      console.log('[getCriticRatings] JSON parse error:', e);
       parsed = null;
     }
 
@@ -134,6 +155,8 @@ If a value is unknown, set it to null. Do not include extra fields.`;
           }
         : null;
 
+    console.log('[getCriticRatings] Normalized result:', normalized);
+
     // Cache in Realm if contentId provided
     if (contentId && normalized) {
       const {getRealm} = await import('../database/realm');
@@ -157,12 +180,10 @@ If a value is unknown, set it to null. Do not include extra fields.`;
           content.ai_ratings_cached_at = new Date();
         }
       });
-      console.log('[getCriticRatings] Cached ratings in Realm', {skipImdb});
     }
 
     return normalized;
   } catch (error) {
-    console.error('Error in getCriticRatings:', error);
     return null;
   }
 }
@@ -214,7 +235,6 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
       'NO_API_KEY: Please set your Gemini API key in AI Settings',
     );
     // Log once for debugging
-    console.error('[Gemini] Missing API key. Open Settings and add your key.');
     throw err;
   }
 
@@ -279,9 +299,6 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
           const base = 600 * Math.pow(2, attempt - 1);
           const jitter = Math.floor(Math.random() * 250);
           const delay = base + jitter;
-          console.warn(
-            `[Gemini] Transient error ${response.status}. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
-          );
           await new Promise(res => setTimeout(res, delay));
           continue;
         }
@@ -312,13 +329,9 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
         const base = 600 * Math.pow(2, attempt - 1);
         const jitter = Math.floor(Math.random() * 250);
         const delay = base + jitter;
-        console.warn(
-          `[Gemini] Network error. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
-        );
         await new Promise(res => setTimeout(res, delay));
         continue;
       }
-      console.error('Gemini API call failed:', error);
       throw error;
     }
   }
@@ -349,12 +362,9 @@ export async function getSimilarByStory({
       try {
         const parsed = JSON.parse(cached.ai_similar);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          console.log('[Gemini] Using cached AI similar from Realm');
           return parsed;
         }
-      } catch (e) {
-        console.warn('[Gemini] Failed to parse cached similar');
-      }
+      } catch (e) {}
     }
   }
 
@@ -391,12 +401,10 @@ export async function getSimilarByStory({
       } else {
         cacheTVShowAI(contentId, {similar: parsedArray});
       }
-      console.log('[Gemini] Cached AI similar in Realm');
     }
 
     return Array.isArray(parsedArray) ? parsedArray : [];
   } catch (error) {
-    console.error('Error parsing Gemini similar response:', error);
     return [];
   }
 }
@@ -436,7 +444,6 @@ export async function cinemaChat(
 
     return {aiResponse, arr};
   } catch (error) {
-    console.error('Error in cinemaChat:', error);
     throw error;
   }
 }
@@ -461,12 +468,9 @@ export async function getMovieTrivia({
       try {
         const parsed = JSON.parse(cached.ai_trivia);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          console.log('[Gemini] Using cached AI trivia from Realm');
           return parsed;
         }
-      } catch (e) {
-        console.warn('[Gemini] Failed to parse cached trivia');
-      }
+      } catch (e) {}
     }
   }
 
@@ -503,7 +507,6 @@ export async function getMovieTrivia({
         }
       }
     } catch (e) {
-      console.warn('Failed to parse trivia as JSON, using as plain text');
       // If all else fails, split by newlines and clean up
       triviaItems = response
         .split('\n')
@@ -533,12 +536,10 @@ export async function getMovieTrivia({
       } else {
         cacheTVShowAI(contentId, {trivia: triviaItems});
       }
-      console.log('[Gemini] Cached AI trivia in Realm');
     }
 
     return triviaFacts;
   } catch (error) {
-    console.error('Error in getMovieTrivia:', error);
     throw error;
   }
 }
@@ -682,7 +683,6 @@ export async function getPersonalizedRecommendation(
 
     return null;
   } catch (error) {
-    console.error('Error getting personalized recommendation:', error);
     return null;
   }
 }
@@ -778,7 +778,6 @@ Format: [{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2
 
     return validResults.length > 0 ? validResults : null;
   } catch (error) {
-    console.error('Error getting personalized recommendations:', error);
     return null;
   }
 }
@@ -881,7 +880,6 @@ STREAMING PROVIDERS: ${providersList}
     }
     return null;
   } catch (error) {
-    console.error('Error parsing natural language filters:', error);
     return null;
   }
 }
@@ -966,18 +964,17 @@ export async function analyzeWatchlistPatterns(
   // Helper to convert genre IDs to names
   const getGenreNames = (genreIds?: number[]): string => {
     if (!genreIds || genreIds.length === 0) return 'none';
-    return genreIds
-      .map(id => GENRE_MAP[id] || `Unknown(${id})`)
-      .join(', ');
+    return genreIds.map(id => GENRE_MAP[id] || `Unknown(${id})`).join(', ');
   };
 
   // Prepare summary
   const summary = watchlistItems
     .slice(0, 30)
     .map(item => {
-      const date = item.type === 'movie' ? item.release_date : item.first_air_date;
+      const date =
+        item.type === 'movie' ? item.release_date : item.first_air_date;
       const year = date ? date.split('-')[0] : 'Unknown';
-      
+
       return `- "${item.title || item.name}" (${item.type}, ${year}, rating: ${
         item.vote_average || 'N/A'
       }, genres: ${getGenreNames(item.genre_ids)})`;
@@ -1066,7 +1063,6 @@ Return ONLY a JSON object with these exact fields:
     }
     return null;
   } catch (error) {
-    console.error('Error analyzing watchlist patterns:', error);
     return null;
   }
 }
@@ -1143,7 +1139,6 @@ Return ONLY a JSON object with these exact fields:
     }
     return null;
   } catch (error) {
-    console.error('Error comparing content:', error);
     return null;
   }
 }
@@ -1167,14 +1162,9 @@ export async function generateTagsForContent(
       try {
         const parsed = JSON.parse(cached.ai_tags);
         if (parsed && parsed.thematicTags && parsed.emotionalTags) {
-          console.log(
-            `[generateTagsForContent] 📂 Using cached tags from Realm for "${title}"`,
-          );
           return parsed;
         }
-      } catch (e) {
-        console.warn('[generateTagsForContent] Failed to parse cached tags');
-      }
+      } catch (e) {}
     }
   }
 
@@ -1226,16 +1216,12 @@ Identify the key thematic and emotional tags.`,
         } else {
           cacheTVShowAI(contentId, {tags});
         }
-        console.log(
-          `[generateTagsForContent] ✅ Generated and cached tags in Realm for "${title}"`,
-        );
       }
 
       return tags;
     }
     return null;
   } catch (error) {
-    console.error('Error generating tags for content:', error);
     return null;
   }
 }
@@ -1290,7 +1276,6 @@ Confidence scoring:
     }
     return null;
   } catch (error) {
-    console.error('Error searching by thematic genre:', error);
     throw error; // Re-throw to let UI handle it
   }
 }
@@ -1359,7 +1344,6 @@ Confidence scoring:
     }
     return null;
   } catch (error) {
-    console.error('Error searching by emotional tone:', error);
     throw error; // Re-throw to let UI handle it
   }
 }
@@ -1454,7 +1438,6 @@ Focus on narrative themes, not standard genres like "Action" or "Drama".`,
     }
     return null;
   } catch (error) {
-    console.error('Error generating thematic genres:', error);
     return null;
   }
 }
@@ -1463,11 +1446,7 @@ Focus on narrative themes, not standard genres like "Action" or "Drama".`,
  * AI-powered search that understands natural language queries
  * Handles: fuzzy names, descriptions, vibes, comparisons, plot elements
  */
-export async function aiSearch({
-  query,
-}: {
-  query: string;
-}): Promise<{
+export async function aiSearch({query}: {query: string}): Promise<{
   bestMatch: {
     id: number;
     type: 'movie' | 'tv';
@@ -1492,8 +1471,6 @@ export async function aiSearch({
   source: 'ai' | 'tmdb_fallback';
 } | null> {
   try {
-    console.log('[AI Search] Query:', query);
-
     const prompt = `You are a movie/TV show search assistant. Analyze this user query and find the best matching content.
 
 User Query: "${query}"
@@ -1543,14 +1520,12 @@ Examples:
     // Parse AI response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.warn('[AI Search] No JSON found in response');
       return await fallbackToTMDBSearch(query);
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
 
     if (!parsed.bestMatch || !parsed.bestMatch.title) {
-      console.warn('[AI Search] Invalid response format');
       return await fallbackToTMDBSearch(query);
     }
 
@@ -1562,7 +1537,6 @@ Examples:
     );
 
     if (!bestMatchData) {
-      console.warn('[AI Search] Could not find best match on TMDB');
       return await fallbackToTMDBSearch(query);
     }
 
@@ -1588,13 +1562,13 @@ Examples:
       bestMatch: {
         ...bestMatchData,
         confidence: parsed.bestMatch.confidence || 0.8,
-        explanation: parsed.bestMatch.explanation || 'Matches your search query',
+        explanation:
+          parsed.bestMatch.explanation || 'Matches your search query',
       },
       moreResults: validMoreResults,
       source: 'ai',
     };
   } catch (error) {
-    console.error('[AI Search] Error:', error);
     return await fallbackToTMDBSearch(query);
   }
 }
@@ -1670,7 +1644,6 @@ async function searchTMDBForTitle(
 
     return null;
   } catch (error) {
-    console.error('[AI Search] TMDB search error:', error);
     return null;
   }
 }
@@ -1684,8 +1657,6 @@ async function fallbackToTMDBSearch(query: string): Promise<{
   source: 'ai' | 'tmdb_fallback';
 } | null> {
   try {
-    console.log('[AI Search] Falling back to TMDB search');
-
     // Search both movies and TV shows
     const [movieResults, tvResults] = await Promise.all([
       searchMovies(query, 1, {}),
@@ -1735,7 +1706,6 @@ async function fallbackToTMDBSearch(query: string): Promise<{
       source: 'tmdb_fallback',
     };
   } catch (error) {
-    console.error('[AI Search] Fallback error:', error);
     return null;
   }
 }

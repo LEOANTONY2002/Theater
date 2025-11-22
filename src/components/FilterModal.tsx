@@ -147,12 +147,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   // Only set filters and contentType from props when modal is opened or filters change
   useEffect(() => {
     if (visible) {
-      console.log('🎯 FilterModal opened with:', {
-        initialFilters,
-        initialContentType,
-        genres: initialFilters?.with_genres,
-        language: initialFilters?.with_original_language,
-      });
       // Normalize any legacy with_genres strings that used commas (AND) to pipes (OR)
       if (
         initialFilters?.with_genres &&
@@ -165,30 +159,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             .filter(Boolean)
             .join('|'),
         };
-        console.log('🔄 Normalized filters:', normalized);
         setFilters(normalized);
       } else {
-        console.log('📝 Setting filters directly:', initialFilters);
         setFilters(initialFilters);
       }
-      console.log('🎬 Setting contentType:', initialContentType);
       setContentType(initialContentType);
-
-      // Log filtered genres that will be shown
-      setTimeout(() => {
-        const genreList =
-          initialContentType === 'movie'
-            ? movieGenres
-            : initialContentType === 'tv'
-            ? tvGenres
-            : [...movieGenres, ...tvGenres];
-        console.log('📋 Genres being displayed:', {
-          contentType: initialContentType,
-          totalGenres: genreList.length,
-          genreIds: genreList.map(g => g.id).join(', '),
-          lookingFor: initialFilters?.with_genres,
-        });
-      }, 100);
     }
   }, [visible, initialFilters, initialContentType, movieGenres, tvGenres]);
 
@@ -961,14 +936,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     const tokens = filters.with_genres.split('|');
                     if (contentType !== 'all') {
                       const selected = tokens.includes(genre.id.toString());
-                      if (selected) {
-                        console.log('✅ Genre selected:', {
-                          genreName: genre.name,
-                          genreId: genre.id,
-                          contentType,
-                          tokens,
-                        });
-                      }
                       return selected;
                     }
                     const movieMatch = movieGenres.find(
@@ -1004,20 +971,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Exclude Genres */}
             <View style={[styles.section, {paddingHorizontal: 0}]}>
               <View style={styles.sectionHeader}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                  }}>
-                  <Text
-                    style={[
-                      styles.sectionTitle,
-                      {color: colors.text.secondary},
-                    ]}>
-                    Exclude Genres
-                  </Text>
-                </View>
+                <Text style={[styles.sectionTitle]}>Exclude Genres</Text>
                 <View
                   style={{
                     flexDirection: 'row',
@@ -1214,7 +1168,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             </View>
 
             {/* Vote Count Range */}
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
               <Text style={styles.sectionTitle}>Vote Count Range</Text>
               <View style={{gap: spacing.md}}>
                 <GradientProgressBar
@@ -1242,10 +1196,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   height={16}
                 />
               </View>
-            </View>
+            </View> */}
 
             {/* Popularity Range */}
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
               <Text style={styles.sectionTitle}>Popularity Range</Text>
               <View style={{gap: spacing.md}}>
                 <GradientProgressBar
@@ -1279,7 +1233,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   height={16}
                 />
               </View>
-            </View>
+            </View> */}
 
             {/* Cast & Crew */}
             <View style={styles.section}>
@@ -2383,11 +2337,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         visible={showAISearch}
         onClose={() => setShowAISearch(false)}
         onApplyFilters={(aiFilters, aiContentType, explanation) => {
-          console.log('AI filters applied in FilterModal:', {
-            aiFilters,
-            aiContentType,
-            explanation,
-          });
           setFilters(aiFilters);
           setContentType(aiContentType);
           setShowAISearch(false);

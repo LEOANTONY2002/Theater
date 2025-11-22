@@ -39,7 +39,6 @@ import {MaybeBlurView} from '../components/MaybeBlurView';
 import LinearGradient from 'react-native-linear-gradient';
 import FastImage from 'react-native-fast-image';
 import {GradientSpinner} from '../components/GradientSpinner';
-import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {HistoryManager} from '../store/history';
 import {RecentSearchItemsManager} from '../store/recentSearchItems';
@@ -50,7 +49,7 @@ import {AISearchView} from '../components/AISearchView';
 
 const MAX_RECENT_ITEMS = 10;
 
-type TabType = 'trending' | 'watchlists' | 'history';
+type TabType = 'trending' | 'history';
 
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
@@ -71,9 +70,6 @@ export const SearchScreen = React.memo(() => {
   const route = useRoute<RouteProp<SearchStackParamList, 'SearchScreen'>>();
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
-
-  // Get real watchlists data
-  const {data: watchlists = []} = useWatchlists();
 
   // Search or discover based on query - use enhanced search for better filtering
   const {
@@ -122,9 +118,7 @@ export const SearchScreen = React.memo(() => {
         const recentSearchData = await RecentSearchItemsManager.getAll();
         const recentSearchItems = recentSearchData.slice(0, MAX_RECENT_ITEMS);
         setRecentItems(recentSearchItems as unknown as ContentItem[]);
-      } catch (e) {
-        console.error('Error loading data from Realm:', e);
-      }
+      } catch (e) {}
     };
     loadData();
     const unsubscribe = navigation.addListener('focus', loadData);
@@ -205,14 +199,6 @@ export const SearchScreen = React.memo(() => {
     try {
       const itemData: any = item;
 
-      console.log('[Search] Saving recent item:', {
-        id: item.id,
-        type: item.type,
-        title: itemData.title,
-        name: itemData.name,
-        poster_path: item.poster_path,
-      });
-
       // Save to RecentSearchItems (specific to search screen) with full data
       await RecentSearchItemsManager.add({
         id: item.id,
@@ -234,9 +220,7 @@ export const SearchScreen = React.memo(() => {
         ...recentItems.filter(i => i.id !== item.id),
       ].slice(0, MAX_RECENT_ITEMS);
       setRecentItems(updatedItems);
-    } catch (error) {
-      console.error('Error saving recent search item to Realm:', error);
-    }
+    } catch (error) {}
   };
 
   // Clear all recent search items from Realm
@@ -244,9 +228,7 @@ export const SearchScreen = React.memo(() => {
     try {
       await RecentSearchItemsManager.clear();
       setRecentItems([]);
-    } catch (error) {
-      console.error('Error clearing recent search items from Realm:', error);
-    }
+    } catch (error) {}
   };
 
   const handleClearSearch = useCallback(() => {
@@ -279,14 +261,6 @@ export const SearchScreen = React.memo(() => {
       selectedContentType: 'all' | 'movie' | 'tv',
       explanation: string,
     ) => {
-      console.log('🤖 AI Filters applied:', {
-        filters,
-        contentType: selectedContentType,
-        explanation,
-        genres: filters.with_genres,
-        language: filters.with_original_language,
-        allFilters: filters,
-      });
       setActiveFilters(filters);
       setContentType(selectedContentType);
       setQuery(''); // Clear search query when using AI filters
@@ -703,91 +677,10 @@ export const SearchScreen = React.memo(() => {
     />
   );
 
-  const renderWatchlistsContent = () => {
-    return (
-      <View>
-        {watchlists?.length > 0 ? (
-          watchlists.map(watchlist => (
-            <WatchlistRow
-              key={watchlist.id}
-              watchlist={watchlist}
-              onItemPress={handleItemPress}
-              navigation={navigation}
-            />
-          ))
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 100,
-            }}>
-            <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  // Separate component to handle individual watchlist rendering
-  const WatchlistRow = ({watchlist, onItemPress, navigation}: any) => {
-    const {data: watchlistItems = []} = useWatchlistItems(watchlist.id);
-
-    // Transform watchlist items to ContentItem format
-    const transformedItems = watchlistItems.map((item: any) => {
-      if (item.type === 'tv') {
-        return {
-          ...item,
-          type: 'tv' as const,
-          name: item.name || item.title || '',
-          first_air_date: item.first_air_date || item.release_date || '',
-          genre_ids: item.genre_ids || [],
-          original_language: item.original_language || 'en',
-          origin_country: item.origin_country || [],
-        };
-      } else {
-        return {
-          ...item,
-          type: 'movie' as const,
-          title: item.title || item.name || '',
-          originalTitle: item.originalTitle || item.title || item.name || '',
-          release_date: item.release_date || item.first_air_date || '',
-          genre_ids: item.genre_ids || [],
-          original_language: item.original_language || 'en',
-          adult: false,
-          video: false,
-        };
-      }
-    });
-
-    return (
-      <HorizontalList
-        title={watchlist.name}
-        data={transformedItems}
-        isLoading={false}
-        onItemPress={onItemPress}
-        onSeeAllPress={() => {
-          navigation.navigate('Main', {
-            screen: 'MySpace',
-            params: {
-              screen: 'WatchlistDetails',
-              params: {
-                watchlistId: watchlist.id,
-              },
-            },
-          });
-        }}
-      />
-    );
-  };
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'trending':
         return renderTrendingContent();
-      case 'watchlists':
-        return renderWatchlistsContent();
       case 'history':
         return renderHistoryContent();
       default:
@@ -844,16 +737,7 @@ export const SearchScreen = React.memo(() => {
           />
         )}
         <View style={styles.searchContainer}>
-          <MicButton
-            onPartialText={text => {
-              if (text) setQuery(text);
-            }}
-            onFinalText={text => {
-              setQuery(text);
-            }}
-            locale={Platform.OS === 'android' ? 'en-US' : undefined}
-            mode="hold"
-          />
+          <Icon name="search" size={20} color={colors.text.tertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search movies & TV shows..."
@@ -862,12 +746,29 @@ export const SearchScreen = React.memo(() => {
             value={query}
             onChangeText={setQuery}
           />
+          <View style={styles.inlineFilterButton}>
+            <MicButton
+              onPartialText={text => {
+                if (text) setQuery(text);
+              }}
+              onFinalText={text => {
+                setQuery(text);
+              }}
+              locale={Platform.OS === 'android' ? 'en-US' : undefined}
+              mode="hold"
+            />
+          </View>
           <TouchableOpacity
-            style={styles.inlineFilterButton}
+            style={[
+              styles.inlineFilterButton,
+              {
+                padding: 10,
+              },
+            ]}
             onPress={() => setShowFilters(true)}>
             <Icon
-              name="options-outline"
-              size={20}
+              name="funnel"
+              size={15}
               color={hasActiveFilters ? colors.accent : colors.text.tertiary}
             />
           </TouchableOpacity>
@@ -1033,7 +934,6 @@ export const SearchScreen = React.memo(() => {
                   horizontal={true}
                   showsHorizontalScrollIndicator={false}>
                   {renderTabButton('trending', 'Trending')}
-                  {renderTabButton('watchlists', 'My Watchlists')}
                   {renderTabButton('history', 'History')}
                 </ScrollView>
 

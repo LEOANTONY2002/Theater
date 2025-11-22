@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import {Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type CacheEntry<T> = {
@@ -36,7 +36,7 @@ class CacheManager {
     prefix: string,
     key: string,
     data: T,
-    ttl: number = 24 * 60 * 60 * 1000
+    ttl: number = 24 * 60 * 60 * 1000,
   ): Promise<void> {
     const cacheKey = this.getKey(prefix, key);
     const entry: CacheEntry<T> = {
@@ -84,9 +84,11 @@ class CacheManager {
       if (prefix) {
         // Clear specific prefix
         const keys = await AsyncStorage.getAllKeys();
-        const keysToRemove = keys.filter(key => key.startsWith(`${this.PREFIX}${prefix}_`));
+        const keysToRemove = keys.filter(key =>
+          key.startsWith(`${this.PREFIX}${prefix}_`),
+        );
         await AsyncStorage.multiRemove(keysToRemove);
-        
+
         // Clear from memory cache
         keysToRemove.forEach(key => this.memoryCache.delete(key));
       } else {
@@ -96,9 +98,7 @@ class CacheManager {
         await AsyncStorage.multiRemove(cacheKeys);
         this.memoryCache.clear();
       }
-    } catch (error) {
-      console.error('Error clearing cache:', error);
-    }
+    } catch (error) {}
   }
 
   private async cleanupOldAsyncStorageEntries(): Promise<void> {
@@ -107,14 +107,11 @@ class CacheManager {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const oldCacheKeys = keys.filter(key => key.startsWith(this.PREFIX));
-      
+
       if (oldCacheKeys.length > 0) {
-        console.log(`[Cache] Cleaning up ${oldCacheKeys.length} old AsyncStorage cache entries (one-time migration)`);
         await AsyncStorage.multiRemove(oldCacheKeys);
       }
-    } catch (error) {
-      console.error('[Cache] Error during AsyncStorage cleanup:', error);
-    }
+    } catch (error) {}
   }
 
   private scheduleCleanup(): void {

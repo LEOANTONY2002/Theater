@@ -29,7 +29,11 @@ export function useContentTags({
   const [hasGenerated, setHasGenerated] = useState(false);
   const [tags, setTags] = useState<{
     thematicTags: Array<{tag: string; description: string; confidence: number}>;
-    emotionalTags: Array<{tag: string; description: string; confidence: number}>;
+    emotionalTags: Array<{
+      tag: string;
+      description: string;
+      confidence: number;
+    }>;
   } | null>(null);
 
   useEffect(() => {
@@ -40,7 +44,6 @@ export function useContentTags({
     const generateAndStoreTags = async () => {
       try {
         setIsGenerating(true);
-        console.log(`[ContentTags] 🤖 Fetching tags for "${title}"`);
 
         // Generate tags for this content
         // The AI call itself is cached for 6 months in gemini.ts
@@ -54,8 +57,6 @@ export function useContentTags({
         );
 
         if (result) {
-          console.log(`[ContentTags] ✅ Got tags (${result.thematicTags.length} thematic, ${result.emotionalTags.length} emotional)`);
-
           // Set tags for display (only if component still mounted)
           setTags(result);
 
@@ -74,11 +75,7 @@ export function useContentTags({
 
           // This runs async - even if user leaves, it will complete
           await ThematicTagsManager.addTags(allTags);
-          console.log(
-            `[ContentTags] ✅ Counted tags for "${title}" (visit recorded)`,
-          );
         } else {
-          console.log(`[ContentTags] ❌ No tags returned for "${title}"`);
         }
 
         setHasGenerated(true);

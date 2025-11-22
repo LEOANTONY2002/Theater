@@ -186,8 +186,8 @@ export type TVShowsStackParamList = {
   };
 };
 
-export type FiltersStackParamList = {
-  FiltersScreen: undefined;
+export type CurationStackParamList = {
+  CurationScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
   Category: {
@@ -250,7 +250,7 @@ export type TabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>;
   Search: NavigatorScreenParams<SearchStackParamList>;
   MoviesAndSeries: NavigatorScreenParams<MoviesAndSeriesStackParamList>;
-  Filters: NavigatorScreenParams<FiltersStackParamList>;
+  Curation: NavigatorScreenParams<CurationStackParamList>;
   MySpace: NavigatorScreenParams<MySpaceStackParamList>;
 };
 

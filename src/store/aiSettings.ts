@@ -40,7 +40,6 @@ export class AISettingsManager {
         isDefault,
       };
     } catch (error) {
-      console.error('[AISettings] Error getting settings from Realm:', error);
       return DEFAULT_SETTINGS;
     }
   }
@@ -62,7 +61,6 @@ export class AISettingsManager {
         isDefault.toString(),
       );
     } catch (error) {
-      console.error('[AISettings] Error saving settings to Realm:', error);
       throw error;
     }
   }
@@ -75,7 +73,6 @@ export class AISettingsManager {
         model,
       });
     } catch (error) {
-      console.error('[AISettings] Error updating model:', error);
       throw error;
     }
   }
@@ -89,7 +86,6 @@ export class AISettingsManager {
         // isDefault will auto-compute based on apiKey
       });
     } catch (error) {
-      console.error('[AISettings] Error updating API key:', error);
       throw error;
     }
   }

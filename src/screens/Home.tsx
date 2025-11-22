@@ -103,6 +103,7 @@ export const HomeScreen = React.memo(() => {
     data: personalizedRecommendations = [],
     isLoading: isLoadingPersonalized,
     isFetching: isFetchingPersonalized,
+    refetch: refetchPersonalized,
   } = usePersonalizedRecommendations();
   const [top10ContentByRegion, setTop10ContentByRegion] = useState<
     ContentItem[]
@@ -116,8 +117,7 @@ export const HomeScreen = React.memo(() => {
   const [moodLoaded, setMoodLoaded] = useState(false);
   // Increment only when mood is updated to signal MyNextWatch to refresh
   const [moodVersion, setMoodVersion] = useState(0);
-  const appState = useRef(AppState.currentState);
-  const hasCheckedHistoryOnAppOpen = useRef(false);
+  const hadNoHistoryRef = useRef(false);
   // We no longer force-remount MyNextWatch on Home focus; it can refresh itself via its own UI
   // const [moodRefreshKey, setMoodRefreshKey] = useState(0);
   const queryClient = useQueryClient();
@@ -463,7 +463,6 @@ export const HomeScreen = React.memo(() => {
         setMoodAnswers(null);
       }
     } catch (error) {
-      console.error('[Home] Error loading mood answers from Realm:', error);
     } finally {
       setMoodLoaded(true);
     }
@@ -489,84 +488,36 @@ export const HomeScreen = React.memo(() => {
       return;
     }
 
-    const checkHistoryChangeOnce = async () => {
-      // Only check once per app session
-      if (hasCheckedHistoryOnAppOpen.current) {
-        console.log('[Home] Already checked history this session, skipping');
-        return;
-      }
-
-      hasCheckedHistoryOnAppOpen.current = true;
-
-      try {
-        console.log(
-          '[Home] 🔍 Checking if history changed since last app session',
-        );
-
-        // The hook will handle cache comparison automatically
-        // Just invalidate to trigger a fresh check
-        queryClient.invalidateQueries({
-          queryKey: ['personalized_recommendations'],
-        });
-      } catch (error) {
-        console.error('[Home] Error checking history change:', error);
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      // Reset flag when app goes to background
-      if (nextAppState.match(/inactive|background/)) {
-        hasCheckedHistoryOnAppOpen.current = false;
-        console.log('[Home] App went to background - reset history check flag');
-      }
-      // Check when app comes to foreground
-      else if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
-        console.log(
-          '[Home] App became active - will check history on next Home visit',
-        );
-      }
-      appState.current = nextAppState;
-    });
-
-    // Check on initial mount (first time opening app)
-    checkHistoryChangeOnce();
-
-    return () => {
-      subscription.remove();
-    };
-  }, [isAIEnabled, queryClient]);
-
-  // Listen for navigation focus to check if first-time user just viewed content
-  useEffect(() => {
-    if (!isAIEnabled) {
-      return;
-    }
-
+    // Check on focus if we had no history initially
     const unsubscribe = navigation.addListener('focus', async () => {
-      // Check if this is first time and user now has history
-      const cache = await AIPersonalizationCacheManager.get();
-
-      if (!cache) {
-        // No cache exists - might be first time user
+      if (hadNoHistoryRef.current) {
+        // User had no history, check again on each visit
         const history = await HistoryManager.getAll();
-
-        if (history.length > 0 && !hasCheckedHistoryOnAppOpen.current) {
-          console.log(
-            '[Home] 🎉 First-time user has history now - triggering personalized recommendations',
-          );
-          hasCheckedHistoryOnAppOpen.current = true;
-          queryClient.invalidateQueries({
-            queryKey: ['personalized_recommendations'],
-          });
+        if (history.length > 0) {
+          hadNoHistoryRef.current = false; // Stop checking after first success
+          refetchPersonalized();
         }
       }
     });
 
     return unsubscribe;
-  }, [isAIEnabled, navigation, queryClient]);
+  }, [isAIEnabled, navigation, refetchPersonalized]);
+
+  // Track if user starts with no history
+  useEffect(() => {
+    if (!isAIEnabled) {
+      return;
+    }
+
+    const checkInitialHistory = async () => {
+      const history = await HistoryManager.getAll();
+      if (history.length === 0) {
+        hadNoHistoryRef.current = true;
+      }
+    };
+
+    checkInitialHistory();
+  }, [isAIEnabled]);
 
   const handleMoodComplete = async (answers: {[key: string]: string}) => {
     try {
@@ -592,9 +543,7 @@ export const HomeScreen = React.memo(() => {
       setMoodVersion(v => v + 1);
 
       setShowMoodModal(false);
-    } catch (error) {
-      console.error('Error updating mood preferences:', error);
-    }
+    } catch (error) {}
   };
 
   const handleMoodCancel = () => {

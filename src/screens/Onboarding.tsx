@@ -56,7 +56,6 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         const regionData = require('../utils/region.json');
         setRegions(regionData);
       } catch (err) {
-        console.error('Failed to load regions:', err);
         setError('Failed to load regions. Please try again.');
       }
     };
@@ -73,7 +72,6 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         await handleNextPress();
       }
     } catch (error) {
-      console.error('Error checking internet connection:', error);
     } finally {
       setIsCheckingConnection(false);
     }
@@ -107,7 +105,6 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         setShowRegionSelect(true);
         setCurrentStep('region');
       } catch (err) {
-        console.error('Error detecting region:', err);
         // Check if it's a network error
         const isOnline = await checkInternet();
         if (!isOnline) {
@@ -163,7 +160,6 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
       setCurrentStep('ai');
       animateTransition();
     } catch (err) {
-      console.error('Failed to save region:', err);
       setError('Failed to save region. Please try again.');
     }
   };
@@ -633,35 +629,35 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
       {currentStep !== 'ai' &&
         currentStep !== 'language' &&
         currentStep !== 'otts' && (
-        <View style={styles.bottomControls}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={require('../assets/symbol.webp')}
-              style={styles.logoImage}
-            />
-            <TouchableOpacity
-              onPress={handleNextPress}
-              activeOpacity={0.9}
-              disabled={isDetecting}
-              style={[
-                styles.nextButton,
-                isDetecting && {backgroundColor: 'rgba(0,0,0,0.3)'},
-              ]}>
-              {isDetecting ? (
-                <GradientSpinner
-                  colors={[colors.primary, colors.secondary]}
-                  size={40}
-                />
-              ) : (
-                <Image
-                  style={styles.nextIcon}
-                  source={require('../assets/next.webp')}
-                />
-              )}
-            </TouchableOpacity>
+          <View style={styles.bottomControls}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../assets/symbol.webp')}
+                style={styles.logoImage}
+              />
+              <TouchableOpacity
+                onPress={handleNextPress}
+                activeOpacity={0.9}
+                disabled={isDetecting}
+                style={[
+                  styles.nextButton,
+                  isDetecting && {backgroundColor: 'rgba(0,0,0,0.3)'},
+                ]}>
+                {isDetecting ? (
+                  <GradientSpinner
+                    colors={[colors.primary, colors.secondary]}
+                    size={40}
+                  />
+                ) : (
+                  <Image
+                    style={styles.nextIcon}
+                    source={require('../assets/next.webp')}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      )}
+        )}
 
       {currentStep !== 'ai' &&
         currentStep !== 'language' &&

@@ -95,27 +95,30 @@ export const OnlineAIScreen: React.FC = () => {
 
   const setAndPersistMessages = async (msgs: Message[]) => {
     const capped = cap20(msgs);
-    
+
     // Get current count from Realm to avoid duplicates
     const savedMessages = await ChatManager.getMessages(currentThreadId);
     const savedCount = savedMessages.length;
-    
+
     // Only save new messages
     const newMessages = capped.slice(savedCount);
-    
+
     for (let i = 0; i < newMessages.length; i++) {
       const msg = newMessages[i];
       await ChatManager.addMessage(currentThreadId, msg.role, msg.content);
-      
+
       // Save recommendations if assistant message has them
-      if (msg.role === 'assistant' && msg.tmdbResults && msg.tmdbResults.length > 0) {
+      if (
+        msg.role === 'assistant' &&
+        msg.tmdbResults &&
+        msg.tmdbResults.length > 0
+      ) {
         const messageIndex = savedCount + i;
-        console.log(`[OnlineAI] Saving ${msg.tmdbResults.length} recommendations at index ${messageIndex}`);
-        console.log('[OnlineAI] First tmdbResult:', msg.tmdbResults[0]);
         const recommendations = msg.tmdbResults
           .filter(r => {
             const valid = r.id && r.id !== 0 && r.type;
-            if (!valid) console.log('[OnlineAI] Filtering out invalid rec:', r);
+            if (!valid) {
+            }
             return valid;
           })
           .map(r => ({
@@ -129,11 +132,14 @@ export const OnlineAIScreen: React.FC = () => {
             first_air_date: r.first_air_date || '',
             overview: r.overview || '',
           }));
-        console.log(`[OnlineAI] After filter: ${recommendations.length} recommendations`);
-        await ChatManager.saveRecommendations(currentThreadId, messageIndex, recommendations);
+        await ChatManager.saveRecommendations(
+          currentThreadId,
+          messageIndex,
+          recommendations,
+        );
       }
     }
-    
+
     // Update UI state
     setMessages(capped);
     setThreads(prev => {
@@ -200,33 +206,36 @@ export const OnlineAIScreen: React.FC = () => {
     (async () => {
       try {
         const realmThreads = await ChatManager.getThreads();
-        
+
         let loadedThreads: ChatThread[] = [];
         let loadedCurrentId = '';
 
         if (realmThreads && realmThreads.length > 0) {
           // Load messages for each thread
           loadedThreads = await Promise.all(
-            realmThreads.map(async (t) => {
+            realmThreads.map(async t => {
               const realmMessages = await ChatManager.getMessages(t.threadId);
-              
+
               // Load recommendations for each assistant message
               const messagesWithRecs = await Promise.all(
                 realmMessages.map(async (msg, index) => {
-                  console.log(`[OnlineAI] Loading message ${index}: ${msg.role}`);
                   if (msg.role === 'assistant') {
-                    const recs = await ChatManager.getRecommendations(t.threadId, index);
-                    console.log(`[OnlineAI] Found ${recs?.length || 0} recommendations for message ${index}`);
+                    const recs = await ChatManager.getRecommendations(
+                      t.threadId,
+                      index,
+                    );
                     if (recs && recs.length > 0) {
-                      console.log('[OnlineAI] First rec:', recs[0]);
                       return {
                         ...msg,
                         tmdbResults: recs.map(r => ({
                           id: r.id,
                           type: r.type,
                           title: r.title || r.name,
-                          year: r.release_date ? parseInt(r.release_date.slice(0, 4)) :
-                                r.first_air_date ? parseInt(r.first_air_date.slice(0, 4)) : 0,
+                          year: r.release_date
+                            ? parseInt(r.release_date.slice(0, 4))
+                            : r.first_air_date
+                            ? parseInt(r.first_air_date.slice(0, 4))
+                            : 0,
                           poster_path: r.poster_path,
                           overview: r.overview,
                         })),
@@ -234,21 +243,25 @@ export const OnlineAIScreen: React.FC = () => {
                     }
                   }
                   return msg;
-                })
+                }),
               );
-              console.log('[OnlineAI] Final messages with recs:', messagesWithRecs.length);
-              
+
               return {
                 id: t.threadId,
                 title: t.title,
                 messages: messagesWithRecs,
               };
-            })
+            }),
           );
-          
+
           // Load last active thread ID
-          const savedThreadId = await RealmSettingsManager.getSetting('lastActiveThreadId');
-          if (savedThreadId && loadedThreads.find(t => t.id === savedThreadId)) {
+          const savedThreadId = await RealmSettingsManager.getSetting(
+            'lastActiveThreadId',
+          );
+          if (
+            savedThreadId &&
+            loadedThreads.find(t => t.id === savedThreadId)
+          ) {
             loadedCurrentId = savedThreadId;
           } else {
             loadedCurrentId = realmThreads[0].threadId;
@@ -259,11 +272,13 @@ export const OnlineAIScreen: React.FC = () => {
         if (loadedThreads.length === 0) {
           const threadId = String(Date.now());
           await ChatManager.createThread(threadId, '');
-          loadedThreads = [{
-            id: threadId,
-            title: '',
-            messages: [],
-          }];
+          loadedThreads = [
+            {
+              id: threadId,
+              title: '',
+              messages: [],
+            },
+          ];
           loadedCurrentId = threadId;
         }
 
@@ -391,7 +406,9 @@ export const OnlineAIScreen: React.FC = () => {
           .slice(0, 6)
           .join(' ');
         const updated: ChatThread = {...t, title: firstWords || t.title};
-        ChatManager.updateThread(currentThreadId, {title: firstWords || t.title});
+        ChatManager.updateThread(currentThreadId, {
+          title: firstWords || t.title,
+        });
         const next = [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
         return next;
       }
@@ -713,7 +730,10 @@ export const OnlineAIScreen: React.FC = () => {
           text: 'Delete',
           onPress: async () => {
             await ChatManager.deleteThread(currentThreadId);
-            await ChatManager.createThread(currentThreadId, threads.find(t => t.id === currentThreadId)?.title || '');
+            await ChatManager.createThread(
+              currentThreadId,
+              threads.find(t => t.id === currentThreadId)?.title || '',
+            );
             setMessages([]);
             setThreads(prev => {
               const idx = findCurrentIndex(prev, currentThreadId);
@@ -744,9 +764,9 @@ export const OnlineAIScreen: React.FC = () => {
 
   const deleteThread = async (id: string) => {
     await ChatManager.deleteThread(id);
-    
+
     const remaining = threads.filter(t => t.id !== id);
-    
+
     // If deleting current thread, choose a new current
     if (id === currentThreadId) {
       if (remaining.length > 0) {
@@ -767,7 +787,10 @@ export const OnlineAIScreen: React.FC = () => {
         setCurrentThreadId(newThread.id);
         setMessages([]);
         setThreads([newThread]);
-        await RealmSettingsManager.setSetting('lastActiveThreadId', newThread.id);
+        await RealmSettingsManager.setSetting(
+          'lastActiveThreadId',
+          newThread.id,
+        );
       }
     } else {
       // If deleting a non-current thread

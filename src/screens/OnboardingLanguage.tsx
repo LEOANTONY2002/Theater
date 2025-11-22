@@ -36,9 +36,7 @@ const OnboardingLanguage: React.FC<{
       if (lang) {
         setSelectedLanguage(lang);
       }
-    } catch (error) {
-      console.error('Error loading language:', error);
-    }
+    } catch (error) {}
   };
 
   const handleLanguageChange = (langs: Language[]) => {
@@ -54,9 +52,7 @@ const OnboardingLanguage: React.FC<{
       await SettingsManager.setMyLanguage(selectedLanguage);
       await queryClient.invalidateQueries({queryKey: ['my_language']});
       onDone();
-    } catch (error) {
-      console.error('Error saving language:', error);
-    }
+    } catch (error) {}
   };
 
   return (

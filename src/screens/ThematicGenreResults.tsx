@@ -74,8 +74,6 @@ export const ThematicGenreResultsScreen: React.FC = () => {
   } = useQuery({
     queryKey: ['thematic_genre_results', tag],
     queryFn: async (): Promise<ResultItem[]> => {
-      console.log(`🎬 Fetching content for thematic tag: "${tag}"`);
-
       // Get AI recommendations for this thematic genre (now with confidence & reasons)
       const aiResults = await searchByThematicGenre(tag);
 
@@ -120,7 +118,6 @@ export const ThematicGenreResultsScreen: React.FC = () => {
               : null;
           }
         } catch (err) {
-          console.error(`Error searching for ${item.title}:`, err);
           return null;
         }
       });
@@ -130,7 +127,6 @@ export const ThematicGenreResultsScreen: React.FC = () => {
         item => item !== null,
       ) as ResultItem[];
 
-      console.log(`✅ Found ${validContent.length} items for "${tag}"`);
       return validContent;
     },
     staleTime: 1000 * 60 * 30, // 30 minutes

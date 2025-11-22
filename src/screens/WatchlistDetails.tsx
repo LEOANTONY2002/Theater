@@ -59,9 +59,7 @@ export const WatchlistDetailsScreen: React.FC<WatchlistDetailsScreenProps> = ({
           watchlistId,
           itemId,
         });
-      } catch (error) {
-        console.error('Error removing item from watchlist:', error);
-      }
+      } catch (error) {}
     },
     [watchlistId, removeFromWatchlistMutation],
   );

@@ -163,9 +163,7 @@ export const FiltersScreen = React.memo(() => {
       try {
         await FiltersManager.saveFilter(name, params, type);
         queryClient.invalidateQueries({queryKey: ['savedFilters']});
-      } catch (error) {
-        console.error('Error saving filter:', error);
-      }
+      } catch (error) {}
     },
     [queryClient],
   );
@@ -173,11 +171,8 @@ export const FiltersScreen = React.memo(() => {
   const handleAISave = useCallback(
     async (filter: SavedFilter) => {
       try {
-        console.log('[Filters] AI filter saved:', filter);
         queryClient.invalidateQueries({queryKey: ['savedFilters']});
-      } catch (error) {
-        console.error('Error refreshing filters after AI save:', error);
-      }
+      } catch (error) {}
     },
     [queryClient],
   );

@@ -84,7 +84,14 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
 
         {v2 && (
           <View style={styles.infoContainer}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  width: isTablet ? 260 : 180,
+                },
+              ]}
+              numberOfLines={1}>
               {title}
             </Text>
           </View>

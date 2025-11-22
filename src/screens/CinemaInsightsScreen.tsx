@@ -66,10 +66,6 @@ export const CinemaInsightsScreen = () => {
       getCollectionProgress(),
     ]);
 
-    console.log('[CinemaInsights] Genre Preferences:', genrePrefs);
-    console.log('[CinemaInsights] Language Diversity:', langDiversity);
-    console.log('[CinemaInsights] Collections:', collectionProgress);
-
     setCinemaDNA(dna);
     setStats(explorationStats);
     setGenres(genrePrefs);

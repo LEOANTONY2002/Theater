@@ -60,26 +60,19 @@ export const OttTabbedSection: React.FC<Props> = ({
     kind,
     region?.iso_3166_1,
   );
-  
+
   const hook = contentType === 'movie' ? movieHook : tvHook;
 
   const data = useMemo(() => {
     const pages = hook?.data?.pages || [];
-    const results = pages.flatMap((page: any) =>
-      (page?.results || []).map((m: any) => ({
-        ...m,
-        type: contentType === 'movie' ? ('movie' as const) : ('tv' as const),
-      })),
-    ) || [];
-    
-    // Debug: log if we have items without poster_path
-    if (results.length > 0) {
-      const missingPosters = results.filter((item: any) => !item.poster_path);
-      if (missingPosters.length > 0) {
-        console.log(`[OTT ${contentType}] ${missingPosters.length}/${results.length} items missing poster_path for provider ${activeProviderId}`);
-      }
-    }
-    
+    const results =
+      pages.flatMap((page: any) =>
+        (page?.results || []).map((m: any) => ({
+          ...m,
+          type: contentType === 'movie' ? ('movie' as const) : ('tv' as const),
+        })),
+      ) || [];
+
     return results;
   }, [hook?.data, contentType, activeProviderId]);
 
@@ -88,7 +81,7 @@ export const OttTabbedSection: React.FC<Props> = ({
   const onSeeAllPress = useCallback(() => {
     const kindLabel = kind === 'latest' ? 'Latest' : 'Popular';
     const title = `${kindLabel} on ${activeProvider?.provider_name}`;
-    
+
     // Use centralized filter builder - single source of truth
     const filter = buildOTTFilters(
       activeProviderId,
@@ -96,7 +89,7 @@ export const OttTabbedSection: React.FC<Props> = ({
       contentType,
       region?.iso_3166_1,
     );
-    
+
     navigateWithLimit('Category', {
       title,
       contentType,
@@ -196,9 +189,13 @@ export const OttTabbedSection: React.FC<Props> = ({
     <View style={styles.container}>
       {/* Title */}
       <Text style={styles.sectionTitle}>
-        {isPersonalized 
-          ? (kind === 'latest' ? 'Latest releases on My OTTs' : 'Popular on My OTTs')
-          : (kind === 'latest' ? 'Latest releases on' : 'Popular on')}
+        {isPersonalized
+          ? kind === 'latest'
+            ? 'Latest releases on My OTTs'
+            : 'Popular on My OTTs'
+          : kind === 'latest'
+          ? 'Latest releases on'
+          : 'Popular on'}
       </Text>
 
       {/* Horizontal Tabs */}

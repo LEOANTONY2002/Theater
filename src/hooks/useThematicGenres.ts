@@ -20,9 +20,6 @@ export function useThematicGenres(limit: number = 10) {
 
       // Get top thematic tags from storage (instant, no AI call)
       const tags = await ThematicTagsManager.getTopTags(limit, 'thematic');
-      
-      console.log(`[useThematicGenres] 📊 Found ${tags.length} thematic tags:`, 
-        tags.map(t => `${t.tag}(count:${t.count})`).join(', '));
 
       if (tags.length === 0) {
         return null;

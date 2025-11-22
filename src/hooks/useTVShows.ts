@@ -54,7 +54,12 @@ export const useTVShowDetails = (tvShowId: number) => {
       const details = await getTVShowDetails(tvShowId);
       // Cache full details in Realm
       if (details) {
-        cacheTVShowDetails(details, details.credits?.cast, details.credits?.crew, details.videos?.results);
+        cacheTVShowDetails(
+          details,
+          details.credits?.cast,
+          details.credits?.crew,
+          details.videos?.results,
+        );
       }
       return details;
     },
@@ -181,6 +186,21 @@ export const useSeasonDetails = (tvId: number, seasonNumber?: number) => {
   });
 };
 
+export const useTVShowReviews = (tvId: number) => {
+  return useInfiniteQuery({
+    queryKey: ['tv', tvId, 'reviews'],
+    queryFn: async ({pageParam = 1}) => {
+      const {getTVShowReviews} = await import('../services/tmdb');
+      return await getTVShowReviews(tvId, pageParam as number);
+    },
+    getNextPageParam: (lastPage: any) =>
+      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
+  });
+};
+
 export const useTop10ShowsTodayByRegion = () => {
   const {data: region} = useQuery<{iso_3166_1: string; english_name: string}>({
     queryKey: ['region'],
@@ -222,14 +242,16 @@ export const useAISimilarTVShows = (
 
       // Import here to avoid circular dependency
       const {getTVShow} = await import('../database/contentCache');
-      
+
       // Check if TV show is in Realm and has AI similar data
       const cached = getTVShow(tvShowId);
       if (cached?.ai_similar) {
         try {
           const parsed = JSON.parse(cached.ai_similar as string);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            console.log('[useAISimilarTVShows] Using cached AI similar from Realm');
+            console.log(
+              '[useAISimilarTVShows] Using cached AI similar from Realm',
+            );
             const shows = await fetchContentFromAI(parsed, 'tv');
             return shows;
           }

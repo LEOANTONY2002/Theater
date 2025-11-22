@@ -50,10 +50,6 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 
-  // Watchlist hooks
-  const {addItem: addToWatchlist} = useUserContent('WATCHLIST');
-  const removeFromWatchlistMutation = useRemoveFromWatchlist();
-
   // Current item based on active index
   const currentItem = items[activeIndex];
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(
@@ -154,30 +150,6 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
     [navigation],
   );
 
-  const handleWatchlistPress = useCallback(async () => {
-    if (!currentItem) return;
-
-    if (isInAnyWatchlist && watchlistContainingItem) {
-      // If item is already in a watchlist, remove it
-      try {
-        await removeFromWatchlistMutation.mutateAsync({
-          watchlistId: watchlistContainingItem,
-          itemId: currentItem.id,
-        });
-      } catch (error) {
-        console.error('Error removing from watchlist:', error);
-      }
-    } else {
-      // If item is not in any watchlist, show modal to add it
-      setShowWatchlistModal(true);
-    }
-  }, [
-    currentItem,
-    isInAnyWatchlist,
-    watchlistContainingItem,
-    removeFromWatchlistMutation,
-  ]);
-
   // Get genres for current item
   const getItemGenres = useCallback(
     (item: any) => {
@@ -195,8 +167,8 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
 
   const styles = StyleSheet.create({
     container: {
-      marginBottom: spacing.lg,
-      marginTop: 60,
+      marginBottom: spacing.xl,
+      marginTop: isTablet ? 120 : 100,
     },
     cardContainer: {
       height: isTablet ? 400 : 220,
@@ -226,7 +198,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       position: 'absolute',
       left: 0,
       right: 0,
-      bottom: 0,
+      bottom: -1,
       height: '70%',
     },
     content: {
@@ -287,7 +259,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       justifyContent: 'center',
       alignItems: 'center',
       gap: spacing.xs,
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
     },
     dot: {
       width: 6,
@@ -314,12 +286,12 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
     },
     genreText: {
       ...typography.caption,
-      color: colors.text.primary,
-      fontSize: 11,
+      color: colors.text.muted,
+      fontSize: 12,
     },
     genreDot: {
       ...typography.caption,
-      color: colors.text.primary,
+      color: colors.text.muted,
       marginHorizontal: spacing.xs,
     },
     buttonContainer: {
@@ -468,7 +440,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
 
               {/* Action Buttons - only show for active card */}
 
-              <View style={styles.buttonContainer}>
+              {/* <View style={styles.buttonContainer}>
                 <LinearGradient
                   colors={[colors.primary, colors.secondary]}
                   style={styles.watchButton}>
@@ -496,7 +468,7 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
                     color={colors.text.primary}
                   />
                 </TouchableOpacity>
-              </View>
+              </View> */}
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -510,9 +482,6 @@ export const FiltersBanner: React.FC<FiltersBannerProps> = ({items}) => {
       isTablet,
       getItemGenres,
       activeIndex,
-      handleWatchlistPress,
-      isInAnyWatchlist,
-      removeFromWatchlistMutation.isPending,
     ],
   );
 

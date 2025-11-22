@@ -5,9 +5,36 @@ import {HistoryManager} from '../store/history';
 import {useAIEnabled} from './useAIEnabled';
 import {ContentItem} from '../components/MovieList';
 import {AIPersonalizationCacheManager} from '../database/managers';
+import {useRef, useEffect} from 'react';
+import {AppState} from 'react-native';
+
+// Track if API was called in current app session
+let apiCalledInSession = false;
+// Track last app state
+let lastAppState = AppState.currentState;
 
 export const usePersonalizedRecommendations = () => {
   const {isAIEnabled} = useAIEnabled();
+  const appStateRef = useRef(AppState.currentState);
+
+  // Reset session flag when app goes to background and comes back
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      // App coming from background to foreground - reset session flag
+      if (
+        appStateRef.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        apiCalledInSession = false;
+      }
+      appStateRef.current = nextAppState;
+      lastAppState = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   return useQuery({
     queryKey: ['personalized_recommendations'],
@@ -19,6 +46,7 @@ export const usePersonalizedRecommendations = () => {
       // Get user's watch history
       const history = await HistoryManager.getAll();
 
+      // If no history, return empty (but don't count as API called)
       if (history.length === 0) {
         return [];
       }
@@ -40,15 +68,22 @@ export const usePersonalizedRecommendations = () => {
           cache.inputHistoryIds,
         );
 
+        // If history hasn't changed, always use cache
         if (!hasChanged) {
-          console.log('[PersonalizedRecs] ✅ Using cached AI recommendations');
           return cache.aiRecommendations;
         }
 
-        console.log('[PersonalizedRecs] 🔄 History changed, fetching new AI recommendations');
+        // History changed - check if we should call API
+        if (apiCalledInSession) {
+          // Already called API in this session, use cache even if history changed
+
+          return cache.aiRecommendations;
+        }
       } else {
-        console.log('[PersonalizedRecs] 🆕 No cache, fetching AI recommendations');
       }
+
+      // Mark that we're calling the API in this session
+      apiCalledInSession = true;
 
       // Get AI recommendations (fresh call)
       const recommendations = await getPersonalizedRecommendations(history);
@@ -97,13 +132,12 @@ export const usePersonalizedRecommendations = () => {
       // Cache the results in Realm
       if (filtered.length > 0) {
         await AIPersonalizationCacheManager.set(top10History, filtered);
-        console.log('[PersonalizedRecs] ✅ Cached new recommendations');
       }
 
       return filtered;
     },
-    staleTime: 0, // Don't cache - Realm is the source of truth
-    gcTime: 1000 * 60 * 5, // 5 min memory cache for active session
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours - rely on cache invalidation logic
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours memory cache
     enabled: !!isAIEnabled,
     retry: 2,
   });

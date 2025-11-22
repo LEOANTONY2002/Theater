@@ -59,14 +59,17 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
       if (!items || items.length === 0) return;
       const size = isTablet ? 'original' : 'w500';
       items.slice(0, MAX_FILTERS).forEach((dataItem: any) => {
-        const posterPath = dataItem.item?.poster_path || dataItem.item?.backdrop_path;
+        const posterPath =
+          dataItem.item?.poster_path || dataItem.item?.backdrop_path;
         if (posterPath) {
           const uri = `https://image.tmdb.org/t/p/${size}${posterPath}`;
-          FastImage.preload([{
-            uri,
-            priority: FastImage.priority.high,
-            cache: FastImage.cacheControl.immutable,
-          }]);
+          FastImage.preload([
+            {
+              uri,
+              priority: FastImage.priority.high,
+              cache: FastImage.cacheControl.immutable,
+            },
+          ]);
         }
       });
     }, [items, isTablet]);
@@ -199,7 +202,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
                       style={[
                         styles.card,
                         {
-                          backgroundColor: colors.background.secondary,
+                          backgroundColor: colors.background.tertiarySolid,
                           width: cardWidth,
                           height: cardHeight,
                         },

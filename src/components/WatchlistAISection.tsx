@@ -38,7 +38,6 @@ export const WatchlistAISection: React.FC = () => {
 
       // Check if there are any watchlists first
       if (!watchlists || watchlists.length === 0) {
-        console.log('❌ No watchlists - clearing AI recommendations');
         setRecommendations([]);
         return;
       }
@@ -46,8 +45,10 @@ export const WatchlistAISection: React.FC = () => {
       // Get all recommendations from Realm
       const {getRealm} = await import('../database/realm');
       const realm = getRealm();
-      const allRecs = realm.objects('WatchlistRecommendation').sorted('timestamp', true);
-      
+      const allRecs = realm
+        .objects('WatchlistRecommendation')
+        .sorted('timestamp', true);
+
       if (allRecs.length === 0) {
         setRecommendations([]);
         return;
@@ -56,9 +57,8 @@ export const WatchlistAISection: React.FC = () => {
       // Get the most recent one
       const latest = allRecs[0];
       const items = JSON.parse(latest.items as string);
-      
+
       if (items && items.length > 0) {
-        console.log('✅ Loaded', items.length, 'AI recommendations from Realm for home');
         setRecommendations(items);
       } else {
         setRecommendations([]);

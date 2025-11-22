@@ -86,7 +86,6 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
           try {
             const parsed = JSON.parse(cached.ai_trivia as string);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              console.log('[MovieTrivia] Using cached trivia from Realm');
               const triviaFacts = parsed.map((fact: string) => ({
                 fact,
                 category: [
@@ -121,27 +120,36 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       // Check if it's a quota error - check multiple places where message might be
       const errorMessage =
         error?.message || error?.error?.message || JSON.stringify(error) || '';
-      const isQuotaError = 
+      const isQuotaError =
         errorMessage.includes('You exceeded your current quota') ||
         errorMessage.includes('RESOURCE_EXHAUSTED') ||
         error?.error?.code === 429;
-      
+
       if (isQuotaError) {
         // Try to load from cache one more time as fallback
         if (contentId) {
           try {
-            const {getMovie, getTVShow} = await import('../database/contentCache');
-            const cached = type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
-            
+            const {getMovie, getTVShow} = await import(
+              '../database/contentCache'
+            );
+            const cached =
+              type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
+
             if (cached?.ai_trivia) {
               const parsed = JSON.parse(cached.ai_trivia as string);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                console.log('[MovieTrivia] Using cached trivia after quota error');
                 const triviaFacts = parsed.map((fact: string) => ({
                   fact,
-                  category: ['Production', 'Cast', 'Behind the Scenes', 'Fun Fact'][
-                    Math.floor(Math.random() * 4)
-                  ] as 'Production' | 'Cast' | 'Behind the Scenes' | 'Fun Fact',
+                  category: [
+                    'Production',
+                    'Cast',
+                    'Behind the Scenes',
+                    'Fun Fact',
+                  ][Math.floor(Math.random() * 4)] as
+                    | 'Production'
+                    | 'Cast'
+                    | 'Behind the Scenes'
+                    | 'Fun Fact',
                 }));
                 setTrivia(triviaFacts);
                 setHasLoaded(true);
@@ -153,7 +161,7 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
             console.warn('[MovieTrivia] No cache available for fallback');
           }
         }
-        
+
         // No cache available, show quota error
         setQuotaError(true);
         setHasLoaded(true);
@@ -358,7 +366,11 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
                 screen: 'AISettings',
               });
             }}>
-            <Ionicons name="settings-outline" size={20} color={colors.background.primary} />
+            <Ionicons
+              name="settings-outline"
+              size={20}
+              color={colors.background.primary}
+            />
             <Text style={styles.settingsButtonText}>AI Settings</Text>
           </TouchableOpacity>
         </View>

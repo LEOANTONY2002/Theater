@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
   ActivityIndicator,
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
@@ -60,7 +61,6 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
     try {
       const stored = await WatchlistInsightsManager.getInsights(watchlistHash);
       if (stored) {
-        console.log('✅ Loaded insights from storage');
         setAnalysis(stored);
 
         // Load recommendations
@@ -68,7 +68,6 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
           watchlistHash,
         );
         if (storedRecs) {
-          console.log('✅ Loaded recommendations from storage');
           setRecommendations(storedRecs.items);
         }
       }
@@ -85,7 +84,6 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
 
     // If we already have analysis, just expand it
     if (analysis) {
-      console.log('📂 Expanding existing insights');
       setExpanded(true);
       return;
     }
@@ -95,7 +93,6 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
       setError(null);
       setExpanded(true);
 
-      console.log('🤖 Analyzing watchlist with AI...');
       const result = await analyzeWatchlistPatterns(watchlistItems);
 
       if (!result) {
@@ -123,8 +120,6 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
   ) => {
     try {
       setLoadingRecommendations(true);
-      console.log('🔍 Fetching TMDB content for AI recommendations...');
-      console.log('🎬 AI recommended:', aiRecommendations);
 
       const contentItems: any[] = [];
 
@@ -148,12 +143,6 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
           console.warn('Failed to search for:', rec.title, e);
         }
       }
-
-      console.log('✅ Fetched', contentItems.length, 'TMDB recommendations');
-      console.log(
-        '📝 Items:',
-        contentItems.map((c: any) => c.title || c.name),
-      );
 
       // Save to storage
       await WatchlistInsightsManager.saveRecommendations(
@@ -187,12 +176,13 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
   const styles = StyleSheet.create({
     container: {
       marginBottom: spacing.lg,
+      marginHorizontal: spacing.md,
     },
     card: {
       borderRadius: borderRadius.xl,
-      padding: spacing.lg,
+      padding: spacing.md,
       borderWidth: 1,
-      borderColor: colors.modal.border,
+      borderColor: colors.modal.content,
     },
     header: {
       flexDirection: 'row',
@@ -210,15 +200,28 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
     title: {
       ...typography.h3,
       color: colors.text.primary,
+      fontSize: isTablet ? 20 : 14,
     },
     description: {
       ...typography.body2,
-      color: colors.text.secondary,
-      fontSize: isTablet ? 14 : 12,
+      color: colors.text.tertiary,
+      fontSize: isTablet ? 14 : 10,
     },
     analyzeButton: {
       borderRadius: borderRadius.round,
       overflow: 'hidden',
+      backgroundColor: colors.modal.blur,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.content,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      width: isTablet ? 160 : 120,
     },
     analyzeButtonGradient: {
       flexDirection: 'row',
@@ -232,6 +235,7 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
       ...typography.body2,
       color: colors.text.primary,
       fontWeight: '600',
+      fontSize: isTablet ? 14 : 10,
     },
     errorContainer: {
       flexDirection: 'row',
@@ -575,62 +579,60 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['rgba(147, 51, 234, 0.1)', 'rgba(168, 85, 247, 0.05)']}
+        colors={['rgb(10, 0, 18)', 'rgb(16, 0, 28)']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
         style={styles.card}>
         {!expanded && (
-          <View>
-            <View style={{marginBottom: spacing.md}}>
-              <View
-                style={[
-                  styles.headerLeft,
-                  {
-                    marginBottom: spacing.xs,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.md,
-                  },
-                ]}>
-                <Icon
-                  name="analytics"
-                  size={isTablet ? 24 : 20}
-                  color={colors.accent}
-                  style={{
-                    backgroundColor: colors.modal.blur,
-                    padding: spacing.md,
-                    borderRadius: borderRadius.md,
-                  }}
-                />
-                <View style={{width: '90%', paddingRight: spacing.lg}}>
-                  <Text style={styles.title}>Watchlist Insights</Text>
-                  <Text style={styles.description}>
-                    {analysis
-                      ? 'See your watchlist analysis and personalized recommendations.'
-                      : 'Discover patterns in your watchlist and personalized recommendations.'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.analyzeButton}
-              onPress={handleAnalyze}
-              disabled={loading || watchlistItems.length < 3}>
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={styles.analyzeButtonGradient}>
+          <View
+            style={[
+              styles.headerLeft,
+              {
+                marginBottom: spacing.xs,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.md,
+              },
+            ]}>
+            <Image
+              source={require('../assets/insights.png')}
+              style={{
+                marginTop: -60,
+                marginLeft: isTablet ? 0 : -10,
+                width: isTablet ? 100 : 90,
+                height: isTablet ? 170 : 150,
+                objectFit: 'fill',
+              }}
+            />
+            <View style={{width: '90%', paddingRight: spacing.lg}}>
+              <Text style={styles.title}>Watchlist Insights</Text>
+              <Text style={styles.description}>
+                {analysis
+                  ? 'See your watchlist analysis and personalized recommendations.'
+                  : 'Discover patterns in your watchlist and personalized recommendations.'}
+              </Text>
+              <TouchableOpacity
+                style={styles.analyzeButton}
+                onPress={handleAnalyze}
+                disabled={loading || watchlistItems.length < 3}>
+                {/* <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={styles.analyzeButtonGradient}> */}
                 <>
                   <Icon
-                    name={analysis ? 'eye' : 'sparkles'}
-                    size={16}
+                    name={'sparkles'}
+                    size={isTablet ? 16 : 12}
                     color={colors.text.primary}
                   />
                   <Text style={styles.analyzeButtonText}>
                     {analysis ? 'View Insights' : 'Analyze'}
                   </Text>
                 </>
-              </LinearGradient>
-            </TouchableOpacity>
+                {/* </LinearGradient> */}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -732,7 +734,11 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                   <Text style={styles.sectionTitle}>Content Mix</Text>
                   <View style={styles.splitContainer}>
                     <View style={styles.splitItem}>
-                      <Icon name="film-outline" size={18} color={colors.accent} />
+                      <Icon
+                        name="film-outline"
+                        size={18}
+                        color={colors.accent}
+                      />
                       <Text style={styles.splitLabel}>Movies</Text>
                       <Text style={styles.splitValue}>
                         {analysis.contentTypeSplit.movies}%
@@ -788,119 +794,138 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
               {/* Hidden Gems */}
               {analysis.hiddenGems && analysis.hiddenGems.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>💎 Hidden Gems in Your List</Text>
-                  {analysis.hiddenGems.map((gem: any, index: number) => {
-                    // Find the actual item from watchlist to get poster
-                    // Try multiple matching strategies
-                    const gemItem = watchlistItems.find(item => {
-                      const itemTitle = (item.title || item.name || '').toLowerCase().trim();
-                      const gemTitle = (gem.title || '').toLowerCase().trim();
-                      
-                      // Exact match
-                      if (itemTitle === gemTitle) return true;
-                      
-                      // Partial match (gem title contains item title or vice versa)
-                      if (itemTitle.includes(gemTitle) || gemTitle.includes(itemTitle)) {
-                        return true;
+                  <Text style={styles.sectionTitle}>
+                    💎 Hidden Gems in Your List
+                  </Text>
+                  {analysis.hiddenGems
+                    .map((gem: any, index: number) => {
+                      // Find the actual item from watchlist to get poster
+                      // Try multiple matching strategies
+                      const gemItem = watchlistItems.find(item => {
+                        const itemTitle = (item.title || item.name || '')
+                          .toLowerCase()
+                          .trim();
+                        const gemTitle = (gem.title || '').toLowerCase().trim();
+
+                        // Exact match
+                        if (itemTitle === gemTitle) return true;
+
+                        // Partial match (gem title contains item title or vice versa)
+                        if (
+                          itemTitle.includes(gemTitle) ||
+                          gemTitle.includes(itemTitle)
+                        ) {
+                          return true;
+                        }
+
+                        return false;
+                      });
+
+                      // Skip if item not found
+                      if (!gemItem) {
+                        console.warn(
+                          `[HiddenGems] Could not find item for: "${gem.title}"`,
+                          '\nAvailable titles:',
+                          watchlistItems
+                            .slice(0, 5)
+                            .map(i => i.title || i.name),
+                        );
+                        return null;
                       }
-                      
-                      return false;
-                    });
 
-                    // Skip if item not found
-                    if (!gemItem) {
-                      console.warn(
-                        `[HiddenGems] Could not find item for: "${gem.title}"`,
-                        '\nAvailable titles:',
-                        watchlistItems.slice(0, 5).map(i => i.title || i.name),
+                      // Additional safety check
+                      if (!gemItem.id) {
+                        console.error(
+                          `[HiddenGems] Item found but has no ID:`,
+                          gemItem,
+                        );
+                        return null;
+                      }
+
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          style={styles.gemCard}
+                          onPress={() => {
+                            try {
+                              if (!gemItem.id) {
+                                console.error(
+                                  '[HiddenGems] Cannot navigate - no ID',
+                                );
+                                return;
+                              }
+
+                              // Navigation expects full object, not just ID
+                              if (gem.type === 'movie') {
+                                navigateWithLimit('MovieDetails', {
+                                  movie: {id: gemItem.id} as any,
+                                });
+                              } else {
+                                navigateWithLimit('TVShowDetails', {
+                                  show: {id: gemItem.id} as any,
+                                });
+                              }
+                            } catch (error) {
+                              console.error(
+                                '[HiddenGems] Navigation error:',
+                                error,
+                              );
+                            }
+                          }}
+                          activeOpacity={0.7}>
+                          <LinearGradient
+                            colors={[
+                              'rgba(147, 51, 234, 0.15)',
+                              'rgba(168, 85, 247, 0.05)',
+                            ]}
+                            start={{x: 0, y: 0}}
+                            end={{x: 1, y: 1}}
+                            style={styles.gemGradient}>
+                            {gemItem.poster_path && (
+                              <FastImage
+                                source={{
+                                  uri: `https://image.tmdb.org/t/p/w185${gemItem.poster_path}`,
+                                  priority: FastImage.priority.normal,
+                                }}
+                                style={styles.gemPoster}
+                                resizeMode="cover"
+                              />
+                            )}
+                            <View style={styles.gemContent}>
+                              <View style={styles.gemHeader}>
+                                <Icon
+                                  name="diamond"
+                                  size={16}
+                                  color={colors.accent}
+                                />
+                                <Text style={styles.gemTitle}>{gem.title}</Text>
+                                <Text style={styles.gemType}>
+                                  {gem.type === 'movie' ? '🎬' : '📺'}
+                                </Text>
+                              </View>
+                              <Text style={styles.gemReason}>{gem.reason}</Text>
+                              <View style={styles.gemFooter}>
+                                <Icon
+                                  name="star"
+                                  size={12}
+                                  color={colors.accent}
+                                />
+                                <Text style={styles.gemRating}>
+                                  {gemItem.vote_average?.toFixed(1) || 'N/A'}
+                                </Text>
+                                <Icon
+                                  name="arrow-forward"
+                                  size={14}
+                                  color={colors.text.secondary}
+                                  style={{marginLeft: 'auto'}}
+                                />
+                              </View>
+                            </View>
+                          </LinearGradient>
+                        </TouchableOpacity>
                       );
-                      return null;
-                    }
-
-                    // Additional safety check
-                    if (!gemItem.id) {
-                      console.error(`[HiddenGems] Item found but has no ID:`, gemItem);
-                      return null;
-                    }
-
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.gemCard}
-                        onPress={() => {
-                          try {
-                            if (!gemItem.id) {
-                              console.error('[HiddenGems] Cannot navigate - no ID');
-                              return;
-                            }
-                            
-                            // Navigation expects full object, not just ID
-                            if (gem.type === 'movie') {
-                              navigateWithLimit('MovieDetails', {
-                                movie: {id: gemItem.id} as any,
-                              });
-                            } else {
-                              navigateWithLimit('TVShowDetails', {
-                                show: {id: gemItem.id} as any,
-                              });
-                            }
-                          } catch (error) {
-                            console.error('[HiddenGems] Navigation error:', error);
-                          }
-                        }}
-                        activeOpacity={0.7}>
-                        <LinearGradient
-                          colors={[
-                            'rgba(147, 51, 234, 0.15)',
-                            'rgba(168, 85, 247, 0.05)',
-                          ]}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 1}}
-                          style={styles.gemGradient}>
-                          {gemItem.poster_path && (
-                            <FastImage
-                              source={{
-                                uri: `https://image.tmdb.org/t/p/w185${gemItem.poster_path}`,
-                                priority: FastImage.priority.normal,
-                              }}
-                              style={styles.gemPoster}
-                              resizeMode="cover"
-                            />
-                          )}
-                          <View style={styles.gemContent}>
-                            <View style={styles.gemHeader}>
-                              <Icon
-                                name="diamond"
-                                size={16}
-                                color={colors.accent}
-                              />
-                              <Text style={styles.gemTitle}>{gem.title}</Text>
-                              <Text style={styles.gemType}>
-                                {gem.type === 'movie' ? '🎬' : '📺'}
-                              </Text>
-                            </View>
-                            <Text style={styles.gemReason}>{gem.reason}</Text>
-                            <View style={styles.gemFooter}>
-                              <Icon
-                                name="star"
-                                size={12}
-                                color={colors.accent}
-                              />
-                              <Text style={styles.gemRating}>
-                                {gemItem.vote_average?.toFixed(1) || 'N/A'}
-                              </Text>
-                              <Icon
-                                name="arrow-forward"
-                                size={14}
-                                color={colors.text.secondary}
-                                style={{marginLeft: 'auto'}}
-                              />
-                            </View>
-                          </View>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    );
-                  }).filter(Boolean)}
+                    })
+                    .filter(Boolean)}
                 </View>
               )}
 
@@ -910,7 +935,11 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                   <Text style={styles.sectionTitle}>Era Preference</Text>
                   <View style={styles.freshnessCard}>
                     <View style={styles.freshnessHeader}>
-                      <Icon name="time-outline" size={20} color={colors.accent} />
+                      <Icon
+                        name="time-outline"
+                        size={20}
+                        color={colors.accent}
+                      />
                       <Text style={styles.freshnessPreference}>
                         {analysis.contentFreshness.preference}
                       </Text>
@@ -948,7 +977,11 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                     </View>
                     {analysis.completionInsight.suggestion && (
                       <View style={styles.suggestionBox}>
-                        <Icon name="bulb-outline" size={16} color={colors.accent} />
+                        <Icon
+                          name="bulb-outline"
+                          size={16}
+                          color={colors.accent}
+                        />
                         <Text style={styles.suggestionText}>
                           {analysis.completionInsight.suggestion}
                         </Text>
@@ -1038,7 +1071,6 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
                     await WatchlistInsightsManager.clearAll();
 
                     try {
-                      console.log('🤖 Re-analyzing watchlist with AI...');
                       const result = await analyzeWatchlistPatterns(
                         watchlistItems,
                       );

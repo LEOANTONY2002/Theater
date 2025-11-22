@@ -72,8 +72,6 @@ export const EmotionalToneResultsScreen: React.FC = () => {
   } = useQuery({
     queryKey: ['emotional_tone_results', tag, contentType],
     queryFn: async (): Promise<ResultItem[]> => {
-      console.log(`🎭 Fetching ${contentType} for emotional tone: "${tag}"`);
-
       // Get AI recommendations for this emotional tone (now with confidence & reasons)
       const aiResults = await searchByEmotionalTone(tag, contentType);
 
@@ -118,7 +116,6 @@ export const EmotionalToneResultsScreen: React.FC = () => {
               : null;
           }
         } catch (err) {
-          console.error(`Error searching for ${item.title}:`, err);
           return null;
         }
       });
@@ -128,9 +125,6 @@ export const EmotionalToneResultsScreen: React.FC = () => {
         item => item !== null,
       ) as ResultItem[];
 
-      console.log(
-        `✅ Found ${validContent.length} ${contentType} for "${tag}"`,
-      );
       return validContent;
     },
     staleTime: 1000 * 60 * 30, // 30 minutes
@@ -376,13 +370,13 @@ export const EmotionalToneResultsScreen: React.FC = () => {
                 };
               });
 
-            const posterPath =
-              item.content.poster_path || item.content.backdrop_path;
-            const posterUri = posterPath
-              ? `https://image.tmdb.org/t/p/${
-                  isTablet ? 'original' : 'w500'
-                }${posterPath}`
-              : null;
+              const posterPath =
+                item.content.poster_path || item.content.backdrop_path;
+              const posterUri = posterPath
+                ? `https://image.tmdb.org/t/p/${
+                    isTablet ? 'original' : 'w500'
+                  }${posterPath}`
+                : null;
 
               return (
                 <TouchableOpacity

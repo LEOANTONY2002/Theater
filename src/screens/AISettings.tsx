@@ -174,7 +174,6 @@ const AISettingsScreen: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading AI settings:', error);
       setInitialSettings({
         apiKey: null,
         model: DEFAULT_MODEL,
@@ -188,7 +187,6 @@ const AISettingsScreen: React.FC = () => {
       const models = await fetchGeminiModels(currentApiKey);
       setAvailableModels(models);
     } catch (error) {
-      console.error('Error loading available models:', error);
       setAvailableModels(FALLBACK_MODELS);
     } finally {
       setIsLoadingModels(false);
@@ -207,7 +205,7 @@ const AISettingsScreen: React.FC = () => {
     try {
       // Use the currently selected model for validation
       const modelToTest = selectedModel || 'gemini-2.0-flash-exp';
-      
+
       // Make a test call to the Gemini API to validate the key
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelToTest}:generateContent`,
@@ -233,7 +231,6 @@ const AISettingsScreen: React.FC = () => {
       );
 
       const responseData = await response.json();
-      console.log('[AISettings] Validation response:', response.status, responseData);
 
       // Success: 200 or any 2xx status
       if (response.status >= 200 && response.status < 300) {
@@ -244,15 +241,16 @@ const AISettingsScreen: React.FC = () => {
       if (responseData?.error?.message) {
         const errorMsg = responseData.error.message.toLowerCase();
         // Invalid API key errors
-        if (errorMsg.includes('api key not valid') || 
-            errorMsg.includes('invalid api key') ||
-            errorMsg.includes('api_key_invalid') ||
-            response.status === 400) {
+        if (
+          errorMsg.includes('api key not valid') ||
+          errorMsg.includes('invalid api key') ||
+          errorMsg.includes('api_key_invalid') ||
+          response.status === 400
+        ) {
           return false;
         }
         // Quota exceeded is actually a VALID key, just no quota
         if (errorMsg.includes('quota') || response.status === 429) {
-          console.log('[AISettings] API key is valid but quota exceeded');
           return true;
         }
       }
@@ -260,7 +258,6 @@ const AISettingsScreen: React.FC = () => {
       // For other errors, assume invalid
       return false;
     } catch (error) {
-      console.error('API key validation error:', error);
       return false;
     }
   };

@@ -42,17 +42,14 @@ const OnboardingOTTs: React.FC<{
       ],
       queryFn: async () => {
         const region = currentRegion?.iso_3166_1 || 'US';
-        console.log('[OnboardingOTTs] Fetching providers for region:', region);
         const m = await import('../services/tmdbWithCache');
         let result = await m.getAvailableWatchProviders(region);
-        
+
         // Fallback to US if current region has no providers
         if (!result || result.length === 0) {
-          console.log('[OnboardingOTTs] No providers for', region, '- falling back to US');
           result = await m.getAvailableWatchProviders('US');
         }
-        
-        console.log('[OnboardingOTTs] Providers loaded:', result?.length || 0, 'providers');
+
         return result;
       },
       staleTime: 1000 * 60 * 60,
@@ -68,9 +65,7 @@ const OnboardingOTTs: React.FC<{
       if (otts) {
         setLocalOTTs(otts);
       }
-    } catch (error) {
-      console.error('Error loading OTTs:', error);
-    }
+    } catch (error) {}
   };
 
   const toggleProvider = (provider: any) => {
@@ -101,9 +96,7 @@ const OnboardingOTTs: React.FC<{
         queryClient.invalidateQueries({queryKey: ['my_otts_tv']}),
       ]);
       onDone();
-    } catch (error) {
-      console.error('Error saving OTTs:', error);
-    }
+    } catch (error) {}
   };
 
   return (

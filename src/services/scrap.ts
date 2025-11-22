@@ -4,8 +4,10 @@ import * as cheerio from 'cheerio-without-node-native';
 import {getMovie} from '../database/contentCache';
 
 const headers = {
-  'User-Agent': 'PostmanRuntime/7.45.0',
-  Accept: '*/*',
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  Accept:
+    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.9',
   'Accept-Encoding': 'gzip, deflate, br',
   Connection: 'keep-alive',
@@ -15,7 +17,10 @@ const headers = {
   'Sec-Fetch-Site': 'none',
   'Sec-Fetch-User': '?1',
   'Cache-Control': 'max-age=0',
-  Referer: 'https://www.google.com/',
+  'sec-ch-ua':
+    '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+  'sec-ch-ua-mobile': '?0',
+  'sec-ch-ua-platform': '"Windows"',
 };
 
 /**
@@ -62,41 +67,118 @@ export const getIMDBRating = async (
     });
 
     const $ = cheerio.load(response.data);
-    // Get the rating container first
-    const ratingContainer = $(
-      '[data-testid="hero-rating-bar__aggregate-rating"]',
-    );
 
-    // Extract rating from the score element
-    const rating = ratingContainer
-      .find('[data-testid="hero-rating-bar__aggregate-rating__score"]')
-      .text()
-      .split('/')[0] // Gets "7.2" from "7.2/10"
-      .trim();
+    // Debug: Log available script tags
+    console.log('[IMDB Scraping] Found script tags:', {
+      jsonLdCount: $('script[type="application/ld+json"]').length,
+      hasNextData: $('#__NEXT_DATA__').length > 0,
+      totalScripts: $('script').length,
+    });
 
-    // Vote count is in the element that comes after the score element
-    const voteCountText = ratingContainer
-      .find('[data-testid="hero-rating-bar__aggregate-rating__score"]')
-      .first()
-      .next() // Skip the empty div (.sc-4dc495c1-5)
-      .next() // Get the vote count element
-      .text()
-      .trim();
+    // Method 1: Try to find JSON-LD structured data (most reliable)
+    let rating: string | null = null;
+    let voteCount: string | null = null;
 
-    const director = $(
-      'li[data-testid="title-pc-principal-credit"] .ipc-metadata-list-item__list-content-item',
-    )
-      .first()
-      .text()
-      .trim();
+    $('script[type="application/ld+json"]').each((_i: any, elem: any) => {
+      try {
+        const jsonData = JSON.parse($(elem).html() || '');
+        console.log('[IMDB Scraping] Checking JSON-LD:', Object.keys(jsonData));
+        if (jsonData.aggregateRating) {
+          rating = jsonData.aggregateRating.ratingValue?.toString();
+          voteCount = jsonData.aggregateRating.ratingCount?.toString();
+          console.log('[IMDB Scraping] Found rating in JSON-LD:', {
+            rating,
+            voteCount,
+          });
+        }
+      } catch (e) {
+        console.log('[IMDB Scraping] JSON-LD parse error:', e);
+      }
+    });
+
+    // Method 2: Try to find in __NEXT_DATA__ (Next.js data)
+    if (!rating) {
+      const nextDataScript = $('#__NEXT_DATA__').html();
+      if (nextDataScript) {
+        try {
+          const nextData = JSON.parse(nextDataScript);
+          console.log('[IMDB Scraping] __NEXT_DATA__ structure:', {
+            hasProps: !!nextData?.props,
+            hasPageProps: !!nextData?.props?.pageProps,
+            pagePropsKeys: nextData?.props?.pageProps
+              ? Object.keys(nextData.props.pageProps)
+              : [],
+          });
+
+          // Try different paths in __NEXT_DATA__
+          const ratingData =
+            nextData?.props?.pageProps?.aboveTheFoldData?.aggregateRating ||
+            nextData?.props?.pageProps?.mainColumnData?.aggregateRating;
+
+          if (ratingData) {
+            rating =
+              ratingData.aggregateRating?.toString() ||
+              ratingData.ratingValue?.toString();
+            voteCount =
+              ratingData.voteCount?.toString() ||
+              ratingData.ratingCount?.toString();
+            console.log('[IMDB Scraping] Found rating in __NEXT_DATA__:', {
+              rating,
+              voteCount,
+            });
+          }
+        } catch (e) {
+          console.log('[IMDB Scraping] Could not parse __NEXT_DATA__:', e);
+        }
+      } else {
+        console.log('[IMDB Scraping] No __NEXT_DATA__ found');
+      }
+    }
+
+    // Method 3: Try the original DOM-based approach as fallback
+    if (!rating) {
+      const ratingContainer = $(
+        '[data-testid="hero-rating-bar__aggregate-rating"]',
+      );
+
+      rating = ratingContainer
+        .find('[data-testid="hero-rating-bar__aggregate-rating__score"]')
+        .text()
+        .split('/')[0]
+        .trim();
+
+      voteCount = ratingContainer
+        .find('[data-testid="hero-rating-bar__aggregate-rating__score"]')
+        .first()
+        .next()
+        .next()
+        .text()
+        .trim();
+
+      if (rating) {
+        console.log('[IMDB Scraping] Found rating in DOM:', {
+          rating,
+          voteCount,
+        });
+      }
+    }
 
     if (!rating) {
       console.log('[IMDB Scraping] No rating found on page');
       return null;
     }
 
+    // Format vote count if it's a plain number
+    const formattedVoteCount =
+      voteCount &&
+      !voteCount.includes('M') &&
+      !voteCount.includes('K') &&
+      !isNaN(Number(voteCount))
+        ? formatVoteCount(Number(voteCount))
+        : voteCount || '';
+
     // Cache in Realm if movieId provided
-    if (movieId) {
+    if (movieId && rating) {
       try {
         const {getRealm} = await import('../database/realm');
         const realm = getRealm();
@@ -104,7 +186,7 @@ export const getIMDBRating = async (
           const movie = realm.objectForPrimaryKey('Movie', movieId);
           if (movie) {
             movie.ai_imdb_rating = parseFloat(rating);
-            movie.ai_imdb_votes = parseVoteCount(voteCountText);
+            movie.ai_imdb_votes = parseVoteCount(formattedVoteCount);
             movie.ai_ratings_cached_at = new Date();
             console.log('[IMDB Scraping] Cached rating in Realm:', rating);
           }
@@ -114,7 +196,7 @@ export const getIMDBRating = async (
       }
     }
 
-    return {rating, voteCount: voteCountText, director};
+    return {rating, voteCount: formattedVoteCount};
   } catch (error) {
     console.error('[IMDB Scraping] Error:', error);
     return null;

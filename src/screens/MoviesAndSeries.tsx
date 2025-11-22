@@ -37,6 +37,7 @@ export const MoviesAndSeriesScreen = React.memo(() => {
     },
     header: {
       borderWidth: 1,
+      borderBottomWidth: isGlass ? 0 : 1,
       borderColor: isGlass ? colors.modal.border : 'rgba(164, 164, 164, 0.15)',
       backgroundColor: isGlass ? colors.modal.blur : colors.modal.active,
       overflow: 'hidden',
@@ -60,7 +61,7 @@ export const MoviesAndSeriesScreen = React.memo(() => {
       alignItems: 'center',
     },
     tabButton: {
-      paddingVertical: isTablet ? spacing.md : spacing.sm,
+      paddingVertical: isTablet ? spacing.md : 14,
       paddingHorizontal: isTablet ? spacing.lg : 14,
       borderRadius: borderRadius.round,
       borderWidth: 1,
@@ -69,9 +70,11 @@ export const MoviesAndSeriesScreen = React.memo(() => {
     },
     activeTabButton: {
       backgroundColor: isGlass
-        ? colors.modal.active
+        ? colors.modal.header
         : colors.background.primary,
       borderColor: colors.modal.border,
+      borderBottomWidth: 0,
+      margin: 5,
     },
     tabText: {
       color: colors.text.secondary,

@@ -124,7 +124,6 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
 
   useEffect(() => {
     if (isError) {
-      console.error('Query error:', error);
     }
   }, [isError, error]);
 

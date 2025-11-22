@@ -91,7 +91,7 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
       justifyContent: 'space-between',
     },
     title: {
-      ...typography.h3,
+      ...typography.body2,
       color: colors.text.primary,
       flexDirection: 'row',
       alignItems: 'center',
@@ -200,8 +200,9 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: spacing.xs}}>
-          <Icon name={icon} size={18} color={colors.accent} />
+        <View
+          style={{flexDirection: 'row', alignItems: 'center', gap: spacing.xs}}>
+          {/* <Icon name={icon} size={18} color={colors.accent} /> */}
           <Text style={styles.title}>{title}</Text>
         </View>
       </View>
@@ -218,7 +219,9 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
           autoCapitalize="none"
           autoCorrect={false}
         />
-        {isSearching && <ActivityIndicator size="small" color={colors.accent} />}
+        {isSearching && (
+          <ActivityIndicator size="small" color={colors.accent} />
+        )}
         {query.length > 0 && (
           <TouchableOpacity
             onPress={() => {
@@ -246,7 +249,7 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
                 : item.logo_path
                 ? `https://image.tmdb.org/t/p/w92${item.logo_path}`
                 : null;
-              
+
               return (
                 <TouchableOpacity
                   style={styles.resultItem}
@@ -275,7 +278,8 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
                     )}
                     {item.known_for && item.known_for.length > 0 && (
                       <Text style={styles.resultMeta} numberOfLines={1}>
-                        Known for: {item.known_for
+                        Known for:{' '}
+                        {item.known_for
                           .slice(0, 2)
                           .map(work => work.title || work.name)
                           .filter(Boolean)
@@ -284,7 +288,9 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
                     )}
                   </View>
                   <Icon
-                    name={isSelected ? 'checkmark-circle' : 'add-circle-outline'}
+                    name={
+                      isSelected ? 'checkmark-circle' : 'add-circle-outline'
+                    }
                     size={24}
                     color={isSelected ? colors.accent : colors.text.secondary}
                   />
@@ -295,9 +301,12 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
         </View>
       )}
 
-      {showResults && results.length === 0 && !isSearching && query.length >= 2 && (
-        <Text style={styles.emptyText}>No results found</Text>
-      )}
+      {showResults &&
+        results.length === 0 &&
+        !isSearching &&
+        query.length >= 2 && (
+          <Text style={styles.emptyText}>No results found</Text>
+        )}
 
       {/* Selected Items */}
       {selectedItems.length > 0 && (
@@ -308,7 +317,7 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
               : item.logo_path
               ? `https://image.tmdb.org/t/p/w45${item.logo_path}`
               : null;
-            
+
             return (
               <View key={item.id} style={styles.selectedItem}>
                 {imageUrl && (

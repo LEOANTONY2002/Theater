@@ -18,7 +18,6 @@ const filterTagalogContent = async (data: any): Promise<any> => {
     }
     return data;
   } catch (error) {
-    console.error('Error filtering Tagalog content:', error);
     return data;
   }
 };
@@ -306,7 +305,7 @@ export const getTVShows = async (
 // Helper function to process genre operator
 const processGenreOperator = (filters: FilterParams) => {
   const processedFilters = {...filters};
-  
+
   // Handle genre operator: convert OR to comma, AND to ampersand
   if (processedFilters.with_genres && processedFilters.genre_operator) {
     const genres = processedFilters.with_genres.split('|').filter(Boolean);
@@ -320,7 +319,7 @@ const processGenreOperator = (filters: FilterParams) => {
     // Remove genre_operator as it's not a TMDB API param
     delete processedFilters.genre_operator;
   }
-  
+
   return processedFilters;
 };
 
@@ -351,7 +350,10 @@ export const searchMovies = async (
     ...processedFilters,
     sort_by: processedFilters.sort_by || 'popularity.desc',
     include_adult: false,
-    'vote_count.gte': processedFilters?.['vote_average.lte'] || processedFilters?.sort_by || 200,
+    'vote_count.gte':
+      processedFilters?.['vote_average.lte'] ||
+      processedFilters?.sort_by ||
+      200,
     'vote_average.gte': processedFilters['vote_average.gte'] || 4,
   };
 
@@ -451,15 +453,13 @@ export const getMovieDetails = async (movieId: number) => {
   try {
     const {getMovie} = await import('../database/contentCache');
     const cachedMovie = getMovie(movieId);
-    
+
     if (cachedMovie && cachedMovie.has_full_details) {
       // Check if cache is still valid (30 days)
       const cacheAge = Date.now() - cachedMovie.cached_at.getTime();
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-      
+
       if (cacheAge < thirtyDays) {
-        console.log(`[TMDB] Using cached movie details from Realm: ${movieId}`);
-        
         // Return in TMDB API format
         return {
           id: cachedMovie._id,
@@ -472,10 +472,11 @@ export const getMovieDetails = async (movieId: number) => {
           vote_count: cachedMovie.vote_count,
           release_date: cachedMovie.release_date,
           runtime: cachedMovie.runtime,
-          genres: cachedMovie.genres?.map((name: string, index: number) => ({
-            id: cachedMovie.genre_ids?.[index] || 0,
-            name,
-          })) || [],
+          genres:
+            cachedMovie.genres?.map((name: string, index: number) => ({
+              id: cachedMovie.genre_ids?.[index] || 0,
+              name,
+            })) || [],
           original_language: cachedMovie.original_language,
           popularity: cachedMovie.popularity,
           adult: cachedMovie.adult,
@@ -489,12 +490,9 @@ export const getMovieDetails = async (movieId: number) => {
         };
       }
     }
-  } catch (error) {
-    console.warn('[TMDB] Error reading from Realm cache, falling back to API:', error);
-  }
-  
+  } catch (error) {}
+
   // Cache miss or expired - fetch from TMDB
-  console.log(`[TMDB] Fetching movie details from API: ${movieId}`);
   const response = await tmdbApi.get(`/movie/${movieId}`, {
     params: {append_to_response: 'videos,credits'},
   });
@@ -506,15 +504,13 @@ export const getTVShowDetails = async (tvId: number) => {
   try {
     const {getTVShow} = await import('../database/contentCache');
     const cachedShow = getTVShow(tvId);
-    
+
     if (cachedShow && cachedShow.has_full_details) {
       // Check if cache is still valid (30 days)
       const cacheAge = Date.now() - cachedShow.cached_at.getTime();
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-      
+
       if (cacheAge < thirtyDays) {
-        console.log(`[TMDB] Using cached TV show details from Realm: ${tvId}`);
-        
         // Return in TMDB API format
         return {
           id: cachedShow._id,
@@ -529,11 +525,14 @@ export const getTVShowDetails = async (tvId: number) => {
           last_air_date: cachedShow.last_air_date,
           number_of_seasons: cachedShow.number_of_seasons,
           number_of_episodes: cachedShow.number_of_episodes,
-          episode_run_time: cachedShow.episode_run_time ? Array.from(cachedShow.episode_run_time) : [],
-          genres: cachedShow.genres?.map((name: string, index: number) => ({
-            id: cachedShow.genre_ids?.[index] || 0,
-            name,
-          })) || [],
+          episode_run_time: cachedShow.episode_run_time
+            ? Array.from(cachedShow.episode_run_time)
+            : [],
+          genres:
+            cachedShow.genres?.map((name: string, index: number) => ({
+              id: cachedShow.genre_ids?.[index] || 0,
+              name,
+            })) || [],
           original_language: cachedShow.original_language,
           popularity: cachedShow.popularity,
           status: cachedShow.status,
@@ -548,12 +547,9 @@ export const getTVShowDetails = async (tvId: number) => {
         };
       }
     }
-  } catch (error) {
-    console.warn('[TMDB] Error reading from Realm cache, falling back to API:', error);
-  }
-  
+  } catch (error) {}
+
   // Cache miss or expired - fetch from TMDB
-  console.log(`[TMDB] Fetching TV show details from API: ${tvId}`);
   const response = await tmdbApi.get(`/tv/${tvId}`, {
     params: {append_to_response: 'videos,credits'},
   });
@@ -789,31 +785,36 @@ export const getShowsByLanguageSimple = async (iso6391: string, page = 1) => {
 export const getTrendingMoviesByOTT = async (providerId: number, page = 1) => {
   if (!providerId) return {results: [], page: 1, total_pages: 1};
   const region = await SettingsManager.getRegion();
-  
+
   // Get trending movies first
   const trendingResponse = await tmdbApi.get('/trending/movie/week', {
     params: {page, include_adult: false},
   });
-  
+
   // Filter by provider availability
   const moviesWithProvider = await Promise.all(
     trendingResponse.data.results.map(async (movie: any) => {
       try {
-        const providersResponse = await tmdbApi.get(`/movie/${movie.id}/watch/providers`);
-        const providers = providersResponse.data.results?.[region?.iso_3166_1 || 'US'];
-        
-        if (providers?.flatrate?.some((p: any) => p.provider_id === providerId)) {
+        const providersResponse = await tmdbApi.get(
+          `/movie/${movie.id}/watch/providers`,
+        );
+        const providers =
+          providersResponse.data.results?.[region?.iso_3166_1 || 'US'];
+
+        if (
+          providers?.flatrate?.some((p: any) => p.provider_id === providerId)
+        ) {
           return movie;
         }
         return null;
       } catch {
         return null;
       }
-    })
+    }),
   );
-  
+
   const filteredResults = moviesWithProvider.filter(m => m !== null);
-  
+
   return {
     ...trendingResponse.data,
     results: filteredResults,
@@ -825,31 +826,36 @@ export const getTrendingMoviesByOTT = async (providerId: number, page = 1) => {
 export const getTrendingTVByOTT = async (providerId: number, page = 1) => {
   if (!providerId) return {results: [], page: 1, total_pages: 1};
   const region = await SettingsManager.getRegion();
-  
+
   // Get trending TV shows first
   const trendingResponse = await tmdbApi.get('/trending/tv/week', {
     params: {page, include_adult: false},
   });
-  
+
   // Filter by provider availability
   const showsWithProvider = await Promise.all(
     trendingResponse.data.results.map(async (show: any) => {
       try {
-        const providersResponse = await tmdbApi.get(`/tv/${show.id}/watch/providers`);
-        const providers = providersResponse.data.results?.[region?.iso_3166_1 || 'US'];
-        
-        if (providers?.flatrate?.some((p: any) => p.provider_id === providerId)) {
+        const providersResponse = await tmdbApi.get(
+          `/tv/${show.id}/watch/providers`,
+        );
+        const providers =
+          providersResponse.data.results?.[region?.iso_3166_1 || 'US'];
+
+        if (
+          providers?.flatrate?.some((p: any) => p.provider_id === providerId)
+        ) {
           return show;
         }
         return null;
       } catch {
         return null;
       }
-    })
+    }),
   );
-  
+
   const filteredResults = showsWithProvider.filter(s => s !== null);
-  
+
   return {
     ...trendingResponse.data,
     results: filteredResults,
@@ -892,24 +898,19 @@ export const getAvailableWatchProviders = async (region = 'US') => {
       watch_region: region,
     },
   });
-  console.log('[TMDB] API Response:', {
-    status: response.status,
-    resultsCount: response.data.results?.length || 0,
-    hasResults: !!response.data.results,
-  });
   return response.data.results || [];
 };
 
 export const getPersonMovieCredits = async (personId: number, page = 1) => {
   const response = await tmdbApi.get(`/person/${personId}/movie_credits`);
   const {cast, crew} = response.data;
-  
+
   // Combine cast and crew, removing duplicates by movie ID
   const allCredits = [...cast, ...crew];
   const uniqueCredits = Array.from(
-    new Map(allCredits.map(item => [item.id, item])).values()
+    new Map(allCredits.map(item => [item.id, item])).values(),
   );
-  
+
   // Sort by release date, most recent first
   const sortedCredits = uniqueCredits.sort((a: any, b: any) => {
     if (!a.release_date) return 1;
@@ -936,13 +937,13 @@ export const getPersonMovieCredits = async (personId: number, page = 1) => {
 export const getPersonTVCredits = async (personId: number, page = 1) => {
   const response = await tmdbApi.get(`/person/${personId}/tv_credits`);
   const {cast, crew} = response.data;
-  
+
   // Combine cast and crew, removing duplicates by TV show ID
   const allCredits = [...cast, ...crew];
   const uniqueCredits = Array.from(
-    new Map(allCredits.map(item => [item.id, item])).values()
+    new Map(allCredits.map(item => [item.id, item])).values(),
   );
-  
+
   // Sort by first air date, most recent first
   const sortedCredits = uniqueCredits.sort((a: any, b: any) => {
     if (!a.first_air_date) return 1;
@@ -986,7 +987,6 @@ export const getContentByGenre = async (
 ) => {
   if (!genreId || !contentType) {
     const error = new Error('Genre ID and content type are required');
-    console.error('Invalid parameters:', {genreId, contentType, error});
     throw error;
   }
 
@@ -1053,7 +1053,6 @@ export const getTop10MoviesTodayByRegion = async () => {
 
     return response.data.results.slice(0, 10);
   } catch (error) {
-    console.error('Error fetching top 10 movies:', error);
     return [];
   }
 };
@@ -1062,7 +1061,6 @@ export const getTop10TVShowsTodayByRegion = async () => {
   try {
     const region = await SettingsManager.getRegion();
     if (!region?.iso_3166_1) {
-      console.warn('No region set for getTop10TVShowsTodayByRegion');
       return [];
     }
 
@@ -1074,7 +1072,6 @@ export const getTop10TVShowsTodayByRegion = async () => {
 
     return response.data.results.slice(0, 10);
   } catch (error) {
-    console.error('Error fetching top 10 TV shows:', error);
     return [];
   }
 };
@@ -1207,12 +1204,12 @@ export const getComposer = (credits: any) => {
     ...extractCrewByJob(credits, 'Original Score'),
     ...extractCrewByJob(credits, 'Composer'),
   ];
-  
+
   // Deduplicate by person ID
   const uniqueComposers = Array.from(
-    new Map(composers.map(c => [c.id, c])).values()
+    new Map(composers.map(c => [c.id, c])).values(),
   );
-  
+
   return uniqueComposers;
 };
 
@@ -1232,9 +1229,9 @@ export const getProducers = (credits: any) => {
 export const getMoviesByDirector = async (directorId: number) => {
   const response = await tmdbApi.get(`/person/${directorId}/movie_credits`);
   // Filter only movies where they were director
-  const directedMovies = response.data.crew?.filter(
-    (credit: any) => credit.job === 'Director'
-  ) || [];
+  const directedMovies =
+    response.data.crew?.filter((credit: any) => credit.job === 'Director') ||
+    [];
   return directedMovies;
 };
 
@@ -1254,6 +1251,28 @@ export const getMoviesByActor = async (actorId: number) => {
 export const getTVShowsByActor = async (actorId: number) => {
   const response = await tmdbApi.get(`/person/${actorId}/tv_credits`);
   return response.data.cast || [];
+};
+
+// Get movie reviews
+export const getMovieReviews = async (movieId: number, page = 1) => {
+  const response = await tmdbApi.get(`/movie/${movieId}/reviews`, {
+    params: {
+      page,
+      language: 'en-US',
+    },
+  });
+  return response.data;
+};
+
+// Get TV show reviews
+export const getTVShowReviews = async (tvId: number, page = 1) => {
+  const response = await tmdbApi.get(`/tv/${tvId}/reviews`, {
+    params: {
+      page,
+      language: 'en-US',
+    },
+  });
+  return response.data;
 };
 
 export const checkTMDB = async (): Promise<boolean> => {

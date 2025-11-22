@@ -6,6 +6,7 @@ import {
   useNavigationState,
   NavigationState,
   getFocusedRouteNameFromRoute,
+  CommonActions,
 } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicon from 'react-native-vector-icons/Ionicons';
@@ -14,7 +15,7 @@ import {
   HomeStackNavigator,
   SearchStackNavigator,
   MoviesAndSeriesStackNavigator,
-  FiltersStackNavigator,
+  CurationStackNavigator,
   MySpaceStackNavigator,
 } from './TabStacks';
 import {colors, spacing, borderRadius} from '../styles/theme';
@@ -135,6 +136,7 @@ export const BottomTabNavigator = () => {
   return (
     <View style={styles.container}>
       <Tab.Navigator
+        detachInactiveScreens={true}
         screenOptions={{
           // Use a custom button to avoid Android ripple/highlight around icons
           tabBarButton: (props: BottomTabBarButtonProps) => (
@@ -195,6 +197,21 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="HomeTab"
           component={HomeStackNavigator}
+          listeners={({navigation}) => ({
+            tabPress: e => {
+              // prevent the default behavior (which would activate the tab first)
+              e.preventDefault();
+
+              // Navigate to the tab and explicitly target its initial screen.
+              // This causes the nested navigator to be at the root BEFORE the tab is shown.
+              navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'HomeTab',
+                  params: {screen: 'HomeScreen'}, // initial screen name in HomeStackNavigator
+                }),
+              );
+            },
+          })}
           options={{
             title: 'Home',
             tabBarIcon: ({focused, color}: any) => (
@@ -211,6 +228,21 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="Search"
           component={SearchStackNavigator}
+          listeners={({navigation}) => ({
+            tabPress: e => {
+              // prevent the default behavior (which would activate the tab first)
+              e.preventDefault();
+
+              // Navigate to the tab and explicitly target its initial screen.
+              // This causes the nested navigator to be at the root BEFORE the tab is shown.
+              navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'Search',
+                  params: {screen: 'SearchScreen'}, // initial screen name in SearchStackNavigator
+                }),
+              );
+            },
+          })}
           options={{
             tabBarIcon: ({focused, color}: any) => (
               <TabIcon
@@ -226,6 +258,20 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="MoviesAndSeries"
           component={MoviesAndSeriesStackNavigator}
+          listeners={({navigation}) => ({
+            tabPress: e => {
+              // prevent the default behavior (which would activate the tab first)
+              e.preventDefault();
+              // Navigate to the tab and explicitly target its initial screen.
+              // This causes the nested navigator to be at the root BEFORE the tab is shown.
+              navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'MoviesAndSeries',
+                  params: {screen: 'MoviesAndSeriesScreen'}, // initial screen name in MoviesAndSeriesStackNavigator
+                }),
+              );
+            },
+          })}
           options={{
             tabBarIcon: ({focused, color}: any) => (
               <TabIcon
@@ -239,30 +285,49 @@ export const BottomTabNavigator = () => {
           }}
         />
         <Tab.Screen
-          name="Filters"
-          component={FiltersStackNavigator}
+          name="Curation"
+          component={CurationStackNavigator}
+          listeners={({navigation}) => ({
+            tabPress: e => {
+              // prevent the default behavior (which would activate the tab first)
+              e.preventDefault();
+              // Navigate to the tab and explicitly target its initial screen.
+              // This causes the nested navigator to be at the root BEFORE the tab is shown.
+              navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'Curation',
+                  params: {screen: 'CurationScreen'}, // initial screen name in FiltersStackNavigator
+                }),
+              );
+            },
+          })}
           options={{
             tabBarIcon: ({focused, color}: any) => (
               <TabIcon
                 focused={focused}
-                name="options-outline"
+                name="layers"
                 color={color}
-                type="ion"
+                type="feather"
               />
             ),
-            tabBarLabel: 'Filters',
+            tabBarLabel: 'Curation',
           }}
         />
         <Tab.Screen
           name="MySpace"
           component={MySpaceStackNavigator}
-          listeners={({navigation}: any) => ({
-            tabPress: (e: any) => {
-              // Reset the MySpace stack to initial screen when tab is pressed
-              navigation.reset({
-                index: 0,
-                routes: [{name: 'MySpace'}],
-              });
+          listeners={({navigation}) => ({
+            tabPress: e => {
+              // prevent the default behavior (which would activate the tab first)
+              e.preventDefault();
+              // Navigate to the tab and explicitly target its initial screen.
+              // This causes the nested navigator to be at the root BEFORE the tab is shown.
+              navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'MySpace',
+                  params: {screen: 'MySpaceScreen'}, // initial screen name in MySpaceStackNavigator
+                }),
+              );
             },
           })}
           options={({route}: any) => {
@@ -271,7 +336,10 @@ export const BottomTabNavigator = () => {
             const shouldHide =
               routeName === 'OnlineAIScreen' ||
               routeName === 'CinemaInsightsScreen' ||
-              routeName === 'AboutLegalScreen';
+              routeName === 'AboutLegalScreen' ||
+              routeName === 'AISettingsScreen' ||
+              routeName === 'WatchlistsScreen' ||
+              routeName === 'MyFiltersScreen';
 
             return {
               title: 'Profile',

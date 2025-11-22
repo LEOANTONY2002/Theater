@@ -135,7 +135,6 @@ export const MyFiltersScreen = () => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
       setDeletingFilter(null);
     } catch (error) {
-      console.error('Failed to delete filter:', error);
       setDeletingFilter(null);
     }
   }, [deletingFilter, queryClient]);
@@ -150,9 +149,7 @@ export const MyFiltersScreen = () => {
       try {
         await FiltersManager.saveFilter(name, params as any, type);
         queryClient.invalidateQueries({queryKey: ['savedFilters']});
-      } catch (e) {
-        console.warn('Quick add failed', e);
-      }
+      } catch (e) {}
     },
     [queryClient],
   );
@@ -527,7 +524,6 @@ export const MyFiltersScreen = () => {
         );
         setPosterUri(uri);
       } catch (e) {
-        console.warn('Create poster failed', e);
         setShowPosterModal(false);
       } finally {
         setPosterLoading(false);
@@ -538,9 +534,7 @@ export const MyFiltersScreen = () => {
       if (!posterUri) return;
       try {
         await ShareLib.open({url: posterUri, type: 'image/png'});
-      } catch (e) {
-        console.warn('Share sheet error', e);
-      }
+      } catch (e) {}
     }, [posterUri]);
 
     const navigation = useNavigation<NativeStackNavigationProp<any>>();
@@ -1159,7 +1153,10 @@ export const MyFiltersScreen = () => {
                 />
               ))}
             </View>
-            <QuickAddFilters onQuickAdd={handleQuickAdd} onAISave={handleSaveFilter} />
+            <QuickAddFilters
+              onQuickAdd={handleQuickAdd}
+              onAISave={handleSaveFilter}
+            />
             <View style={{height: 200}} />
           </>
         ) : (
@@ -1176,7 +1173,10 @@ export const MyFiltersScreen = () => {
               isIcon={false}
               style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
             />
-            <QuickAddFilters onQuickAdd={handleQuickAdd} onAISave={handleSaveFilter} />
+            <QuickAddFilters
+              onQuickAdd={handleQuickAdd}
+              onAISave={handleSaveFilter}
+            />
           </View>
         )}
       </Animated.ScrollView>

@@ -58,7 +58,6 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.log('🤖 Calling AI to compare content with user preferences...');
       if (items.length < 2) {
         throw new Error('Please select at least 2 items to compare');
       }
@@ -78,7 +77,6 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
       if (!result) {
         throw new Error('Could not compare items. Please try again.');
       }
-      console.log('✅ Personalized AI comparison cached for 6 months');
       return result;
     },
     enabled: items.length >= 2, // Always enabled if items exist
@@ -88,13 +86,6 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
     refetchOnWindowFocus: false, // Don't refetch on window focus
     refetchOnReconnect: false, // Don't refetch on reconnect
   });
-
-  // Log cache status
-  React.useEffect(() => {
-    if (visible && analysis && !isFetching) {
-      console.log('📂 Using cached AI comparison (no API call)');
-    }
-  }, [visible, analysis, isFetching]);
 
   const error = queryError ? (queryError as Error).message : null;
 

@@ -50,9 +50,7 @@ export interface WatchlistRecommendation {
 
 export class WatchlistInsightsManager {
   // Create hash from watchlist items
-  static createHash(
-    watchlistItems: Array<{id: number; type: string}>,
-  ): string {
+  static createHash(watchlistItems: Array<{id: number; type: string}>): string {
     return watchlistItems
       .map(item => `${item.id}-${item.type}`)
       .sort()
@@ -67,26 +65,27 @@ export class WatchlistInsightsManager {
     try {
       const realm = getRealm();
       realm.write(() => {
-        realm.create('WatchlistInsight', {
-          _id: watchlistHash,
-          insights: JSON.stringify(data.insights),
-          topGenres: JSON.stringify(data.topGenres),
-          averageRating: data.averageRating,
-          decadeDistribution: JSON.stringify(data.decadeDistribution),
-          contentTypeSplit: JSON.stringify(data.contentTypeSplit),
-          moodProfile: JSON.stringify(data.moodProfile),
-          hiddenGems: JSON.stringify(data.hiddenGems),
-          contentFreshness: JSON.stringify(data.contentFreshness),
-          completionInsight: JSON.stringify(data.completionInsight),
-          recommendations: data.recommendations,
-          recommendedTitles: JSON.stringify(data.recommendedTitles),
-          timestamp: new Date(),
-        }, Realm.UpdateMode.Modified);
+        realm.create(
+          'WatchlistInsight',
+          {
+            _id: watchlistHash,
+            insights: JSON.stringify(data.insights),
+            topGenres: JSON.stringify(data.topGenres),
+            averageRating: data.averageRating,
+            decadeDistribution: JSON.stringify(data.decadeDistribution),
+            contentTypeSplit: JSON.stringify(data.contentTypeSplit),
+            moodProfile: JSON.stringify(data.moodProfile),
+            hiddenGems: JSON.stringify(data.hiddenGems),
+            contentFreshness: JSON.stringify(data.contentFreshness),
+            completionInsight: JSON.stringify(data.completionInsight),
+            recommendations: data.recommendations,
+            recommendedTitles: JSON.stringify(data.recommendedTitles),
+            timestamp: new Date(),
+          },
+          Realm.UpdateMode.Modified,
+        );
       });
-      console.log('💾 Saved watchlist insights in Realm:', watchlistHash);
-    } catch (error) {
-      console.error('Error saving insights:', error);
-    }
+    } catch (error) {}
   }
 
   // Get insights
@@ -95,7 +94,10 @@ export class WatchlistInsightsManager {
   ): Promise<WatchlistInsight | null> {
     try {
       const realm = getRealm();
-      const insight = realm.objectForPrimaryKey('WatchlistInsight', watchlistHash);
+      const insight = realm.objectForPrimaryKey(
+        'WatchlistInsight',
+        watchlistHash,
+      );
       if (insight) {
         return {
           watchlistHash,
@@ -127,7 +129,6 @@ export class WatchlistInsightsManager {
       }
       return null;
     } catch (error) {
-      console.error('Error getting insights:', error);
       return null;
     }
   }
@@ -140,16 +141,17 @@ export class WatchlistInsightsManager {
     try {
       const realm = getRealm();
       realm.write(() => {
-        realm.create('WatchlistRecommendation', {
-          _id: watchlistHash,
-          items: JSON.stringify(items),
-          timestamp: new Date(),
-        }, Realm.UpdateMode.Modified);
+        realm.create(
+          'WatchlistRecommendation',
+          {
+            _id: watchlistHash,
+            items: JSON.stringify(items),
+            timestamp: new Date(),
+          },
+          Realm.UpdateMode.Modified,
+        );
       });
-      console.log('💾 Saved watchlist recommendations in Realm:', watchlistHash, items.length, 'items');
-    } catch (error) {
-      console.error('Error saving recommendations:', error);
-    }
+    } catch (error) {}
   }
 
   // Get recommendations
@@ -158,7 +160,10 @@ export class WatchlistInsightsManager {
   ): Promise<WatchlistRecommendation | null> {
     try {
       const realm = getRealm();
-      const rec = realm.objectForPrimaryKey('WatchlistRecommendation', watchlistHash);
+      const rec = realm.objectForPrimaryKey(
+        'WatchlistRecommendation',
+        watchlistHash,
+      );
       if (rec) {
         return {
           watchlistHash,
@@ -168,7 +173,6 @@ export class WatchlistInsightsManager {
       }
       return null;
     } catch (error) {
-      console.error('Error getting recommendations:', error);
       return null;
     }
   }
@@ -183,9 +187,6 @@ export class WatchlistInsightsManager {
         realm.delete(insights);
         realm.delete(recs);
       });
-      console.log('🗑️ Cleared all watchlist insights and recommendations from Realm');
-    } catch (error) {
-      console.error('Error clearing insights:', error);
-    }
+    } catch (error) {}
   }
 }

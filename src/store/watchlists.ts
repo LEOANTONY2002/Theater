@@ -62,7 +62,6 @@ class WatchlistManager {
         itemCount: wl.itemCount as number,
       }));
     } catch (error) {
-      console.error('Error loading watchlists:', error);
       return [];
     }
   }
@@ -70,9 +69,11 @@ class WatchlistManager {
   async createWatchlist(name: string): Promise<Watchlist> {
     try {
       const realm = getRealm();
-      const id = `watchlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const id = `watchlist_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
       const now = new Date();
-      
+
       let newWatchlist: any;
       realm.write(() => {
         newWatchlist = realm.create('Watchlist', {
@@ -96,7 +97,6 @@ class WatchlistManager {
         itemCount: 0,
       };
     } catch (error) {
-      console.error('Error creating watchlist:', error);
       throw error;
     }
   }
@@ -105,7 +105,7 @@ class WatchlistManager {
     try {
       const realm = getRealm();
       const watchlist = realm.objectForPrimaryKey('Watchlist', id);
-      
+
       if (watchlist) {
         realm.write(() => {
           watchlist.name = name;
@@ -118,7 +118,6 @@ class WatchlistManager {
         this.notifyListeners();
       }
     } catch (error) {
-      console.error('Error updating watchlist:', error);
       throw error;
     }
   }
@@ -127,16 +126,18 @@ class WatchlistManager {
     try {
       const realm = getRealm();
       const watchlist = realm.objectForPrimaryKey('Watchlist', id);
-      
+
       if (!watchlist) {
         return;
       }
 
       realm.write(() => {
         // Remove all items from this watchlist
-        const items = realm.objects('WatchlistItem').filtered('watchlistId == $0', id);
+        const items = realm
+          .objects('WatchlistItem')
+          .filtered('watchlistId == $0', id);
         realm.delete(items);
-        
+
         // Remove the watchlist itself
         realm.delete(watchlist);
       });
@@ -146,7 +147,6 @@ class WatchlistManager {
       queryClient.invalidateQueries({queryKey: ['watchlist', id]});
       this.notifyListeners();
     } catch (error) {
-      console.error('Error deleting watchlist:', error);
       throw error;
     }
   }
@@ -154,15 +154,17 @@ class WatchlistManager {
   async getWatchlistItems(watchlistId: string): Promise<WatchlistItem[]> {
     try {
       const realm = getRealm();
-      const items = realm.objects('WatchlistItem')
+      const items = realm
+        .objects('WatchlistItem')
         .filtered('watchlistId == $0', watchlistId)
         .sorted('addedAt', true);
 
       return Array.from(items).map(item => {
         // Get full content data from Movie/TVShow table
-        const content = item.type === 'movie'
-          ? realm.objectForPrimaryKey('Movie', item.contentId)
-          : realm.objectForPrimaryKey('TVShow', item.contentId);
+        const content =
+          item.type === 'movie'
+            ? realm.objectForPrimaryKey('Movie', item.contentId)
+            : realm.objectForPrimaryKey('TVShow', item.contentId);
 
         if (content) {
           // Return full data from Movie/TVShow table
@@ -170,15 +172,25 @@ class WatchlistManager {
             id: item.contentId as number,
             title: content.title as string | undefined,
             name: content.name as string | undefined,
-            originalTitle: (content.original_title || content.original_name) as string | undefined,
+            originalTitle: (content.original_title || content.original_name) as
+              | string
+              | undefined,
             overview: content.overview as string,
             poster_path: content.poster_path as string,
             backdrop_path: content.backdrop_path as string,
             vote_average: content.vote_average as number,
             release_date: content.release_date as string | undefined,
             first_air_date: content.first_air_date as string | undefined,
-            genre_ids: content.genre_ids ? (Array.isArray(content.genre_ids) ? Array.from(content.genre_ids) : []) : [],
-            origin_country: content.origin_country ? (Array.isArray(content.origin_country) ? Array.from(content.origin_country) : []) : undefined,
+            genre_ids: content.genre_ids
+              ? Array.isArray(content.genre_ids)
+                ? Array.from(content.genre_ids)
+                : []
+              : [],
+            origin_country: content.origin_country
+              ? Array.isArray(content.origin_country)
+                ? Array.from(content.origin_country)
+                : []
+              : undefined,
             popularity: content.popularity as number,
             original_language: content.original_language as string,
             type: item.type as 'movie' | 'tv',
@@ -201,7 +213,6 @@ class WatchlistManager {
         };
       });
     } catch (error) {
-      console.error('Error loading watchlist items:', error);
       return [];
     }
   }
@@ -234,51 +245,59 @@ class WatchlistManager {
         // Store full content in Movie/TVShow table if not exists
         const existingContent = realm.objectForPrimaryKey(
           itemType === 'movie' ? 'Movie' : 'TVShow',
-          item.id
+          item.id,
         );
 
         if (!existingContent) {
           if (itemType === 'movie') {
             const movie = item as Movie;
-            realm.create('Movie', {
-              _id: movie.id,
-              title: movie.title || '',
-              original_title: movie.title || '',
-              overview: movie.overview || '',
-              poster_path: movie.poster_path,
-              backdrop_path: movie.backdrop_path,
-              vote_average: movie.vote_average || 0,
-              vote_count: 0,
-              release_date: movie.release_date,
-              runtime: 0,
-              genres: [],
-              genre_ids: movie.genre_ids || [],
-              original_language: movie.original_language || '',
-              popularity: movie.popularity || 0,
-              adult: false,
-              cached_at: new Date(),
-              has_full_details: false,
-            }, Realm.UpdateMode.Modified);
+            realm.create(
+              'Movie',
+              {
+                _id: movie.id,
+                title: movie.title || '',
+                original_title: movie.title || '',
+                overview: movie.overview || '',
+                poster_path: movie.poster_path,
+                backdrop_path: movie.backdrop_path,
+                vote_average: movie.vote_average || 0,
+                vote_count: 0,
+                release_date: movie.release_date,
+                runtime: 0,
+                genres: [],
+                genre_ids: movie.genre_ids || [],
+                original_language: movie.original_language || '',
+                popularity: movie.popularity || 0,
+                adult: false,
+                cached_at: new Date(),
+                has_full_details: false,
+              },
+              Realm.UpdateMode.Modified,
+            );
           } else {
             const tvShow = item as TVShow;
-            realm.create('TVShow', {
-              _id: tvShow.id,
-              name: tvShow.name || '',
-              original_name: tvShow.name || '',
-              overview: tvShow.overview || '',
-              poster_path: tvShow.poster_path,
-              backdrop_path: tvShow.backdrop_path,
-              vote_average: tvShow.vote_average || 0,
-              vote_count: 0,
-              first_air_date: tvShow.first_air_date,
-              genres: [],
-              genre_ids: tvShow.genre_ids || [],
-              original_language: tvShow.original_language || '',
-              popularity: tvShow.popularity || 0,
-              origin_country: tvShow.origin_country || [],
-              cached_at: new Date(),
-              has_full_details: false,
-            }, Realm.UpdateMode.Modified);
+            realm.create(
+              'TVShow',
+              {
+                _id: tvShow.id,
+                name: tvShow.name || '',
+                original_name: tvShow.name || '',
+                overview: tvShow.overview || '',
+                poster_path: tvShow.poster_path,
+                backdrop_path: tvShow.backdrop_path,
+                vote_average: tvShow.vote_average || 0,
+                vote_count: 0,
+                first_air_date: tvShow.first_air_date,
+                genres: [],
+                genre_ids: tvShow.genre_ids || [],
+                original_language: tvShow.original_language || '',
+                popularity: tvShow.popularity || 0,
+                origin_country: tvShow.origin_country || [],
+                cached_at: new Date(),
+                has_full_details: false,
+              },
+              Realm.UpdateMode.Modified,
+            );
           }
         }
       });
@@ -296,7 +315,6 @@ class WatchlistManager {
 
       return true;
     } catch (error) {
-      console.error('Error adding item to watchlist:', error);
       return false;
     }
   }
@@ -310,16 +328,24 @@ class WatchlistManager {
 
       realm.write(() => {
         // Find and remove the item
-        const items = realm.objects('WatchlistItem')
-          .filtered('watchlistId == $0 AND contentId == $1', watchlistId, itemId);
-        
+        const items = realm
+          .objects('WatchlistItem')
+          .filtered(
+            'watchlistId == $0 AND contentId == $1',
+            watchlistId,
+            itemId,
+          );
+
         if (items.length > 0) {
           realm.delete(items[0]);
-          
+
           // Update watchlist count
           const watchlist = realm.objectForPrimaryKey('Watchlist', watchlistId);
           if (watchlist) {
-            watchlist.itemCount = Math.max(0, (watchlist.itemCount as number) - 1);
+            watchlist.itemCount = Math.max(
+              0,
+              (watchlist.itemCount as number) - 1,
+            );
             watchlist.updatedAt = new Date();
           }
         }
@@ -335,9 +361,7 @@ class WatchlistManager {
         queryKey: ['watchlistContainingItem', itemId],
       });
       this.notifyListeners();
-    } catch (error) {
-      console.error('Error removing item from watchlist:', error);
-    }
+    } catch (error) {}
   }
 
   async isItemInWatchlist(
@@ -346,11 +370,11 @@ class WatchlistManager {
   ): Promise<boolean> {
     try {
       const realm = getRealm();
-      const items = realm.objects('WatchlistItem')
+      const items = realm
+        .objects('WatchlistItem')
         .filtered('watchlistId == $0 AND contentId == $1', watchlistId, itemId);
       return items.length > 0;
     } catch (error) {
-      console.error('Error checking if item is in watchlist:', error);
       return false;
     }
   }
@@ -358,11 +382,11 @@ class WatchlistManager {
   async isItemInAnyWatchlist(itemId: number): Promise<boolean> {
     try {
       const realm = getRealm();
-      const items = realm.objects('WatchlistItem')
+      const items = realm
+        .objects('WatchlistItem')
         .filtered('contentId == $0', itemId);
       return items.length > 0;
     } catch (error) {
-      console.error('Error checking if item is in any watchlist:', error);
       return false;
     }
   }
@@ -370,15 +394,15 @@ class WatchlistManager {
   async getWatchlistContainingItem(itemId: number): Promise<string | null> {
     try {
       const realm = getRealm();
-      const items = realm.objects('WatchlistItem')
+      const items = realm
+        .objects('WatchlistItem')
         .filtered('contentId == $0', itemId);
-      
+
       if (items.length > 0) {
         return items[0].watchlistId as string;
       }
       return null;
     } catch (error) {
-      console.error('Error getting watchlist containing item:', error);
       return null;
     }
   }

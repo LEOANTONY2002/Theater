@@ -35,7 +35,13 @@ export const getCinemaDNA = async (): Promise<CinemaDNA | null> => {
     // Collect all crew members
     const allCrew: Map<
       number,
-      {name: string; type: 'director' | 'actor' | 'composer' | 'cinematographer'; count: number; id: number; profile_path?: string}
+      {
+        name: string;
+        type: 'director' | 'actor' | 'composer' | 'cinematographer';
+        count: number;
+        id: number;
+        profile_path?: string;
+      }
     > = new Map();
 
     const counts = {
@@ -167,7 +173,6 @@ export const getCinemaDNA = async (): Promise<CinemaDNA | null> => {
       },
     };
   } catch (error) {
-    console.error('[CinemaDNA] Error fetching cinema DNA:', error);
     return null;
   }
 };

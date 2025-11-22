@@ -133,7 +133,6 @@ export const getExplorationStats = async (): Promise<ExplorationStats> => {
       totalRuntime,
     };
   } catch (error) {
-    console.error('[ExplorationStats] Error calculating stats:', error);
     return {
       mostExploredYear: null,
       yearCounts: new Map(),
@@ -173,14 +172,6 @@ export const getGenrePreferences = async (): Promise<GenrePreference[]> => {
 
     if (history.length === 0) return [];
 
-    console.log('[GenrePreferences] Processing history items:', history.length);
-    console.log('[GenrePreferences] Sample item:', {
-      contentId: history[0]?.contentId,
-      type: history[0]?.type,
-      genre_ids: history[0]?.genre_ids,
-      original_language: history[0]?.original_language,
-    });
-
     const genreCounts = new Map<number, number>();
     let totalGenres = 0;
     let itemsWithGenres = 0;
@@ -194,13 +185,9 @@ export const getGenrePreferences = async (): Promise<GenrePreference[]> => {
             genreCounts.set(genreId, (genreCounts.get(genreId) || 0) + 1);
             totalGenres++;
           });
-        } catch (e) {
-          console.log('[GenrePreferences] Failed to parse genre_ids:', item.genre_ids);
-        }
+        } catch (e) {}
       }
     });
-
-    console.log('[GenrePreferences] Items with genres:', itemsWithGenres, '/', history.length);
 
     const preferences: GenrePreference[] = Array.from(genreCounts.entries())
       .map(([id, count]) => ({
@@ -214,7 +201,6 @@ export const getGenrePreferences = async (): Promise<GenrePreference[]> => {
 
     return preferences;
   } catch (error) {
-    console.error('[GenrePreferences] Error:', error);
     return [];
   }
 };
@@ -319,7 +305,6 @@ export const getLanguageDiversity = async (): Promise<LanguageDiversity> => {
       topCountries,
     };
   } catch (error) {
-    console.error('[LanguageDiversity] Error:', error);
     return {
       totalLanguages: 0,
       topLanguages: [],
@@ -383,7 +368,6 @@ export const getCollectionProgress = async (): Promise<
 
     return collections;
   } catch (error) {
-    console.error('[CollectionProgress] Error:', error);
     return [];
   }
 };

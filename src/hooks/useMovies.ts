@@ -61,7 +61,12 @@ export const useMovieDetails = (movieId: number) => {
       const details = await getMovieDetails(movieId);
       // Cache full details in Realm
       if (details) {
-        cacheMovieDetails(details, details.credits?.cast, details.credits?.crew, details.videos?.results);
+        cacheMovieDetails(
+          details,
+          details.credits?.cast,
+          details.credits?.crew,
+          details.videos?.results,
+        );
       }
       return details;
     },
@@ -110,7 +115,10 @@ export const useMovieRecommendations = (movieId: number) => {
   return useInfiniteQuery({
     queryKey: ['movie', movieId, 'recommendations'],
     queryFn: async ({pageParam = 1}) => {
-      const result = await getMovieRecommendations(movieId, pageParam as number);
+      const result = await getMovieRecommendations(
+        movieId,
+        pageParam as number,
+      );
       if (result?.results) {
         batchCacheMovies(result.results);
       }
@@ -202,6 +210,21 @@ export const useTop10MoviesTodayByRegion = () => {
   });
 };
 
+export const useMovieReviews = (movieId: number) => {
+  return useInfiniteQuery({
+    queryKey: ['movie', movieId, 'reviews'],
+    queryFn: async ({pageParam = 1}) => {
+      const {getMovieReviews} = await import('../services/tmdb');
+      return await getMovieReviews(movieId, pageParam as number);
+    },
+    getNextPageParam: (lastPage: any) =>
+      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+    gcTime: TMDB_DETAILS_GC,
+    staleTime: TMDB_DETAILS_STALE,
+  });
+};
+
 export const useAISimilarMovies = (
   movieId: number,
   title?: string,
@@ -217,14 +240,13 @@ export const useAISimilarMovies = (
 
       // Import here to avoid circular dependency
       const {getMovie} = await import('../database/contentCache');
-      
+
       // Check if movie is in Realm and has AI similar data
       const cached = getMovie(movieId);
       if (cached?.ai_similar) {
         try {
           const parsed = JSON.parse(cached.ai_similar as string);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            console.log('[useAISimilarMovies] Using cached AI similar from Realm');
             const tmdbMovies = await fetchContentFromAI(parsed, 'movie');
             return tmdbMovies
               .filter((m: any) => m && m.poster_path)

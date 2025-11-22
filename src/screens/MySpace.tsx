@@ -143,25 +143,13 @@ export const MySpaceScreen = React.memo(() => {
     ],
     queryFn: async () => {
       const region = currentRegion?.iso_3166_1 || 'US';
-      console.log('[MySpace] Fetching providers for region:', region);
       const m = await import('../services/tmdbWithCache');
       let result = await m.getAvailableWatchProviders(region);
 
       // Fallback to US if current region has no providers
       if (!result || result.length === 0) {
-        console.log(
-          '[MySpace] No providers for',
-          region,
-          '- falling back to US',
-        );
         result = await m.getAvailableWatchProviders('US');
       }
-
-      console.log(
-        '[MySpace] Providers loaded:',
-        result?.length || 0,
-        'providers',
-      );
       return result;
     },
     staleTime: 1000 * 60 * 60,
@@ -254,9 +242,7 @@ export const MySpaceScreen = React.memo(() => {
         }),
         queryClient.refetchQueries({queryKey: ['watchProviders']}),
       ]);
-    } catch (error) {
-      console.error('Error setting region:', error);
-    }
+    } catch (error) {}
   };
 
   const loadMoodAnswers = async () => {
@@ -269,9 +255,7 @@ export const MySpaceScreen = React.memo(() => {
           setLastMoodUpdate(date.toLocaleDateString());
         }
       }
-    } catch (error) {
-      console.error('[MySpace] Error loading mood answers from Realm:', error);
-    }
+    } catch (error) {}
   };
 
   const getMoodSummary = () => {
@@ -336,9 +320,7 @@ export const MySpaceScreen = React.memo(() => {
 
       // Store a flag to indicate mood was updated (using Realm)
       await RealmSettingsManager.setSetting('mood_updated', 'true');
-    } catch (error) {
-      console.error('[MySpace] Error updating mood preferences:', error);
-    }
+    } catch (error) {}
   };
 
   const handleMoodCancel = () => {

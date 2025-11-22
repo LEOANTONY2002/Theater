@@ -20,7 +20,6 @@ const getRegionFromIpApi = async (): Promise<string | null> => {
     const data: IpApiResponse = await response.json();
     return data.countryCode || null;
   } catch (error) {
-    console.warn('Failed to get region from ipapi.co:', error);
     return null;
   }
 };
@@ -34,7 +33,6 @@ const getRegionFromIpInfo = async (): Promise<string | null> => {
     const data: IpInfoResponse = await response.json();
     return data.country || null;
   } catch (error) {
-    console.warn('Failed to get region from ipinfo.io:', error);
     return null;
   }
 };
@@ -69,7 +67,6 @@ export const detectRegion = async (): Promise<string | null> => {
     // If all else fails, return null to let the user select their region
     return null;
   } catch (error) {
-    console.error('Error detecting region:', error);
     return null;
   }
 };

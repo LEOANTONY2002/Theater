@@ -3,7 +3,7 @@ import {RealmHistoryManager} from '../database/managers';
 export const HistoryManager = {
   async getAll(): Promise<any[]> {
     const history = await RealmHistoryManager.getAll();
-    
+
     // Return history items directly (no longer depends on Movie/TVShow cache)
     return history.map(item => ({
       id: item.contentId,
@@ -28,18 +28,8 @@ export const HistoryManager = {
   async add(item: any): Promise<void> {
     // Validate that we have a valid ID
     if (!item || !item.id) {
-      console.warn('[History] Cannot add item without ID:', item);
       return;
     }
-
-    console.log('[History] Adding to history:', {
-      id: item.id,
-      type: item.type,
-      title: item.title || item.name,
-      genre_ids: item.genre_ids,
-      original_language: item.original_language,
-      origin_country: item.origin_country,
-    });
 
     await RealmHistoryManager.add({
       contentId: item.id,
@@ -56,7 +46,9 @@ export const HistoryManager = {
       // Analytics data for Cinema Insights
       genre_ids: item.genre_ids ? JSON.stringify(item.genre_ids) : undefined,
       original_language: item.original_language,
-      origin_country: item.origin_country ? JSON.stringify(item.origin_country) : undefined,
+      origin_country: item.origin_country
+        ? JSON.stringify(item.origin_country)
+        : undefined,
       // Crew data (already JSON stringified)
       directors: item.directors,
       writers: item.writers,

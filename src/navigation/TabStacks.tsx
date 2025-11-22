@@ -3,7 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {HomeScreen} from '../screens/Home';
 import {SearchScreen} from '../screens/Search';
 import {MoviesAndSeriesScreen} from '../screens/MoviesAndSeries';
-import {FiltersScreen} from '../screens/Filters';
+import {CurationScreen} from '../screens/Curation';
 import {MySpaceScreen} from '../screens/MySpace';
 import {MovieDetailsScreen} from '../screens/MovieDetails';
 import {TVShowDetailsScreen} from '../screens/TVShowDetails';
@@ -13,7 +13,7 @@ import {
   HomeStackParamList,
   SearchStackParamList,
   MoviesAndSeriesStackParamList,
-  FiltersStackParamList,
+  CurationStackParamList,
   MySpaceStackParamList,
 } from '../types/navigation';
 import {GenreScreen} from '../screens/Genre';
@@ -32,7 +32,7 @@ const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
 const MoviesAndSeriesStack =
   createNativeStackNavigator<MoviesAndSeriesStackParamList>();
-const FiltersStack = createNativeStackNavigator<FiltersStackParamList>();
+const CurationStack = createNativeStackNavigator<CurationStackParamList>();
 const MySpaceStack = createNativeStackNavigator<MySpaceStackParamList>();
 
 const defaultScreenOptions = {
@@ -48,7 +48,6 @@ const defaultScreenOptions = {
   },
   animation: 'fade_from_bottom' as const,
   presentation: 'card' as const,
-  unmountOnBlur: true,
   detachInactiveScreens: true,
   headerShown: false,
 };
@@ -208,39 +207,39 @@ export const MoviesAndSeriesStackNavigator = () => (
   </MoviesAndSeriesStack.Navigator>
 );
 
-export const FiltersStackNavigator = () => (
-  <FiltersStack.Navigator screenOptions={defaultScreenOptions}>
-    <FiltersStack.Screen
-      name="FiltersScreen"
-      component={FiltersScreen}
-      options={{title: 'My Filters'}}
+export const CurationStackNavigator = () => (
+  <CurationStack.Navigator screenOptions={defaultScreenOptions}>
+    <CurationStack.Screen
+      name="CurationScreen"
+      component={CurationScreen}
+      options={{title: 'Curation'}}
     />
-    <FiltersStack.Screen
+    <CurationStack.Screen
       name="MovieDetails"
       component={MovieDetailsScreen}
       options={modalScreenOptions}
     />
-    <FiltersStack.Screen
+    <CurationStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
       options={modalScreenOptions}
     />
-    <FiltersStack.Screen
+    <CurationStack.Screen
       name="Category"
       component={CategoryScreen}
       options={slideFromRightOptions}
     />
-    <FiltersStack.Screen
+    <CurationStack.Screen
       name="Genre"
       component={GenreScreen}
       options={slideFromRightOptions}
     />
-    <FiltersStack.Screen
+    <CurationStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
       options={modalScreenOptions}
     />
-    <FiltersStack.Screen
+    <CurationStack.Screen
       name="CinemaScreen"
       component={CinemaScreen}
       options={{
@@ -250,7 +249,7 @@ export const FiltersStackNavigator = () => (
         contentStyle: {backgroundColor: '#000000'},
       }}
     />
-  </FiltersStack.Navigator>
+  </CurationStack.Navigator>
 );
 
 export const MySpaceStackNavigator = () => (

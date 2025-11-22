@@ -174,7 +174,6 @@ const OnboardingAISettings: React.FC<{
         setShowNoInternet(false);
       }
     } catch (error) {
-      console.error('Error checking internet connection:', error);
     } finally {
       setIsCheckingConnection(false);
     }
@@ -207,7 +206,6 @@ const OnboardingAISettings: React.FC<{
         });
       }
     } catch (error) {
-      console.error('Error loading AI settings:', error);
       setInitialSettings({
         apiKey: '',
         model: DEFAULT_MODEL,
@@ -221,7 +219,6 @@ const OnboardingAISettings: React.FC<{
       const models = await fetchGeminiModels(currentApiKey);
       setAvailableModels(models);
     } catch (error) {
-      console.error('Error loading available models:', error);
       setAvailableModels(FALLBACK_MODELS);
     } finally {
       setIsLoadingModels(false);
@@ -293,10 +290,8 @@ const OnboardingAISettings: React.FC<{
       }
 
       const errorData = await response.json();
-      console.error('API key validation error:', errorData);
       return false;
     } catch (error) {
-      console.error('API key validation error:', error);
       // Check if it's a network error
       const isOnline = await checkInternet();
       if (!isOnline) {
@@ -321,7 +316,6 @@ const OnboardingAISettings: React.FC<{
           return;
         }
       } catch (error) {
-        console.error('Error validating API key:', error);
         showAlert(
           'Error',
           'Failed to validate API key. Please check your connection and try again.',
@@ -350,7 +344,6 @@ const OnboardingAISettings: React.FC<{
       showAlert('Success', 'AI settings saved successfully!');
       onDone();
     } catch (error) {
-      console.error('Error saving AI settings:', error);
       showAlert('Error', 'Failed to save settings. Please try again.');
     } finally {
       setIsValidating(false);
@@ -365,9 +358,7 @@ const OnboardingAISettings: React.FC<{
         setIsApiKeyCopied(true);
         setTimeout(() => setIsApiKeyCopied(false), 2000);
       }
-    } catch (error) {
-      console.error('Error pasting from clipboard:', error);
-    }
+    } catch (error) {}
   };
 
   const toggleApiKeyInput = () => {

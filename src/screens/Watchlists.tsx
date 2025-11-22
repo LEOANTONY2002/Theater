@@ -42,9 +42,6 @@ import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
-import {WatchlistAnalyzer} from '../components/WatchlistAnalyzer';
-import {QuickDecision} from '../components/QuickDecision';
-import {useAIEnabled} from '../hooks/useAIEnabled';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -60,11 +57,6 @@ export const WatchlistsScreen: React.FC = () => {
     id: string;
     name: string;
   } | null>(null);
-  const [showQuickDecision, setShowQuickDecision] = useState(false);
-  const [selectedItemsForComparison, setSelectedItemsForComparison] = useState<
-    ContentItem[]
-  >([]);
-  const {isAIEnabled} = useAIEnabled();
 
   const {data: watchlists = [], isLoading} = useWatchlists();
   const createWatchlistMutation = useCreateWatchlist();
@@ -345,9 +337,7 @@ export const WatchlistsScreen: React.FC = () => {
               itemType: 'tv',
             });
           }
-        } catch (e) {
-          console.warn('Failed to import item', it, e);
-        }
+        } catch (e) {}
       }
       setShowImportModal(false);
       setImportCode('');
@@ -358,23 +348,6 @@ export const WatchlistsScreen: React.FC = () => {
       setIsImporting(false);
     }
   }, [importCode, createWatchlistMutation]);
-
-  // Component to aggregate all watchlist items for analysis
-  const AllWatchlistsAnalyzer: React.FC = () => {
-    // Collect all items from all watchlists
-    const allItemsData = watchlists.map(wl => {
-      const {data: items = []} = useWatchlistItems(wl.id);
-      return items;
-    });
-
-    const allItems = allItemsData.flat();
-
-    if (!isAIEnabled || allItems.length < 3) {
-      return null;
-    }
-
-    return <WatchlistAnalyzer watchlistItems={allItems} />;
-  };
 
   // Child component to render a watchlist and its results
   const WatchlistItemWithResults = ({
@@ -465,7 +438,6 @@ export const WatchlistsScreen: React.FC = () => {
         );
         setStoryUri(uri);
       } catch (e) {
-        console.warn('Create story failed', e);
         Alert.alert('Create Story', 'Could not generate the poster.');
         setShowStoryModal(false);
       } finally {
@@ -477,9 +449,7 @@ export const WatchlistsScreen: React.FC = () => {
       if (!storyUri) return;
       try {
         await ShareLib.open({url: storyUri, type: 'image/png'});
-      } catch (e) {
-        console.warn('Share sheet error', e);
-      }
+      } catch (e) {}
     }, [storyUri]);
 
     return (
@@ -544,34 +514,6 @@ export const WatchlistsScreen: React.FC = () => {
               }}>
               <Text style={styles.watchlistName}>{watchlistName}</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                {isAIEnabled && contentItems.length >= 2 && (
-                  <TouchableOpacity
-                    style={{
-                      alignItems: 'center',
-                      padding: 5,
-                      marginRight: 6,
-                      flexDirection: 'row',
-                      gap: spacing.sm,
-                      backgroundColor: colors.modal.blur,
-                      borderRadius: borderRadius.round,
-                      paddingHorizontal: spacing.md,
-                      paddingVertical: spacing.sm,
-                      borderColor: colors.modal.content,
-                      borderWidth: 1,
-                    }}
-                    activeOpacity={0.9}
-                    onPress={() => handleQuickDecisionOpen(contentItems)}>
-                    <Ionicons name="sparkles" size={16} color={colors.accent} />
-                    <Text
-                      style={{
-                        ...typography.body2,
-                        color: colors.text.primary,
-                        fontSize: 10,
-                      }}>
-                      AI Compare
-                    </Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   style={{alignItems: 'center', padding: 5, marginRight: 6}}
                   activeOpacity={0.9}
@@ -583,16 +525,6 @@ export const WatchlistsScreen: React.FC = () => {
                     color={colors.text.muted}
                   />
                 </TouchableOpacity>
-                {/* <TouchableOpacity
-                  style={{alignItems: 'center', padding: 5, marginRight: 6}}
-                  activeOpacity={0.9}
-                  onPress={handleShare}>
-                  <Ionicons
-                    name="share-outline"
-                    size={16}
-                    color={colors.text.muted}
-                  />
-                </TouchableOpacity> */}
                 <TouchableOpacity
                   style={{alignItems: 'center', padding: 5}}
                   activeOpacity={0.9}
@@ -795,13 +727,6 @@ export const WatchlistsScreen: React.FC = () => {
     );
   };
 
-  const handleQuickDecisionOpen = (items: ContentItem[]) => {
-    if (items.length >= 2) {
-      setSelectedItemsForComparison(items);
-      setShowQuickDecision(true);
-    }
-  };
-
   return (
     <View style={{flex: 1}}>
       <LinearGradient
@@ -879,7 +804,6 @@ export const WatchlistsScreen: React.FC = () => {
           </View>
         ) : watchlists.length > 0 ? (
           <View style={styles.content}>
-            <AllWatchlistsAnalyzer />
             {watchlists.map(watchlist => (
               <WatchlistItemWithResults
                 key={watchlist.id}
@@ -1380,14 +1304,6 @@ export const WatchlistsScreen: React.FC = () => {
           </View>
         </Modal>
       </Animated.ScrollView>
-
-      {/* Quick Decision Modal */}
-      <QuickDecision
-        visible={showQuickDecision}
-        onClose={() => setShowQuickDecision(false)}
-        items={selectedItemsForComparison}
-        onSelectItem={handleItemPress}
-      />
     </View>
   );
 };

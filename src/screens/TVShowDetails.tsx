@@ -22,6 +22,7 @@ import {
   useTVShowRecommendations,
   useSeasonDetails,
   useAISimilarTVShows,
+  useTVShowReviews,
 } from '../hooks/useTVShows';
 import {
   getImageUrl,
@@ -45,6 +46,7 @@ import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useContentTags} from '../hooks/useContentTags';
 import {ContentTagsDisplay} from '../components/ContentTagsDisplay';
+import {ReviewsSection} from '../components/ReviewsSection';
 import {ContentItem} from '../components/MovieList';
 import {
   MySpaceStackParamList,
@@ -52,7 +54,7 @@ import {
   SearchStackParamList,
   MoviesStackParamList,
   TVShowsStackParamList,
-  FiltersStackParamList,
+  CurationStackParamList,
 } from '../types/navigation';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
@@ -97,7 +99,7 @@ type TVShowDetailsScreenNavigationProp = NativeStackNavigationProp<
     SearchStackParamList &
     MoviesStackParamList &
     TVShowsStackParamList &
-    FiltersStackParamList
+    CurationStackParamList
 >;
 
 interface TVShowDetailsScreenProps {
@@ -162,8 +164,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   } | null>(null);
   const [isLoadingAiImdb, setIsLoadingAiImdb] = useState(true);
 
-  console.log(isLoadingAiImdb);
-
   // Format large numbers to compact form (e.g., 1.5K, 2.3M)
   const formatCompact = (value?: number | null): string => {
     if (value == null || isNaN(Number(value))) return '0';
@@ -184,8 +184,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     }
     return `${n}`;
   };
-
-  console.log(aiRatings);
 
   // Poster share state
   const [showPosterModal, setShowPosterModal] = useState(false);
@@ -229,7 +227,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       writers: credits ? JSON.stringify(getWriters(credits)) : undefined,
       cast: credits ? JSON.stringify(credits.cast.slice(0, 10)) : undefined,
       composer: credits ? JSON.stringify(getComposer(credits)) : undefined,
-      cinematographer: credits ? JSON.stringify(getCinematographer(credits)) : undefined,
+      cinematographer: credits
+        ? JSON.stringify(getCinematographer(credits))
+        : undefined,
     };
     HistoryManager.add(item as any);
   }, [show, showDetails]);
@@ -305,7 +305,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         setIsOnline(online);
         setHasCache(!!cachedShow);
       } catch (error) {
-        console.error('Error checking connectivity/cache status:', error);
         setIsOnline(true); // Default to online if check fails
         setHasCache(false);
       }
@@ -332,12 +331,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         contentId: show.id,
       });
       if (__DEV__) {
-        console.log('[AI Ratings][TV]', show.name, yearStr, res);
       }
       setAiRatings(res);
     } catch (e) {
       if (__DEV__) {
-        console.warn('[AI Ratings][TV] retry failed:', e);
       }
     } finally {
       setIsLoadingAiImdb(false);
@@ -380,7 +377,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       const cachedShow = realm.objectForPrimaryKey('TVShow', show.id);
       setHasCache(!!cachedShow);
     } catch (error) {
-      console.error('Error during retry:', error);
     } finally {
       setRetrying(false);
     }
@@ -401,6 +397,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   } = useSimilarTVShows(show.id);
 
   const {
+    data: reviews,
+    fetchNextPage: fetchNextReviews,
+    hasNextPage: hasNextReviews,
+    isFetchingNextPage: isFetchingReviews,
+  } = useTVShowReviews(show.id);
+
+  const {
     data: recommendedShows,
     fetchNextPage: fetchNextRecommended,
     hasNextPage: hasNextRecommended,
@@ -416,6 +419,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     show.id,
     selectedSeason?.season_number,
   );
+
+  const reviewsData = useMemo(() => {
+    return reviews?.pages?.flatMap(page => page.results) || [];
+  }, [reviews]);
+
+  const totalReviews = useMemo(() => {
+    return reviews?.pages[0]?.total_results || 0;
+  }, [reviews]);
 
   // Build poster inputs
   const posterItems = useMemo(() => {
@@ -476,7 +487,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       );
       setPosterUri(uri);
     } catch (e) {
-      console.warn('Create poster failed', e);
       setShowPosterModal(false);
     } finally {
       setPosterLoading(false);
@@ -507,7 +517,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         await ShareLib.open({url: uri, type: 'image/png'});
       }
     } catch (e) {
-      console.warn('Poster share failed', e);
     } finally {
       setIsSharingPoster(false);
     }
@@ -1304,6 +1313,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {type: 'seasons', id: 'seasons'},
           ...(isAIEnabled ? [{type: 'aiSimilar', id: 'aiSimilar'}] : []),
           {type: 'similar', id: 'similar'},
+          {type: 'reviews', id: 'reviews'},
           {type: 'recommendations', id: 'recommendations'},
         ]}
         renderItem={({item}: {item: any}) => {
@@ -1730,7 +1740,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 }
               });
               const crew = Array.from(crewMap.values());
-              
+
               return (
                 <Animated.View
                   style={{
@@ -2012,6 +2022,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   />
                 </Animated.View>
               ) : null;
+            case 'reviews':
+              return (
+                <ReviewsSection
+                  reviews={reviewsData}
+                  totalReviews={totalReviews}
+                  onLoadMore={fetchNextReviews}
+                  hasMore={hasNextReviews}
+                  isLoading={isFetchingReviews}
+                />
+              );
             default:
               return null;
           }

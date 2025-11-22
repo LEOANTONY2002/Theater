@@ -714,11 +714,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 borderRightWidth: 1,
                 borderColor: colors.modal.content,
               }}>
-              <Ionicons
-                name="refresh"
-                size={20}
-                color={colors.status.warning}
-              />
+              <Ionicons name="refresh" size={20} color={colors.accent} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowAISearch(true)}
@@ -1033,20 +1029,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             {/* Exclude Genres */}
             <View style={[styles.section, {paddingHorizontal: 0}]}>
               <View style={styles.sectionHeader}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                  }}>
-                  <Text
-                    style={[
-                      styles.sectionTitle,
-                      {color: colors.text.secondary},
-                    ]}>
-                    Exclude Genres
-                  </Text>
-                </View>
+                <Text style={[styles.sectionTitle]}>Exclude Genres</Text>
                 <View
                   style={{
                     flexDirection: 'row',
@@ -1243,7 +1226,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Vote Count Range */}
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
               <Text style={styles.sectionTitle}>Vote Count Range</Text>
               <View style={{gap: spacing.md}}>
                 <GradientProgressBar
@@ -1271,10 +1254,10 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   height={16}
                 />
               </View>
-            </View>
+            </View> */}
 
             {/* Popularity Range */}
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
               <Text style={styles.sectionTitle}>Popularity Range</Text>
               <View style={{gap: spacing.md}}>
                 <GradientProgressBar
@@ -1308,7 +1291,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                   height={16}
                 />
               </View>
-            </View>
+            </View> */}
 
             {/* Cast & Crew */}
             <View style={styles.section}>
@@ -2215,11 +2198,6 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         visible={showAISearch}
         onClose={() => setShowAISearch(false)}
         onApplyFilters={(aiFilters, aiContentType, explanation) => {
-          console.log('AI filters applied in MyFiltersModal:', {
-            aiFilters,
-            aiContentType,
-            explanation,
-          });
           setFilters(aiFilters);
           setContentType(aiContentType);
           setShowAISearch(false);

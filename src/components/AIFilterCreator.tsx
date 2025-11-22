@@ -86,7 +86,10 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
         ...searchHistory.filter(item => item !== trimmed),
       ].slice(0, MAX_HISTORY_ITEMS);
 
-      await AsyncStorage.setItem(AI_SEARCH_HISTORY_KEY, JSON.stringify(updated));
+      await AsyncStorage.setItem(
+        AI_SEARCH_HISTORY_KEY,
+        JSON.stringify(updated),
+      );
       setSearchHistory(updated);
     } catch (error) {
       console.error('Error saving AI search history:', error);
@@ -108,7 +111,6 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
     setError(null);
 
     try {
-      console.log('[AIFilterCreator] Starting AI parse...');
       const result = await parseNaturalLanguageToFilters(
         query,
         movieGenres,
@@ -116,21 +118,11 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
         languages,
         watchProviders,
       );
-      console.log('[AIFilterCreator] AI result:', result);
 
       if (result) {
-        console.log('[AIFilterCreator] Saving to history...');
         await saveToHistory(query);
-        
-        // Save to FiltersManager storage
-        console.log('💾 Saving filter to storage:', {
-          name: filterName.trim(),
-          params: result.filters,
-          type: result.contentType,
-        });
-        
+
         if (editingFilter) {
-          console.log('[AIFilterCreator] Updating existing filter...');
           const updatedFilter: SavedFilter = {
             ...editingFilter,
             name: filterName.trim(),
@@ -138,17 +130,14 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
             type: result.contentType,
           };
           await FiltersManager.updateFilter(editingFilter.id, updatedFilter);
-          console.log('[AIFilterCreator] ✅ Filter updated');
           onSave(updatedFilter);
         } else {
-          console.log('[AIFilterCreator] Creating new filter...');
           const filterId = await FiltersManager.saveFilter(
             filterName.trim(),
             result.filters as FilterParams,
             result.contentType,
           );
-          console.log('[AIFilterCreator] ✅ Filter saved with ID:', filterId);
-          
+
           // Create filter object for callback with the actual ID from storage
           const newFilter: SavedFilter = {
             id: filterId, // Use the ID returned from FiltersManager
@@ -157,9 +146,7 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
             type: result.contentType,
             createdAt: Date.now(),
           };
-          console.log('[AIFilterCreator] Calling onSave callback...');
           onSave(newFilter);
-          console.log('[AIFilterCreator] ✅ Callback complete');
         }
         setQuery('');
         setFilterName('');
@@ -170,7 +157,10 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
       }
     } catch (err) {
       console.error('[AIFilterCreator] ❌ Exception caught:', err);
-      const errorMessage = err instanceof Error ? err.message : 'AI service error. Please check your settings.';
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'AI service error. Please check your settings.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -211,7 +201,9 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
 
           <View style={styles.examplesContainer}>
             <Text style={styles.examplesTitle}>
-              {searchHistory.length > 0 ? 'Recent Searches:' : 'Quick Searches:'}
+              {searchHistory.length > 0
+                ? 'Recent Searches:'
+                : 'Quick Searches:'}
             </Text>
             {searchHistory.length > 0 ? (
               <>
@@ -220,7 +212,11 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
                     key={index}
                     style={styles.exampleChip}
                     onPress={() => setQuery(item)}>
-                    <Icon name="time-outline" size={14} color={colors.text.muted} />
+                    <Icon
+                      name="time-outline"
+                      size={14}
+                      color={colors.text.muted}
+                    />
                     <Text style={styles.exampleChipText}>{item}</Text>
                   </TouchableOpacity>
                 ))}
@@ -229,13 +225,19 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
               <>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() => setQuery('90s romantic comedies with happy endings')}>
+                  onPress={() =>
+                    setQuery('90s romantic comedies with happy endings')
+                  }>
                   <Icon name="flash" size={14} color={colors.accent} />
-                  <Text style={styles.exampleChipText}>90s romantic comedies</Text>
+                  <Text style={styles.exampleChipText}>
+                    90s romantic comedies
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() => setQuery('highly rated sci-fi movies from 2020s')}>
+                  onPress={() =>
+                    setQuery('highly rated sci-fi movies from 2020s')
+                  }>
                   <Icon name="flash" size={14} color={colors.accent} />
                   <Text style={styles.exampleChipText}>
                     Highly rated sci-fi (2020s)
@@ -243,9 +245,13 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() => setQuery('thriller TV shows under 45 minutes')}>
+                  onPress={() =>
+                    setQuery('thriller TV shows under 45 minutes')
+                  }>
                   <Icon name="flash" size={14} color={colors.accent} />
-                  <Text style={styles.exampleChipText}>Short thriller shows</Text>
+                  <Text style={styles.exampleChipText}>
+                    Short thriller shows
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
