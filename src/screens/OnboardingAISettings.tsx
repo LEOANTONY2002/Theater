@@ -10,6 +10,9 @@ import {
   Modal,
   Linking,
   useWindowDimensions,
+  ScrollView,
+  FlatList,
+  Image,
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
@@ -32,6 +35,45 @@ interface GeminiModel {
   displayName?: string;
   supportedGenerationMethods?: string[];
 }
+
+const instructions = [
+  {
+    id: '1',
+    image: require('../assets/AI1.png'),
+    text: 'Go to Google AI Studio',
+    hasButton: true,
+  },
+  {
+    id: '2',
+    image: require('../assets/AI2.png'),
+    text: 'Click on "Create API key"',
+  },
+  {
+    id: '3',
+    image: require('../assets/AI3.png'),
+    text: 'Type a name for your API key',
+  },
+  {
+    id: '4',
+    image: require('../assets/AI4.png'),
+    text: 'Select a project or create new',
+  },
+  {
+    id: '5',
+    image: require('../assets/AI5.png'),
+    text: 'Copy the API key',
+  },
+  {
+    id: '6',
+    image: require('../assets/AI6.png'),
+    text: 'Paste the API key here',
+  },
+  {
+    id: '7',
+    image: require('../assets/AI7.png'),
+    text: 'Save and continue',
+  },
+];
 
 // Fallback models in case API fetch fails
 const FALLBACK_MODELS: GeminiModel[] = [
@@ -145,6 +187,29 @@ const OnboardingAISettings: React.FC<{
   const width = useWindowDimensions().width;
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
+
+  const dynamicStyles = StyleSheet.create({
+    instructionCard: {
+      width: isTablet ? 300 : 150,
+      marginRight: spacing.md,
+      alignItems: 'center',
+    },
+    instructionImage: {
+      width: isTablet ? 300 : 150,
+      height: isTablet ? 600 : 300,
+      objectFit: 'contain',
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+    },
+    instructionText: {
+      fontSize: isTablet ? 14 : 12,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      lineHeight: isTablet ? 20 : 18,
+      fontFamily: 'Inter_18pt-Regular',
+      paddingHorizontal: spacing.xs,
+    },
+  });
 
   const showAlert = (title: string, message: string) => {
     setModalTitle(title);
@@ -390,6 +455,12 @@ const OnboardingAISettings: React.FC<{
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={['#020F2D', '#110010']}
+        useAngle={true}
+        angle={100}
+        style={styles.backgroundGradient}
+      />
       {/* App-wide message modal */}
       <Modal
         visible={modalVisible}
@@ -588,7 +659,7 @@ const OnboardingAISettings: React.FC<{
                         color: colors.text.primary,
                         ...typography.button,
                       }}>
-                      Set API Key
+                      Use AI
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -598,40 +669,38 @@ const OnboardingAISettings: React.FC<{
         </View>
       </Modal>
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI Assistant Setup</Text>
-        <View />
-      </View>
+      <ScrollView
+        style={{flex: 1}}
+        contentContainerStyle={{flexGrow: 1}}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>AI Assistant Setup</Text>
+          <View />
+        </View>
 
-      <View
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        {/* API Key Section */}
         <View
-          style={[
-            styles.section,
-            {
-              width: isTablet ? '50%' : '100%',
-              alignSelf: 'center',
-              marginTop: spacing.xxl,
-            },
-          ]}>
-          <Text style={styles.sectionTitle}>API Key</Text>
-          <Text style={styles.sectionDescription}>
-            {apiKey
-              ? 'Your API key is saved securely'
-              : 'Add your Google Gemini API key to enable AI features'}
-          </Text>
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}>
+          {/* API Key Section */}
+          <View
+            style={[
+              styles.section,
+              {
+                width: '100%',
+                alignSelf: 'center',
+                marginTop: spacing.md,
+              },
+            ]}>
+            <Text style={styles.sectionTitle}>Gemini API Key</Text>
 
-          {showApiKeyInput ? (
-            <View style={styles.inputContainer}>
+            {/* Search-style input container */}
+            <View style={styles.searchContainer}>
               <TextInput
-                style={[styles.input, {paddingRight: 40}]}
+                style={styles.searchInput}
                 value={apiKey}
                 onChangeText={setApiKey}
                 placeholder="Enter your Gemini API key..."
@@ -641,99 +710,85 @@ const OnboardingAISettings: React.FC<{
                 autoCorrect={false}
               />
               <TouchableOpacity
-                style={styles.clipboardButton}
+                style={styles.pasteButton}
                 onPress={handlePasteFromClipboard}
                 activeOpacity={0.7}>
                 <Icon
                   name={isApiKeyCopied ? 'checkmark' : 'clipboard-outline'}
                   size={20}
-                  color={
-                    isApiKeyCopied ? colors.primary : colors.text.secondary
-                  }
+                  color={isApiKeyCopied ? colors.primary : colors.text.tertiary}
                 />
               </TouchableOpacity>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.apiKeyButton}
-              onPress={toggleApiKeyInput}
-              activeOpacity={0.8}>
-              <Icon
-                name={apiKey ? 'key-outline' : 'add-circle-outline'}
-                size={20}
-                color={colors.text.primary}
-                style={styles.apiKeyButtonIcon}
-              />
-              <Text style={styles.apiKeyButtonText}>
-                {apiKey ? 'Edit API Key' : 'Add API Key'}
-              </Text>
-            </TouchableOpacity>
-          )}
 
-          <TouchableOpacity
-            onPress={() =>
-              Linking.openURL('https://aistudio.google.com/app/apikey')
-            }
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'flex-start',
-              marginTop: spacing.sm,
-            }}
-            activeOpacity={1}>
-            <Text
-              style={{
-                color: colors.background.primary,
-                paddingHorizontal: spacing.md,
-                paddingVertical: 12,
-                fontWeight: 'bold',
-                borderRadius: borderRadius.md,
-                borderWidth: 1,
-                borderColor: colors.modal.blur,
-                backgroundColor: colors.text.primary,
-                fontFamily: 'Inter_18pt-Regular',
-                fontSize: 12,
-              }}>
-              Get your API key
-            </Text>
-          </TouchableOpacity>
-
-          {/* Instructions to get Gemini API key */}
-          <View
-            style={{
-              marginVertical: spacing.md,
-            }}>
+            {/* Horizontal scrollable instruction cards */}
             <Text
               style={[
                 styles.sectionDescription,
                 {
-                  marginBottom: spacing.sm,
-                  fontWeight: 'bold',
-                  fontSize: 16,
+                  paddingHorizontal: spacing.lg,
+                  marginTop: spacing.md,
+                  fontWeight: '700',
+                  fontSize: 14,
                   color: colors.text.primary,
                 },
               ]}>
               How to get your API key:
             </Text>
-            <Text style={styles.sectionDescription}>
-              1. Go to Google AI Studio
-            </Text>
-            <Text style={styles.sectionDescription}>
-              2. Click on "Create API key"
-            </Text>
-            <Text style={styles.sectionDescription}>
-              3. Type a name for your API key
-            </Text>
-            <Text style={styles.sectionDescription}>
-              4. Select a project if you have one or create a new one
-            </Text>
-            <Text style={styles.sectionDescription}>5. Copy the API key</Text>
-            <Text style={styles.sectionDescription}>
-              6. Paste the API key above
-            </Text>
+
+            <FlatList
+              horizontal
+              data={instructions}
+              keyExtractor={item => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.instructionsContainer}
+              renderItem={({item}) => (
+                <View style={dynamicStyles.instructionCard}>
+                  <Image
+                    source={item.image}
+                    style={dynamicStyles.instructionImage}
+                    resizeMode="contain"
+                  />
+                  <Text style={dynamicStyles.instructionText}>{item.text}</Text>
+                  {item.hasButton && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        Linking.openURL(
+                          'https://aistudio.google.com/app/apikey',
+                        )
+                      }
+                      activeOpacity={0.9}
+                      style={{
+                        marginTop: spacing.sm,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderWidth: 1,
+                        borderBottomWidth: 0,
+                        borderColor: colors.modal.content,
+                        backgroundColor: colors.modal.blur,
+                        paddingVertical: spacing.md,
+                        paddingHorizontal: spacing.lg,
+                        borderRadius: borderRadius.round,
+                      }}>
+                      <Text
+                        style={{
+                          color: colors.text.primary,
+                          fontWeight: '600',
+                          fontFamily: 'Inter_18pt-Regular',
+                          fontSize: 12,
+                          marginRight: spacing.xs,
+                        }}>
+                        Click here
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            />
           </View>
         </View>
-      </View>
+      </ScrollView>
       <View
         style={{
           alignItems: 'center',
@@ -784,7 +839,7 @@ const OnboardingAISettings: React.FC<{
                 start={{x: 0, y: 0}}
                 end={{x: 1, y: 0}}
                 style={{
-                  borderRadius: borderRadius.md,
+                  borderRadius: borderRadius.round,
                   padding: spacing.md,
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -812,7 +867,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing.lg,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -824,7 +878,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0.1,
   },
   header: {
     flexDirection: 'row',
@@ -864,8 +917,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   sectionTitle: {
-    ...typography.h3,
+    ...typography.body2,
     color: colors.text.primary,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
   },
   refreshButton: {
     padding: spacing.xs,
@@ -931,6 +986,38 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: colors.modal.activeBorder,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.modal.blur,
+    borderRadius: borderRadius.round,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
+    marginHorizontal: spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    height: 60,
+    paddingHorizontal: spacing.xs,
+    color: colors.text.primary,
+    ...typography.body1,
+  },
+  pasteButton: {
+    marginLeft: spacing.xs,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.modal.blur,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
+    padding: spacing.sm,
+  },
+  instructionsContainer: {
+    paddingHorizontal: spacing.lg,
   },
   inputContainer: {
     marginVertical: spacing.sm,

@@ -128,7 +128,6 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
     alignItems: 'center',
     paddingBottom: 100,
   },

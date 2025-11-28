@@ -143,8 +143,9 @@ export const getExplorationStats = async (): Promise<ExplorationStats> => {
   }
 };
 
-// Genre mapping (TMDB genre IDs)
+// Genre mapping (TMDB genre IDs) - Complete list for Movies and TV Shows
 const GENRE_MAP: {[key: number]: string} = {
+  // Movie Genres
   28: 'Action',
   12: 'Adventure',
   16: 'Animation',
@@ -159,11 +160,20 @@ const GENRE_MAP: {[key: number]: string} = {
   10402: 'Music',
   9648: 'Mystery',
   10749: 'Romance',
-  878: 'Sci-Fi',
+  878: 'Science Fiction',
   10770: 'TV Movie',
   53: 'Thriller',
   10752: 'War',
   37: 'Western',
+  // TV Show Genres
+  10759: 'Action & Adventure',
+  10762: 'Kids',
+  10763: 'News',
+  10764: 'Reality',
+  10765: 'Sci-Fi & Fantasy',
+  10766: 'Soap',
+  10767: 'Talk',
+  10768: 'War & Politics',
 };
 
 export const getGenrePreferences = async (): Promise<GenrePreference[]> => {

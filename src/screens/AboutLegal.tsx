@@ -11,6 +11,8 @@ import {
   Share,
   Alert,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
 import {BlurView} from '@react-native-community/blur';
@@ -373,7 +375,10 @@ const AboutLegalScreen: React.FC = () => {
           }}
           activeOpacity={1}
           onPress={() => setShowSupportModal(false)}>
-          <View style={{flex: 1, justifyContent: 'flex-end'}}>
+          <KeyboardAvoidingView
+            style={{flex: 1, justifyContent: 'flex-end'}}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}>
             <View
               style={{
                 margin: isTablet ? spacing.xl : spacing.md,
@@ -467,7 +472,7 @@ const AboutLegalScreen: React.FC = () => {
                 </MaybeBlurView>
               </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </TouchableOpacity>
       </Modal>
 

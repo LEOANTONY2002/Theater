@@ -22,6 +22,8 @@ import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import OnboardingLanguage from './OnboardingLanguage';
 import OnboardingOTTs from './OnboardingOTTs';
+import {checkTMDB} from '../services/tmdb';
+import {DNSSetupGuide} from '../components/DNSSetupGuide';
 
 interface Region {
   iso_3166_1: string;
@@ -45,6 +47,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [showNoInternet, setShowNoInternet] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [showDNSModal, setShowDNSModal] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
   const [isStarted, setIsStarted] = useState(false);
@@ -77,46 +80,62 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
     }
   };
 
+  const proceedToRegionDetection = async () => {
+    setIsDetecting(true);
+    try {
+      const regionCode = await detectRegion();
+      if (regionCode) {
+        const region = regions.find(r => r.iso_3166_1 === regionCode);
+        if (region) {
+          await SettingsManager.setRegion(region);
+          setCurrentStep('ai');
+          animateTransition();
+          return;
+        }
+      }
+      // If auto-detect fails, show region selection
+      setShowRegionSelect(true);
+      setCurrentStep('region');
+    } catch (err) {
+      setShowRegionSelect(true);
+      setCurrentStep('region');
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
   const handleNextPress = async () => {
     setIsStarted(true);
     if (currentStep === 'welcome') {
       setIsDetecting(true);
       try {
-        // Check internet connectivity before attempting region detection
+        console.log('=== Welcome screen: Starting checks ===');
+
+        // Check internet connectivity first
         const isOnline = await checkInternet();
+        console.log('Internet check result:', isOnline);
         if (!isOnline) {
           setShowNoInternet(true);
           setIsDetecting(false);
           return;
         }
 
-        const regionCode = await detectRegion();
+        // Check TMDB DNS accessibility
+        console.log('Checking TMDB DNS...');
+        const tmdbOk = await checkTMDB();
+        console.log('TMDB check result:', tmdbOk);
+        if (!tmdbOk) {
+          console.log('TMDB blocked - showing DNS modal');
+          setShowDNSModal(true);
+          setIsDetecting(false);
+          return;
+        }
 
-        if (regionCode) {
-          const region = regions.find(r => r.iso_3166_1 === regionCode);
-          if (region) {
-            await SettingsManager.setRegion(region);
-            setCurrentStep('ai');
-            animateTransition();
-            return;
-          }
-        }
-        // If auto-detect fails, show region selection
-        setShowRegionSelect(true);
-        setCurrentStep('region');
+        console.log('All checks passed - proceeding to region detection');
+        // Both internet and DNS are OK, proceed to region detection
+        await proceedToRegionDetection();
       } catch (err) {
-        // Check if it's a network error
-        const isOnline = await checkInternet();
-        if (!isOnline) {
-          setShowNoInternet(true);
-        } else {
-          setError(
-            'Failed to detect your location. Please select your region manually.',
-          );
-          setShowRegionSelect(true);
-          setCurrentStep('region');
-        }
-      } finally {
+        console.log('Error in handleNextPress:', err);
         setIsDetecting(false);
       }
     } else if (currentStep === 'region' && selectedRegion) {
@@ -443,6 +462,51 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
       <NoInternet
         onRetry={handleRetryConnection}
         isRetrying={isCheckingConnection}
+      />
+    );
+  }
+
+  // Show DNS Setup Guide if TMDB is not accessible
+  if (showDNSModal) {
+    return (
+      <DNSSetupGuide
+        visible={true}
+        isRetrying={isDetecting}
+        onTryAgain={async () => {
+          console.log('=== DNS Modal: Try Now clicked ===');
+          setIsDetecting(true);
+          try {
+            // Check internet first
+            const isOnline = await checkInternet();
+            console.log('Internet check result:', isOnline);
+            if (!isOnline) {
+              setIsDetecting(false);
+              setShowDNSModal(false);
+              setShowNoInternet(true);
+              return;
+            }
+
+            // Check TMDB again
+            console.log('Checking TMDB DNS again...');
+            const tmdbOk = await checkTMDB();
+            console.log('TMDB check result:', tmdbOk);
+            if (tmdbOk) {
+              console.log(
+                'TMDB now accessible - proceeding to region detection',
+              );
+              // DNS is fixed, close modal and proceed
+              setShowDNSModal(false);
+              await proceedToRegionDetection();
+            } else {
+              console.log('TMDB still blocked - staying on DNS screen');
+              // Still blocked, stay on DNS screen
+              setIsDetecting(false);
+            }
+          } catch (error) {
+            console.log('Error in DNS retry:', error);
+            setIsDetecting(false);
+          }
+        }}
       />
     );
   }

@@ -13,6 +13,7 @@ import {
   DevSettings,
   StyleSheet,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AppNavigator} from './src/navigation/AppNavigator';
 import {queryClient} from './src/services/queryClient';
@@ -56,15 +57,18 @@ export default function App() {
         const searches = realm.objects('RecentSearch');
         const threads = realm.objects('ChatThread');
         const feedback = realm.objects('UserFeedback');
-        
+
         console.log('[App] 📊 Database Stats on Startup:');
         console.log('  🎬 Movies:', movies.length);
         console.log('  🔍 Recent Searches:', searches.length);
         console.log('  💬 Chat Threads:', threads.length);
         console.log('  👍 User Feedback:', feedback.length);
-        
+
         if (searches.length > 0) {
-          console.log('[App] Recent searches:', Array.from(searches).map((s: any) => s.query));
+          console.log(
+            '[App] Recent searches:',
+            Array.from(searches).map((s: any) => s.query),
+          );
         }
       } catch (error) {
         console.error('[App] ❌ Database initialization failed:', error);
@@ -145,6 +149,14 @@ export default function App() {
           return;
         }
 
+        // Check DNS if online and onboarded
+        if (ok && isOnboarded) {
+          const tmdbOk = await checkTMDB();
+          if (!tmdbOk) {
+            setShowDNSModal(true);
+          }
+        }
+
         setIsLoading(false);
       } catch (error) {
         setIsLoading(false);
@@ -154,18 +166,16 @@ export default function App() {
   }, [dbReady]); // Run when Realm is ready
 
   useEffect(() => {
-    const check = async () => {
-      const ok = await checkTMDB();
-      if (!ok) setShowDNSModal(true);
-    };
-    check();
-  }, []);
-
-  useEffect(() => {
     const handleAppStateChange = async (nextAppState: string) => {
       if (nextAppState === 'active') {
         const ok = await checkInternet();
         setIsOnline(ok);
+
+        // Check DNS when app becomes active again
+        if (ok && isOnboarded) {
+          const tmdbOk = await checkTMDB();
+          if (!tmdbOk) setShowDNSModal(true);
+        }
       }
     };
     const subscription = AppState.addEventListener(
@@ -175,7 +185,7 @@ export default function App() {
     return () => {
       subscription?.remove();
     };
-  }, []);
+  }, [isOnboarded]);
 
   // Periodic connectivity check
   // useEffect(() => {
@@ -233,39 +243,32 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar barStyle="dark-content" backgroundColor="#000007" />
-      {!isOnboarded ? (
-        <Onboarding onDone={() => setIsOnboarded(true)} />
-      ) : (
-        <>
-          <AppNavigator />
-          {/* <PerformanceMonitor screenName="AppRoot" /> */}
-          {/* Centralized off-screen poster capture host */}
-          <PosterCaptureHost />
-          {(() => {
-            // Make queryClient globally accessible for monitoring
-            (global as any).queryClient = queryClient;
-            return null;
-          })()}
-          {/* Show DNS modal only if internet is on but DNS is blocked */}
-          <DNSInstructionsModal
-            visible={showDNSModal && isOnline}
-            onClose={() => setShowDNSModal(false)}
-            onTryAgain={handleTryAgain}
-          />
-        </>
-      )}
-      {/* <LinearGradient
-        colors={['transparent', colors.background.primary]}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 150,
-          zIndex: 1,
-        }}
-      /> */}
+      <SafeAreaView
+        style={{flex: 1, backgroundColor: '#000007'}}
+        edges={['bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
+        {!isOnboarded ? (
+          <Onboarding onDone={() => setIsOnboarded(true)} />
+        ) : (
+          <>
+            <AppNavigator />
+            {/* <PerformanceMonitor screenName="AppRoot" /> */}
+            {/* Centralized off-screen poster capture host */}
+            <PosterCaptureHost />
+            {(() => {
+              // Make queryClient globally accessible for monitoring
+              (global as any).queryClient = queryClient;
+              return null;
+            })()}
+            {/* Show DNS modal only if internet is on but DNS is blocked */}
+            <DNSInstructionsModal
+              visible={showDNSModal && isOnline}
+              onClose={() => setShowDNSModal(false)}
+              onTryAgain={handleTryAgain}
+            />
+          </>
+        )}
+      </SafeAreaView>
     </QueryClientProvider>
   );
 }

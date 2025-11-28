@@ -122,17 +122,17 @@ export const SearchStackNavigator = () => (
     <SearchStack.Screen
       name="SearchScreen"
       component={SearchScreen}
-      options={{title: 'Search'}}
+      options={{title: 'Search', animation: 'none'}}
     />
     <SearchStack.Screen
       name="MovieDetails"
       component={MovieDetailsScreen}
-      options={modalScreenOptions}
+      options={{...modalScreenOptions, animation: 'none'}}
     />
     <SearchStack.Screen
       name="TVShowDetails"
       component={TVShowDetailsScreen}
-      options={modalScreenOptions}
+      options={{...modalScreenOptions, animation: 'none'}}
     />
     <SearchStack.Screen
       name="PersonCredits"

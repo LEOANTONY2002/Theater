@@ -212,17 +212,46 @@ export const BottomTabNavigator = () => {
               );
             },
           })}
-          options={{
-            title: 'Home',
-            tabBarIcon: ({focused, color}: any) => (
-              <TabIcon
-                focused={focused}
-                name="home"
-                color={color}
-                type="feather"
-              />
-            ),
-            tabBarLabel: 'Home',
+          options={({route}: any) => {
+            const routeName =
+              getFocusedRouteNameFromRoute(route) ?? 'HomeScreen';
+            const shouldHide = routeName === 'CinemaScreen';
+
+            return {
+              title: 'Home',
+              tabBarIcon: ({focused, color}: any) => (
+                <TabIcon
+                  focused={focused}
+                  name="home"
+                  color={color}
+                  type="feather"
+                />
+              ),
+              tabBarLabel: 'Home',
+              tabBarStyle: shouldHide
+                ? {display: 'none'}
+                : {
+                    backgroundColor: 'transparent',
+                    height: isTablet ? 90 : 70,
+                    borderTopWidth: 0,
+                    paddingTop: isTablet ? spacing.md : spacing.sm,
+                    position: 'absolute',
+                    bottom: isTablet ? 30 : 16,
+                    shadowOpacity: 0,
+                    marginHorizontal:
+                      isTablet && orientation === 'portrait'
+                        ? '18%'
+                        : isTablet && orientation === 'landscape'
+                        ? '27%'
+                        : !isTablet && orientation === 'landscape'
+                        ? '24%'
+                        : 24,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    justifyContent:
+                      orientation === 'landscape' ? 'space-between' : 'center',
+                  },
+            };
           }}
         />
         <Tab.Screen
@@ -243,16 +272,45 @@ export const BottomTabNavigator = () => {
               );
             },
           })}
-          options={{
-            tabBarIcon: ({focused, color}: any) => (
-              <TabIcon
-                focused={focused}
-                name="search"
-                color={color}
-                type="feather"
-              />
-            ),
-            tabBarLabel: 'Explore',
+          options={({route}: any) => {
+            const routeName =
+              getFocusedRouteNameFromRoute(route) ?? 'SearchScreen';
+            const shouldHide = routeName === 'CinemaScreen';
+
+            return {
+              tabBarIcon: ({focused, color}: any) => (
+                <TabIcon
+                  focused={focused}
+                  name="search"
+                  color={color}
+                  type="feather"
+                />
+              ),
+              tabBarLabel: 'Explore',
+              tabBarStyle: shouldHide
+                ? {display: 'none'}
+                : {
+                    backgroundColor: 'transparent',
+                    height: isTablet ? 90 : 70,
+                    borderTopWidth: 0,
+                    paddingTop: isTablet ? spacing.md : spacing.sm,
+                    position: 'absolute',
+                    bottom: isTablet ? 30 : 16,
+                    shadowOpacity: 0,
+                    marginHorizontal:
+                      isTablet && orientation === 'portrait'
+                        ? '18%'
+                        : isTablet && orientation === 'landscape'
+                        ? '27%'
+                        : !isTablet && orientation === 'landscape'
+                        ? '24%'
+                        : 24,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    justifyContent:
+                      orientation === 'landscape' ? 'space-between' : 'center',
+                  },
+            };
           }}
         />
         <Tab.Screen
@@ -272,16 +330,45 @@ export const BottomTabNavigator = () => {
               );
             },
           })}
-          options={{
-            tabBarIcon: ({focused, color}: any) => (
-              <TabIcon
-                focused={focused}
-                name="film"
-                color={color}
-                type="feather"
-              />
-            ),
-            tabBarLabel: 'Browse',
+          options={({route}: any) => {
+            const routeName =
+              getFocusedRouteNameFromRoute(route) ?? 'MoviesAndSeriesScreen';
+            const shouldHide = routeName === 'CinemaScreen';
+
+            return {
+              tabBarIcon: ({focused, color}: any) => (
+                <TabIcon
+                  focused={focused}
+                  name="film"
+                  color={color}
+                  type="feather"
+                />
+              ),
+              tabBarLabel: 'Browse',
+              tabBarStyle: shouldHide
+                ? {display: 'none'}
+                : {
+                    backgroundColor: 'transparent',
+                    height: isTablet ? 90 : 70,
+                    borderTopWidth: 0,
+                    paddingTop: isTablet ? spacing.md : spacing.sm,
+                    position: 'absolute',
+                    bottom: isTablet ? 30 : 16,
+                    shadowOpacity: 0,
+                    marginHorizontal:
+                      isTablet && orientation === 'portrait'
+                        ? '18%'
+                        : isTablet && orientation === 'landscape'
+                        ? '27%'
+                        : !isTablet && orientation === 'landscape'
+                        ? '24%'
+                        : 24,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    justifyContent:
+                      orientation === 'landscape' ? 'space-between' : 'center',
+                  },
+            };
           }}
         />
         <Tab.Screen
@@ -301,16 +388,45 @@ export const BottomTabNavigator = () => {
               );
             },
           })}
-          options={{
-            tabBarIcon: ({focused, color}: any) => (
-              <TabIcon
-                focused={focused}
-                name="layers"
-                color={color}
-                type="feather"
-              />
-            ),
-            tabBarLabel: 'Curation',
+          options={({route}: any) => {
+            const routeName =
+              getFocusedRouteNameFromRoute(route) ?? 'CurationScreen';
+            const shouldHide = routeName === 'CinemaScreen';
+
+            return {
+              tabBarIcon: ({focused, color}: any) => (
+                <TabIcon
+                  focused={focused}
+                  name="layers"
+                  color={color}
+                  type="feather"
+                />
+              ),
+              tabBarLabel: 'Curation',
+              tabBarStyle: shouldHide
+                ? {display: 'none'}
+                : {
+                    backgroundColor: 'transparent',
+                    height: isTablet ? 90 : 70,
+                    borderTopWidth: 0,
+                    paddingTop: isTablet ? spacing.md : spacing.sm,
+                    position: 'absolute',
+                    bottom: isTablet ? 30 : 16,
+                    shadowOpacity: 0,
+                    marginHorizontal:
+                      isTablet && orientation === 'portrait'
+                        ? '18%'
+                        : isTablet && orientation === 'landscape'
+                        ? '27%'
+                        : !isTablet && orientation === 'landscape'
+                        ? '24%'
+                        : 24,
+                    borderRadius: borderRadius.round,
+                    alignItems: 'center',
+                    justifyContent:
+                      orientation === 'landscape' ? 'space-between' : 'center',
+                  },
+            };
           }}
         />
         <Tab.Screen
@@ -339,7 +455,8 @@ export const BottomTabNavigator = () => {
               routeName === 'AboutLegalScreen' ||
               routeName === 'AISettingsScreen' ||
               routeName === 'WatchlistsScreen' ||
-              routeName === 'MyFiltersScreen';
+              routeName === 'MyFiltersScreen' ||
+              routeName === 'CinemaScreen';
 
             return {
               title: 'Profile',

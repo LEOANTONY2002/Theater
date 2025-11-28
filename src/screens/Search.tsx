@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect, useMemo} from 'react';
+import React, {useState, useCallback, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   TextInput,
@@ -9,6 +9,8 @@ import {
   Image,
   ScrollView,
   Platform,
+  useWindowDimensions,
+  Animated,
 } from 'react-native';
 import {
   useEnhancedMovieSearch,
@@ -45,7 +47,8 @@ import {RecentSearchItemsManager} from '../store/recentSearchItems';
 import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
 import {AISearchFilterBuilder} from '../components/AISearchFilterBuilder';
-import {AISearchView} from '../components/AISearchView';
+import {aiSearch} from '../services/gemini';
+import {getImageUrl} from '../services/tmdb';
 
 const MAX_RECENT_ITEMS = 10;
 
@@ -53,6 +56,7 @@ type TabType = 'trending' | 'history';
 
 export const SearchScreen = React.memo(() => {
   const {navigateWithLimit} = useNavigationState();
+  const {width} = useWindowDimensions();
   const [query, setQuery] = React.useState('');
   const [debouncedQuery, setDebouncedQuery] = React.useState('');
   const [recentItems, setRecentItems] = React.useState<ContentItem[]>([]);
@@ -62,9 +66,21 @@ export const SearchScreen = React.memo(() => {
     'all',
   );
   const [showFilters, setShowFilters] = React.useState(false);
-  const [showAISearch, setShowAISearch] = React.useState(false);
   const [isAISearchMode, setIsAISearchMode] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<TabType>('trending');
+  const [isAISearching, setIsAISearching] = React.useState(false);
+  const [aiResults, setAiResults] = React.useState<{
+    bestMatch: any;
+    moreResults: any[];
+    source: 'ai' | 'tmdb_fallback';
+  } | null>(null);
+
+  // Animation refs
+  const toggleAnimation = useRef(new Animated.Value(0)).current;
+  const gradientOpacity = useRef(new Animated.Value(0)).current;
+  const filterIconOpacity = useRef(new Animated.Value(1)).current;
+  const micButtonTranslateX = useRef(new Animated.Value(0)).current;
+
   const isFocused = useIsFocused();
   const {isAIEnabled} = useAIEnabled();
   const route = useRoute<RouteProp<SearchStackParamList, 'SearchScreen'>>();
@@ -124,6 +140,59 @@ export const SearchScreen = React.memo(() => {
     const unsubscribe = navigation.addListener('focus', loadData);
     return unsubscribe;
   }, [navigation]);
+
+  // Animate when AI search mode changes
+  useEffect(() => {
+    if (isAISearchMode) {
+      // Going to AI mode: fade out filter and move mic simultaneously
+      Animated.parallel([
+        Animated.timing(filterIconOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(micButtonTranslateX, {
+          toValue: 48,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(toggleAnimation, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }),
+        Animated.timing(gradientOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Going to normal mode: move mic back and fade in filter simultaneously
+      Animated.parallel([
+        Animated.timing(micButtonTranslateX, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(filterIconOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(toggleAnimation, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: false,
+        }),
+        Animated.timing(gradientOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isAISearchMode]);
 
   const renderHistoryContent = () => {
     return (
@@ -234,7 +303,24 @@ export const SearchScreen = React.memo(() => {
   const handleClearSearch = useCallback(() => {
     setQuery('');
     setDebouncedQuery('');
+    setAiResults(null);
     // Don't reset filters when clearing search
+  }, []);
+
+  const handleAISearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
+
+    setIsAISearching(true);
+    setAiResults(null);
+
+    try {
+      const searchResults = await aiSearch({query: searchQuery});
+      setAiResults(searchResults);
+    } catch (error) {
+      console.error('AI Search error:', error);
+    } finally {
+      setIsAISearching(false);
+    }
   }, []);
 
   const handleResetFilters = useCallback(() => {
@@ -268,14 +354,20 @@ export const SearchScreen = React.memo(() => {
     [],
   );
 
-  // Debounce search query
+  // Debounce search query - only for normal mode
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(query);
+      // Only set debounced query for normal search mode
+      if (!isAISearchMode) {
+        setDebouncedQuery(query);
+      } else {
+        // Clear debounced query in AI mode to prevent normal search
+        setDebouncedQuery('');
+      }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, isAISearchMode]);
 
   // Handler for items clicked from search results (isSearch = true)
   const handleSearchItemPress = useCallback(
@@ -390,17 +482,17 @@ export const SearchScreen = React.memo(() => {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.sm,
+      marginHorizontal: isTablet ? '10%' : spacing.md,
       marginTop: spacing.xl,
       marginBottom: spacing.md,
       backgroundColor: 'transparent',
       position: 'absolute',
       top: 0,
-      zIndex: 1,
+      zIndex: 10,
       overflow: 'hidden',
       paddingVertical: spacing.sm,
       margin: 20,
       borderRadius: borderRadius.round,
-      width: '90%',
       alignSelf: 'center',
     },
     blurView: {
@@ -623,28 +715,6 @@ export const SearchScreen = React.memo(() => {
       ...typography.caption,
       marginTop: spacing.xs,
     },
-    // FAB Button styles
-    fabButton: {
-      position: 'absolute',
-      bottom: isTablet ? 60 : 110,
-      right: 60,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      elevation: 8,
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 4},
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      zIndex: 999,
-    },
-    fabGradient: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
   });
 
   // Tab rendering functions
@@ -701,19 +771,20 @@ export const SearchScreen = React.memo(() => {
     };
   }, [queryClient]);
 
-  // If in AI Search mode, show AI Search View
-  if (isAISearchMode) {
-    return (
-      <AISearchView
-        onResultPress={handleSearchItemPress}
-        onBack={() => setIsAISearchMode(false)}
-        onSaveToRecentSearches={item => saveRecentItem(item, false)}
-      />
-    );
-  }
-
   return (
     <View style={styles.container}>
+      {/* Background Gradient - animated opacity */}
+      <Animated.View
+        style={[StyleSheet.absoluteFillObject, {opacity: gradientOpacity}]}
+        pointerEvents="none">
+        <LinearGradient
+          colors={['rgb(18, 0, 53)', 'rgb(38, 0, 36)']}
+          style={StyleSheet.absoluteFillObject}
+          useAngle={true}
+          angle={120}
+          angleCenter={{x: 0.5, y: 0.5}}
+        />
+      </Animated.View>
       <LinearGradient
         colors={[colors.background.primary, 'transparent']}
         style={{
@@ -746,32 +817,61 @@ export const SearchScreen = React.memo(() => {
             value={query}
             onChangeText={setQuery}
           />
-          <View style={styles.inlineFilterButton}>
-            <MicButton
-              onPartialText={text => {
-                if (text) setQuery(text);
-              }}
-              onFinalText={text => {
-                setQuery(text);
-              }}
-              locale={Platform.OS === 'android' ? 'en-US' : undefined}
-              mode="hold"
-            />
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.inlineFilterButton,
-              {
-                padding: 10,
-              },
-            ]}
-            onPress={() => setShowFilters(true)}>
-            <Icon
-              name="funnel"
-              size={15}
-              color={hasActiveFilters ? colors.accent : colors.text.tertiary}
-            />
-          </TouchableOpacity>
+          {!(isAISearchMode && query.trim().length > 0) && (
+            <Animated.View
+              style={[
+                styles.inlineFilterButton,
+                {
+                  transform: [{translateX: micButtonTranslateX}],
+                  zIndex: 10,
+                },
+              ]}>
+              <MicButton
+                onPartialText={text => {
+                  if (text) setQuery(text);
+                }}
+                onFinalText={text => {
+                  setQuery(text);
+                }}
+                locale={Platform.OS === 'android' ? 'en-US' : undefined}
+                mode="hold"
+              />
+            </Animated.View>
+          )}
+          {isAISearchMode && query.trim().length > 0 && (
+            <Animated.View
+              style={{
+                transform: [{translateX: micButtonTranslateX}],
+              }}>
+              <TouchableOpacity
+                style={[
+                  styles.inlineFilterButton,
+                  {
+                    padding: 10,
+                  },
+                ]}
+                onPress={() => handleAISearch(query.trim())}>
+                <Icon name="send" size={15} color={colors.accent} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+          <Animated.View style={{opacity: filterIconOpacity}}>
+            <TouchableOpacity
+              style={[
+                styles.inlineFilterButton,
+                {
+                  padding: 10,
+                },
+              ]}
+              onPress={() => setShowFilters(true)}
+              disabled={isAISearchMode}>
+              <Icon
+                name="funnel"
+                size={15}
+                color={hasActiveFilters ? colors.accent : colors.text.tertiary}
+              />
+            </TouchableOpacity>
+          </Animated.View>
           {(query.length > 0 || hasActiveFilters) && (
             <TouchableOpacity
               onPress={() => {
@@ -800,12 +900,116 @@ export const SearchScreen = React.memo(() => {
           display: isFocused ? ('flex' as const) : ('none' as const),
         }}
         pointerEvents={isFocused ? 'auto' : 'none'}>
-        {!showSearchResults ? (
+        {!showSearchResults && !aiResults && !isAISearching ? (
           <FlatList
-            style={{paddingTop: 120}}
             data={[{key: 'content'}]}
             renderItem={() => (
               <>
+                <View style={{height: 110}} />
+                {/* AI Search Toggle */}
+                {isAIEnabled && (
+                  <View
+                    style={{
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.md,
+                      marginHorizontal: isTablet ? '10%' : spacing.md,
+                      marginBottom: spacing.md,
+                      borderRadius: borderRadius.lg,
+                      borderWidth: 1.5,
+                      borderBottomWidth: 0,
+                      borderColor: colors.modal.content,
+                      backgroundColor: colors.modal.blur,
+                    }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: spacing.md,
+                      }}>
+                      {/* Sparkle Icon */}
+                      <Icon name="sparkles" size={24} color={colors.accent} />
+
+                      {/* Text Column */}
+                      <View style={{flex: 1}}>
+                        <Text
+                          style={{
+                            ...typography.body1,
+                            fontWeight: '600',
+                            color: colors.text.primary,
+                            marginBottom: spacing.xs,
+                          }}>
+                          AI Search Mode
+                        </Text>
+                        <Text
+                          style={{
+                            ...typography.caption,
+                            color: colors.text.muted,
+                          }}>
+                          Find by partial title, storyline or anything you
+                          remember
+                        </Text>
+                      </View>
+
+                      {/* Toggle Switch */}
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          setIsAISearchMode(!isAISearchMode);
+                          if (isAISearchMode) {
+                            setAiResults(null);
+                          }
+                        }}
+                        style={{
+                          width: 55,
+                          height: 30,
+                          borderRadius: borderRadius.round,
+                          overflow: 'hidden',
+                        }}>
+                        <Animated.View
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderWidth: 1,
+                            borderBottomWidth: 0,
+                            borderColor: colors.modal.content,
+                            borderRadius: borderRadius.round,
+                            backgroundColor: toggleAnimation.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [
+                                colors.modal.blur,
+                                colors.modal.header,
+                              ],
+                            }),
+                            justifyContent: 'center',
+                            paddingHorizontal: 2,
+                          }}>
+                          <Animated.View
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
+                              backgroundColor: toggleAnimation.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [
+                                  colors.modal.content,
+                                  colors.text.primary,
+                                ],
+                              }),
+                              transform: [
+                                {
+                                  translateX: toggleAnimation.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, 22],
+                                  }),
+                                },
+                              ],
+                            }}
+                          />
+                        </Animated.View>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
                 {recentItems.length > 0 && (
                   <View style={styles.recentItemsContainer}>
                     <View style={styles.recentItemsHeader}>
@@ -824,7 +1028,7 @@ export const SearchScreen = React.memo(() => {
                     />
                   </View>
                 )}
-                <View
+                {/* <View
                   style={{
                     justifyContent: 'center',
                     margin: spacing.md,
@@ -926,7 +1130,7 @@ export const SearchScreen = React.memo(() => {
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
-                </View>
+                </View> */}
 
                 {/* Tab Navigation */}
                 <ScrollView
@@ -946,7 +1150,273 @@ export const SearchScreen = React.memo(() => {
           />
         ) : (
           <>
-            {isLoading ? (
+            {/* AI Search Toggle Button - only show in AI mode when not loading or showing results */}
+            {isAIEnabled && isAISearchMode && !aiResults && !isAISearching && (
+              <View
+                style={{
+                  paddingHorizontal: spacing.md,
+                  paddingBottom: spacing.md,
+                }}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setIsAISearchMode(!isAISearchMode);
+                    if (isAISearchMode) {
+                      setAiResults(null);
+                    }
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: borderRadius.round,
+                    borderWidth: 1,
+                    borderColor: isAISearchMode
+                      ? colors.modal.active
+                      : colors.modal.border,
+                    backgroundColor: isAISearchMode
+                      ? colors.modal.border
+                      : colors.modal.blur,
+                    gap: spacing.xs,
+                    alignSelf: 'center',
+                  }}>
+                  <Image
+                    source={require('../assets/aisearch.png')}
+                    style={{width: 20, height: 20}}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={{
+                      ...typography.body2,
+                      color: isAISearchMode
+                        ? colors.text.primary
+                        : colors.text.secondary,
+                      fontWeight: isAISearchMode ? '600' : '400',
+                    }}>
+                    {isAISearchMode ? 'AI Search Active' : 'AI Search'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {isAISearching ? (
+              <View style={styles.loadingContainer}>
+                <GradientSpinner
+                  size={30}
+                  style={{
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                  }}
+                  color={colors.modal.activeBorder}
+                />
+                <Text style={styles.loadingText}>AI is thinking...</Text>
+              </View>
+            ) : aiResults ? (
+              // AI Search Results
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={{alignItems: 'center', paddingTop: spacing.xl}}>
+                  {/* Best Match from AI */}
+                  {aiResults.bestMatch && (
+                    <View
+                      style={{
+                        alignItems: 'center',
+                        paddingHorizontal: spacing.md,
+                      }}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          handleSearchItemPress({
+                            id: aiResults.bestMatch.id,
+                            type: aiResults.bestMatch.type,
+                            title: aiResults.bestMatch.title,
+                            name: aiResults.bestMatch.title,
+                            poster_path: aiResults.bestMatch.poster_path,
+                            backdrop_path: aiResults.bestMatch.backdrop_path,
+                            vote_average: aiResults.bestMatch.vote_average,
+                            overview: aiResults.bestMatch.overview,
+                            release_date: aiResults.bestMatch.year
+                              ? `${aiResults.bestMatch.year}-01-01`
+                              : '',
+                            first_air_date: aiResults.bestMatch.year
+                              ? `${aiResults.bestMatch.year}-01-01`
+                              : '',
+                            popularity: 0,
+                            genre_ids: [],
+                            original_language: 'en',
+                            origin_country: [],
+                          } as ContentItem)
+                        }
+                        activeOpacity={0.9}
+                        style={{width: width * 0.5}}>
+                        <FastImage
+                          source={{
+                            uri: aiResults.bestMatch.poster_path
+                              ? getImageUrl(
+                                  aiResults.bestMatch.poster_path,
+                                  'w500',
+                                )
+                              : 'https://via.placeholder.com/300x450?text=No+Image',
+                          }}
+                          style={{
+                            width: '100%',
+                            height: width * 0.8,
+                            borderRadius: borderRadius.xl,
+                          }}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                      <View
+                        style={{alignItems: 'center', marginTop: spacing.lg}}>
+                        <Text
+                          style={{
+                            ...typography.h2,
+                            color: colors.text.primary,
+                            textAlign: 'center',
+                          }}>
+                          {aiResults.bestMatch.title}
+                        </Text>
+                        {aiResults.bestMatch.confidence && (
+                          <Text
+                            style={{
+                              ...typography.body2,
+                              color: colors.accent,
+                              marginTop: spacing.xs,
+                            }}>
+                            {Math.round(aiResults.bestMatch.confidence * 100)}%
+                            Match
+                          </Text>
+                        )}
+                        {aiResults.bestMatch.explanation && (
+                          <View
+                            style={{
+                              marginTop: spacing.md,
+                              paddingHorizontal: spacing.md,
+                            }}>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: spacing.xs,
+                                marginBottom: spacing.xs,
+                              }}>
+                              <Icon
+                                name="sparkles"
+                                size={16}
+                                color={colors.accent}
+                              />
+                              <Text
+                                style={{
+                                  ...typography.body1,
+                                  fontWeight: '600',
+                                  color: colors.text.primary,
+                                }}>
+                                Why This Match
+                              </Text>
+                            </View>
+                            <Text
+                              style={{
+                                ...typography.body2,
+                                color: colors.text.muted,
+                              }}>
+                              {aiResults.bestMatch.explanation}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* More AI Results */}
+                  {aiResults.moreResults &&
+                    aiResults.moreResults.length > 0 && (
+                      <View
+                        style={{
+                          marginTop: spacing.xl,
+                          width: '100%',
+                          paddingHorizontal: spacing.md,
+                        }}>
+                        <Text
+                          style={{
+                            ...typography.h3,
+                            color: colors.text.primary,
+                            marginBottom: spacing.md,
+                          }}>
+                          More Results
+                        </Text>
+                        {aiResults.moreResults.map((item, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            onPress={() =>
+                              handleSearchItemPress({
+                                id: item.id,
+                                type: item.type,
+                                title: item.title,
+                                name: item.title,
+                                poster_path: item.poster_path,
+                                backdrop_path: item.backdrop_path,
+                                vote_average: item.vote_average,
+                                overview: item.overview,
+                                release_date: item.year
+                                  ? `${item.year}-01-01`
+                                  : '',
+                                first_air_date: item.year
+                                  ? `${item.year}-01-01`
+                                  : '',
+                                popularity: 0,
+                                genre_ids: [],
+                                original_language: 'en',
+                                origin_country: [],
+                              } as ContentItem)
+                            }
+                            activeOpacity={0.7}
+                            style={{
+                              flexDirection: 'row',
+                              marginBottom: spacing.md,
+                              gap: spacing.sm,
+                            }}>
+                            <FastImage
+                              source={{
+                                uri: item.backdrop_path
+                                  ? getImageUrl(item.backdrop_path, 'w300')
+                                  : 'https://via.placeholder.com/300x169?text=No+Image',
+                              }}
+                              style={{
+                                width: 150,
+                                height: 90,
+                                borderRadius: borderRadius.sm,
+                              }}
+                              resizeMode="cover"
+                            />
+                            <View style={{flex: 1, justifyContent: 'center'}}>
+                              <Text
+                                style={{
+                                  ...typography.body1,
+                                  fontWeight: '600',
+                                  color: colors.text.primary,
+                                }}
+                                numberOfLines={1}>
+                                {item.title}
+                              </Text>
+                              {item.reason && (
+                                <Text
+                                  style={{
+                                    ...typography.caption,
+                                    color: colors.text.muted,
+                                    marginTop: spacing.xs,
+                                  }}
+                                  numberOfLines={2}>
+                                  {item.reason}
+                                </Text>
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                </View>
+                <View style={{height: 200}} />
+              </ScrollView>
+            ) : isLoading ? (
               <View style={styles.loadingContainer}>
                 <GradientSpinner
                   size={30}
@@ -1018,20 +1488,6 @@ export const SearchScreen = React.memo(() => {
         onReset={handleResetFilters}
         savedFilters={[]}
       />
-
-      {/* AI Search FAB Button */}
-      {isAIEnabled && (
-        <TouchableOpacity
-          style={styles.fabButton}
-          onPress={() => setIsAISearchMode(true)}
-          activeOpacity={0.8}>
-          <Image
-            source={require('../assets/aisearch.png')}
-            style={{width: 70, height: 70}}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      )}
     </View>
   );
 });

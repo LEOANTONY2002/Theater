@@ -37,6 +37,10 @@ export const DNSInstructionsModal = ({
 }: DNSInstructionsModalProps) => {
   const {isTablet} = useResponsive();
 
+  if (!visible) {
+    return null;
+  }
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -97,64 +101,24 @@ export const DNSInstructionsModal = ({
   });
 
   return (
-    <Modal
-      visible={visible}
-      backdropColor={colors.modal.blurDark}
-      animationType="slide">
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <Image
-            source={require('../assets/search.png')}
-            style={styles.image}
-          />
-          <View style={{position: 'relative'}}>
-            <LinearGradient
-              style={{
-                position: 'absolute',
-                bottom: spacing.md,
-                left: 0,
-                right: 0,
-                height: isTablet ? 60 : 30,
-                zIndex: 1,
-              }}
-              colors={['transparent', colors.background.primary]}
-            />
-            <Text style={styles.noResultsTitle}>DNS Issue</Text>
-          </View>
-          <Text style={styles.subtitle}>
-            To use this app, please set your Private DNS to{' '}
-            <Text
-              style={{
-                fontWeight: 'bold',
-                color: colors.primary,
-                fontFamily: 'Inter_18pt-Regular',
-              }}>
-              dns.google
-            </Text>{' '}
-            in your device settings.
-          </Text>
-          <Text style={styles.instructions}>
-            {`1. Go to Settings\n2. Go to Network & Internet\n3. Go to Private DNS\n4. Go to Private DNS Provider\n5. Enter hostname: dns.google\n6. Click Save`}
-          </Text>
-          <TouchableOpacity
-            onPress={onTryAgain}
-            disabled={!!isRetrying}
-            activeOpacity={0.85}
-            style={styles.buttonWrap}>
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.button}>
-              {isRetrying ? (
-                <GradientSpinner color={colors.text.primary} size={24} />
-              ) : (
-                <Text style={styles.buttonText}>Try Again</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+    <View style={styles.container}>
+      <TouchableOpacity
+        onPress={onTryAgain}
+        disabled={!!isRetrying}
+        activeOpacity={0.85}
+        style={styles.buttonWrap}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.button}>
+          {isRetrying ? (
+            <GradientSpinner color={colors.text.primary} size={24} />
+          ) : (
+            <Text style={styles.buttonText}>Try Again</Text>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
   );
 };

@@ -1277,12 +1277,14 @@ export const getTVShowReviews = async (tvId: number, page = 1) => {
 
 export const checkTMDB = async (): Promise<boolean> => {
   try {
-    await axios.get('https://api.themoviedb.org/3/configuration', {
-      params: {api_key: 'ddc242ac9b33e6c9054b5193c541ffbb'},
+    // Use the same API instance as the rest of the app
+    const response = await tmdbApi.get('/configuration', {
       timeout: 5000,
     });
-    return true;
-  } catch {
+    console.log('TMDB Check SUCCESS:', response.status);
+    return response.status === 200;
+  } catch (error: any) {
+    console.log('TMDB Check FAILED:', error?.message || error);
     return false;
   }
 };

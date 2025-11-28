@@ -12,10 +12,11 @@ import {
 import {BlurView} from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useSpeechToText} from '../hooks/useSpeechToText';
-import {colors, borderRadius} from '../styles/theme';
+import {colors, borderRadius, spacing, typography} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
 import {MaybeBlurView} from './MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface VoiceCaptureModalProps {
   visible: boolean;
@@ -83,21 +84,32 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: isSolid ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)',
     },
     blur: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: colors.modal.blurDark,
+    },
+    cardContainer: {
+      width: isTablet ? '40%' : '85%',
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
     },
     card: {
-      width: isTablet ? 320 : 250,
-      borderRadius: 50,
-      backgroundColor: isSolid ? 'black' : colors.modal.blurDark,
-      paddingHorizontal: 20,
-      paddingVertical: 60,
+      padding: spacing.xl,
+      backgroundColor: colors.modal.blur,
+      borderRadius: borderRadius.xl,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: colors.modal.content,
       alignItems: 'center',
-      borderWidth: isSolid ? 1 : 0,
-      borderColor: isSolid ? colors.modal.blur : colors.modal.blur,
+    },
+    solidCard: {
+      padding: spacing.xl,
+      backgroundColor: 'black',
+      borderRadius: borderRadius.xl,
+      borderWidth: 3,
+      borderColor: 'rgba(0, 0, 0, 0.04)',
+      alignItems: 'center',
     },
     micCircle: {
       width: 96,
@@ -105,91 +117,168 @@ export const VoiceCaptureModal: React.FC<VoiceCaptureModalProps> = ({
       borderRadius: 48,
       backgroundColor: 'rgba(251, 228, 246, 0.1)',
       borderWidth: 1,
+      borderBottomWidth: 0,
       borderColor: colors.modal.activeBorder,
       justifyContent: 'center',
       alignItems: 'center',
+      marginBottom: spacing.md,
     },
     hintText: {
       color: colors.text.secondary,
       fontSize: 14,
-      marginTop: 16,
+      marginTop: spacing.md,
       fontFamily: 'Inter_18pt-Regular',
+      textAlign: 'center',
     },
-    actions: {flexDirection: 'row', gap: 12, marginTop: 20},
+    actions: {flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl},
     actionBtn: {
-      minWidth: 110,
-      paddingVertical: 10,
+      flex: 1,
+      paddingVertical: spacing.md,
       borderRadius: borderRadius.round,
       alignItems: 'center',
       borderWidth: 1,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
     },
     cancelBtn: {
-      borderColor: colors.modal.border,
-      backgroundColor: 'transparent',
+      borderColor: colors.modal.content,
+      backgroundColor: colors.modal.blur,
+      borderBottomWidth: 0,
+      borderWidth: 1,
     },
-    actionText: {color: colors.text.primary, fontFamily: 'Inter_18pt-Regular'},
+    actionText: {
+      color: colors.text.primary,
+      fontFamily: 'Inter_18pt-Regular',
+      fontWeight: '500',
+    },
   });
 
-  const renderContent = () => (
-    <View style={styles.card}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={async () => {
-          if (!supported) return;
-          if (isRecording) {
-            await stop();
-          } else {
-            // Reset hint to default before starting
-            setHint('Tap to Speak');
-            await start();
-          }
-        }}>
-        <Animated.View
-          style={[
-            styles.micCircle,
-            {transform: [{scale: isRecording ? pulse : 1}]},
-          ]}>
-          <Icon
-            name={isRecording ? 'mic' : 'mic-outline'}
-            size={42}
-            color={colors.text.primary}
-          />
-        </Animated.View>
-      </TouchableOpacity>
+  const renderContent = () => {
+    if (!isSolid) {
+      // Blur mode
+      return (
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={async () => {
+                if (!supported) return;
+                if (isRecording) {
+                  await stop();
+                } else {
+                  setHint('Tap to Speak');
+                  await start();
+                }
+              }}>
+              <Animated.View
+                style={[
+                  styles.micCircle,
+                  {transform: [{scale: isRecording ? pulse : 1}]},
+                ]}>
+                <Icon
+                  name={isRecording ? 'mic' : 'mic-outline'}
+                  size={42}
+                  color={colors.text.primary}
+                />
+              </Animated.View>
+            </TouchableOpacity>
 
-      <Text style={styles.hintText}>{isRecording ? 'Listening…' : hint}</Text>
+            <Text style={styles.hintText}>
+              {isRecording ? 'Listening…' : hint}
+            </Text>
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          onPress={onCancel}
-          style={[styles.actionBtn, styles.cancelBtn]}>
-          <Text style={styles.actionText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+            <View style={styles.actions}>
+              <TouchableOpacity
+                onPress={onCancel}
+                style={[styles.actionBtn, styles.cancelBtn]}>
+                <Text style={styles.actionText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    } else {
+      // Solid mode
+      return (
+        <View style={styles.cardContainer}>
+          <LinearGradient
+            colors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.7)']}
+            start={{x: 1, y: 0}}
+            end={{x: 1, y: 1}}
+            style={{borderRadius: borderRadius.xl}}>
+            <View style={styles.solidCard}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={async () => {
+                  if (!supported) return;
+                  if (isRecording) {
+                    await stop();
+                  } else {
+                    setHint('Tap to Speak');
+                    await start();
+                  }
+                }}>
+                <Animated.View
+                  style={[
+                    styles.micCircle,
+                    {transform: [{scale: isRecording ? pulse : 1}]},
+                  ]}>
+                  <Icon
+                    name={isRecording ? 'mic' : 'mic-outline'}
+                    size={42}
+                    color={colors.text.primary}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
+
+              <Text style={styles.hintText}>
+                {isRecording ? 'Listening…' : hint}
+              </Text>
+
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  onPress={onCancel}
+                  style={[styles.actionBtn, styles.cancelBtn]}>
+                  <Text style={styles.actionText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <LinearGradient
+              colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+              style={{
+                position: 'absolute',
+                right: 0,
+                height: isTablet ? '150%' : '100%',
+                width: '180%',
+                transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+                left: isTablet ? '-30%' : '-50%',
+                bottom: isTablet ? '-20%' : '-30%',
+                pointerEvents: 'none',
+              }}
+            />
+          </LinearGradient>
+        </View>
+      );
+    }
+  };
 
   return (
     <Modal
       visible={visible}
-      backdropColor={colors.modal.blurDark}
+      backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
       statusBarTranslucent
       animationType="fade"
       onRequestClose={onCancel}>
-      <View style={styles.overlay}>
-        {isSolid ? (
-          renderContent()
-        ) : (
-          <View
-            style={{
-              borderRadius: 50,
-              overflow: 'hidden',
-            }}>
-            <MaybeBlurView style={styles.blur} radius={50} dialog />
-            {renderContent()}
-          </View>
-        )}
-      </View>
+      {!isSolid && (
+        <BlurView
+          blurType="dark"
+          blurAmount={10}
+          overlayColor="rgba(0, 0, 0, 0.5)"
+          style={styles.blur}
+        />
+      )}
+      <View style={styles.overlay}>{renderContent()}</View>
     </Modal>
   );
 };

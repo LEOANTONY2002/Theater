@@ -14,6 +14,7 @@ import {
   Easing,
   ImageBackground,
   FlatList,
+  Linking,
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
@@ -86,7 +87,7 @@ import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {HistoryManager} from '../store/history';
 import {getRealm} from '../database/realm';
-import ShareLib from 'react-native-share';
+import ShareLib, {Social} from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {getCriticRatings} from '../services/gemini';
@@ -467,10 +468,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   }, [show, showDetails]);
 
   const handleOpenPoster = useCallback(async () => {
-    setShowPosterModal(true);
-    setPosterLoading(true);
-    setPosterUri(null);
     try {
+      setIsSharingPoster(true);
       const uri = await requestPosterCapture(
         {
           watchlistName: show.name,
@@ -485,13 +484,60 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         },
         'tmpfile',
       );
-      setPosterUri(uri);
+
+      if (uri) {
+        // Share directly to Instagram Stories
+        await ShareLib.shareSingle({
+          social: Social.InstagramStories,
+          appId: '1234567890', // Dummy appId for Instagram Stories
+          backgroundImage: uri,
+          backgroundBottomColor: '#000000',
+          backgroundTopColor: '#000000',
+        });
+      }
     } catch (e) {
-      setShowPosterModal(false);
+      console.warn('Instagram Stories share failed', e);
+      // Fallback: Try to open Instagram app directly
+      try {
+        const instagramURL = 'instagram://story-camera';
+        const canOpen = await Linking.canOpenURL(instagramURL);
+        if (canOpen) {
+          await Linking.openURL(instagramURL);
+        } else {
+          // If Instagram not installed, use general share
+          const uri = await requestPosterCapture(
+            {
+              watchlistName: show.name,
+              items: posterItems as any,
+              isFilter: false,
+              showQR: false,
+              details: posterDetails,
+              streamingIcon,
+              languages: posterLanguages,
+              seasons: seasonsCount,
+              episodes: episodesCount,
+            },
+            'tmpfile',
+          );
+          if (uri) {
+            await ShareLib.open({url: uri, type: 'image/png'});
+          }
+        }
+      } catch (fallbackError) {
+        console.warn('Fallback share failed', fallbackError);
+      }
     } finally {
-      setPosterLoading(false);
+      setIsSharingPoster(false);
     }
-  }, [show.name, posterItems, posterDetails, streamingIcon]);
+  }, [
+    show.name,
+    posterItems,
+    posterDetails,
+    streamingIcon,
+    posterLanguages,
+    seasonsCount,
+    episodesCount,
+  ]);
 
   const handleSharePoster = useCallback(async () => {
     try {
@@ -1560,8 +1606,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     <TouchableOpacity
                       style={styles.addButton}
                       onPress={handleOpenPoster}
+                      disabled={isSharingPoster}
                       activeOpacity={0.9}>
-                      <Ionicons name="logo-instagram" size={20} color="#fff" />
+                      {isSharingPoster ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Ionicons name="logo-instagram" size={20} color="#fff" />
+                      )}
                     </TouchableOpacity>
                   </View>
                   <View style={styles.genreContainer}>

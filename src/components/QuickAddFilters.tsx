@@ -27,7 +27,9 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
       params: {
         with_original_language: 'ko',
         sort_by: 'popularity.desc',
-        with_genres: '10765',
+        with_genres: '18,10751',
+        without_genres: '10759',
+        'vote_average.gte': 5,
       },
       type: 'tv' as const,
       icon: 'heart-outline',
@@ -37,7 +39,9 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
       params: {
         with_original_language: 'zh',
         sort_by: 'popularity.desc',
-        with_genres: '10765',
+        with_genres: '18,10751',
+        without_genres: '10759',
+        'vote_average.gte': 5,
       },
       type: 'tv' as const,
       icon: 'sparkles-outline',

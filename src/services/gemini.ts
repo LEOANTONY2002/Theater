@@ -818,48 +818,141 @@ LANGUAGES: ${languagesList}
 
 STREAMING PROVIDERS: ${providersList}
 
-=== FILTER PARAMETERS ===
+=== ALL AVAILABLE FILTER PARAMETERS ===
+
+BASIC FILTERS:
 {
-  "sort_by": "popularity.desc" | "vote_average.desc" | "primary_release_date.desc" | "original_title.asc",
-  "vote_average.gte": number (0-10),
-  "primary_release_date.gte": "YYYY-MM-DD",
-  "primary_release_date.lte": "YYYY-MM-DD",
-  "first_air_date.gte": "YYYY-MM-DD",
-  "first_air_date.lte": "YYYY-MM-DD",
-  "with_genres": "id1|id2" (pipe-separated),
-  "with_original_language": "code",
-  "with_runtime_gte": number (minutes),
-  "with_watch_providers": "id1|id2",
-  "watch_region": "US"
+  "sort_by": "popularity.desc" | "popularity.asc" | "vote_average.desc" | "vote_average.asc" | "primary_release_date.desc" | "primary_release_date.asc" | "original_title.asc" | "original_title.desc",
+  
+  // Rating filters
+  "vote_average.gte": number (0-10, minimum rating),
+  "vote_average.lte": number (0-10, maximum rating),
+  
+  // Date filters (use primary_release_date for movies, first_air_date for TV)
+  "primary_release_date.gte": "YYYY-MM-DD" (movies only),
+  "primary_release_date.lte": "YYYY-MM-DD" (movies only),
+  "first_air_date.gte": "YYYY-MM-DD" (TV only),
+  "first_air_date.lte": "YYYY-MM-DD" (TV only),
+  
+  // Genre filters
+  "with_genres": "id1|id2|id3" (pipe-separated, include these genres),
+  "without_genres": "id1|id2" (pipe-separated, exclude these genres),
+  "genre_operator": "AND" | "OR" (how to combine genres: OR=any genre matches, AND=all genres must match),
+  
+  // Language & Region
+  "with_original_language": "code" (e.g., "en", "ko", "ja", "zh"),
+  "with_watch_providers": "id1|id2" (pipe-separated provider IDs),
+  "watch_region": "US" (default region for providers),
+  
+  // Runtime filters
+  "with_runtime_gte": number (minimum runtime in minutes),
+  "with_runtime_lte": number (maximum runtime in minutes),
+  
+  // Popularity & Vote Count
+  "vote_count.gte": number (minimum number of votes - use for filtering popular/well-known content),
+  "vote_count.lte": number (maximum number of votes),
+  "with_popularity.gte": number (minimum popularity score),
+  "with_popularity.lte": number (maximum popularity score)
+}
+
+ADVANCED FILTERS (use when user mentions specific people, keywords, companies, or networks):
+{
+  // People filters (requires TMDB person IDs - can't be used directly, only mention in explanation)
+  "with_cast": "person_id1,person_id2" (comma-separated, cast members),
+  "with_crew": "person_id1,person_id2" (comma-separated, directors/writers),
+  "with_people": "person_id" (either cast or crew),
+  
+  // Keyword filters (requires TMDB keyword IDs - can't be used directly, only mention in explanation)
+  "with_keywords": "keyword_id1,keyword_id2" (comma-separated),
+  "without_keywords": "keyword_id1,keyword_id2" (exclude keywords),
+  
+  // Production filters (requires TMDB company/network IDs - can't be used directly, only mention in explanation)
+  "with_companies": "company_id1,company_id2" (production companies),
+  "with_networks": "network_id1,network_id2" (TV networks only),
+  
+  // Certification/Rating (age ratings - US system)
+  "certification": "G" | "PG" | "PG-13" | "R" | "NC-17" (US movie ratings),
+  "certification": "TV-Y" | "TV-Y7" | "TV-G" | "TV-PG" | "TV-14" | "TV-MA" (US TV ratings),
+  "certification_country": "US" (default),
+  
+  // Release Type (movies only)
+  "with_release_type": "1" | "2" | "3" | "4" | "5" | "6" (1=Premiere, 2=Theatrical Limited, 3=Theatrical, 4=Digital, 5=Physical, 6=TV)
 }
 
 === RETURN FORMAT ===
 {
   "contentType": "movie" | "tv" | "all",
   "filters": {...},
-  "explanation": "string"
+  "explanation": "string describing what filters were applied"
 }
 
 === STRICT RULES ===
+
 1. CONTENT TYPE DETECTION:
-   - "series", "show", "tv", "drama" → contentType: "tv"
+   - "series", "show", "tv", "drama", "anime" → contentType: "tv"
    - "movie", "film" → contentType: "movie"
-   - Default → "all"
+   - Default or mixed → "all"
 
 2. GENRE SELECTION:
    - If contentType="movie" → USE ONLY MOVIE GENRES LIST
    - If contentType="tv" → USE ONLY TV SHOW GENRES LIST
+   - If contentType="all" → Can use both, but prefer broader matches
    - NEVER use genre IDs not in the correct list!
+   - Multiple genres: use pipe-separated (|) format
 
-3. LANGUAGE:
+3. GENRE OPERATORS:
+   - Default to "OR" (any genre matches)
+   - Use "AND" only when explicitly stated "must have all these genres"
+
+4. LANGUAGE:
    - USE ONLY language codes from LANGUAGES list
-   - Map language name to code (e.g., Tamil→ta, Hindi→hi)
+   - Map language name to code (e.g., Korean→ko, Japanese→ja, Chinese→zh, Tamil→ta)
 
-4. PROVIDERS:
+5. PROVIDERS:
    - USE ONLY provider IDs from STREAMING PROVIDERS list
-   - Map service name to ID (e.g., Netflix→8)
+   - Map service name to ID (e.g., Netflix→8, Disney+→337, HBO Max→384)
+   - Multiple providers: pipe-separated (|)
 
-5. If data not found in lists, OMIT that filter parameter!`,
+6. RATING RANGES:
+   - "highly rated" → vote_average.gte: 7.5
+   - "well-rated" → vote_average.gte: 6.5
+   - "popular" → vote_count.gte: 500
+   - "hidden gems" → vote_average.gte: 7, vote_count.lte: 200
+
+7. DATE RANGES:
+   - Decades: "90s" → 1990-01-01 to 1999-12-31
+   - Years: "2020" → 2020-01-01 to 2020-12-31
+   - Recent: "recent" → use last 2-3 years
+
+8. RUNTIME:
+   - "short" → with_runtime_lte: 90
+   - "long" → with_runtime_gte: 150
+   - "under X minutes" → with_runtime_lte: X
+
+9. EXCLUDING GENRES:
+   - "no horror" or "exclude horror" → use without_genres with horror ID
+   - "family friendly" → exclude horror (27), add family (10751)
+
+10. CERTIFICATIONS:
+    - "family friendly" or "kids" → certification: "G" or "PG" (movies), "TV-Y" or "TV-G" (TV)
+    - "mature" or "adults" → certification: "R" or "NC-17" (movies), "TV-MA" (TV)
+
+11. ADVANCED FILTERS:
+    - If user mentions specific actors/directors/keywords/companies → Note in explanation that manual selection needed
+    - Don't create IDs for these - they require UI interaction
+
+12. If data not found in lists, OMIT that filter parameter!
+
+=== EXAMPLES ===
+
+Query: "highly rated 90s romantic comedies"
+→ {contentType: "movie", filters: {with_genres: "10749|35", primary_release_date.gte: "1990-01-01", primary_release_date.lte: "1999-12-31", vote_average.gte: 7.5}}
+
+Query: "short Korean dramas with happy endings"
+→ {contentType: "tv", filters: {with_original_language: "ko", with_genres: "18", with_runtime_lte: 45}, explanation: "Korean dramas under 45 min (happy endings require manual keyword selection)"}
+
+Query: "family friendly action movies on Netflix, no horror"
+→ {contentType: "movie", filters: {with_genres: "28|10751", without_genres: "27", with_watch_providers: "8", certification: "PG"}}`,
   };
 
   const user = {
