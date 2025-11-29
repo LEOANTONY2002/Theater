@@ -1611,7 +1611,11 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       {isSharingPoster ? (
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
-                        <Ionicons name="logo-instagram" size={20} color="#fff" />
+                        <Ionicons
+                          name="logo-instagram"
+                          size={20}
+                          color="#fff"
+                        />
                       )}
                     </TouchableOpacity>
                   </View>
