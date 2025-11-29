@@ -47,12 +47,12 @@ const Cinema = React.memo(
       (request: {url: string}) => {
         // Allow the initial URL to load
         if (!currentUrl) return true;
-        
+
         // Extract domain from initial URL
         try {
           const initialDomain = new URL(currentUrl).hostname;
           const requestDomain = new URL(request.url).hostname;
-          
+
           // Only allow navigation within the same domain
           // Block any external redirects (ads, popups, etc.)
           return requestDomain === initialDomain;
@@ -84,12 +84,12 @@ const Cinema = React.memo(
       setLoadingText('Connection error');
     }, []);
 
-    // Only remount WebView when server changes, not on every render
+    // Only remount WebView when server or content changes
     useEffect(() => {
       setIsLoading(true);
-      setLoadingText('Switching server...');
+      setLoadingText('Loading content...');
       setWebViewKey(prev => prev + 1);
-    }, [currentServer]);
+    }, [currentServer, id, type, season, episode]);
 
     useEffect(() => {
       return () => {
@@ -102,6 +102,16 @@ const Cinema = React.memo(
         }
       };
     }, []);
+
+    const INJECTED_JAVASCRIPT = `
+      (function() {
+        window.open = function() { return null; };
+        const style = document.createElement('style');
+        style.innerHTML = '.ad, .ads, .popup, [id^=ad-], [class^=ad-], [class*="popup"], [class*="modal"] { display: none !important; }';
+        document.head.appendChild(style);
+      })();
+      true;
+    `;
 
     return (
       <View style={styles.container}>
@@ -126,7 +136,13 @@ const Cinema = React.memo(
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled={false}
           overScrollMode="never"
+          injectedJavaScript={INJECTED_JAVASCRIPT}
+          userAgent="Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
           androidLayerType="hardware"
+          incognito={true}
+          thirdPartyCookiesEnabled={false}
+          sharedCookiesEnabled={false}
+          cacheEnabled={false}
         />
 
         {isLoading && (

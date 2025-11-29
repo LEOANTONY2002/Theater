@@ -388,7 +388,9 @@ export const WatchProvidersButton: React.FC<WatchProvidersButtonProps> = ({
 
           <View style={styles.modalBodyWrapper}>
             <MaybeBlurView body radius={borderRadius.xl}>
-              <ScrollView contentContainerStyle={styles.providersList}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.providersList}>
                 {displayProviders.map((provider, index) => (
                   <TouchableOpacity
                     key={index}

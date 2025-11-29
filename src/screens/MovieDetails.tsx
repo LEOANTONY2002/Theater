@@ -135,7 +135,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
-  const cinema = false;
+  const cinema = true;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -1495,7 +1495,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     {cinema && isFocused ? (
                       <GradientButton
                         title="Watch Trailer"
-                        isIcon={width > 400 ? true : false}
+                        isIcon={isTablet ? true : false}
                         onPress={() => {
                           navigation.navigate('CinemaScreen', {
                             id: movie.id.toString(),
@@ -1509,7 +1509,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     ) : (
                       <GradientButton
                         title="Watch Trailer"
-                        isIcon={width > 400 ? true : false}
+                        isIcon={isTablet ? true : false}
                         onPress={() => {
                           setIsPlaying(true);
                           addToHistory();

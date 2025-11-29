@@ -145,7 +145,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
   const queryClient = useQueryClient();
-  const cinema = false;
+  const cinema = true;
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -1558,14 +1558,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             episode,
                           });
                         }}
-                        isIcon={width > 400 ? true : false}
+                        isIcon={isTablet ? true : false}
                         style={styles.watchButton}
                         textStyle={styles.watchButtonText}
                       />
                     ) : (
                       <GradientButton
                         title="Watch Trailer"
-                        isIcon={width > 400 ? true : false}
+                        isIcon={isTablet ? true : false}
                         onPress={() => {
                           setIsPlaying(true);
                         }}
