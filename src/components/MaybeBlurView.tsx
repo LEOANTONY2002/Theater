@@ -214,6 +214,8 @@ export const MaybeBlurView: React.FC<
           <BlurView
             blurType="light"
             blurAmount={5}
+            downsampleFactor={100}
+
             overlayColor={'rgba(50, 50, 50, 0.35)'}
             style={{
               flex: 1,
@@ -276,6 +278,7 @@ export const MaybeBlurView: React.FC<
             blurType="light"
             blurAmount={5}
             overlayColor={colors.modal.blur}
+            downsampleFactor={10}
             style={{
               flex: 1,
             }}>

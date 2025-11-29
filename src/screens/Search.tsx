@@ -565,7 +565,7 @@ export const SearchScreen = React.memo(() => {
     loadingContainer: {
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: 400,
+      flex: 1,
     },
     loadingText: {
       color: colors.text.muted,
@@ -840,6 +840,7 @@ export const SearchScreen = React.memo(() => {
             <Animated.View
               style={{
                 transform: [{translateX: micButtonTranslateX}],
+                zIndex: 10,
               }}>
               <TouchableOpacity
                 style={[
@@ -1180,11 +1181,7 @@ export const SearchScreen = React.memo(() => {
                     gap: spacing.xs,
                     alignSelf: 'center',
                   }}>
-                  <Icon
-                    name="sparkles"
-                    size={16}
-                    color={colors.accent}
-                  />
+                  <Icon name="sparkles" size={16} color={colors.accent} />
                   <Text
                     style={{
                       ...typography.body2,
@@ -1212,16 +1209,59 @@ export const SearchScreen = React.memo(() => {
               </View>
             ) : aiResults ? (
               // AI Search Results
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView
+                style={{paddingTop: 100}}
+                showsVerticalScrollIndicator={false}>
+                {/* Best Match Section */}
                 <View style={{alignItems: 'center', paddingTop: spacing.xl}}>
-                  {/* Best Match from AI */}
                   {aiResults.bestMatch && (
                     <View
                       style={{
                         alignItems: 'center',
-                        paddingHorizontal: spacing.md,
                       }}>
+                      {/* Large percentage in background */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          alignItems: 'center',
+                          opacity: 0.09,
+                        }}>
+                        <View
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: isTablet ? 'center' : 'flex-end',
+                          }}>
+                          <Text
+                            style={{
+                              fontSize: isTablet ? 120 : 85,
+                              fontWeight: '900',
+                              color: colors.text.primary,
+                            }}>
+                            {Math.round(aiResults.bestMatch.confidence * 100)}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: isTablet ? 85 : 65,
+                              fontWeight: '900',
+                              color: colors.text.primary,
+                            }}>
+                            %
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Movie Poster Card */}
                       <TouchableOpacity
+                        style={{
+                          width: isTablet ? width * 0.4 : width * 0.5,
+                          height: isTablet ? width * 0.6 : width * 0.8,
+                          marginTop: isTablet
+                            ? spacing.xl * 3.5
+                            : spacing.xl * 2.5,
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                        }}
                         onPress={() =>
                           handleSearchItemPress({
                             id: aiResults.bestMatch.id,
@@ -1244,8 +1284,19 @@ export const SearchScreen = React.memo(() => {
                             origin_country: [],
                           } as ContentItem)
                         }
-                        activeOpacity={0.9}
-                        style={{width: width * 0.5}}>
+                        activeOpacity={0.9}>
+                        {/* Match Badge */}
+                        <Image
+                          source={require('../assets/match.png')}
+                          style={{
+                            position: 'absolute',
+                            top: isTablet ? -60 : -45,
+                            height: 60,
+                            width: isTablet ? width * 0.15 : width * 0.2,
+                          }}
+                          resizeMode="contain"
+                        />
+                        {/* Poster */}
                         <FastImage
                           source={{
                             uri: aiResults.bestMatch.poster_path
@@ -1257,14 +1308,31 @@ export const SearchScreen = React.memo(() => {
                           }}
                           style={{
                             width: '100%',
-                            height: width * 0.8,
+                            height: '100%',
                             borderRadius: borderRadius.xl,
                           }}
                           resizeMode="cover"
                         />
+                        {/* Arc Decoration */}
+                        <Image
+                          source={require('../assets/arc.png')}
+                          style={{
+                            position: 'absolute',
+                            bottom: -30,
+                            height: isTablet ? 70 : 60,
+                            width: isTablet ? width * 0.5 : width * 0.6,
+                          }}
+                          resizeMode="contain"
+                        />
                       </TouchableOpacity>
+
+                      {/* Movie Info */}
                       <View
-                        style={{alignItems: 'center', marginTop: spacing.lg}}>
+                        style={{
+                          alignItems: 'center',
+                          marginTop: spacing.xl,
+                          paddingHorizontal: spacing.md,
+                        }}>
                         <Text
                           style={{
                             ...typography.h2,
@@ -1273,58 +1341,101 @@ export const SearchScreen = React.memo(() => {
                           }}>
                           {aiResults.bestMatch.title}
                         </Text>
-                        {aiResults.bestMatch.confidence && (
-                          <Text
-                            style={{
-                              ...typography.body2,
-                              color: colors.accent,
-                              marginTop: spacing.xs,
-                            }}>
-                            {Math.round(aiResults.bestMatch.confidence * 100)}%
-                            Match
-                          </Text>
-                        )}
-                        {aiResults.bestMatch.explanation && (
-                          <View
-                            style={{
-                              marginTop: spacing.md,
-                              paddingHorizontal: spacing.md,
-                            }}>
-                            <View
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: spacing.xs,
+                            marginTop: spacing.sm,
+                          }}>
+                          {aiResults.bestMatch.year && (
+                            <Text
                               style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: spacing.xs,
-                                marginBottom: spacing.xs,
+                                ...typography.body2,
+                                color: colors.text.secondary,
                               }}>
-                              <Icon
-                                name="sparkles"
-                                size={16}
-                                color={colors.accent}
-                              />
-                              <Text
-                                style={{
-                                  ...typography.body1,
-                                  fontWeight: '600',
-                                  color: colors.text.primary,
-                                }}>
-                                Why This Match
-                              </Text>
-                            </View>
+                              {aiResults.bestMatch.year}
+                            </Text>
+                          )}
+                          {aiResults.bestMatch.year && (
                             <Text
                               style={{
                                 ...typography.body2,
                                 color: colors.text.muted,
                               }}>
-                              {aiResults.bestMatch.explanation}
+                              •
+                            </Text>
+                          )}
+                          <Text
+                            style={{
+                              ...typography.body2,
+                              color: colors.text.secondary,
+                            }}>
+                            English
+                          </Text>
+                          {aiResults.bestMatch.vote_average && (
+                            <>
+                              <Text
+                                style={{
+                                  ...typography.body2,
+                                  color: colors.text.muted,
+                                }}>
+                                •
+                              </Text>
+                              <Text
+                                style={{
+                                  ...typography.body2,
+                                  color: colors.text.secondary,
+                                }}>
+                                {aiResults.bestMatch.vote_average.toFixed(1)}
+                              </Text>
+                            </>
+                          )}
+                        </View>
+                      </View>
+
+                      {/* Why This Match */}
+                      {aiResults.bestMatch.explanation && (
+                        <View
+                          style={{
+                            marginTop: 50,
+                            paddingHorizontal: spacing.md,
+                            width: '100%',
+                          }}>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: spacing.md,
+                              marginBottom: spacing.sm,
+                            }}>
+                            <Icon
+                              name="sparkles"
+                              size={16}
+                              color={colors.accent}
+                            />
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                fontWeight: '600',
+                                color: colors.text.primary,
+                              }}>
+                              Why This Match
                             </Text>
                           </View>
-                        )}
-                      </View>
+                          <Text
+                            style={{
+                              ...typography.body2,
+                              color: colors.text.muted,
+                            }}>
+                            {aiResults.bestMatch.explanation}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
 
-                  {/* More AI Results */}
+                  {/* More Results Section */}
                   {aiResults.moreResults &&
                     aiResults.moreResults.length > 0 && (
                       <View
@@ -1341,74 +1452,76 @@ export const SearchScreen = React.memo(() => {
                           }}>
                           More Results
                         </Text>
-                        {aiResults.moreResults.map((item, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            onPress={() =>
-                              handleSearchItemPress({
-                                id: item.id,
-                                type: item.type,
-                                title: item.title,
-                                name: item.title,
-                                poster_path: item.poster_path,
-                                backdrop_path: item.backdrop_path,
-                                vote_average: item.vote_average,
-                                overview: item.overview,
-                                release_date: item.year
-                                  ? `${item.year}-01-01`
-                                  : '',
-                                first_air_date: item.year
-                                  ? `${item.year}-01-01`
-                                  : '',
-                                popularity: 0,
-                                genre_ids: [],
-                                original_language: 'en',
-                                origin_country: [],
-                              } as ContentItem)
-                            }
-                            activeOpacity={0.7}
-                            style={{
-                              flexDirection: 'row',
-                              marginBottom: spacing.md,
-                              gap: spacing.sm,
-                            }}>
-                            <FastImage
-                              source={{
-                                uri: item.backdrop_path
-                                  ? getImageUrl(item.backdrop_path, 'w300')
-                                  : 'https://via.placeholder.com/300x169?text=No+Image',
-                              }}
+                        {aiResults.moreResults.map(
+                          (item: any, index: number) => (
+                            <TouchableOpacity
+                              key={index}
+                              onPress={() =>
+                                handleSearchItemPress({
+                                  id: item.id,
+                                  type: item.type,
+                                  title: item.title,
+                                  name: item.title,
+                                  poster_path: item.poster_path,
+                                  backdrop_path: item.backdrop_path,
+                                  vote_average: item.vote_average,
+                                  overview: item.overview,
+                                  release_date: item.year
+                                    ? `${item.year}-01-01`
+                                    : '',
+                                  first_air_date: item.year
+                                    ? `${item.year}-01-01`
+                                    : '',
+                                  popularity: 0,
+                                  genre_ids: [],
+                                  original_language: 'en',
+                                  origin_country: [],
+                                } as ContentItem)
+                              }
+                              activeOpacity={0.7}
                               style={{
-                                width: 150,
-                                height: 90,
-                                borderRadius: borderRadius.sm,
-                              }}
-                              resizeMode="cover"
-                            />
-                            <View style={{flex: 1, justifyContent: 'center'}}>
-                              <Text
-                                style={{
-                                  ...typography.body1,
-                                  fontWeight: '600',
-                                  color: colors.text.primary,
+                                flexDirection: 'row',
+                                marginBottom: spacing.md,
+                                gap: spacing.sm,
+                              }}>
+                              <FastImage
+                                source={{
+                                  uri: item.backdrop_path
+                                    ? getImageUrl(item.backdrop_path, 'w300')
+                                    : 'https://via.placeholder.com/300x169?text=No+Image',
                                 }}
-                                numberOfLines={1}>
-                                {item.title}
-                              </Text>
-                              {item.reason && (
+                                style={{
+                                  width: isTablet ? 200 : 150,
+                                  height: isTablet ? 120 : 90,
+                                  borderRadius: borderRadius.sm,
+                                }}
+                                resizeMode="cover"
+                              />
+                              <View style={{flex: 1, justifyContent: 'center'}}>
                                 <Text
                                   style={{
-                                    ...typography.caption,
-                                    color: colors.text.muted,
-                                    marginTop: spacing.xs,
+                                    ...typography.body1,
+                                    fontWeight: '600',
+                                    color: colors.text.primary,
                                   }}
-                                  numberOfLines={2}>
-                                  {item.reason}
+                                  numberOfLines={1}>
+                                  {item.title}
                                 </Text>
-                              )}
-                            </View>
-                          </TouchableOpacity>
-                        ))}
+                                {item.reason && (
+                                  <Text
+                                    style={{
+                                      ...typography.caption,
+                                      color: colors.text.muted,
+                                      marginTop: spacing.xs,
+                                    }}
+                                    numberOfLines={2}>
+                                    {item.reason}
+                                  </Text>
+                                )}
+                              </View>
+                            </TouchableOpacity>
+                          ),
+                        )}
                       </View>
                     )}
                 </View>

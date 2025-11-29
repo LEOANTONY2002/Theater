@@ -2085,6 +2085,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   onLoadMore={fetchNextReviews}
                   hasMore={hasNextReviews}
                   isLoading={isFetchingReviews}
+                  voteAverage={showDetails?.vote_average || show.vote_average}
                 />
               );
             default:

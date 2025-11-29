@@ -1840,6 +1840,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   onLoadMore={fetchNextReviews}
                   hasMore={hasNextReviews}
                   isLoading={isFetchingReviews}
+                  voteAverage={movieDetails?.vote_average || movie.vote_average}
                 />
               );
             default:

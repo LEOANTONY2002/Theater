@@ -33,6 +33,7 @@ interface ReviewsSectionProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoading?: boolean;
+  voteAverage?: number;
 }
 
 type SortOption = 'recent' | 'oldest' | 'highest' | 'lowest';
@@ -44,6 +45,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   onLoadMore,
   hasMore,
   isLoading,
+  voteAverage = 0,
 }) => {
   const {width} = useWindowDimensions();
   const {isTablet} = useResponsive();
@@ -237,34 +239,38 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   );
 
   const getGradientColors = (rating: number): string[] => {
-    if (rating <= 3) return ['#FF6B6B', '#C92A2A']; // Red shades (poor)
-    if (rating <= 6) return ['#FFD93D', '#F59F00']; // Yellow shades (average)
-    return ['#51CF66', '#2F9E44']; // Green shades (good)
+    if (rating <= 3) return ['transparent', '#FF6B6B']; // Transparent to Red (poor)
+    if (rating <= 6) return ['transparent', '#FFD93D']; // Transparent to Yellow (average)
+    return ['transparent', '#51CF66']; // Transparent to Green (good)
   };
 
   const renderRatingBar = useCallback(
     (rating: number) => {
       const count = ratingDistribution[rating] || 0;
+      const totalReviewsWithRating = Object.values(ratingDistribution).reduce((a, b) => a + b, 0);
       const percentage =
         maxRatingCount > 0 ? (count / maxRatingCount) * 100 : 0;
+      const percentageOfTotal = totalReviewsWithRating > 0 ? (count / totalReviewsWithRating) * 100 : 0;
       const gradientColors = getGradientColors(rating);
 
       return (
         <TouchableOpacity
           key={rating}
-          style={styles.ratingBarContainer}
+          style={styles.ratingRow}
           onPress={() => setFilterRating(rating as FilterRating)}
           activeOpacity={0.7}>
-          <Text style={styles.ratingCount}>{count}</Text>
-          <View style={styles.ratingBarBg}>
+          <Text style={styles.ratingLabel}>{rating}</Text>
+          <View style={styles.barContainer}>
             <LinearGradient
               colors={gradientColors}
               start={{x: 0, y: 0}}
-              end={{x: 0, y: 1}}
-              style={[styles.ratingBarFill, {height: `${percentage}%`}]}
+              end={{x: 1, y: 0}}
+              style={[styles.ratingBarFill, {width: `${percentage}%`}]}
             />
           </View>
-          <Text style={styles.ratingLabel}>{rating}</Text>
+          <Text style={styles.percentageLabel}>
+            {percentageOfTotal > 0 ? `${percentageOfTotal.toFixed(1)}%` : ''}
+          </Text>
         </TouchableOpacity>
       );
     },
@@ -289,9 +295,29 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
         </View>
       </TouchableOpacity>
 
-      {/* Rating Distribution Chart */}
-      <View style={styles.chartContainer}>
-        {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(renderRatingBar)}
+      {/* Review Distribution Chart */}
+      <View style={styles.newChartContainer}>
+        <View style={styles.chartContent}>
+          {/* Labels Column */}
+          <View style={styles.labelsColumn}>
+            {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(r => (
+              <Text key={r} style={styles.chartLabel}>
+                {r}
+              </Text>
+            ))}
+          </View>
+
+          {/* Vertical Gradient Line */}
+          <LinearGradient
+            colors={['#51CF66', '#FFD93D', '#FF6B6B']}
+            style={styles.verticalLine}
+          />
+
+          {/* Bars Column */}
+          <View style={styles.barsList}>
+            {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(renderRatingBar)}
+          </View>
+        </View>
       </View>
 
       {/* Horizontal Review List */}
@@ -482,6 +508,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
                       index: info.index,
                       animated: true,
                       viewPosition: 0.1,
+                      viewOffset: 0,
                     });
                   });
                 }}
@@ -544,41 +571,101 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.text.muted,
   },
-  chartContainer: {
-    flexDirection: 'row',
+  newChartContainer: {
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.xs,
-    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+    height: 150,
   },
-  ratingBarContainer: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: spacing.xs,
+  starColumn: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  starWrapper: {
+    width: 120,
+    height: 120,
+    position: 'relative',
+  },
+  starBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  starForegroundWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: 120,
+    overflow: 'hidden',
+  },
+  starForeground: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+  },
+  averageRatingText: {
+    ...typography.h3,
+    color: colors.text.primary,
+    fontWeight: '700',
+    marginTop: -10,
+  },
+  barsColumn: {
+    flex: 2,
+    justifyContent: 'center',
+  },
+  chartContent: {
+    flexDirection: 'row',
+    height: '100%',
+    alignItems: 'center',
+  },
+  labelsColumn: {
+    justifyContent: 'space-between',
+    height: '100%',
+    paddingRight: spacing.xs,
+  },
+  chartLabel: {
+    ...typography.caption,
+    fontSize: 10,
+    color: colors.text.muted,
+    lineHeight: 12,
+  },
+  verticalLine: {
+    width: 2,
+    height: '100%',
+    borderRadius: 1,
+  },
+  barsList: {
+    flex: 1,
+    justifyContent: 'space-between',
+    height: '100%',
+    paddingLeft: spacing.xs,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 12, // Match label height roughly
   },
   ratingLabel: {
-    ...typography.caption,
-    color: colors.text.primary,
-    fontWeight: '600',
+    display: 'none', // Hidden in new design, used labelsColumn instead
   },
-  ratingBarBg: {
-    width: 24,
-    height: 120,
-    backgroundColor: colors.background.tertiary,
-    borderRadius: borderRadius.sm,
+  barContainer: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 3,
     overflow: 'hidden',
-    justifyContent: 'flex-end',
   },
   ratingBarFill: {
-    width: '100%',
-    borderRadius: borderRadius.sm,
+    height: '100%',
+    borderRadius: 3,
   },
-  ratingCount: {
+  percentageLabel: {
     ...typography.caption,
+    fontSize: 10,
     color: colors.text.muted,
-    fontWeight: '600',
-    minHeight: 16,
+    marginLeft: spacing.xs,
+    minWidth: 35,
+    textAlign: 'right',
   },
   horizontalList: {
     paddingHorizontal: spacing.md,
