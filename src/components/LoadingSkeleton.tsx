@@ -562,3 +562,35 @@ export const PersonalizedBannerSkeleton = () => {
     </ScrollView>
   );
 };
+
+export const ReviewsSkeleton = () => {
+  return (
+    <View style={{padding: spacing.md}}>
+      <View style={{marginBottom: spacing.lg}}>
+        <AnimatedShimmer width={150} height={24} radius={8} />
+      </View>
+      {[...Array(3)].map((_, i) => (
+        <View key={i} style={{marginBottom: spacing.xl}}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: spacing.sm,
+            }}>
+            <AnimatedShimmer width={40} height={40} radius={20} />
+            <View style={{marginLeft: spacing.sm}}>
+              <AnimatedShimmer width={120} height={16} radius={4} />
+              <View style={{height: 4}} />
+              <AnimatedShimmer width={80} height={12} radius={4} />
+            </View>
+          </View>
+          <AnimatedShimmer
+            width={SCREEN_WIDTH - spacing.md * 2}
+            height={80}
+            radius={8}
+          />
+        </View>
+      ))}
+    </View>
+  );
+};

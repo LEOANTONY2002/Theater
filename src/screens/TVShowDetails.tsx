@@ -67,6 +67,7 @@ import {
 import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
+import {WatchProvidersButton} from '../components/WatchProvidersButton';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {GradientButton} from '../components/GradientButton';
 import {PersonCard} from '../components/PersonCard';
@@ -144,7 +145,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
   const queryClient = useQueryClient();
-  const cinema = true;
+  const cinema = false;
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -191,6 +192,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [posterLoading, setPosterLoading] = useState(false);
   const [posterUri, setPosterUri] = useState<string | null>(null);
   const [isSharingPoster, setIsSharingPoster] = useState(false);
+
+  // Lazy loading state for reviews
+  const [reviewsVisible, setReviewsVisible] = useState(false);
 
   // Record to history when user starts watching
   const addToHistory = useCallback(() => {
@@ -402,7 +406,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     fetchNextPage: fetchNextReviews,
     hasNextPage: hasNextReviews,
     isFetchingNextPage: isFetchingReviews,
-  } = useTVShowReviews(show.id);
+  } = useTVShowReviews(show.id, reviewsVisible);
 
   const {
     data: recommendedShows,
@@ -798,7 +802,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     },
     trailerContainer: {
       // backgroundColor: '#000',
-      zIndex: 100,
+      zIndex: 10,
       flex: 1,
     },
     gradientShade: {
@@ -813,10 +817,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       width: width - 32,
       height:
         isTablet && orientation === 'portrait'
-          ? 400
+          ? height * 0.33
           : isTablet && orientation === 'landscape'
           ? height * 0.7
-          : 200,
+          : height * 0.25,
       margin: 16,
       borderRadius: isTablet ? 40 : 20,
       alignSelf: 'center',
@@ -911,18 +915,19 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 12,
-      width: isTablet ? 300 : width - 100,
+      width: '100%',
       marginTop: -spacing.sm,
+      paddingHorizontal: spacing.sm,
     },
     watchButton: {
       flex: 1,
-      borderRadius: 24,
-      paddingHorizontal: 36,
+      borderRadius: borderRadius.round,
+      paddingHorizontal: spacing.md,
       paddingVertical: 14,
     },
     watchButtonText: {
       fontWeight: '700',
-      fontSize: 16,
+      fontSize: 14,
       fontFamily: 'Inter_18pt-Regular',
     },
     addButton: {
@@ -1419,31 +1424,22 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       </Animated.View>
                     ) : (
                       <View style={styles.trailerContainer}>
-                        {cinema && isFocused ? (
-                          <Cinema
-                            id={show.id.toString()}
-                            type="tv"
-                            season={season}
-                            episode={episode}
-                            currentServer={currentServer || 1}
-                          />
-                        ) : (
-                          <YoutubePlayer
-                            height={width * 0.5625}
-                            play={isPlaying}
-                            videoId={trailer?.key}
-                            webViewProps={{
-                              allowsInlineMediaPlayback: true,
-                              allowsPictureInPicture: true,
-                              allowsFullscreenVideo: true,
-                              allowsPictureInPictureMediaPlayback: true,
-                            }}
-                            key={trailer?.key}
-                            onChangeState={(state: string) => {
-                              if (state === 'ended') setIsPlaying(false);
-                            }}
-                          />
-                        )}
+                        <YoutubePlayer
+                          width={'100%'}
+                          height={'100%'}
+                          play={isPlaying}
+                          videoId={trailer?.key}
+                          webViewProps={{
+                            allowsInlineMediaPlayback: true,
+                            allowsPictureInPicture: true,
+                            allowsFullscreenVideo: true,
+                            allowsPictureInPictureMediaPlayback: true,
+                          }}
+                          key={trailer?.key}
+                          onChangeState={(state: string) => {
+                            if (state === 'ended') setIsPlaying(false);
+                          }}
+                        />
                         {isAIEnabled &&
                           (!aiRatings ||
                             (!aiRatings.imdb &&
@@ -1551,37 +1547,25 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   </View>
                   <View style={styles.buttonRow}>
                     {cinema && isFocused ? (
-                      isPlaying ? (
-                        <GradientButton
-                          title="Switch Server"
-                          onPress={() => {
-                            setIsServerModalOpen(true);
-                          }}
-                          style={styles.watchButton}
-                          textStyle={styles.watchButtonText}
-                          fullWidth
-                          v2
-                        />
-                      ) : (
-                        <GradientButton
-                          title="Watch Now"
-                          onPress={() => {
-                            navigation.navigate('CinemaScreen', {
-                              id: show.id.toString(),
-                              type: 'tv',
-                              title: show.name,
-                              season,
-                              episode,
-                            });
-                          }}
-                          style={styles.watchButton}
-                          textStyle={styles.watchButtonText}
-                          fullWidth
-                        />
-                      )
+                      <GradientButton
+                        title="Watch Trailer"
+                        onPress={() => {
+                          navigation.navigate('CinemaScreen', {
+                            id: show.id.toString(),
+                            type: 'tv',
+                            title: show.name,
+                            season,
+                            episode,
+                          });
+                        }}
+                        isIcon={width > 400 ? true : false}
+                        style={styles.watchButton}
+                        textStyle={styles.watchButtonText}
+                      />
                     ) : (
                       <GradientButton
-                        title="Watch Now"
+                        title="Watch Trailer"
+                        isIcon={width > 400 ? true : false}
                         onPress={() => {
                           setIsPlaying(true);
                         }}
@@ -1590,9 +1574,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           opacity: isPlaying ? 0.3 : 1,
                         }}
                         textStyle={styles.watchButtonText}
-                        fullWidth
                       />
                     )}
+                    <WatchProvidersButton
+                      providers={watchProviders}
+                      contentId={show.id}
+                      title={show.name}
+                      type="tv"
+                    />
                     <TouchableOpacity
                       style={styles.addButton}
                       onPress={handleWatchlistPress}
@@ -2079,14 +2068,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
               ) : null;
             case 'reviews':
               return (
-                <ReviewsSection
-                  reviews={reviewsData}
-                  totalReviews={totalReviews}
-                  onLoadMore={fetchNextReviews}
-                  hasMore={hasNextReviews}
-                  isLoading={isFetchingReviews}
-                  voteAverage={showDetails?.vote_average || show.vote_average}
-                />
+                <View onLayout={() => setReviewsVisible(true)}>
+                  <ReviewsSection
+                    reviews={reviewsData}
+                    totalReviews={totalReviews}
+                    onLoadMore={fetchNextReviews}
+                    hasMore={hasNextReviews}
+                    isLoading={isFetchingReviews}
+                    voteAverage={showDetails?.vote_average || show.vote_average}
+                  />
+                </View>
               );
             default:
               return null;

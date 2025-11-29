@@ -52,6 +52,7 @@ import {
 } from '../components/LoadingSkeleton';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
+import {WatchProvidersButton} from '../components/WatchProvidersButton';
 import {LinearGradient} from 'react-native-linear-gradient';
 import {GradientButton} from '../components/GradientButton';
 import {PersonCard} from '../components/PersonCard';
@@ -134,7 +135,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
-  const cinema = true;
+  const cinema = false;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -159,6 +160,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [showRottenTomatoesModal, setShowRottenTomatoesModal] = useState(false);
   const [posterUri, setPosterUri] = useState<string | null>(null);
   const [isSharingPoster, setIsSharingPoster] = useState(false);
+
+  // Lazy loading state for reviews
+  const [reviewsVisible, setReviewsVisible] = useState(false);
 
   // Check connectivity and cache status for this specific movie
   useEffect(() => {
@@ -536,7 +540,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     fetchNextPage: fetchNextReviews,
     hasNextPage: hasNextReviews,
     isFetchingNextPage: isFetchingReviews,
-  } = useMovieReviews(movie.id);
+  } = useMovieReviews(movie.id, reviewsVisible);
   const {data: isInWatchlist} = useIsItemInAnyWatchlist(movie.id);
 
   const {data: watchlistContainingItem} = useWatchlistContainingItem(movie.id);
@@ -809,10 +813,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       width: width - 32,
       height:
         isTablet && orientation === 'portrait'
-          ? 400
+          ? height * 0.33
           : isTablet && orientation === 'landscape'
           ? height * 0.7
-          : 200,
+          : height * 0.25,
       margin: 16,
       borderRadius: isTablet ? 40 : 20,
       alignSelf: 'center',
@@ -883,17 +887,18 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 12,
-      width: isTablet ? 300 : width - 100,
+      width: '100%',
       marginTop: -spacing.sm,
+      paddingHorizontal: spacing.sm,
     },
     watchButton: {
-      borderRadius: 24,
-      paddingHorizontal: 36,
+      borderRadius: borderRadius.round,
+      paddingHorizontal: spacing.md,
       paddingVertical: 14,
     },
     watchButtonText: {
       fontWeight: '700',
-      fontSize: 16,
+      fontSize: 14,
       fontFamily: 'Inter_18pt-Regular',
     },
     addButton: {
@@ -902,6 +907,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       borderRadius: 24,
       backgroundColor: colors.modal.header,
       borderWidth: 1,
+      borderBottomWidth: 0,
       borderColor: colors.modal.border,
       alignItems: 'center',
       justifyContent: 'center',
@@ -1392,20 +1398,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           />
                         ) : (
                           <YoutubePlayer
-                            width={
-                              isTablet && orientation === 'portrait'
-                                ? width
-                                : isTablet && orientation === 'landscape'
-                                ? width + 90
-                                : width + 90
-                            }
-                            height={
-                              isTablet && orientation === 'portrait'
-                                ? '90%'
-                                : isTablet && orientation === 'landscape'
-                                ? height * 0.7
-                                : '100%'
-                            }
+                            width={'100%'}
+                            height={'100%'}
                             play={isPlaying}
                             videoId={trailer?.key}
                             webViewProps={{
@@ -1499,35 +1493,23 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   </View>
                   <View style={styles.buttonRow}>
                     {cinema && isFocused ? (
-                      isPlaying ? (
-                        <GradientButton
-                          title="Switch Server"
-                          onPress={() => {
-                            setIsServerModalOpen(true);
-                          }}
-                          style={{...styles.watchButton}}
-                          textStyle={styles.watchButtonText}
-                          fullWidth
-                          v2
-                        />
-                      ) : (
-                        <GradientButton
-                          title="Watch Now"
-                          onPress={() => {
-                            navigation.navigate('CinemaScreen', {
-                              id: movie.id.toString(),
-                              type: 'movie',
-                              title: movie.title,
-                            });
-                          }}
-                          style={styles.watchButton}
-                          textStyle={styles.watchButtonText}
-                          fullWidth
-                        />
-                      )
+                      <GradientButton
+                        title="Watch Trailer"
+                        isIcon={width > 400 ? true : false}
+                        onPress={() => {
+                          navigation.navigate('CinemaScreen', {
+                            id: movie.id.toString(),
+                            type: 'movie',
+                            title: movie.title,
+                          });
+                        }}
+                        style={styles.watchButton}
+                        textStyle={styles.watchButtonText}
+                      />
                     ) : (
                       <GradientButton
-                        title="Watch Now"
+                        title="Watch Trailer"
+                        isIcon={width > 400 ? true : false}
                         onPress={() => {
                           setIsPlaying(true);
                           addToHistory();
@@ -1537,9 +1519,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           opacity: isPlaying ? 0.3 : 1,
                         }}
                         textStyle={styles.watchButtonText}
-                        fullWidth
                       />
                     )}
+                    <WatchProvidersButton
+                      providers={watchProviders}
+                      contentId={movie.id}
+                      title={movie.title}
+                      type="movie"
+                    />
                     <TouchableOpacity
                       style={styles.addButton}
                       onPress={handleWatchlistPress}
@@ -1834,14 +1821,18 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               );
             case 'reviews':
               return (
-                <ReviewsSection
-                  reviews={reviewsData}
-                  totalReviews={totalReviews}
-                  onLoadMore={fetchNextReviews}
-                  hasMore={hasNextReviews}
-                  isLoading={isFetchingReviews}
-                  voteAverage={movieDetails?.vote_average || movie.vote_average}
-                />
+                <View onLayout={() => setReviewsVisible(true)}>
+                  <ReviewsSection
+                    reviews={reviewsData}
+                    totalReviews={totalReviews}
+                    onLoadMore={fetchNextReviews}
+                    hasMore={hasNextReviews}
+                    isLoading={isFetchingReviews}
+                    voteAverage={
+                      movieDetails?.vote_average || movie.vote_average
+                    }
+                  />
+                </View>
               );
             default:
               return null;

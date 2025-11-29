@@ -66,6 +66,8 @@ interface SharePosterProps {
   languages?: string[];
   seasons?: number;
   episodes?: number;
+  onLoad?: () => void;
+  onError?: () => void;
 }
 
 // 1080 x 1920 recommended canvas
@@ -80,6 +82,8 @@ export const SharePoster: React.FC<SharePosterProps> = ({
   languages,
   seasons,
   episodes,
+  onLoad,
+  onError,
 }) => {
   const posters = items.slice(0, 9);
   const posterImages = posters.filter(
@@ -116,25 +120,30 @@ export const SharePoster: React.FC<SharePosterProps> = ({
         {posterImages.length > 0 ? (
           <Image
             source={{
-              uri: `https://image.tmdb.org/t/p/w500${
+              uri: `https://image.tmdb.org/t/p/w780${
                 posterImages[0]?.poster_path || posterImages[0]?.backdrop_path
               }`,
             }}
+            onLoad={onLoad}
+            onError={onError}
             style={{
               width: 600,
-              height: 1080,
-              borderRadius: 70,
+              height: 900, // Adjusted aspect ratio for poster
+              borderRadius: 40,
               zIndex: 1,
+              borderWidth: 2,
+              borderColor: 'rgba(255,255,255,0.1)',
             }}
             resizeMode="cover"
           />
         ) : (
           <Image
             source={require('../assets/theater.webp')}
+            onLoad={onLoad}
             style={{
               width: 600,
-              height: 1080,
-              borderRadius: 70,
+              height: 900,
+              borderRadius: 40,
               zIndex: 1,
               opacity: 0.2,
             }}
@@ -187,7 +196,7 @@ export const SharePoster: React.FC<SharePosterProps> = ({
           colors={[colors.background.secondary, colors.background.primary]}
           style={{
             position: 'absolute',
-            borderRadius: 70,
+            borderRadius: 40,
             top: 0,
             left: 0,
             right: 0,
@@ -202,7 +211,7 @@ export const SharePoster: React.FC<SharePosterProps> = ({
           width: 1000,
           height: 100,
           zIndex: 2,
-          marginTop: -100,
+          marginTop: -50,
         }}
         resizeMode="contain"
       />

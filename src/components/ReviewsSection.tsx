@@ -16,6 +16,7 @@ import {BlurView} from '@react-native-community/blur';
 import {MaybeBlurView} from './MaybeBlurView';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
+import {ReviewsSkeleton} from '../components/LoadingSkeleton';
 
 interface Review {
   id: string;
@@ -247,10 +248,14 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   const renderRatingBar = useCallback(
     (rating: number) => {
       const count = ratingDistribution[rating] || 0;
-      const totalReviewsWithRating = Object.values(ratingDistribution).reduce((a, b) => a + b, 0);
+      const totalReviewsWithRating = Object.values(ratingDistribution).reduce(
+        (a, b) => a + b,
+        0,
+      );
       const percentage =
         maxRatingCount > 0 ? (count / maxRatingCount) * 100 : 0;
-      const percentageOfTotal = totalReviewsWithRating > 0 ? (count / totalReviewsWithRating) * 100 : 0;
+      const percentageOfTotal =
+        totalReviewsWithRating > 0 ? (count / totalReviewsWithRating) * 100 : 0;
       const gradientColors = getGradientColors(rating);
 
       return (
@@ -278,6 +283,9 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   );
 
   if (reviews.length === 0) {
+    if (isLoading) {
+      return <ReviewsSkeleton />;
+    }
     return null;
   }
 

@@ -1,5 +1,5 @@
 import React, {useEffect, useImperativeHandle, useRef, useState} from 'react';
-import {View} from 'react-native';
+import {View, Image} from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import SharePoster, {SharePosterItem} from './SharePoster';
 
@@ -52,10 +52,12 @@ export const PosterCaptureHost = React.forwardRef<PosterCaptureHostHandle>(
     const viewShotRef = useRef<ViewShot>(null);
     const [request, setRequest] = useState<CaptureRequest | null>(null);
     const [isRendered, setIsRendered] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     useImperativeHandle(ref, () => ({
       capture: (params, result) =>
         new Promise<string>((resolve, reject) => {
+          setImageLoaded(false);
           setRequest({params, result, resolve, reject});
           setIsRendered(false);
         }),
@@ -65,6 +67,7 @@ export const PosterCaptureHost = React.forwardRef<PosterCaptureHostHandle>(
       hostRef = {
         capture: (params, result) =>
           new Promise<string>((resolve, reject) => {
+            setImageLoaded(false);
             setRequest({params, result, resolve, reject});
             setIsRendered(false);
           }),
@@ -78,9 +81,37 @@ export const PosterCaptureHost = React.forwardRef<PosterCaptureHostHandle>(
       const doCapture = async () => {
         if (!request || !isRendered) return;
         try {
-          // Give RN a small frame to render the poster off-screen
-          // Reduced from 2000ms to 800ms for better performance
-          await new Promise(r => setTimeout(r, 800));
+          // Prefetch main image to ensure it's in cache
+          const posters = request.params.items.slice(0, 9);
+          const posterImages = posters.filter(
+            p => !!(p?.poster_path || p?.backdrop_path),
+          );
+
+          if (posterImages.length > 0) {
+            const path =
+              posterImages[0]?.poster_path || posterImages[0]?.backdrop_path;
+            const url = `https://image.tmdb.org/t/p/w780${path}`;
+            try {
+              await Image.prefetch(url);
+            } catch (e) {
+              console.warn('Prefetch failed', e);
+            }
+          }
+
+          // Wait for image to load via onLoad callback (as backup/confirmation)
+          // We wait up to 60 seconds, but break immediately on load or error
+          let attempts = 0;
+          while (!imageLoaded && attempts < 600) {
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+
+            // If request was cancelled/cleared, stop waiting
+            if (!hostRef) break;
+          }
+
+          // Small extra buffer for rendering
+          await new Promise(r => setTimeout(r, 500));
+
           const uri = await (viewShotRef.current as any)?.capture?.({
             format: 'png',
             quality: 1,
@@ -100,10 +131,11 @@ export const PosterCaptureHost = React.forwardRef<PosterCaptureHostHandle>(
           // Clear request to unmount SharePoster
           setRequest(null);
           setIsRendered(false);
+          setImageLoaded(false);
         }
       };
       doCapture();
-    }, [request, isRendered]);
+    }, [request, isRendered, imageLoaded]);
 
     // Render nothing if no request pending
     if (!request) return null;
@@ -149,6 +181,8 @@ export const PosterCaptureHost = React.forwardRef<PosterCaptureHostHandle>(
             languages={params.languages}
             seasons={params.seasons}
             episodes={params.episodes}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
           />
         </ViewShot>
       </View>

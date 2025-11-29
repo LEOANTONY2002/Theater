@@ -806,7 +806,7 @@ export const SearchScreen = React.memo(() => {
           />
         )}
         <View style={styles.searchContainer}>
-          <Icon name="search" size={20} color={colors.text.tertiary} />
+          <Icon name="search" size={15} color={colors.text.muted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search movies & TV shows..."

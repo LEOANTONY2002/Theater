@@ -210,7 +210,7 @@ export const useTop10MoviesTodayByRegion = () => {
   });
 };
 
-export const useMovieReviews = (movieId: number) => {
+export const useMovieReviews = (movieId: number, enabled: boolean = true) => {
   return useInfiniteQuery({
     queryKey: ['movie', movieId, 'reviews'],
     queryFn: async ({pageParam = 1}) => {
@@ -220,6 +220,7 @@ export const useMovieReviews = (movieId: number) => {
     getNextPageParam: (lastPage: any) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
+    enabled: enabled,
     gcTime: TMDB_DETAILS_GC,
     staleTime: TMDB_DETAILS_STALE,
   });

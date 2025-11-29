@@ -186,7 +186,7 @@ export const useSeasonDetails = (tvId: number, seasonNumber?: number) => {
   });
 };
 
-export const useTVShowReviews = (tvId: number) => {
+export const useTVShowReviews = (tvId: number, enabled: boolean = true) => {
   return useInfiniteQuery({
     queryKey: ['tv', tvId, 'reviews'],
     queryFn: async ({pageParam = 1}) => {
@@ -196,6 +196,7 @@ export const useTVShowReviews = (tvId: number) => {
     getNextPageParam: (lastPage: any) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
+    enabled: enabled,
     gcTime: TMDB_DETAILS_GC,
     staleTime: TMDB_DETAILS_STALE,
   });
