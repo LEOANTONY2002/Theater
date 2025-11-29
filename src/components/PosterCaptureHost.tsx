@@ -79,7 +79,8 @@ export const PosterCaptureHost = React.forwardRef<PosterCaptureHostHandle>(
         if (!request || !isRendered) return;
         try {
           // Give RN a small frame to render the poster off-screen
-          await new Promise(r => setTimeout(r, 2000));
+          // Reduced from 2000ms to 800ms for better performance
+          await new Promise(r => setTimeout(r, 800));
           const uri = await (viewShotRef.current as any)?.capture?.({
             format: 'png',
             quality: 1,

@@ -25,7 +25,6 @@ import {
   useRoute,
   RouteProp,
 } from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {SearchStackParamList} from '../types/navigation';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
@@ -46,7 +45,6 @@ import {HistoryManager} from '../store/history';
 import {RecentSearchItemsManager} from '../store/recentSearchItems';
 import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
-import {AISearchFilterBuilder} from '../components/AISearchFilterBuilder';
 import {aiSearch} from '../services/gemini';
 import {getImageUrl} from '../services/tmdb';
 
@@ -1182,10 +1180,10 @@ export const SearchScreen = React.memo(() => {
                     gap: spacing.xs,
                     alignSelf: 'center',
                   }}>
-                  <Image
-                    source={require('../assets/aisearch.png')}
-                    style={{width: 20, height: 20}}
-                    resizeMode="contain"
+                  <Icon
+                    name="sparkles"
+                    size={16}
+                    color={colors.accent}
                   />
                   <Text
                     style={{
