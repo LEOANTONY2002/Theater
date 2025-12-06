@@ -164,6 +164,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   // Lazy loading state for reviews
   const [reviewsVisible, setReviewsVisible] = useState(false);
 
+  // Ref for FlatList to preserve scroll position
+  const flatListRef = useRef<FlatList>(null);
+
   // Check connectivity and cache status for this specific movie
   useEffect(() => {
     const checkStatus = async () => {
@@ -1116,10 +1119,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     },
   });
 
-  // When not focused (another screen is on top), render an empty container to reduce load
-  if (!isFocused) {
-    return <View style={styles.container} />;
-  }
+  // When not focused (another screen is on top), hide content but keep mounted to preserve scroll position
+  // Removed the early return that was unmounting the FlatList
 
   // Show NoInternet if offline and no cache for movie details
   // Only show if we have an actual error and are offline with no cache
@@ -1317,6 +1318,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         </MaybeBlurView>
       </Modal>
       <FlatList
+        ref={flatListRef}
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},

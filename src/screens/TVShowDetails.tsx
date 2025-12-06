@@ -166,6 +166,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   } | null>(null);
   const [isLoadingAiImdb, setIsLoadingAiImdb] = useState(true);
 
+  // Ref for FlatList to preserve scroll position
+  const flatListRef = useRef<FlatList>(null);
+
   // Format large numbers to compact form (e.g., 1.5K, 2.3M)
   const formatCompact = (value?: number | null): string => {
     if (value == null || isNaN(Number(value))) return '0';
@@ -1167,10 +1170,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     },
   });
 
-  // When not focused (another screen is on top), render an empty container to reduce load
-  if (!isFocused) {
-    return <View style={styles.container} />;
-  }
+  // When not focused (another screen is on top), hide content but keep mounted to preserve scroll position
+  // Removed the early return that was unmounting the FlatList
 
   // Show NoInternet if offline and no cache for TV show details
   // Only show if we have an actual error and are offline with no cache
@@ -1355,6 +1356,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         </View>
       </Modal>
       <FlatList
+        ref={flatListRef}
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
