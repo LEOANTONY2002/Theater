@@ -62,7 +62,7 @@ import {
   useWatchlistContainingItem,
   useRemoveFromWatchlist,
 } from '../hooks/useWatchlists';
-import {useFocusEffect, useIsFocused} from '@react-navigation/native';
+import {useIsFocused} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useContentTags} from '../hooks/useContentTags';
 import {ContentTagsDisplay} from '../components/ContentTagsDisplay';
@@ -307,25 +307,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       });
     };
   }, [movie.id]);
-
-  // Memory cleanup when screen loses focus
-  useFocusEffect(
-    React.useCallback(() => {
-      return () => {
-        // Clean up when screen loses focus to free memory
-        queryClient.removeQueries({
-          queryKey: ['movie', movie.id],
-        });
-        // Clear any cached data for this movie
-        queryClient.invalidateQueries({
-          queryKey: ['similarMovies', movie.id],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['recommendations', movie.id],
-        });
-      };
-    }, [movie.id, queryClient]),
-  );
 
   const {
     data: movieDetails,
