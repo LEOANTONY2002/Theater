@@ -14,6 +14,7 @@ import {
   getTrendingMoviesByOTT,
   getTrendingTVByOTT,
 } from '../services/tmdbWithCache';
+import {filterTMDBResponse} from '../utils/adultContentFilter';
 
 const CACHE_TIME = 1000 * 60 * 60; // 1 hour
 const STALE_TIME = 1000 * 60 * 15; // 15 minutes
@@ -36,7 +37,11 @@ export function useMyLanguage() {
   });
 }
 
-export type OTTProvider = {id: number; provider_name: string; logo_path?: string};
+export type OTTProvider = {
+  id: number;
+  provider_name: string;
+  logo_path?: string;
+};
 
 export function useMyOTTs() {
   return useQuery<OTTProvider[]>({
@@ -65,7 +70,7 @@ export function useMoviesByLanguage(
   return useInfiniteQuery({
     queryKey: ['my_language_movies', kind, iso],
     enabled: !!iso,
-    queryFn: ({pageParam = 1}) => {
+    queryFn: async ({pageParam = 1}) => {
       const today = new Date().toISOString().split('T')[0];
       const sortBy =
         kind === 'latest'
@@ -73,13 +78,23 @@ export function useMoviesByLanguage(
           : kind === 'top_rated'
           ? 'vote_average.desc'
           : 'popularity.desc';
-      
-      return searchMovies('', pageParam as number, {
-        with_original_language: iso,
-        sort_by: sortBy,
-        ...(kind === 'top_rated' && {'vote_count.gte': 100}),
-        ...(kind === 'latest' && {'release_date.lte': today}),
-      } as any);
+
+      const result = await searchMovies(
+        '',
+        pageParam as number,
+        {
+          with_original_language: iso,
+          sort_by: sortBy,
+          ...(kind === 'top_rated' && {'vote_count.gte': 100}),
+          ...(kind === 'latest' && {'release_date.lte': today}),
+        } as any,
+      );
+
+      // Filter adult content
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
+      }
+      return result;
     },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
@@ -96,7 +111,7 @@ export function useTVByLanguage(
   return useInfiniteQuery({
     queryKey: ['my_language_tv', kind, iso],
     enabled: !!iso,
-    queryFn: ({pageParam = 1}) => {
+    queryFn: async ({pageParam = 1}) => {
       const today = new Date().toISOString().split('T')[0];
       const sortBy =
         kind === 'latest'
@@ -104,13 +119,23 @@ export function useTVByLanguage(
           : kind === 'top_rated'
           ? 'vote_average.desc'
           : 'popularity.desc';
-      
-      return searchTVShows('', pageParam as number, {
-        with_original_language: iso,
-        sort_by: sortBy,
-        ...(kind === 'top_rated' && {'vote_count.gte': 100}),
-        ...(kind === 'latest' && {'first_air_date.lte': today}),
-      } as any);
+
+      const result = await searchTVShows(
+        '',
+        pageParam as number,
+        {
+          with_original_language: iso,
+          sort_by: sortBy,
+          ...(kind === 'top_rated' && {'vote_count.gte': 100}),
+          ...(kind === 'latest' && {'first_air_date.lte': today}),
+        } as any,
+      );
+
+      // Filter adult content
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
+      }
+      return result;
     },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
@@ -132,6 +157,10 @@ export function useMoviesByProvider(
       // Use centralized filter builder
       const filters = buildOTTFilters(providerId!, kind, 'movie', watchRegion);
       const response = await discoverMovies(filters, pageParam as number);
+      // Filter adult content
+      if (response?.results) {
+        response.results = filterTMDBResponse(response.results, 'movie');
+      }
       return response;
     },
     getNextPageParam: (last: any) =>
@@ -154,6 +183,10 @@ export function useTVByProvider(
       // Use centralized filter builder
       const filters = buildOTTFilters(providerId!, kind, 'tv', watchRegion);
       const response = await discoverTVShows(filters, pageParam as number);
+      // Filter adult content
+      if (response?.results) {
+        response.results = filterTMDBResponse(response.results, 'tv');
+      }
       return response;
     },
     getNextPageParam: (last: any) =>
@@ -169,7 +202,16 @@ export function useMoviesByOTTSimple(providerId?: number) {
   return useInfiniteQuery({
     queryKey: ['ott_movies_simple', providerId],
     enabled: !!providerId,
-    queryFn: ({pageParam = 1}) => getMoviesByOTT(providerId as number, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getMoviesByOTT(
+        providerId as number,
+        pageParam as number,
+      );
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
+      }
+      return result;
+    },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
     initialPageParam: 1,
@@ -182,7 +224,16 @@ export function useTVByOTTSimple(providerId?: number) {
   return useInfiniteQuery({
     queryKey: ['ott_tv_simple', providerId],
     enabled: !!providerId,
-    queryFn: ({pageParam = 1}) => getShowsByOTT(providerId as number, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getShowsByOTT(
+        providerId as number,
+        pageParam as number,
+      );
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
+      }
+      return result;
+    },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
     initialPageParam: 1,
@@ -195,7 +246,16 @@ export function useMoviesByLanguageSimpleHook(iso?: string) {
   return useInfiniteQuery({
     queryKey: ['language_movies_simple', iso],
     enabled: !!iso,
-    queryFn: ({pageParam = 1}) => getMoviesByLanguageSimple(iso as string, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getMoviesByLanguageSimple(
+        iso as string,
+        pageParam as number,
+      );
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
+      }
+      return result;
+    },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
     initialPageParam: 1,
@@ -208,7 +268,16 @@ export function useTVByLanguageSimpleHook(iso?: string) {
   return useInfiniteQuery({
     queryKey: ['language_tv_simple', iso],
     enabled: !!iso,
-    queryFn: ({pageParam = 1}) => getShowsByLanguageSimple(iso as string, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getShowsByLanguageSimple(
+        iso as string,
+        pageParam as number,
+      );
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
+      }
+      return result;
+    },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
     initialPageParam: 1,
@@ -221,7 +290,16 @@ export function useTrendingMoviesByOTT(providerId?: number) {
   return useInfiniteQuery({
     queryKey: ['trending_movies_by_ott', providerId],
     enabled: !!providerId,
-    queryFn: ({pageParam = 1}) => getTrendingMoviesByOTT(providerId as number, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getTrendingMoviesByOTT(
+        providerId as number,
+        pageParam as number,
+      );
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
+      }
+      return result;
+    },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
     initialPageParam: 1,
@@ -234,7 +312,16 @@ export function useTrendingTVByOTT(providerId?: number) {
   return useInfiniteQuery({
     queryKey: ['trending_tv_by_ott', providerId],
     enabled: !!providerId,
-    queryFn: ({pageParam = 1}) => getTrendingTVByOTT(providerId as number, pageParam as number),
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getTrendingTVByOTT(
+        providerId as number,
+        pageParam as number,
+      );
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
+      }
+      return result;
+    },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
     initialPageParam: 1,
@@ -250,17 +337,32 @@ export function useMoviesByLanguageAndOTTs(
   watchRegion?: string,
 ) {
   return useInfiniteQuery({
-    queryKey: ['my_language_otts_movies', languageIso, ottProviderIds, watchRegion],
+    queryKey: [
+      'my_language_otts_movies',
+      languageIso,
+      ottProviderIds,
+      watchRegion,
+    ],
     enabled: !!languageIso && !!ottProviderIds && ottProviderIds.length > 0,
-    queryFn: ({pageParam = 1}) => {
+    queryFn: async ({pageParam = 1}) => {
       const today = new Date().toISOString().split('T')[0];
-      return searchMovies('', pageParam as number, {
-        with_original_language: languageIso,
-        with_watch_providers: ottProviderIds?.join('|'),
-        watch_region: watchRegion || 'US',
-        sort_by: 'release_date.desc',
-        'release_date.lte': today,
-      } as any);
+      const result = await searchMovies(
+        '',
+        pageParam as number,
+        {
+          with_original_language: languageIso,
+          with_watch_providers: ottProviderIds?.join('|'),
+          watch_region: watchRegion || 'US',
+          sort_by: 'release_date.desc',
+          'release_date.lte': today,
+        } as any,
+      );
+
+      // Filter adult content
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
+      }
+      return result;
     },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,
@@ -278,15 +380,25 @@ export function useTVByLanguageAndOTTs(
   return useInfiniteQuery({
     queryKey: ['my_language_otts_tv', languageIso, ottProviderIds, watchRegion],
     enabled: !!languageIso && !!ottProviderIds && ottProviderIds.length > 0,
-    queryFn: ({pageParam = 1}) => {
+    queryFn: async ({pageParam = 1}) => {
       const today = new Date().toISOString().split('T')[0];
-      return searchTVShows('', pageParam as number, {
-        with_original_language: languageIso,
-        with_watch_providers: ottProviderIds?.join('|'),
-        watch_region: watchRegion || 'US',
-        sort_by: 'first_air_date.desc',
-        'first_air_date.lte': today,
-      } as any);
+      const result = await searchTVShows(
+        '',
+        pageParam as number,
+        {
+          with_original_language: languageIso,
+          with_watch_providers: ottProviderIds?.join('|'),
+          watch_region: watchRegion || 'US',
+          sort_by: 'first_air_date.desc',
+          'first_air_date.lte': today,
+        } as any,
+      );
+
+      // Filter adult content
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
+      }
+      return result;
     },
     getNextPageParam: (last: any) =>
       last?.page < last?.total_pages ? last.page + 1 : undefined,

@@ -17,6 +17,7 @@ import {SettingsManager} from '../store/settings';
 import {getSimilarByStory} from '../services/gemini';
 import {Genre} from '../types/movie';
 import {batchCacheTVShows, cacheTVShowDetails} from '../database/contentCache';
+import {filterTMDBResponse} from '../utils/adultContentFilter';
 
 // Cache times
 const TMDB_LIST_STALE = 1000 * 60 * 60 * 24; // 1 day for trending/popular/latest
@@ -31,8 +32,9 @@ export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
     queryKey: ['tvshows', type],
     queryFn: async ({pageParam = 1}) => {
       const result = await getTVShows(type, pageParam as number);
-      // Cache TV shows in Realm
+      // Filter adult content and cache TV shows in Realm
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
         batchCacheTVShows(result.results);
       }
       return result;
@@ -74,6 +76,7 @@ export const useTVShowSearch = (query: string, filters: FilterParams = {}) => {
     queryFn: async ({pageParam = 1}) => {
       const result = await searchTVShows(query, pageParam as number, filters);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
         batchCacheTVShows(result.results);
       }
       return result;
@@ -92,6 +95,7 @@ export const useDiscoverTVShows = (params: FilterParams) => {
     queryFn: async ({pageParam = 1}) => {
       const result = await discoverTVShows(params, pageParam as number);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
         batchCacheTVShows(result.results);
       }
       return result;
@@ -111,6 +115,7 @@ export const useSimilarTVShows = (tvId: number) => {
     queryFn: async ({pageParam = 1}) => {
       const result = await getSimilarTVShows(tvId, pageParam as number);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
         batchCacheTVShows(result.results);
       }
       return result;
@@ -129,6 +134,7 @@ export const useTVShowRecommendations = (tvId: number) => {
     queryFn: async ({pageParam = 1}) => {
       const result = await getTVShowRecommendations(tvId, pageParam as number);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
         batchCacheTVShows(result.results);
       }
       return result;
@@ -157,6 +163,7 @@ export const useTrendingTVShows = (timeWindow: 'day' | 'week' = 'day') => {
     queryFn: async ({pageParam = 1}) => {
       const result = await getTrendingTVShows(timeWindow, pageParam as number);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
         batchCacheTVShows(result.results);
       }
       return result;
@@ -215,8 +222,9 @@ export const useTop10ShowsTodayByRegion = () => {
   return useQuery({
     queryKey: ['top_10_shows_today_by_region', region?.iso_3166_1],
     queryFn: async () => {
-      const result = await getTop10TVShowsTodayByRegion();
+      let result = await getTop10TVShowsTodayByRegion();
       if (result && Array.isArray(result)) {
+        result = filterTMDBResponse(result, 'tv');
         batchCacheTVShows(result);
       }
       return result;

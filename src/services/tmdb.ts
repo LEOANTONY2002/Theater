@@ -419,12 +419,17 @@ export const searchFilterContent = async (
   savedFilter: SavedFilter,
   page = 1,
 ) => {
+  // Import the adult content filter
+  const {filterTMDBResponse} = await import('../utils/adultContentFilter');
+
   if (savedFilter.type === 'movie' || savedFilter.type === 'all') {
     let res = await searchMovies('', page, savedFilter.params);
     if (res?.results?.length > 0) {
+      // Apply adult content filter
+      const filteredResults = filterTMDBResponse(res.results, 'movie');
       return {
         ...savedFilter,
-        results: res.results.map((result: any) => ({
+        results: filteredResults.map((result: any) => ({
           ...result,
           type: 'movie',
         })),
@@ -435,9 +440,11 @@ export const searchFilterContent = async (
   } else if (savedFilter.type === 'tv') {
     let res = await searchTVShows('', page, savedFilter.params);
     if (res?.results?.length > 0) {
+      // Apply adult content filter
+      const filteredResults = filterTMDBResponse(res.results, 'tv');
       return {
         ...savedFilter,
-        results: res.results.map((result: any) => ({
+        results: filteredResults.map((result: any) => ({
           ...result,
           type: 'tv',
         })),

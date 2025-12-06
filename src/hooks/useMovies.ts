@@ -17,6 +17,7 @@ import {SettingsManager} from '../store/settings';
 import {getSimilarByStory} from '../services/gemini';
 import {Genre} from '../types/movie';
 import {batchCacheMovies, cacheMovieDetails} from '../database/contentCache';
+import {filterTMDBResponse} from '../utils/adultContentFilter';
 
 // Cache times
 const TMDB_LIST_STALE = 1000 * 60 * 60 * 24; // 1 day for trending/popular/latest
@@ -40,8 +41,9 @@ export const useMoviesList = (
     queryKey: ['movies', type],
     queryFn: async ({pageParam = 1}) => {
       const result = await getMovies(type, pageParam as number);
-      // Cache movies in Realm
+      // Filter adult content and cache movies in Realm
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
         batchCacheMovies(result.results);
       }
       return result;
@@ -81,6 +83,7 @@ export const useMovieSearch = (query: string, filters: FilterParams = {}) => {
     queryFn: async ({pageParam = 1}) => {
       const result = await searchMovies(query, pageParam as number, filters);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
         batchCacheMovies(result.results);
       }
       return result;
@@ -99,6 +102,7 @@ export const useSimilarMovies = (movieId: number) => {
     queryFn: async ({pageParam = 1}) => {
       const result = await getSimilarMovies(movieId, pageParam as number);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
         batchCacheMovies(result.results);
       }
       return result;
@@ -120,6 +124,7 @@ export const useMovieRecommendations = (movieId: number) => {
         pageParam as number,
       );
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
         batchCacheMovies(result.results);
       }
       return result;
@@ -148,6 +153,7 @@ export const useTrendingMovies = (timeWindow: 'day' | 'week' = 'day') => {
     queryFn: async ({pageParam = 1}) => {
       const result = await getTrendingMovies(timeWindow, pageParam as number);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
         batchCacheMovies(result.results);
       }
       return result;
@@ -169,6 +175,7 @@ export const useDiscoverMovies = (params: FilterParams) => {
     queryFn: async ({pageParam = 1}) => {
       const result = await discoverMovies(params, pageParam as number);
       if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
         batchCacheMovies(result.results);
       }
       return result;
@@ -195,8 +202,9 @@ export const useTop10MoviesTodayByRegion = () => {
   return useQuery({
     queryKey: ['top_10_movies_today_by_region', region?.iso_3166_1],
     queryFn: async () => {
-      const result = await getTop10MoviesTodayByRegion();
+      let result = await getTop10MoviesTodayByRegion();
       if (result && Array.isArray(result)) {
+        result = filterTMDBResponse(result, 'movie');
         batchCacheMovies(result);
       }
       return result;

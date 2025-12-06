@@ -5,6 +5,8 @@ import {FilterParams} from '../types/filters';
 import {Movie} from '../types/movie';
 import {TVShow} from '../types/tvshow';
 import {ContentItem} from '../components/MovieList';
+import {isAdultContent} from '../utils/adultContentFilter';
+import {SettingsManager} from '../store/settings';
 
 const MIN_ITEMS_THRESHOLD = 60; // Increased from 20 to show more results initially
 const MAX_PAGES_PER_BATCH = 10; // Increased from 5 to handle filters better
@@ -24,8 +26,15 @@ const filterContent = (
   query: string,
 ): ContentItem[] => {
   return items.filter(item => {
-    // Remove adult content
-    if ((item as any).adult) {
+    // COMPREHENSIVE ADULT CONTENT FILTER
+    // Uses multiple heuristics since TMDB's adult flag is unreliable
+    // Note: userRegion is undefined here, so Tagalog content will be filtered by default
+    if (isAdultContent(item, undefined)) {
+      if (__DEV__) {
+        const title =
+          item.type === 'movie' ? (item as Movie).title : (item as TVShow).name;
+        console.log(`[Adult Filter] Blocked: ${title}`);
+      }
       return false;
     }
 
