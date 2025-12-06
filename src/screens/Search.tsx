@@ -1568,22 +1568,41 @@ export const SearchScreen = React.memo(() => {
                 data={displayedContent}
                 isLoading={isFetchingMoviePage || isFetchingTVPage}
                 onMoviePress={handleSearchItemPress}
-                onLoadMore={
-                  contentType === 'all'
-                    ? hasNextMoviePage || hasNextTVPage
-                      ? () => {
-                          if (hasNextMoviePage) fetchNextMoviePage();
-                          if (hasNextTVPage) fetchNextTVPage();
-                        }
-                      : undefined
-                    : contentType === 'movie'
-                    ? hasNextMoviePage
-                      ? fetchNextMoviePage
-                      : undefined
-                    : hasNextTVPage
-                    ? fetchNextTVPage
-                    : undefined
-                }
+                onLoadMore={() => {
+                  // Debug logging
+                  if (__DEV__) {
+                    console.log('[Search] Load more triggered:', {
+                      contentType,
+                      hasNextMoviePage,
+                      hasNextTVPage,
+                      isFetchingMoviePage,
+                      isFetchingTVPage,
+                      currentMovieCount: movies.length,
+                      currentTVCount: tvShows.length,
+                      displayedCount: displayedContent.length,
+                    });
+                  }
+
+                  // Prevent fetching if already loading
+                  if (isFetchingMoviePage || isFetchingTVPage) {
+                    return;
+                  }
+
+                  // Handle different content type scenarios
+                  if (contentType === 'all') {
+                    // Fetch both if available
+                    if (hasNextMoviePage) {
+                      fetchNextMoviePage();
+                    }
+                    if (hasNextTVPage) {
+                      fetchNextTVPage();
+                    }
+                  } else if (contentType === 'movie' && hasNextMoviePage) {
+                    fetchNextMoviePage();
+                  } else if (contentType === 'tv' && hasNextTVPage) {
+                    fetchNextTVPage();
+                  }
+                }}
               />
             )}
           </>

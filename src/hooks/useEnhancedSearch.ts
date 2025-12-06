@@ -1,13 +1,13 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { searchMovies } from '../services/tmdbWithCache';
-import { searchTVShows } from '../services/tmdbWithCache';
-import { FilterParams } from '../types/filters';
-import { Movie } from '../types/movie';
-import { TVShow } from '../types/tvshow';
-import { ContentItem } from '../components/MovieList';
+import {useInfiniteQuery} from '@tanstack/react-query';
+import {searchMovies} from '../services/tmdbWithCache';
+import {searchTVShows} from '../services/tmdbWithCache';
+import {FilterParams} from '../types/filters';
+import {Movie} from '../types/movie';
+import {TVShow} from '../types/tvshow';
+import {ContentItem} from '../components/MovieList';
 
-const MIN_ITEMS_THRESHOLD = 20;
-const MAX_PAGES_PER_BATCH = 5; // Limit to prevent excessive API calls
+const MIN_ITEMS_THRESHOLD = 60; // Increased from 20 to show more results initially
+const MAX_PAGES_PER_BATCH = 10; // Increased from 5 to handle filters better
 
 interface BatchedResponse {
   results: ContentItem[];
@@ -21,7 +21,7 @@ interface BatchedResponse {
 const filterContent = (
   items: ContentItem[],
   filters: FilterParams,
-  query: string
+  query: string,
 ): ContentItem[] => {
   return items.filter(item => {
     // Remove adult content
@@ -31,10 +31,9 @@ const filterContent = (
 
     // Apply search query filter
     if (query) {
-      const title = item.type === 'movie' 
-        ? (item as Movie).title 
-        : (item as TVShow).name;
-      
+      const title =
+        item.type === 'movie' ? (item as Movie).title : (item as TVShow).name;
+
       if (!title?.toLowerCase().includes(query.toLowerCase())) {
         return false;
       }
@@ -88,9 +87,11 @@ const filterContent = (
 
     // Apply genre filter
     if (filters.with_genres && item.genre_ids) {
-      if (!item.genre_ids.some(genreId =>
-        filters.with_genres?.includes(genreId.toString())
-      )) {
+      if (
+        !item.genre_ids.some(genreId =>
+          filters.with_genres?.includes(genreId.toString()),
+        )
+      ) {
         return false;
       }
     }
@@ -103,36 +104,36 @@ const filterContent = (
 const batchFetchMovies = async (
   query: string,
   startPage: number,
-  filters: FilterParams
+  filters: FilterParams,
 ): Promise<BatchedResponse> => {
   let allResults: ContentItem[] = [];
   let currentPage = startPage;
   let totalPages = 1;
   let hasReachedThreshold = false;
-  
+
   for (let i = 0; i < MAX_PAGES_PER_BATCH && currentPage <= totalPages; i++) {
     try {
       const response = await searchMovies(query, currentPage, filters);
-      
+
       // Transform movies to ContentItem format
       const movies: ContentItem[] = response.results.map((movie: Movie) => ({
         ...movie,
-        type: 'movie' as const
+        type: 'movie' as const,
       }));
-      
+
       // Apply filtering
       const filteredMovies = filterContent(movies, filters, query);
       allResults.push(...filteredMovies);
-      
+
       totalPages = response.total_pages;
       currentPage++;
-      
+
       // Check if we've reached the threshold
       if (allResults.length >= MIN_ITEMS_THRESHOLD) {
         hasReachedThreshold = true;
         break;
       }
-      
+
       // If this was the last page, break
       if (response.page >= response.total_pages) {
         break;
@@ -142,13 +143,13 @@ const batchFetchMovies = async (
       break;
     }
   }
-  
+
   return {
     results: allResults,
     page: startPage,
     total_pages: totalPages,
     hasReachedThreshold,
-    lastFetchedPage: currentPage - 1
+    lastFetchedPage: currentPage - 1,
   };
 };
 
@@ -156,36 +157,36 @@ const batchFetchMovies = async (
 const batchFetchTVShows = async (
   query: string,
   startPage: number,
-  filters: FilterParams
+  filters: FilterParams,
 ): Promise<BatchedResponse> => {
   let allResults: ContentItem[] = [];
   let currentPage = startPage;
   let totalPages = 1;
   let hasReachedThreshold = false;
-  
+
   for (let i = 0; i < MAX_PAGES_PER_BATCH && currentPage <= totalPages; i++) {
     try {
       const response = await searchTVShows(query, currentPage, filters);
-      
+
       // Transform TV shows to ContentItem format
       const tvShows: ContentItem[] = response.results.map((show: TVShow) => ({
         ...show,
-        type: 'tv' as const
+        type: 'tv' as const,
       }));
-      
+
       // Apply filtering
       const filteredTVShows = filterContent(tvShows, filters, query);
       allResults.push(...filteredTVShows);
-      
+
       totalPages = response.total_pages;
       currentPage++;
-      
+
       // Check if we've reached the threshold
       if (allResults.length >= MIN_ITEMS_THRESHOLD) {
         hasReachedThreshold = true;
         break;
       }
-      
+
       // If this was the last page, break
       if (response.page >= response.total_pages) {
         break;
@@ -195,21 +196,28 @@ const batchFetchTVShows = async (
       break;
     }
   }
-  
+
   return {
     results: allResults,
     page: startPage,
     total_pages: totalPages,
     hasReachedThreshold,
-    lastFetchedPage: currentPage - 1
+    lastFetchedPage: currentPage - 1,
   };
 };
 
-export const useEnhancedMovieSearch = (query: string, filters: FilterParams = {}) => {
+export const useEnhancedMovieSearch = (
+  query: string,
+  filters: FilterParams = {},
+) => {
   return useInfiniteQuery({
     queryKey: ['enhanced_search_movies', query, filters],
-    queryFn: async ({ pageParam = 1 }) => {
-      const batchResponse = await batchFetchMovies(query, pageParam as number, filters);
+    queryFn: async ({pageParam = 1}) => {
+      const batchResponse = await batchFetchMovies(
+        query,
+        pageParam as number,
+        filters,
+      );
       return batchResponse;
     },
     getNextPageParam: (lastPage: BatchedResponse) => {
@@ -225,11 +233,18 @@ export const useEnhancedMovieSearch = (query: string, filters: FilterParams = {}
   });
 };
 
-export const useEnhancedTVSearch = (query: string, filters: FilterParams = {}) => {
+export const useEnhancedTVSearch = (
+  query: string,
+  filters: FilterParams = {},
+) => {
   return useInfiniteQuery({
     queryKey: ['enhanced_search_tv', query, filters],
-    queryFn: async ({ pageParam = 1 }) => {
-      const batchResponse = await batchFetchTVShows(query, pageParam as number, filters);
+    queryFn: async ({pageParam = 1}) => {
+      const batchResponse = await batchFetchTVShows(
+        query,
+        pageParam as number,
+        filters,
+      );
       return batchResponse;
     },
     getNextPageParam: (lastPage: BatchedResponse) => {
