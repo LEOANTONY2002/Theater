@@ -606,12 +606,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
-        navigateWithLimit('MovieDetails', {movie: item as Movie});
+        (navigation as any).push('MovieDetails', {movie: item as Movie});
       } else {
-        navigateWithLimit('TVShowDetails', {show: item as any});
+        (navigation as any).push('TVShowDetails', {show: item as any});
       }
     },
-    [navigateWithLimit],
+    [navigation],
   );
 
   // Always ensure AI chat modal is closed when movie changes

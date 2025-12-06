@@ -700,12 +700,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const handleItemPress = useCallback(
     (item: ContentItem) => {
       if (item.type === 'movie') {
-        navigateWithLimit('MovieDetails', {movie: item as Movie});
+        (navigation as any).push('MovieDetails', {movie: item as Movie});
       } else {
-        navigateWithLimit('TVShowDetails', {show: item as TVShow});
+        (navigation as any).push('TVShowDetails', {show: item as TVShow});
       }
     },
-    [navigateWithLimit],
+    [navigation],
   );
 
   const handleBackPress = useCallback(() => {
