@@ -31,6 +31,19 @@ export class Movie extends Realm.Object<Movie> {
   trailer_key?: string; // YouTube key for main trailer
   videos?: string; // [{key, type, site, name}]
 
+  // Detail screen data (JSON strings)
+  images?: string; // {backdrops: [], posters: [], logos: []}
+  keywords?: string; // [{id, name}]
+  release_dates?: string; // {results: [{iso_3166_1, release_dates}]}
+  production_companies?: string; // [{id, name, logo_path}]
+  spoken_languages?: string; // [{iso_639_1, name}]
+  belongs_to_collection?: string; // {id, name, poster_path, backdrop_path}
+  budget?: number;
+  revenue?: number;
+  tagline?: string;
+  imdb_id?: string;
+  content_rating?: string; // e.g., "PG-13"
+
   // AI-generated data (JSON strings)
   ai_similar?: string; // [{id, type, title/name, poster_path, vote_average, reason, confidence}]
   ai_trivia?: string; // ["Trivia fact 1", "Trivia fact 2"]
@@ -71,6 +84,17 @@ export class Movie extends Realm.Object<Movie> {
       crew: 'string?',
       trailer_key: 'string?',
       videos: 'string?',
+      images: 'string?',
+      keywords: 'string?',
+      release_dates: 'string?',
+      production_companies: 'string?',
+      spoken_languages: 'string?',
+      belongs_to_collection: 'string?',
+      budget: 'int?',
+      revenue: 'int?',
+      tagline: 'string?',
+      imdb_id: 'string?',
+      content_rating: 'string?',
       ai_similar: 'string?',
       ai_trivia: 'string?',
       ai_tags: 'string?',
@@ -115,6 +139,19 @@ export class TVShow extends Realm.Object<TVShow> {
   trailer_key?: string;
   videos?: string;
 
+  // Detail screen data (JSON strings)
+  images?: string; // {backdrops: [], posters: [], logos: []}
+  keywords?: string; // [{id, name}]
+  content_ratings?: string; // {results: [{iso_3166_1, rating}]}
+  created_by?: string; // [{id, name, profile_path}]
+  networks?: string; // [{id, name, logo_path}]
+  production_companies?: string; // [{id, name, logo_path}]
+  spoken_languages?: string; // [{iso_639_1, name}]
+  status?: string; // "Returning Series", "Ended", etc.
+  type?: string; // "Scripted", "Documentary", etc.
+  tagline?: string;
+  episode_run_time?: Realm.List<number>;
+
   // AI-generated data (JSON strings)
   ai_similar?: string;
   ai_trivia?: string;
@@ -157,6 +194,17 @@ export class TVShow extends Realm.Object<TVShow> {
       crew: 'string?',
       trailer_key: 'string?',
       videos: 'string?',
+      images: 'string?',
+      keywords: 'string?',
+      content_ratings: 'string?',
+      created_by: 'string?',
+      networks: 'string?',
+      production_companies: 'string?',
+      spoken_languages: 'string?',
+      status: 'string?',
+      type: 'string?',
+      tagline: 'string?',
+      episode_run_time: 'int[]',
       ai_similar: 'string?',
       ai_trivia: 'string?',
       ai_tags: 'string?',
@@ -275,7 +323,7 @@ export class HistoryItem extends Realm.Object<HistoryItem> {
   contentId!: number; // TMDB ID (foreign key)
   type!: string; // 'movie' | 'tv'
   viewedAt!: Date;
-  
+
   // Display data (so we don't depend on Movie/TVShow cache)
   title?: string;
   name?: string;
@@ -286,12 +334,12 @@ export class HistoryItem extends Realm.Object<HistoryItem> {
   first_air_date?: string;
   overview?: string;
   runtime?: number;
-  
+
   // Analytics data for Cinema Insights
   genre_ids?: string; // JSON stringified array
   original_language?: string;
   origin_country?: string; // JSON stringified array
-  
+
   // Crew data for CinemaDNA
   directors?: string; // JSON stringified array
   writers?: string; // JSON stringified array
@@ -550,7 +598,7 @@ export class RecentSearchItem extends Realm.Object<RecentSearchItem> {
   type!: string; // 'movie' | 'tv'
   searchedAt!: Date;
   isSearch!: boolean; // true if from search query, false if from trending
-  
+
   // Display data (so we don't depend on Movie/TVShow cache)
   title?: string;
   name?: string;

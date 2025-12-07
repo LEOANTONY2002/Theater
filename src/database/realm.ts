@@ -1,7 +1,7 @@
 import Realm from 'realm';
 import {schemas} from './schema';
 
-export const SCHEMA_VERSION = 15; // Added crew fields to HistoryItem for CinemaDNA: directors, writers, cast, composer, cinematographer, viewCount, runtime, genre_ids, original_language, origin_country
+export const SCHEMA_VERSION = 18; // Force clear all movie cache to fix undefined fields bug
 
 let realmInstance: Realm | null = null;
 

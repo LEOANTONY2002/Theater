@@ -43,6 +43,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {MovieTrivia} from '../components/MovieTrivia';
 import {CastCrewTabbedSection} from '../components/CastCrewTabbedSection';
+import {MediaTabs} from '../components/MediaTabs';
+import {KeywordsDisplay} from '../components/KeywordsDisplay';
+import {TVShowMetaInfo} from '../components/TVShowMetaInfo';
+import {ShowStatus} from '../components/ShowStatus';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useContentTags} from '../hooks/useContentTags';
@@ -973,7 +977,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       color: colors.text.muted,
       fontSize: 14,
       lineHeight: 20,
-      marginBottom: 30,
       fontFamily: 'Inter_18pt-Regular',
     },
     sectionTitle: {
@@ -1360,8 +1363,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         data={[
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
+          {type: 'tvMetaInfo', id: 'tvMetaInfo'},
           ...(isAIEnabled ? [{type: 'trivia', id: 'trivia'}] : []),
           {type: 'castCrew', id: 'castCrew'},
+          {type: 'mediaTabs', id: 'mediaTabs'},
           {type: 'providers', id: 'providers'},
           {type: 'seasons', id: 'seasons'},
           ...(isAIEnabled ? [{type: 'aiSimilar', id: 'aiSimilar'}] : []),
@@ -1526,6 +1531,20 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         <Text style={styles.infoDot}>•</Text>
                         <Text style={styles.info}>
                           {getLanguage(showDetails?.original_language)}
+                        </Text>
+                      </>
+                    )}
+                    {showDetails?.content_ratings?.results?.find(
+                      (r: any) => r.iso_3166_1 === 'US',
+                    )?.rating && (
+                      <>
+                        <Text style={styles.infoDot}>•</Text>
+                        <Text style={styles.info}>
+                          {
+                            showDetails.content_ratings.results.find(
+                              (r: any) => r.iso_3166_1 === 'US',
+                            )?.rating
+                          }
                         </Text>
                       </>
                     )}
@@ -1754,7 +1773,23 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     </TouchableOpacity>
                   </LinearGradient>
                   <Text style={styles.overview}>{showDetails?.overview}</Text>
+                  <ShowStatus status={showDetails?.status} />
                 </Animated.View>
+              );
+            case 'tvMetaInfo':
+              return (
+                <TVShowMetaInfo
+                  creators={showDetails?.created_by}
+                  networks={showDetails?.networks}
+                  onCreatorPress={handlePersonPress}
+                />
+              );
+            case 'mediaTabs':
+              return (
+                <MediaTabs
+                  images={showDetails?.images}
+                  videos={showDetails?.videos}
+                />
               );
             case 'trivia':
               return (

@@ -33,6 +33,10 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {HorizontalList} from '../components/HorizontalList';
 import {MovieTrivia} from '../components/MovieTrivia';
 import {CastCrewTabbedSection} from '../components/CastCrewTabbedSection';
+import {MediaTabs} from '../components/MediaTabs';
+import {KeywordsDisplay} from '../components/KeywordsDisplay';
+import {ProductionInfo} from '../components/ProductionInfo';
+import {CollectionBanner} from '../components/CollectionBanner';
 import {useNavigation, RouteProp} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 import {
@@ -837,6 +841,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       textAlign: 'center',
       width: '100%',
       fontFamily: 'Inter_18pt-Regular',
+      alignSelf: 'center',
+    },
+    tagline: {
+      ...typography.body2,
+      color: colors.text.muted,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
     },
     infoContainer: {
       flexDirection: 'column',
@@ -1304,9 +1316,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
           {type: 'castCrew', id: 'castCrew'},
+          {type: 'mediaTabs', id: 'mediaTabs'},
           {type: 'providers', id: 'providers'},
           {type: 'trivia', id: 'trivia'},
+          {type: 'collection', id: 'collection'},
           {type: 'similar', id: 'similar'},
+          {type: 'productionInfo', id: 'productionInfo'},
           {type: 'reviews', id: 'reviews'},
           {type: 'recommendations', id: 'recommendations'},
         ]}
@@ -1428,7 +1443,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       ],
                     },
                   ]}>
-                  <Text style={styles.title}>{movie.title}</Text>
+                  <View>
+                    <Text style={styles.title}>{movie.title}</Text>
+                    {movieDetails?.tagline && (
+                      <Text style={styles.tagline}>
+                        "{movieDetails.tagline}"
+                      </Text>
+                    )}
+                  </View>
                   <View style={styles.infoContainer}>
                     <View style={styles.infoRow}>
                       <Text style={styles.info}>
@@ -1452,6 +1474,20 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           <Text style={styles.infoDot}>•</Text>
                           <Text style={styles.info}>
                             {getLanguage(movieDetails?.original_language)}
+                          </Text>
+                        </>
+                      )}
+                      {movieDetails?.release_dates?.results?.find(
+                        (r: any) => r.iso_3166_1 === 'US',
+                      )?.release_dates?.[0]?.certification && (
+                        <>
+                          <Text style={styles.infoDot}>•</Text>
+                          <Text style={styles.info}>
+                            {
+                              movieDetails.release_dates.results.find(
+                                (r: any) => r.iso_3166_1 === 'US',
+                              )?.release_dates[0].certification
+                            }
                           </Text>
                         </>
                       )}
@@ -1717,6 +1753,28 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     onPersonPress={handlePersonPress}
                   />
                 </Animated.View>
+              );
+            case 'collection':
+              return (
+                <CollectionBanner
+                  collection={movieDetails?.belongs_to_collection}
+                />
+              );
+            case 'productionInfo':
+              return (
+                <ProductionInfo
+                  budget={movieDetails?.budget}
+                  revenue={movieDetails?.revenue}
+                  productionCompanies={movieDetails?.production_companies}
+                  spokenLanguages={movieDetails?.spoken_languages}
+                />
+              );
+            case 'mediaTabs':
+              return (
+                <MediaTabs
+                  images={movieDetails?.images}
+                  videos={movieDetails?.videos}
+                />
               );
             case 'trivia':
               return (

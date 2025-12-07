@@ -343,39 +343,40 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
 
   // Show quota error UI
   if (quotaError) {
-    return (
-      <View
-        style={[
-          styles.container,
-          {
-            borderColor: colors.modal.blur,
-            borderBottomWidth: 1,
-          },
-        ]}>
-        <View style={styles.quotaErrorContainer}>
-          <Ionicons name="alert-circle" size={48} color={colors.accent} />
-          <Text style={styles.quotaErrorTitle}>API Quota Exceeded</Text>
-          <Text style={styles.quotaErrorText}>
-            Please update your Gemini API key in settings or Try again later
-          </Text>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => {
-              // Navigate to MySpace tab, then to AISettings
-              (navigation as any).navigate('MySpace', {
-                screen: 'AISettings',
-              });
-            }}>
-            <Ionicons
-              name="settings-outline"
-              size={20}
-              color={colors.background.primary}
-            />
-            <Text style={styles.settingsButtonText}>AI Settings</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
+    // return (
+    //   <View
+    //     style={[
+    //       styles.container,
+    //       {
+    //         borderColor: colors.modal.blur,
+    //         borderBottomWidth: 1,
+    //       },
+    //     ]}>
+    //     <View style={styles.quotaErrorContainer}>
+    //       <Ionicons name="alert-circle" size={48} color={colors.accent} />
+    //       <Text style={styles.quotaErrorTitle}>API Quota Exceeded</Text>
+    //       <Text style={styles.quotaErrorText}>
+    //         Please update your Gemini API key in settings or Try again later
+    //       </Text>
+    //       <TouchableOpacity
+    //         style={styles.settingsButton}
+    //         onPress={() => {
+    //           // Navigate to MySpace tab, then to AISettings
+    //           (navigation as any).navigate('MySpace', {
+    //             screen: 'AISettings',
+    //           });
+    //         }}>
+    //         <Ionicons
+    //           name="settings-outline"
+    //           size={20}
+    //           color={colors.background.primary}
+    //         />
+    //         <Text style={styles.settingsButtonText}>AI Settings</Text>
+    //       </TouchableOpacity>
+    //     </View>
+    //   </View>
+    // );
+    return null;
   }
 
   // Don't render if loaded but empty

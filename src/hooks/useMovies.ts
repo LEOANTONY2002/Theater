@@ -23,7 +23,7 @@ import {filterTMDBResponse} from '../utils/adultContentFilter';
 const TMDB_LIST_STALE = 1000 * 60 * 60 * 24; // 1 day for trending/popular/latest
 const TMDB_LIST_GC = 1000 * 60 * 60 * 24 * 2; // 2 days GC
 const TMDB_DETAILS_STALE = 0; // Don't cache - Realm is the source of truth
-const TMDB_DETAILS_GC = 1000 * 60 * 5; // 5 min memory cache for active session
+const TMDB_DETAILS_GC = 0; // No memory cache - always use Realm
 const AI_STALE = 0; // Don't cache - Realm is the source of truth
 const AI_GC = 1000 * 60 * 5; // 5 min memory cache for active session
 
@@ -61,8 +61,9 @@ export const useMovieDetails = (movieId: number) => {
     queryKey: ['movie', movieId],
     queryFn: async () => {
       const details = await getMovieDetails(movieId);
-      // Cache full details in Realm
-      if (details) {
+      // Only cache if this came from API (not from Realm cache)
+      if (details && details._fromAPI) {
+        delete details._fromAPI; // Remove marker
         cacheMovieDetails(
           details,
           details.credits?.cast,

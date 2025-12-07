@@ -494,6 +494,28 @@ export const getMovieDetails = async (movieId: number) => {
           videos: {
             results: cachedMovie.videos ? JSON.parse(cachedMovie.videos) : [],
           },
+          images: cachedMovie.images
+            ? JSON.parse(cachedMovie.images)
+            : undefined,
+          keywords: cachedMovie.keywords
+            ? {keywords: JSON.parse(cachedMovie.keywords)}
+            : undefined,
+          release_dates: cachedMovie.release_dates
+            ? JSON.parse(cachedMovie.release_dates)
+            : undefined,
+          production_companies: cachedMovie.production_companies
+            ? JSON.parse(cachedMovie.production_companies)
+            : [],
+          spoken_languages: cachedMovie.spoken_languages
+            ? JSON.parse(cachedMovie.spoken_languages)
+            : [],
+          belongs_to_collection: cachedMovie.belongs_to_collection
+            ? JSON.parse(cachedMovie.belongs_to_collection)
+            : null,
+          budget: cachedMovie.budget,
+          revenue: cachedMovie.revenue,
+          tagline: cachedMovie.tagline,
+          imdb_id: cachedMovie.imdb_id,
         };
       }
     }
@@ -501,8 +523,13 @@ export const getMovieDetails = async (movieId: number) => {
 
   // Cache miss or expired - fetch from TMDB
   const response = await tmdbApi.get(`/movie/${movieId}`, {
-    params: {append_to_response: 'videos,credits'},
+    params: {
+      append_to_response: 'videos,credits,images,keywords,release_dates',
+    },
   });
+
+  // Mark that this came from API so hook knows to cache it
+  response.data._fromAPI = true;
   return response.data;
 };
 
@@ -551,6 +578,24 @@ export const getTVShowDetails = async (tvId: number) => {
           videos: {
             results: cachedShow.videos ? JSON.parse(cachedShow.videos) : [],
           },
+          images: cachedShow.images ? JSON.parse(cachedShow.images) : undefined,
+          keywords: cachedShow.keywords
+            ? {keywords: JSON.parse(cachedShow.keywords)}
+            : undefined,
+          content_ratings: cachedShow.content_ratings
+            ? JSON.parse(cachedShow.content_ratings)
+            : undefined,
+          created_by: cachedShow.created_by
+            ? JSON.parse(cachedShow.created_by)
+            : [],
+          networks: cachedShow.networks ? JSON.parse(cachedShow.networks) : [],
+          production_companies: cachedShow.production_companies
+            ? JSON.parse(cachedShow.production_companies)
+            : [],
+          spoken_languages: cachedShow.spoken_languages
+            ? JSON.parse(cachedShow.spoken_languages)
+            : [],
+          tagline: cachedShow.tagline,
         };
       }
     }
@@ -558,7 +603,10 @@ export const getTVShowDetails = async (tvId: number) => {
 
   // Cache miss or expired - fetch from TMDB
   const response = await tmdbApi.get(`/tv/${tvId}`, {
-    params: {append_to_response: 'videos,credits'},
+    params: {
+      append_to_response:
+        'videos,credits,images,keywords,content_ratings,aggregate_credits',
+    },
   });
   return response.data;
 };

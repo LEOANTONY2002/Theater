@@ -1,4 +1,13 @@
-import {Video, Genre, Cast, Crew} from './movie';
+import {
+  Video,
+  Genre,
+  Cast,
+  Crew,
+  ImageData,
+  Keyword,
+  ContentRating,
+  ExternalIds,
+} from './movie';
 
 export type TVShow = {
   id: number;
@@ -56,6 +65,22 @@ export interface TVShowDetails extends TVShow {
     cast: Cast[];
     crew: Crew[];
   };
+  aggregate_credits?: {
+    cast: Cast[];
+    crew: Crew[];
+  };
+  images?: {
+    backdrops: ImageData[];
+    posters: ImageData[];
+    logos: ImageData[];
+  };
+  keywords?: {
+    results: Keyword[];
+  };
+  content_ratings?: {
+    results: ContentRating[];
+  };
+  external_ids?: ExternalIds;
 }
 
 export interface TVShowsResponse {
