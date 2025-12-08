@@ -131,7 +131,6 @@ export const MaybeBlurView: React.FC<
           style={[
             style,
             {
-              flex: 1,
               borderRadius: borderRadius.xl,
               overflow: 'hidden',
               borderTopWidth: 1,
@@ -215,7 +214,6 @@ export const MaybeBlurView: React.FC<
             blurType="light"
             blurAmount={5}
             downsampleFactor={100}
-
             overlayColor={'rgba(50, 50, 50, 0.35)'}
             style={{
               flex: 1,

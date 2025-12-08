@@ -3,38 +3,36 @@ import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getImageUrl} from '../services/tmdb';
-import {ProductionCompany, SpokenLanguage} from '../types/movie';
-import {ReleaseDate, ContentRating} from '../types/movie';
 
-interface ProductionInfoProps {
+interface Network {
+  id: number;
+  name: string;
+  logo_path: string | null;
+}
+
+interface ProductionCompany {
+  id: number;
+  name: string;
+  logo_path: string | null;
+}
+
+interface TVShowProductionInfoProps {
+  status?: string;
+  networks?: Network[];
   productionCompanies?: ProductionCompany[];
-  spokenLanguages?: SpokenLanguage[];
-  budget?: number;
-  revenue?: number;
   certification?: string;
 }
 
-export const ProductionInfo: React.FC<ProductionInfoProps> = ({
+export const TVShowProductionInfo: React.FC<TVShowProductionInfoProps> = ({
+  status,
+  networks,
   productionCompanies,
-  spokenLanguages,
-  budget,
-  revenue,
   certification,
 }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const hasAnyData =
+    status ||
+    (networks && networks.length > 0) ||
     (productionCompanies && productionCompanies.length > 0) ||
-    (spokenLanguages && spokenLanguages.length > 0) ||
-    (budget && budget > 0) ||
-    (revenue && revenue > 0) ||
     certification;
 
   if (!hasAnyData) return null;
@@ -43,23 +41,11 @@ export const ProductionInfo: React.FC<ProductionInfoProps> = ({
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Production Info</Text>
 
-      {/* Budget & Revenue */}
-      {((budget && budget > 0) || (revenue && revenue > 0)) && (
+      {/* Status */}
+      {status && (
         <View style={styles.infoBlock}>
-          <View style={styles.financialRow}>
-            {budget && budget > 0 && (
-              <View style={styles.financialItem}>
-                <Text style={styles.label}>Budget</Text>
-                <Text style={styles.value}>{formatCurrency(budget)}</Text>
-              </View>
-            )}
-            {revenue && revenue > 0 && (
-              <View style={styles.financialItem}>
-                <Text style={styles.label}>Revenue</Text>
-                <Text style={styles.value}>{formatCurrency(revenue)}</Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.label}>Status</Text>
+          <Text style={styles.value}>{status}</Text>
         </View>
       )}
 
@@ -68,6 +54,38 @@ export const ProductionInfo: React.FC<ProductionInfoProps> = ({
         <View style={styles.infoBlock}>
           <Text style={styles.label}>Content Rating</Text>
           <Text style={styles.value}>{certification}</Text>
+        </View>
+      )}
+
+      {/* Networks */}
+      {networks && networks.length > 0 && (
+        <View style={styles.infoBlock}>
+          <Text style={styles.label}>Networks</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.companiesList}>
+            {networks.map(network => (
+              <View key={network.id} style={styles.companyItem}>
+                {network.logo_path ? (
+                  <FastImage
+                    source={{uri: getImageUrl(network.logo_path, 'w185')}}
+                    style={styles.companyLogo}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View style={styles.companyPlaceholder}>
+                    <Text style={styles.companyInitial}>
+                      {network.name.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.companyName} numberOfLines={2}>
+                  {network.name}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
       )}
 
@@ -102,21 +120,6 @@ export const ProductionInfo: React.FC<ProductionInfoProps> = ({
           </ScrollView>
         </View>
       )}
-
-      {/* Spoken Languages */}
-      {spokenLanguages && spokenLanguages.length > 0 && (
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Spoken Languages</Text>
-          <View style={styles.languagesContainer}>
-            {spokenLanguages.map((lang, index) => (
-              <Text key={lang.iso_639_1} style={styles.language}>
-                {lang.english_name}
-                {index < spokenLanguages.length - 1 && ', '}
-              </Text>
-            ))}
-          </View>
-        </View>
-      )}
     </View>
   );
 };
@@ -144,13 +147,6 @@ const styles = StyleSheet.create({
     ...typography.body1,
     color: colors.text.primary,
     fontWeight: '600',
-  },
-  financialRow: {
-    flexDirection: 'row',
-    gap: spacing.xl,
-  },
-  financialItem: {
-    flex: 1,
   },
   companiesList: {
     gap: spacing.md,
@@ -184,13 +180,5 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.text.primary,
     textAlign: 'center',
-  },
-  languagesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  language: {
-    ...typography.body2,
-    color: colors.text.primary,
   },
 });

@@ -6,9 +6,10 @@ import {
   FlatList,
   TouchableOpacity,
   Modal,
-  Dimensions,
+  useWindowDimensions,
   Image,
   ScrollView,
+  Linking,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -16,6 +17,8 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {getImageUrl} from '../services/tmdb';
 import {ImageData} from '../types/movie';
 import {MaybeBlurView} from './MaybeBlurView';
+import {BlurPreference} from '../store/blurPreference';
+import {BlurView} from '@react-native-community/blur';
 
 interface MediaGalleryProps {
   images?: {
@@ -29,8 +32,13 @@ type MediaType = 'backdrops' | 'posters' | 'logos';
 
 export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
   const [selectedType, setSelectedType] = useState<MediaType>('backdrops');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const {width, height} = Dimensions.get('window');
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    aspectRatio: number;
+  } | null>(null);
+  const {width, height} = useWindowDimensions();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   const imageData = useMemo(() => {
     if (!images) return [];
@@ -61,7 +69,12 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
       <TouchableOpacity
         style={[styles.imageItem, isLogo && styles.logoItem]}
         onPress={() =>
-          setSelectedImage(getImageUrl(item.file_path, 'original'))
+          setSelectedImage({
+            url: getImageUrl(item.file_path, 'original'),
+            aspectRatio:
+              item.aspect_ratio ||
+              (selectedType === 'posters' ? 2 / 3 : 16 / 9),
+          })
         }
         activeOpacity={0.8}>
         <FastImage
@@ -76,12 +89,6 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
           ]}
           resizeMode={isLogo ? 'contain' : 'cover'}
         />
-        {item.vote_count > 0 && (
-          <View style={styles.voteContainer}>
-            <Icon name="heart" size={12} color={colors.accent} />
-            <Text style={styles.voteText}>{item.vote_count}</Text>
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -119,6 +126,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
 
       {/* Image Grid */}
       <FlatList
+        key={selectedType}
         data={imageData}
         renderItem={renderImageItem}
         keyExtractor={(item, index) => `${selectedType}-${index}`}
@@ -131,22 +139,58 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
       {/* Full Screen Image Modal */}
       <Modal
         visible={selectedImage !== null}
-        transparent
+        backdropColor={colors.modal.blurDark}
         statusBarTranslucent
         onRequestClose={() => setSelectedImage(null)}
         animationType="fade">
         <View style={styles.modalContainer}>
-          <MaybeBlurView body style={styles.modalBlur}>
+          {!isSolid && (
+            <BlurView
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+              style={{
+                flex: 1,
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+          )}
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() =>
+                selectedImage && Linking.openURL(selectedImage.url)
+              }
+              activeOpacity={0.8}>
+              <Icon name="open-outline" size={28} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setSelectedImage(null)}
               activeOpacity={0.8}>
               <Icon name="close" size={30} color="#fff" />
             </TouchableOpacity>
+          </View>
+          <MaybeBlurView
+            body
+            style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
             {selectedImage && (
               <FastImage
-                source={{uri: selectedImage}}
-                style={{width: width - 32, height: height * 0.7}}
+                source={{uri: selectedImage.url}}
+                style={{
+                  width: width - 64,
+                  aspectRatio: selectedImage.aspectRatio,
+                  maxHeight: height * 0.8,
+                  margin: spacing.md,
+                  borderRadius: borderRadius.lg,
+                }}
                 resizeMode="contain"
               />
             )}
@@ -165,7 +209,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: spacing.xs,
     paddingHorizontal: spacing.sm,
-    marginBottom: spacing.xs,
   },
   tabButton: {
     padding: spacing.sm,
@@ -191,17 +234,16 @@ const styles = StyleSheet.create({
   },
   imageList: {
     paddingHorizontal: spacing.md,
-    gap: spacing.md,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
   },
   imageItem: {
-    marginRight: spacing.md,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     backgroundColor: colors.background.secondary,
   },
   logoItem: {
-    backgroundColor: colors.modal.header,
-    padding: spacing.md,
+    backgroundColor: colors.modal.blur,
   },
   image: {
     width: 200,
@@ -210,22 +252,7 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 200,
     height: 80,
-  },
-  voteContainer: {
-    position: 'absolute',
-    top: spacing.xs,
-    right: spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-  },
-  voteText: {
-    ...typography.caption,
-    color: colors.text.primary,
+    objectFit: 'contain',
   },
   modalContainer: {
     flex: 1,
@@ -239,15 +266,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-  closeButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
+  modalButtons: {
+    flexDirection: 'row',
     zIndex: 10,
+    gap: spacing.sm,
+    margin: spacing.md,
+    alignSelf: 'flex-end',
+  },
+  actionButton: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.header,
+    backgroundColor: colors.modal.blur,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.header,
+    backgroundColor: colors.modal.blur,
     justifyContent: 'center',
     alignItems: 'center',
   },

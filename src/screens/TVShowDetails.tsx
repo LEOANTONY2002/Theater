@@ -47,6 +47,7 @@ import {MediaTabs} from '../components/MediaTabs';
 import {KeywordsDisplay} from '../components/KeywordsDisplay';
 import {TVShowMetaInfo} from '../components/TVShowMetaInfo';
 import {ShowStatus} from '../components/ShowStatus';
+import {TVShowProductionInfo} from '../components/TVShowProductionInfo';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useContentTags} from '../hooks/useContentTags';
@@ -895,6 +896,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       width: '100%',
       fontFamily: 'Inter_18pt-Regular',
     },
+    tagline: {
+      ...typography.body2,
+      color: colors.text.muted,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
+    },
     infoContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -913,7 +921,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     },
     infoDot: {
       ...typography.h3,
-      color: 'rgba(163, 163, 163, 0.68)',
+      color: colors.modal.active,
       marginHorizontal: spacing.xs,
     },
     buttonRow: {
@@ -1115,6 +1123,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       borderRadius: borderRadius.lg,
       marginBottom: 8,
       paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colors.modal.border,
+      borderBottomWidth: 0,
     },
     seasonItemPoster: {
       width: 60,
@@ -1127,14 +1138,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     },
     seasonItemName: {
       color: colors.text.primary,
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: '500',
       marginBottom: 4,
       fontFamily: 'Inter_18pt-Regular',
     },
     seasonItemEpisodes: {
-      color: colors.text.secondary,
-      fontSize: 14,
+      color: colors.text.primary,
+      fontSize: 12,
     },
     noEpisodesContainer: {
       padding: spacing.lg,
@@ -1371,6 +1382,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {type: 'seasons', id: 'seasons'},
           ...(isAIEnabled ? [{type: 'aiSimilar', id: 'aiSimilar'}] : []),
           {type: 'similar', id: 'similar'},
+          {type: 'productionInfo', id: 'productionInfo'},
           {type: 'reviews', id: 'reviews'},
           {type: 'recommendations', id: 'recommendations'},
         ]}
@@ -1447,38 +1459,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             if (state === 'ended') setIsPlaying(false);
                           }}
                         />
-                        {isAIEnabled &&
-                          (!aiRatings ||
-                            (!aiRatings.imdb &&
-                              !aiRatings.rotten_tomatoes)) && (
-                            <View
-                              style={{
-                                marginTop: spacing.xs,
-                                alignItems: 'center',
-                                gap: spacing.xs,
-                              }}>
-                              <Text
-                                style={{
-                                  ...typography.caption,
-                                  color: colors.text.tertiary,
-                                  opacity: 0.7,
-                                }}>
-                                AI ratings unavailable.
-                              </Text>
-                              <TouchableOpacity
-                                onPress={retryAiRatings}
-                                activeOpacity={0.7}>
-                                <Text
-                                  style={{
-                                    ...typography.caption,
-                                    color: colors.accent,
-                                    textDecorationLine: 'underline',
-                                  }}>
-                                  Retry
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
                       </View>
                     )}
                   </View>
@@ -1501,7 +1481,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       ],
                     },
                   ]}>
-                  <Text style={styles.title}>{show.name}</Text>
+                  <View>
+                    <Text style={styles.title}>{show.name}</Text>
+                    {showDetails?.tagline && (
+                      <Text style={styles.tagline}>
+                        "{showDetails.tagline}"
+                      </Text>
+                    )}
+                  </View>
                   <View style={styles.infoContainer}>
                     {showDetails?.first_air_date && (
                       <Text style={styles.info}>
@@ -1531,20 +1518,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         <Text style={styles.infoDot}>•</Text>
                         <Text style={styles.info}>
                           {getLanguage(showDetails?.original_language)}
-                        </Text>
-                      </>
-                    )}
-                    {showDetails?.content_ratings?.results?.find(
-                      (r: any) => r.iso_3166_1 === 'US',
-                    )?.rating && (
-                      <>
-                        <Text style={styles.infoDot}>•</Text>
-                        <Text style={styles.info}>
-                          {
-                            showDetails.content_ratings.results.find(
-                              (r: any) => r.iso_3166_1 === 'US',
-                            )?.rating
-                          }
                         </Text>
                       </>
                     )}
@@ -1682,7 +1655,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         marginTop: spacing.xs,
                         flexDirection: 'row',
                         alignItems: 'center',
-                        gap: spacing.lg,
+                        gap: spacing.md,
                         flexWrap: 'wrap',
                         justifyContent: 'center',
                       }}>
@@ -1693,6 +1666,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         style={{
                           flexDirection: 'row',
                           alignItems: 'center',
+                          backgroundColor: colors.modal.blur,
+                          padding: 4,
+                          paddingHorizontal: spacing.sm,
+                          borderRadius: borderRadius.md,
+                          borderWidth: 1,
+                          borderBottomWidth: 0,
+                          borderColor: colors.modal.content,
                         }}>
                         <Image
                           source={require('../assets/imdb.webp')}
@@ -1734,13 +1714,21 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           flexDirection: 'row',
                           alignItems: 'center',
                           gap: spacing.sm,
+                          backgroundColor: colors.modal.blur,
+                          padding: 4,
+                          paddingHorizontal: spacing.sm,
+                          borderRadius: borderRadius.md,
+                          borderWidth: 1,
+                          borderBottomWidth: 0,
+                          borderColor: colors.modal.content,
                         }}>
                         <Image
                           source={require('../assets/tomato.png')}
                           style={{
-                            width: 30,
-                            height: 30,
+                            width: 28,
+                            height: 28,
                             resizeMode: 'contain',
+                            marginVertical: 2,
                           }}
                         />
                         {aiRatings?.rotten_tomatoes != null && (
@@ -1773,7 +1761,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     </TouchableOpacity>
                   </LinearGradient>
                   <Text style={styles.overview}>{showDetails?.overview}</Text>
-                  <ShowStatus status={showDetails?.status} />
                 </Animated.View>
               );
             case 'tvMetaInfo':
@@ -1934,6 +1921,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         margin: isTablet ? spacing.xl : spacing.md,
                         borderRadius: borderRadius.xl,
                         backgroundColor: 'transparent',
+                        alignItems: 'stretch',
+                        justifyContent: 'flex-end',
                       }}>
                       <MaybeBlurView
                         header
@@ -1975,9 +1964,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       </MaybeBlurView>
                       <View
                         style={{
-                          flex: 1,
+                          // flex: 1,
                           overflow: 'hidden',
                           borderRadius: borderRadius.xl,
+                          maxHeight: height - (isTablet ? 200 : 130),
                         }}>
                         <MaybeBlurView body>
                           <ScrollView
@@ -1998,7 +1988,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                                       selectedSeason?.id === s.id && {
                                         backgroundColor: colors.modal.active,
                                         borderWidth: 1,
-                                        borderColor: colors.text.tertiary,
+                                        borderColor: colors.modal.activeBorder,
                                       },
                                     ]}
                                     onPress={() => {
@@ -2014,12 +2004,49 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                                       }}
                                       style={styles.seasonItemPoster}
                                     />
+
+                                    <Text
+                                      style={{
+                                        position: 'absolute',
+                                        left: -10,
+                                        fontSize: 40,
+                                        color: colors.text.primary,
+                                        fontWeight: 'bold',
+                                      }}>
+                                      {s.season_number}
+                                    </Text>
+
                                     <View style={styles.seasonItemInfo}>
-                                      <Text style={styles.seasonItemName}>
-                                        {getSeasonTitle(s)}
-                                      </Text>
-                                      <Text style={styles.seasonItemEpisodes}>
-                                        {s.episode_count} Episodes
+                                      <View
+                                        style={{
+                                          flexDirection: 'row',
+                                          alignItems: 'center',
+                                          gap: spacing.xs,
+                                        }}>
+                                        <Text style={styles.seasonItemEpisodes}>
+                                          {s.episode_count} Episodes
+                                        </Text>
+
+                                        {s.air_date && (
+                                          <>
+                                            <Text style={styles.infoDot}>
+                                              •
+                                            </Text>
+                                            <Text
+                                              style={styles.seasonItemEpisodes}>
+                                              {s.air_date}
+                                            </Text>
+                                          </>
+                                        )}
+                                      </View>
+                                      <Text
+                                        style={{
+                                          ...typography.body2,
+                                          fontSize: 11,
+                                          color: colors.text.secondary,
+                                        }}
+                                        numberOfLines={3}>
+                                        {s.overview}
                                       </Text>
                                     </View>
                                   </TouchableOpacity>
@@ -2079,6 +2106,19 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   )}
                 </>
               ) : null;
+            case 'productionInfo':
+              return (
+                <TVShowProductionInfo
+                  status={showDetails?.status}
+                  networks={showDetails?.networks}
+                  productionCompanies={showDetails?.production_companies}
+                  certification={
+                    showDetails?.content_ratings?.results?.find(
+                      (r: any) => r.iso_3166_1 === 'US',
+                    )?.rating
+                  }
+                />
+              );
             case 'similar':
               return similarShowsData.length > 0 ? (
                 <Animated.View

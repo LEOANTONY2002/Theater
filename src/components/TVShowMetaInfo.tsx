@@ -46,7 +46,15 @@ export const TVShowMetaInfo: React.FC<TVShowMetaInfoProps> = ({
         {/* Creators */}
         {creators && creators.length > 0 && (
           <View style={styles.compactSection}>
-            <Text style={styles.label}>Created By</Text>
+            <Text
+              style={{
+                ...typography.body2,
+                color: colors.text.primary,
+                marginLeft: spacing.md,
+                marginBottom: spacing.xs,
+              }}>
+              Created By
+            </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -79,35 +87,6 @@ export const TVShowMetaInfo: React.FC<TVShowMetaInfoProps> = ({
             </ScrollView>
           </View>
         )}
-
-        {/* Networks */}
-        {networks && networks.length > 0 && (
-          <View style={styles.compactSection}>
-            <Text style={styles.label}>Networks</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.networksList}>
-              {networks.map(network => (
-                <View key={network.id} style={styles.networkItem}>
-                  {network.logo_path ? (
-                    <FastImage
-                      source={{uri: getImageUrl(network.logo_path, 'w185')}}
-                      style={styles.networkLogo}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <View style={styles.networkPlaceholder}>
-                      <Text style={styles.networkName} numberOfLines={1}>
-                        {network.name}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
       </View>
     </View>
   );
@@ -116,7 +95,6 @@ export const TVShowMetaInfo: React.FC<TVShowMetaInfoProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginVertical: spacing.md,
-    paddingHorizontal: spacing.md,
   },
   compactRow: {
     gap: spacing.lg,
@@ -124,25 +102,27 @@ const styles = StyleSheet.create({
   compactSection: {
     marginBottom: spacing.md,
   },
-  label: {
-    ...typography.body2,
-    color: colors.text.muted,
-    marginBottom: spacing.sm,
-    fontWeight: '600',
-    fontSize: 12,
-  },
   creatorsList: {
-    gap: spacing.md,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   creatorItem: {
-    width: 100,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: colors.modal.blur,
+    padding: spacing.sm,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
   },
   creatorImage: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.sm,
+    width: 50,
+    height: 50,
+    borderRadius: borderRadius.md,
     backgroundColor: colors.modal.blur,
   },
   imagePlaceholder: {
@@ -151,8 +131,9 @@ const styles = StyleSheet.create({
   },
   creatorName: {
     ...typography.caption,
-    color: colors.text.primary,
-    textAlign: 'center',
+    color: colors.text.secondary,
+    fontSize: 12,
+    maxWidth: 80,
   },
   networksList: {
     gap: spacing.md,

@@ -91,7 +91,7 @@ export const MediaTabs: React.FC<MediaTabsProps> = ({images, videos}) => {
       </ScrollView>
 
       {/* Tab Content */}
-      <View style={styles.tabContent}>
+      <View style={styles.tabContent} key={activeTab}>
         {activeTab === 'images' &&
           (hasImages ? (
             <MediaGallery images={images} />

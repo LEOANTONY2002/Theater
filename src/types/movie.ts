@@ -10,6 +10,7 @@ export type Movie = {
   genre_ids: number[];
   popularity: number;
   original_language: string;
+  vote_count: number;
 };
 
 export interface MovieDetails extends Movie {

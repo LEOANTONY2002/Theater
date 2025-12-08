@@ -780,6 +780,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     [navigateWithLimit],
   );
 
+  const handleCollectionPress = useCallback(
+    (collectionId: number) => {
+      navigateWithLimit('Collection', {collectionId});
+    },
+    [navigateWithLimit],
+  );
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -1477,20 +1484,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           </Text>
                         </>
                       )}
-                      {movieDetails?.release_dates?.results?.find(
-                        (r: any) => r.iso_3166_1 === 'US',
-                      )?.release_dates?.[0]?.certification && (
-                        <>
-                          <Text style={styles.infoDot}>•</Text>
-                          <Text style={styles.info}>
-                            {
-                              movieDetails.release_dates.results.find(
-                                (r: any) => r.iso_3166_1 === 'US',
-                              )?.release_dates[0].certification
-                            }
-                          </Text>
-                        </>
-                      )}
                       {movieDetails?.vote_average && (
                         <>
                           <Text style={styles.infoDot}>•</Text>
@@ -1628,6 +1621,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           flexDirection: 'row',
+                          backgroundColor: colors.modal.blur,
+                          padding: 4,
+                          paddingHorizontal: spacing.sm,
+                          borderRadius: borderRadius.md,
+                          borderWidth: 1,
+                          borderBottomWidth: 0,
+                          borderColor: colors.modal.content,
                         }}>
                         <Image
                           source={require('../assets/imdb.webp')}
@@ -1668,16 +1668,23 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           onPress={() => setShowRottenTomatoesModal(true)}
                           activeOpacity={0.7}
                           style={{
-                            marginTop: spacing.xs,
                             flexDirection: 'row',
                             alignItems: 'center',
+                            backgroundColor: colors.modal.blur,
+                            padding: 4,
+                            paddingHorizontal: spacing.sm,
+                            borderRadius: borderRadius.md,
+                            borderWidth: 1,
+                            borderBottomWidth: 0,
+                            borderColor: colors.modal.content,
                           }}>
                           <Image
                             source={require('../assets/tomato.png')}
                             style={{
-                              width: 50,
-                              height: 30,
+                              width: 28,
+                              height: 28,
                               resizeMode: 'contain',
+                              marginVertical: 2,
                             }}
                           />
                           {aiRatings?.rotten_tomatoes != null && (
@@ -1758,6 +1765,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               return (
                 <CollectionBanner
                   collection={movieDetails?.belongs_to_collection}
+                  onPress={handleCollectionPress}
                 />
               );
             case 'productionInfo':
@@ -1767,6 +1775,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   revenue={movieDetails?.revenue}
                   productionCompanies={movieDetails?.production_companies}
                   spokenLanguages={movieDetails?.spoken_languages}
+                  certification={
+                    movieDetails?.release_dates?.results?.find(
+                      (r: any) => r.iso_3166_1 === 'US',
+                    )?.release_dates?.[0]?.certification
+                  }
                 />
               );
             case 'mediaTabs':

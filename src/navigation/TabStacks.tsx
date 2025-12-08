@@ -7,6 +7,7 @@ import {CurationScreen} from '../screens/Curation';
 import {MySpaceScreen} from '../screens/MySpace';
 import {MovieDetailsScreen} from '../screens/MovieDetails';
 import {TVShowDetailsScreen} from '../screens/TVShowDetails';
+import {CollectionScreen} from '../screens/Collection';
 import {CategoryScreen} from '../screens/CategoryScreen';
 import {PersonCreditsScreen} from '../screens/PersonCredits';
 import {
@@ -80,6 +81,11 @@ export const HomeStackNavigator = () => (
       options={modalScreenOptions}
     />
     <HomeStack.Screen
+      name="Collection"
+      component={CollectionScreen}
+      options={slideFromRightOptions}
+    />
+    <HomeStack.Screen
       name="Category"
       component={CategoryScreen}
       options={slideFromRightOptions}
@@ -135,6 +141,11 @@ export const SearchStackNavigator = () => (
       options={{...modalScreenOptions, animation: 'none'}}
     />
     <SearchStack.Screen
+      name="Collection"
+      component={CollectionScreen}
+      options={slideFromRightOptions}
+    />
+    <SearchStack.Screen
       name="PersonCredits"
       component={PersonCreditsScreen}
       options={modalScreenOptions}
@@ -173,6 +184,11 @@ export const MoviesAndSeriesStackNavigator = () => (
       name="TVShowDetails"
       component={TVShowDetailsScreen}
       options={modalScreenOptions}
+    />
+    <MoviesAndSeriesStack.Screen
+      name="Collection"
+      component={CollectionScreen}
+      options={slideFromRightOptions}
     />
     <MoviesAndSeriesStack.Screen
       name="Category"
@@ -225,6 +241,11 @@ export const CurationStackNavigator = () => (
       options={modalScreenOptions}
     />
     <CurationStack.Screen
+      name="Collection"
+      component={CollectionScreen}
+      options={slideFromRightOptions}
+    />
+    <CurationStack.Screen
       name="Category"
       component={CategoryScreen}
       options={slideFromRightOptions}
@@ -268,6 +289,11 @@ export const MySpaceStackNavigator = () => (
       name="TVShowDetails"
       component={TVShowDetailsScreen}
       options={modalScreenOptions}
+    />
+    <MySpaceStack.Screen
+      name="Collection"
+      component={CollectionScreen}
+      options={slideFromRightOptions}
     />
     <MySpaceStack.Screen
       name="PersonCredits"

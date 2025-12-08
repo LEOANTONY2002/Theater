@@ -24,6 +24,7 @@ export type HomeStackParamList = {
   HomeScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  Collection: {collectionId: number};
   Category: {
     title: string;
     categoryType?: MovieCategoryType | TVShowCategoryType;
@@ -65,6 +66,7 @@ export type SearchStackParamList = {
   };
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  Collection: {collectionId: number};
   PersonCredits: {
     personId: number;
     personName: string;
@@ -90,6 +92,7 @@ export type MoviesAndSeriesStackParamList = {
   MoviesAndSeriesScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  Collection: {collectionId: number};
   Category: {
     title: string;
     categoryType?: MovieCategoryType | TVShowCategoryType;
@@ -190,6 +193,7 @@ export type CurationStackParamList = {
   CurationScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  Collection: {collectionId: number};
   Category: {
     title: string;
     categoryType?: MovieCategoryType | TVShowCategoryType;
@@ -222,6 +226,7 @@ export type MySpaceStackParamList = {
   WatchlistsScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
+  Collection: {collectionId: number};
   SearchScreen: {
     filter?: SavedFilter;
   };

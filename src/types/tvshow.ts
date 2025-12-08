@@ -58,6 +58,7 @@ export interface TVShowDetails extends TVShow {
   }[];
   status: string;
   type: string;
+  tagline?: string;
   videos: {
     results: Video[];
   };
