@@ -3,11 +3,12 @@ import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {FiltersScreen} from './Filters';
 import {WatchlistsTabScreen} from './WatchlistsTab';
+import {MyCollectionsTab} from './MyCollectionsTab';
 import LinearGradient from 'react-native-linear-gradient';
 import {BlurPreference} from '../store/blurPreference';
 import {useResponsive} from '../hooks/useResponsive';
 
-type TabType = 'filters' | 'watchlists';
+type TabType = 'filters' | 'watchlists' | 'collections';
 
 export const CurationScreen = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TabType>('filters');
@@ -126,6 +127,20 @@ export const CurationScreen = React.memo(() => {
               Watchlists
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'collections' && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab('collections')}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'collections' && styles.activeTabText,
+              ]}>
+              Collections
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -140,6 +155,13 @@ export const CurationScreen = React.memo(() => {
             flex: 1,
           }}>
           <WatchlistsTabScreen />
+        </View>
+        <View
+          style={{
+            display: activeTab === 'collections' ? 'flex' : 'none',
+            flex: 1,
+          }}>
+          <MyCollectionsTab />
         </View>
       </View>
     </View>

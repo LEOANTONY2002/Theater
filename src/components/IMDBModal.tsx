@@ -142,12 +142,14 @@ export const IMDBModal: React.FC<IMDBModalProps> = ({
       position: 'relative',
       borderRadius: borderRadius.xl,
       overflow: 'hidden',
-      elevation: 50,
       zIndex: 1,
       backgroundColor: colors.background.primary,
+      borderWidth: 1,
+      borderColor: colors.modal.content,
     },
     webview: {
       flex: 1,
+      borderRadius: borderRadius.xl,
     },
     loadingContainer: {
       position: 'absolute',

@@ -175,7 +175,7 @@ export const WatchlistAnalyzer: React.FC<WatchlistAnalyzerProps> = ({
 
   const styles = StyleSheet.create({
     container: {
-      marginBottom: spacing.lg,
+      marginVertical: spacing.lg,
       marginHorizontal: spacing.md,
     },
     card: {

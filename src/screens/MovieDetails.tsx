@@ -86,6 +86,8 @@ import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {HistoryManager} from '../store/history';
 import {getRealm} from '../database/realm';
+import {CollectionsManager} from '../store/collections';
+import {tmdbApi} from '../services/api';
 import ShareLib, {Social} from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
@@ -164,6 +166,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [showRottenTomatoesModal, setShowRottenTomatoesModal] = useState(false);
   const [posterUri, setPosterUri] = useState<string | null>(null);
   const [isSharingPoster, setIsSharingPoster] = useState(false);
+
+  // Collection state
+  const [isCollectionSaved, setIsCollectionSaved] = useState(false);
+  const [isCollectionLoading, setIsCollectionLoading] = useState(false);
 
   // Lazy loading state for reviews
   const [reviewsVisible, setReviewsVisible] = useState(false);
@@ -352,6 +358,51 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       addToHistory();
     }
   }, [movieDetails, addToHistory]);
+
+  // Check collection status
+  useEffect(() => {
+    const checkCollectionStatus = async () => {
+      if (movieDetails?.belongs_to_collection) {
+        const saved = await CollectionsManager.isCollected(
+          movieDetails.belongs_to_collection.id.toString(),
+        );
+        setIsCollectionSaved(saved);
+      }
+    };
+    if (isFocused) {
+      checkCollectionStatus();
+    }
+  }, [movieDetails?.belongs_to_collection, isFocused]);
+
+  const handleToggleCollection = async () => {
+    if (!movieDetails?.belongs_to_collection || isCollectionLoading) return;
+    const collectionId = movieDetails.belongs_to_collection.id;
+
+    setIsCollectionLoading(true);
+    try {
+      if (isCollectionSaved) {
+        await CollectionsManager.deleteCollection(collectionId.toString());
+        setIsCollectionSaved(false);
+      } else {
+        // Fetch full details
+        const {data} = await tmdbApi.get(`/collection/${collectionId}`);
+        await CollectionsManager.saveCollection({
+          id: data.id,
+          name: data.name,
+          overview: data.overview,
+          poster_path: data.poster_path,
+          backdrop_path: data.backdrop_path,
+          parts: data.parts,
+        });
+        setIsCollectionSaved(true);
+      }
+    } catch (e) {
+      console.error('Failed to toggle collection', e);
+      Alert.alert('Error', 'Could not update collection');
+    } finally {
+      setIsCollectionLoading(false);
+    }
+  };
 
   // Generate and store thematic/emotional tags for this movie
   const {isGenerating: isGeneratingTags, tags: contentTags} = useContentTags({
@@ -1766,6 +1817,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 <CollectionBanner
                   collection={movieDetails?.belongs_to_collection}
                   onPress={handleCollectionPress}
+                  isCollected={isCollectionSaved}
+                  onToggleCollect={handleToggleCollection}
                 />
               );
             case 'productionInfo':

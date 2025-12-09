@@ -48,7 +48,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   isLoading,
   voteAverage = 0,
 }) => {
-  const {width} = useWindowDimensions();
+  const {width, height} = useWindowDimensions();
   const {isTablet} = useResponsive();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
@@ -364,6 +364,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
         <View
           style={{
             flex: 1,
+            justifyContent: 'flex-end',
             margin: isTablet ? spacing.xl : spacing.md,
             borderRadius: borderRadius.xl,
             backgroundColor: 'transparent',
@@ -407,147 +408,138 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
           </MaybeBlurView>
 
           {/* Modal Body */}
-          <View
-            style={{
-              flex: 1,
-              overflow: 'hidden',
-              borderRadius: borderRadius.xl,
-              borderWidth: isSolid ? 0 : 1,
-              borderColor: isSolid ? colors.modal.blur : colors.modal.content,
-            }}>
-            <MaybeBlurView body>
-              {/* Filters */}
-              <View style={styles.filtersContainer}>
-                {/* Sort Options */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.filterRow}>
-                  <Text style={styles.filterLabel}>Sort:</Text>
-                  {[
-                    {label: 'Most Recent', value: 'recent' as SortOption},
-                    {label: 'Oldest', value: 'oldest' as SortOption},
-                    {label: 'Highest Rated', value: 'highest' as SortOption},
-                    {label: 'Lowest Rated', value: 'lowest' as SortOption},
-                  ].map(option => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.filterChip,
-                        sortBy === option.value && styles.filterChipActive,
-                      ]}
-                      onPress={() => setSortBy(option.value)}>
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          sortBy === option.value &&
-                            styles.filterChipTextActive,
-                        ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {/* Rating Filter */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.filterRow}>
-                  <Text style={styles.filterLabel}>Rating:</Text>
-                  {[
-                    {label: 'All', value: 'all' as FilterRating},
-                    ...[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(r => ({
-                      label: `${r}★`,
-                      value: r as FilterRating,
-                    })),
-                  ].map(option => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.filterChip,
-                        filterRating === option.value &&
-                          styles.filterChipActive,
-                      ]}
-                      onPress={() => setFilterRating(option.value)}>
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          filterRating === option.value &&
-                            styles.filterChipTextActive,
-                        ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {/* Clear Filters */}
-                {(sortBy !== 'recent' || filterRating !== 'all') && (
+          <MaybeBlurView
+            body
+            style={{maxHeight: height - (isTablet ? 200 : 150)}}>
+            {/* Filters */}
+            <View style={styles.filtersContainer}>
+              {/* Sort Options */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterRow}>
+                <Text style={styles.filterLabel}>Sort:</Text>
+                {[
+                  {label: 'Most Recent', value: 'recent' as SortOption},
+                  {label: 'Oldest', value: 'oldest' as SortOption},
+                  {label: 'Highest Rated', value: 'highest' as SortOption},
+                  {label: 'Lowest Rated', value: 'lowest' as SortOption},
+                ].map(option => (
                   <TouchableOpacity
-                    style={styles.clearFilters}
-                    onPress={() => {
-                      setSortBy('recent');
-                      setFilterRating('all');
-                    }}>
-                    <Icon
-                      name="close-circle"
-                      size={16}
-                      color={colors.text.muted}
-                    />
-                    <Text style={styles.clearFiltersText}>Clear filters</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Reviews List */}
-              <FlatList
-                ref={flatListRef}
-                data={processedReviews}
-                renderItem={({item}) => renderReviewCard(item, false)}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.modalList}
-                showsVerticalScrollIndicator={false}
-                onScrollToIndexFailed={info => {
-                  // Handle scroll failure by waiting and trying again
-                  const wait = new Promise(resolve => setTimeout(resolve, 500));
-                  wait.then(() => {
-                    flatListRef.current?.scrollToIndex({
-                      index: info.index,
-                      animated: true,
-                      viewPosition: 0.1,
-                      viewOffset: 0,
-                    });
-                  });
-                }}
-                onEndReached={() => {
-                  if (hasMore && !isLoading && onLoadMore) {
-                    onLoadMore();
-                  }
-                }}
-                onEndReachedThreshold={0.5}
-                ListFooterComponent={
-                  isLoading ? (
-                    <View style={styles.loadingFooter}>
-                      <Text style={styles.loadingText}>Loading more...</Text>
-                    </View>
-                  ) : null
-                }
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <Icon
-                      name="chatbubble-outline"
-                      size={48}
-                      color={colors.text.muted}
-                    />
-                    <Text style={styles.emptyText}>
-                      No reviews found with selected filters
+                    key={option.value}
+                    style={[
+                      styles.filterChip,
+                      sortBy === option.value && styles.filterChipActive,
+                    ]}
+                    onPress={() => setSortBy(option.value)}>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        sortBy === option.value && styles.filterChipTextActive,
+                      ]}>
+                      {option.label}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Rating Filter */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterRow}>
+                <Text style={styles.filterLabel}>Rating:</Text>
+                {[
+                  {label: 'All', value: 'all' as FilterRating},
+                  ...[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(r => ({
+                    label: `${r}★`,
+                    value: r as FilterRating,
+                  })),
+                ].map(option => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.filterChip,
+                      filterRating === option.value && styles.filterChipActive,
+                    ]}
+                    onPress={() => setFilterRating(option.value)}>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        filterRating === option.value &&
+                          styles.filterChipTextActive,
+                      ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Clear Filters */}
+              {(sortBy !== 'recent' || filterRating !== 'all') && (
+                <TouchableOpacity
+                  style={styles.clearFilters}
+                  onPress={() => {
+                    setSortBy('recent');
+                    setFilterRating('all');
+                  }}>
+                  <Icon
+                    name="close-circle"
+                    size={16}
+                    color={colors.text.muted}
+                  />
+                  <Text style={styles.clearFiltersText}>Clear filters</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Reviews List */}
+            <FlatList
+              ref={flatListRef}
+              data={processedReviews}
+              renderItem={({item}) => renderReviewCard(item, false)}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.modalList}
+              showsVerticalScrollIndicator={false}
+              onScrollToIndexFailed={info => {
+                // Handle scroll failure by waiting and trying again
+                const wait = new Promise(resolve => setTimeout(resolve, 500));
+                wait.then(() => {
+                  flatListRef.current?.scrollToIndex({
+                    index: info.index,
+                    animated: true,
+                    viewPosition: 0.1,
+                    viewOffset: 0,
+                  });
+                });
+              }}
+              onEndReached={() => {
+                if (hasMore && !isLoading && onLoadMore) {
+                  onLoadMore();
                 }
-              />
-            </MaybeBlurView>
-          </View>
+              }}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={
+                isLoading ? (
+                  <View style={styles.loadingFooter}>
+                    <Text style={styles.loadingText}>Loading more...</Text>
+                  </View>
+                ) : null
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Icon
+                    name="chatbubble-outline"
+                    size={48}
+                    color={colors.text.muted}
+                  />
+                  <Text style={styles.emptyText}>
+                    No reviews found with selected filters
+                  </Text>
+                </View>
+              }
+            />
+          </MaybeBlurView>
         </View>
       </Modal>
     </View>

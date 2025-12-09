@@ -266,19 +266,12 @@ export const WatchProvidersButton: React.FC<WatchProvidersButtonProps> = ({
     },
     modalContainer: {
       flex: 1,
+      justifyContent: 'flex-end',
       margin: isTablet ? spacing.xl : spacing.md,
-      paddingTop: height / 2,
     },
     modalTitle: {
       color: colors.text.primary,
       ...typography.h3,
-    },
-    modalBodyWrapper: {
-      flex: 1,
-      borderRadius: borderRadius.xl,
-      overflow: 'hidden',
-      borderWidth: isSolid ? 0 : 1,
-      borderColor: isSolid ? colors.modal.blur : colors.modal.content,
     },
     providersList: {
       gap: 12,
@@ -386,42 +379,41 @@ export const WatchProvidersButton: React.FC<WatchProvidersButtonProps> = ({
             </TouchableOpacity>
           </MaybeBlurView>
 
-          <View style={styles.modalBodyWrapper}>
-            <MaybeBlurView body radius={borderRadius.xl}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.providersList}>
-                {displayProviders.map((provider, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.providerButton}
-                    onPress={() => {
-                      handleProviderPress(provider.name, provider.link);
-                      setModalVisible(false);
-                    }}>
-                    <Image
-                      source={{uri: getImageUrl(provider.icon, 'w154')}}
-                      style={styles.listProviderIcon}
-                    />
-                    <View style={{gap: 0}}>
-                      <Text style={{color: colors.text.primary}}>
-                        Watch Now
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          color: colors.text.muted,
-                          marginRight: spacing.md,
-                          width: isTablet ? '100%' : width / 1.5,
-                        }}>
-                        {provider.name}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </MaybeBlurView>
-          </View>
+          <MaybeBlurView
+            body
+            radius={borderRadius.xl}
+            style={{maxHeight: height - (isTablet ? 200 : 150)}}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.providersList}>
+              {displayProviders.map((provider, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.providerButton}
+                  onPress={() => {
+                    handleProviderPress(provider.name, provider.link);
+                    setModalVisible(false);
+                  }}>
+                  <Image
+                    source={{uri: getImageUrl(provider.icon, 'w154')}}
+                    style={styles.listProviderIcon}
+                  />
+                  <View style={{gap: 0}}>
+                    <Text style={{color: colors.text.primary}}>Watch Now</Text>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        color: colors.text.muted,
+                        marginRight: spacing.md,
+                        width: isTablet ? '100%' : width / 1.5,
+                      }}>
+                      {provider.name}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </MaybeBlurView>
         </View>
       </Modal>
     </>

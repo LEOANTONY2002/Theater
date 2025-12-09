@@ -104,6 +104,7 @@ export const RealmHistoryManager = {
       }));
     } catch (error) {
       console.error('[RealmHistory] Error getting history:', error);
+      return [];
     }
   },
 
@@ -1680,5 +1681,99 @@ export const AIPersonalizationCacheManager = {
     }
 
     return false;
+  },
+};
+
+// ============================================================================
+// COLLECTIONS MANAGER
+// ============================================================================
+
+export const RealmCollectionsManager = {
+  async getSavedCollections(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      overview: string;
+      poster_path: string | null;
+      backdrop_path: string | null;
+      parts: any[]; // Decoded JSON
+      createdAt: Date;
+    }>
+  > {
+    try {
+      const realm = getRealm();
+      const collections = realm
+        .objects('SavedCollection')
+        .sorted('createdAt', true);
+      return Array.from(collections).map(col => ({
+        id: col._id as string,
+        name: col.name as string,
+        overview: col.overview as string,
+        poster_path: (col.poster_path as string) || null,
+        backdrop_path: (col.backdrop_path as string) || null,
+        parts: JSON.parse(col.parts as string), // Decode JSON
+        createdAt: col.createdAt as Date,
+      }));
+    } catch (error) {
+      console.error('[RealmCollections] Error getting collections:', error);
+      return [];
+    }
+  },
+
+  async isCollected(id: string): Promise<boolean> {
+    try {
+      const realm = getRealm();
+      const collection = realm.objectForPrimaryKey('SavedCollection', id);
+      return !!collection;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  async saveCollection(collection: {
+    id: number;
+    name: string;
+    overview: string;
+    poster_path: string | null;
+    backdrop_path: string | null;
+    parts: any[];
+  }): Promise<void> {
+    try {
+      const realm = getRealm();
+      realm.write(() => {
+        realm.create(
+          'SavedCollection',
+          {
+            _id: collection.id.toString(),
+            name: collection.name,
+            overview: collection.overview,
+            poster_path: collection.poster_path,
+            backdrop_path: collection.backdrop_path,
+            parts: JSON.stringify(collection.parts),
+            createdAt: new Date(),
+          },
+          Realm.UpdateMode.Modified,
+        );
+      });
+      console.log(`[RealmCollections] Saved collection: ${collection.name}`);
+    } catch (error) {
+      console.error('[RealmCollections] Error saving collection:', error);
+      throw error;
+    }
+  },
+
+  async deleteCollection(id: string): Promise<void> {
+    try {
+      const realm = getRealm();
+      realm.write(() => {
+        const collection = realm.objectForPrimaryKey('SavedCollection', id);
+        if (collection) {
+          realm.delete(collection);
+        }
+      });
+      console.log(`[RealmCollections] Deleted collection: ${id}`);
+    } catch (error) {
+      console.error('[RealmCollections] Error deleting collection:', error);
+    }
   },
 };

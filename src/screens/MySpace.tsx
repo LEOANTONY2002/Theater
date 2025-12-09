@@ -46,6 +46,8 @@ import {useAIEnabled} from '../hooks/useAIEnabled';
 import {BlurPreference} from '../store/blurPreference';
 import {getCinemaDNA, CinemaDNA, getTypeEmoji} from '../utils/cinemaDNA';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import {CollectionsManager} from '../store/collections';
+import {MyCollectionsList} from './MyCollectionsList';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -63,6 +65,7 @@ export const MySpaceScreen = React.memo(() => {
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
+  const [showMyCollectionsModal, setShowMyCollectionsModal] = useState(false);
   // Footer-related modals moved to About & Legal screen
 
   const [showMoodModal, setShowMoodModal] = useState(false);
@@ -77,7 +80,7 @@ export const MySpaceScreen = React.memo(() => {
   const [showOTTsModal, setShowOTTsModal] = useState(false);
   const [localOTTs, setLocalOTTs] = useState<any[]>([]);
   const [cinemaDNA, setCinemaDNA] = useState<CinemaDNA | null>(null);
-  const {width} = useWindowDimensions();
+  const {width, height} = useWindowDimensions();
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -92,6 +95,15 @@ export const MySpaceScreen = React.memo(() => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
+
+  const {data: savedCollections = [], isLoading: isLoadingCollections} =
+    useQuery({
+      queryKey: ['savedCollections'],
+      queryFn: CollectionsManager.getSavedCollections,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnMount: true,
+      refetchOnWindowFocus: true, // Refresh when coming back from deleting a collection
+    });
 
   const {data: currentRegion} = useQuery<Region>({
     queryKey: ['region'],
@@ -186,6 +198,7 @@ export const MySpaceScreen = React.memo(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
       queryClient.invalidateQueries({queryKey: ['watchlists']});
+      queryClient.invalidateQueries({queryKey: ['savedCollections']});
       loadMoodAnswers(); // Refresh mood answers when screen comes into focus
       loadCinemaDNA(); // Refresh cinema DNA when screen comes into focus
     });
@@ -566,6 +579,7 @@ export const MySpaceScreen = React.memo(() => {
       borderRadius: isTablet ? 40 : borderRadius.xl,
     },
     aiTile: {
+      flex: 1,
       backgroundColor: forceBlurAll
         ? colors.background.tertiaryGlass
         : colors.background.tertiarySolid,
@@ -619,7 +633,6 @@ export const MySpaceScreen = React.memo(() => {
     },
     themeTall: {
       minHeight: isTablet ? 300 : 180,
-      flex: 1,
       justifyContent: 'space-between',
     },
     aiTall: {
@@ -798,7 +811,7 @@ export const MySpaceScreen = React.memo(() => {
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
       <View style={{padding: spacing.md}}>
-        {/* Header with Cinema DNA Badge */}
+        {/* Header */}
         <View
           style={{
             flexDirection: 'row',
@@ -813,119 +826,6 @@ export const MySpaceScreen = React.memo(() => {
             }}>
             My Space
           </Text>
-
-          {/* Cinema DNA Badge */}
-          {cinemaDNA && (
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => navigateWithLimit('CinemaInsightsScreen')}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: forceBlurAll
-                  ? colors.background.tertiaryGlass
-                  : colors.background.tertiarySolid,
-                borderRadius: 50,
-                paddingVertical: spacing.xs,
-                paddingLeft: isTablet ? spacing.lg : spacing.md,
-                paddingRight: spacing.xs,
-                gap: spacing.sm,
-                borderTopWidth: 1,
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderColor: forceBlurAll
-                  ? colors.modal.content
-                  : colors.background.border,
-                width: width * 0.32,
-                minWidth: isTablet ? 200 : 130,
-                height: isTablet ? 80 : 50,
-                marginBottom: 0,
-              }}>
-              <Image
-                source={require('../assets/dna.png')}
-                style={styles.icon}
-              />
-              <Text
-                style={[
-                  styles.tileTitle,
-                  {
-                    zIndex: 1,
-                  },
-                ]}>
-                Cinema DNA
-              </Text>
-              {/* Profile Image with Gradient */}
-              <View
-                style={{
-                  width: isTablet ? 80 : 60,
-                  borderTopRightRadius: 50,
-                  borderBottomRightRadius: 50,
-                  overflow: 'hidden',
-                  backgroundColor: colors.background.secondary,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}>
-                <>
-                  {cinemaDNA.topPerson.profile_path ? (
-                    <Image
-                      source={{
-                        uri: `https://image.tmdb.org/t/p/w185${cinemaDNA.topPerson.profile_path}`,
-                      }}
-                      style={{width: '100%', height: '100%'}}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Icon
-                      name="user-secret"
-                      size={isTablet ? 40 : 30}
-                      color={colors.text.primary}
-                      style={{
-                        marginRight: isTablet ? 0 : -spacing.md,
-                      }}
-                    />
-                  )}
-                  <LinearGradient
-                    colors={[
-                      forceBlurAll
-                        ? colors.background.tertiaryGlass
-                        : colors.background.tertiarySolid,
-                      'transparent',
-                    ]}
-                    useAngle
-                    angle={90}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: -50,
-                      bottom: 0,
-                    }}
-                  />
-                  <LinearGradient
-                    colors={[
-                      forceBlurAll
-                        ? colors.background.tertiaryGlass
-                        : colors.background.tertiarySolid,
-                      'transparent',
-                    ]}
-                    useAngle
-                    angle={90}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: -50,
-                      bottom: 0,
-                    }}
-                  />
-                </>
-              </View>
-            </TouchableOpacity>
-          )}
         </View>
         {/* Two-column layout */}
         <View
@@ -1048,6 +948,59 @@ export const MySpaceScreen = React.memo(() => {
               </View>
             </TouchableOpacity>
 
+            {/* My Collections - NEW TILE */}
+            <TouchableOpacity
+              style={styles.tile}
+              activeOpacity={0.9}
+              onPress={() => setShowMyCollectionsModal(true)}>
+              <View style={styles.tileHeaderRow}>
+                <Image
+                  source={require('../assets/mywatchlists.png')} // Reusing watchlist icon as requested
+                  style={styles.icon}
+                />
+                <Text style={styles.tileTitle}>My Collections</Text>
+              </View>
+              <View style={styles.chipsRow}>
+                <LinearGradient
+                  colors={[
+                    'transparent',
+                    'transparent',
+                    forceBlurAll
+                      ? colors.background.tertiaryGlass
+                      : colors.background.tertiarySolid,
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 100,
+                    zIndex: 1,
+                  }}
+                />
+                {isLoadingCollections ? (
+                  <LanguageSkeleton />
+                ) : savedCollections.length > 0 ? (
+                  savedCollections.slice(0, isTablet ? 6 : 4).map(c => (
+                    <View key={c.id} style={styles.chip}>
+                      <Text style={styles.labelBG}>
+                        {c.name?.slice(0, 1).toString()}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.label}>
+                        {c.name}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyTextContainer}>
+                    <Text style={styles.emptyText}>Tap to manage</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+
             {/* Region + AI Settings small tiles */}
             <View
               style={{
@@ -1109,6 +1062,119 @@ export const MySpaceScreen = React.memo(() => {
 
           {/* Right Column */}
           <View style={{flex: 0.9, gap: isTablet ? spacing.md : spacing.sm}}>
+            {/* Cinema DNA Badge */}
+            {cinemaDNA && (
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => navigateWithLimit('CinemaInsightsScreen')}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: forceBlurAll
+                    ? colors.background.tertiaryGlass
+                    : colors.background.tertiarySolid,
+                  borderRadius: 50,
+                  paddingVertical: spacing.xs,
+                  paddingLeft: isTablet ? spacing.lg : spacing.md,
+                  paddingRight: spacing.xs,
+                  gap: spacing.sm,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: forceBlurAll
+                    ? colors.modal.content
+                    : colors.background.border,
+                  width: width * 0.32,
+                  minWidth: isTablet ? 200 : 130,
+                  height: isTablet ? 80 : 50,
+                  marginBottom: 0,
+                }}>
+                <Image
+                  source={require('../assets/dna.png')}
+                  style={styles.icon}
+                />
+                <Text
+                  style={[
+                    styles.tileTitle,
+                    {
+                      zIndex: 1,
+                      fontSize: isTablet ? 14 : 10,
+                    },
+                  ]}>
+                  Cinema DNA
+                </Text>
+                {/* Profile Image with Gradient */}
+                <View
+                  style={{
+                    width: isTablet ? 80 : 60,
+                    borderTopRightRadius: 50,
+                    borderBottomRightRadius: 50,
+                    overflow: 'hidden',
+                    backgroundColor: colors.background.secondary,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}>
+                  <>
+                    {cinemaDNA.topPerson.profile_path ? (
+                      <Image
+                        source={{
+                          uri: `https://image.tmdb.org/t/p/w185${cinemaDNA.topPerson.profile_path}`,
+                        }}
+                        style={{width: '100%', height: '100%'}}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Icon
+                        name="user-secret"
+                        size={isTablet ? 40 : 30}
+                        color={colors.text.primary}
+                        style={{
+                          marginRight: isTablet ? 0 : -spacing.md,
+                        }}
+                      />
+                    )}
+                    <LinearGradient
+                      colors={[
+                        forceBlurAll
+                          ? colors.background.tertiaryGlass
+                          : colors.background.tertiarySolid,
+                        'transparent',
+                      ]}
+                      useAngle
+                      angle={90}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: -50,
+                        bottom: 0,
+                      }}
+                    />
+                    <LinearGradient
+                      colors={[
+                        forceBlurAll
+                          ? colors.background.tertiaryGlass
+                          : colors.background.tertiarySolid,
+                        'transparent',
+                      ]}
+                      useAngle
+                      angle={90}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: -50,
+                        bottom: 0,
+                      }}
+                    />
+                  </>
+                </View>
+              </TouchableOpacity>
+            )}
             {/* Theme - tall */}
             <View style={[styles.tile, styles.themeTall]}>
               <View style={styles.tileHeaderColumn}>
@@ -1185,6 +1251,7 @@ export const MySpaceScreen = React.memo(() => {
               style={{
                 position: 'relative',
                 marginBottom: isTablet ? 5 : 0,
+                flex: 1,
               }}>
               <LinearGradient
                 colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
@@ -1229,7 +1296,7 @@ export const MySpaceScreen = React.memo(() => {
             display: 'flex',
             flexDirection: 'row',
             gap: isTablet ? spacing.md : spacing.sm,
-            marginTop: spacing.sm,
+            marginTop: isTablet ? spacing.md : spacing.sm,
           }}>
           {/* My Language */}
           <TouchableOpacity
@@ -1358,6 +1425,84 @@ export const MySpaceScreen = React.memo(() => {
           style={{height: isTablet && orientation === 'landscape' ? 200 : 100}}
         />
       </View>
+      <Modal
+        visible={showMyCollectionsModal}
+        animationType="slide"
+        statusBarTranslucent={true}
+        backdropColor={colors.modal.blurDark}
+        onRequestClose={() => setShowMyCollectionsModal(false)}>
+        {forceBlurAll && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor: 'transparent',
+          }}>
+          <MaybeBlurView
+            header
+            style={{
+              marginTop: 20,
+            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+              }}>
+              <Image
+                source={require('../assets/mywatchlists.png')}
+                style={{
+                  width: 20,
+                  height: 20,
+                  objectFit: 'contain',
+                  opacity: 0.7,
+                }}
+              />
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  ...typography.h3,
+                }}>
+                My Collections
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowMyCollectionsModal(false)}
+              style={{
+                padding: spacing.sm,
+                backgroundColor: colors.modal.blur,
+                borderRadius: borderRadius.round,
+              }}>
+              <Ionicons name="close" size={20} color={colors.text.primary} />
+            </TouchableOpacity>
+          </MaybeBlurView>
+
+          <MaybeBlurView
+            body
+            style={{maxHeight: height - (isTablet ? 200 : 150)}}>
+            <MyCollectionsList
+              contentContainerStyle={{paddingVertical: spacing.md}}
+            />
+          </MaybeBlurView>
+        </View>
+      </Modal>
+
       {/* My Language Modal - single select using LanguageSettings in local mode */}
       <Modal
         visible={showMyLanguageModal}
@@ -1430,7 +1575,7 @@ export const MySpaceScreen = React.memo(() => {
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
             }}>
-            <MaybeBlurView body>
+            <MaybeBlurView body style={{flex: 1}}>
               <LanguageSettings
                 isTitle={false}
                 singleSelect
@@ -1520,7 +1665,7 @@ export const MySpaceScreen = React.memo(() => {
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
             }}>
-            <MaybeBlurView body>
+            <MaybeBlurView body style={{flex: 1}}>
               {availableProviders?.length ? (
                 <ScrollView
                   showsVerticalScrollIndicator={false}

@@ -14,10 +14,12 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {colors, spacing, typography} from '../styles/theme';
+import {borderRadius, colors, spacing, typography} from '../styles/theme';
 import {tmdbApi} from '../services/api';
 import {Movie} from '../types/movie';
+import {CollectionsManager} from '../store/collections';
 import {HomeStackParamList} from '../types/navigation';
+import {useResponsive} from '../hooks/useResponsive';
 
 type CollectionScreenNavigationProp = NativeStackNavigationProp<
   HomeStackParamList,
@@ -40,10 +42,47 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
 
   const [collection, setCollection] = useState<CollectionDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isCollected, setIsCollected] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const {isTablet} = useResponsive();
 
   useEffect(() => {
     fetchCollectionDetails();
+    checkIfCollected();
   }, [collectionId]);
+
+  const checkIfCollected = async () => {
+    const collected = await CollectionsManager.isCollected(
+      collectionId.toString(),
+    );
+    setIsCollected(collected);
+  };
+
+  const handleToggleCollection = async () => {
+    if (!collection) return;
+
+    try {
+      setSaving(true);
+      if (isCollected) {
+        await CollectionsManager.deleteCollection(collectionId.toString());
+        setIsCollected(false);
+      } else {
+        await CollectionsManager.saveCollection({
+          id: collection.id,
+          name: collection.name,
+          overview: collection.overview,
+          poster_path: collection.poster_path,
+          backdrop_path: collection.backdrop_path,
+          parts: collection.parts,
+        });
+        setIsCollected(true);
+      }
+    } catch (error) {
+      console.error('Error toggling collection:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchCollectionDetails = async () => {
     try {
@@ -123,6 +162,206 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
     return Array.from(genreMap.values()).slice(0, 3); // Take top 3 for cleaner UI
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#050505', // Deep black background
+    },
+    loadingContainer: {
+      flex: 1,
+      backgroundColor: '#050505',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorText: {
+      ...typography.body1,
+      color: colors.text.muted,
+    },
+    headerContainer: {
+      paddingBottom: spacing.xxl,
+    },
+    banner: {
+      width: '100%',
+      justifyContent: 'flex-end',
+      marginBottom: spacing.lg,
+    },
+    bannerContent: {
+      alignItems: 'center',
+      paddingHorizontal: spacing.xl,
+      zIndex: 1,
+    },
+    title: {
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+      fontSize: isTablet ? 32 : 20,
+      fontWeight: '800',
+      color: colors.text.primary,
+      marginBottom: spacing.sm,
+      textAlign: 'center',
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: {width: 0, height: 2},
+      textShadowRadius: 4,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.lg,
+      flexWrap: 'wrap',
+    },
+    metaText: {
+      fontSize: isTablet ? 14 : 12,
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontWeight: '500',
+    },
+    metaSeparator: {
+      marginHorizontal: spacing.sm,
+      color: 'rgba(255, 255, 255, 0.4)',
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: 12,
+      padding: spacing.sm,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    statItem: {
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    statLabel: {
+      fontSize: 10,
+      color: 'rgba(255, 255, 255, 0.5)',
+      marginBottom: 4,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    statValueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    statValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    statDivider: {
+      width: 1,
+      height: 30,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    addButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.modal.blur,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: 30,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.content,
+      gap: spacing.xs,
+    },
+    addButtonText: {
+      ...typography.button,
+      color: '#FFFFFF',
+      marginLeft: spacing.xs,
+      fontSize: isTablet ? 14 : 12,
+    },
+    addedButton: {
+      backgroundColor: 'rgba(52, 199, 89, 0.2)', // Standard green accent with low opacity
+      borderColor: 'rgba(52, 199, 89, 0.5)',
+    },
+    overview: {
+      ...typography.body2,
+      color: colors.text.muted,
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
+      fontSize: isTablet ? 14 : 12,
+      lineHeight: isTablet ? 24 : 16,
+    },
+    contentContainer: {
+      paddingBottom: 100,
+    },
+    rankRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingLeft: 40,
+    },
+    rankContainer: {
+      width: 60,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: spacing.xs,
+      position: 'absolute',
+    },
+    rankNumber: {
+      fontSize: 80,
+      fontWeight: '900',
+      color: colors.text.primary,
+    },
+    movieCard: {
+      flex: 1,
+      height: 180,
+      flexDirection: 'row',
+      backgroundColor: colors.modal.blur,
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.content,
+    },
+    cardPoster: {
+      width: 110,
+      height: 160,
+      borderRadius: borderRadius.lg,
+    },
+    cardContent: {
+      flex: 1,
+      padding: spacing.md,
+      paddingLeft: spacing.xs,
+      justifyContent: 'flex-end',
+    },
+    cardMeta: {
+      fontSize: 11,
+      color: colors.text.secondary,
+      marginBottom: 2,
+      letterSpacing: 0.5,
+    },
+    cardTitle: {
+      fontSize: isTablet ? 18 : 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: spacing.xs,
+    },
+    cardOverview: {
+      fontSize: 12,
+      color: colors.text.muted,
+      lineHeight: 16,
+      marginBottom: spacing.sm,
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    ratingText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    voteCount: {
+      color: colors.text.secondary,
+      fontWeight: '400',
+      fontSize: 12,
+    },
+  });
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -150,6 +389,7 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
     <View style={styles.container}>
       <FlatList
         data={sortedMovies}
+        showsVerticalScrollIndicator={false}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.contentContainer}
         ListHeaderComponent={
@@ -167,35 +407,100 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
                 resizeMode="cover"
               />
               <LinearGradient
-                colors={[
-                  'rgba(0,0,0,0.1)',
-                  'rgba(0,0,0,0.3)',
-                  colors.background.expected || '#000000',
-                ]}
+                colors={['transparent', colors.background.primary]}
                 style={StyleSheet.absoluteFill}
-                locations={[0, 0.6, 1]}
               />
 
               <View style={styles.bannerContent}>
                 <Text style={styles.title}>{collection.name}</Text>
 
                 {genres.length > 0 && (
-                  <View style={styles.metaRow}>
+                  <View style={[styles.metaRow, {marginBottom: spacing.xs}]}>
                     {genres.map((genre, index) => (
                       <React.Fragment key={index}>
                         <Text style={styles.metaText}>{genre}</Text>
                         {index < genres.length - 1 && (
-                          <Text style={styles.metaSeparator}>•</Text>
+                          <Text style={styles.metaSeparator}>|</Text>
                         )}
                       </React.Fragment>
                     ))}
                   </View>
                 )}
 
-                <TouchableOpacity style={styles.addButton} activeOpacity={0.8}>
-                  <Icon name="add" size={20} color={colors.text.primary} />
+                <View style={styles.metaRow}>
+                  <Icon
+                    name="star"
+                    size={14}
+                    color={colors.text.primary}
+                    style={{marginRight: 4}}
+                  />
+                  <Text
+                    style={[
+                      styles.metaText,
+                      {color: colors.text.primary, fontWeight: '700'},
+                    ]}>
+                    {(
+                      collection.parts.reduce(
+                        (acc, part) => acc + part.vote_average,
+                        0,
+                      ) / collection.parts.length
+                    ).toFixed(1)}
+                  </Text>
+                  <Text
+                    style={[styles.metaText, {marginLeft: 4, opacity: 0.7}]}>
+                    (
+                    {formatVoteCount(
+                      collection.parts.reduce(
+                        (acc, part) => acc + part.vote_count,
+                        0,
+                      ),
+                    )}
+                    )
+                  </Text>
+
+                  <Text style={styles.metaSeparator}>•</Text>
+
+                  <Text style={styles.metaText}>
+                    {collection.parts.length} Movies
+                  </Text>
+
+                  <Text style={styles.metaSeparator}>•</Text>
+
+                  <Text style={styles.metaText}>
+                    {new Date(
+                      [...collection.parts].sort(
+                        (a, b) =>
+                          new Date(a.release_date).getTime() -
+                          new Date(b.release_date).getTime(),
+                      )[0].release_date,
+                    ).getFullYear()}{' '}
+                    -{' '}
+                    {new Date(
+                      [...collection.parts].sort(
+                        (a, b) =>
+                          new Date(b.release_date).getTime() -
+                          new Date(a.release_date).getTime(),
+                      )[0].release_date,
+                    ).getFullYear()}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.addButton]}
+                  onPress={handleToggleCollection}
+                  disabled={saving}
+                  activeOpacity={0.8}>
+                  <Icon
+                    name={isCollected ? 'checkmark' : 'add'}
+                    size={20}
+                    color={colors.text.primary}
+                  />
                   <Text style={styles.addButtonText}>
-                    Add to My Collections
+                    {saving
+                      ? 'Updating...'
+                      : isCollected
+                      ? 'Saved to My Collections'
+                      : 'Add to My Collections'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -247,44 +552,67 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
               <TouchableOpacity
                 style={styles.movieCard}
                 onPress={() => handleMoviePress(item)}
-                activeOpacity={0.9}>
+                activeOpacity={1}>
                 <Image
-                  source={{uri: getImageUrl(item.poster_path, 'w500')}}
-                  style={styles.cardPoster}
+                  source={{uri: getImageUrl(item.backdrop_path, 'w500')}}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
                 />
                 <LinearGradient
-                  colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
+                  colors={['transparent', colors.background.primary]}
                   style={StyleSheet.absoluteFill}
                 />
+                <LinearGradient
+                  useAngle
+                  angle={90}
+                  colors={[colors.background.primary, 'transparent']}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View
+                  style={{
+                    borderRadius: borderRadius.lg,
+                    borderWidth: 1,
+                    borderBottomWidth: 0,
+                    borderColor: colors.modal.content,
+                    margin: spacing.sm,
+                  }}>
+                  <Image
+                    source={{uri: getImageUrl(item.poster_path, 'w500')}}
+                    style={styles.cardPoster}
+                  />
+                </View>
 
                 <View style={styles.cardContent}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardMeta}>
-                      {getLanguageName(item.original_language)} •{' '}
-                      {new Date(item.release_date).getFullYear()}
-                    </Text>
-                    <Text style={styles.cardMeta}>
-                      {movieGenres?.join(' | ')}
-                    </Text>
-                  </View>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
 
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.cardTitle} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.cardOverview} numberOfLines={2}>
-                      {item.overview}
-                    </Text>
+                  <Text style={styles.cardMeta}>
+                    {getLanguageName(item.original_language)} •{' '}
+                    {new Date(item.release_date).getFullYear()}
+                  </Text>
+                  <Text style={styles.cardMeta}>
+                    {movieGenres?.join(' | ')}
+                  </Text>
+                  <Text style={styles.cardOverview} numberOfLines={2}>
+                    {item.overview}
+                  </Text>
 
-                    <View style={styles.ratingRow}>
-                      <Icon name="star" size={16} color="#FFD700" />
-                      <Text style={styles.ratingText}>
-                        {item.vote_average.toFixed(1)}{' '}
-                        <Text style={styles.voteCount}>
-                          ({formatVoteCount(item.vote_count)})
-                        </Text>
+                  <View style={styles.ratingRow}>
+                    <Icon name="star" size={15} color={colors.text.primary} />
+                    <Text style={styles.ratingText}>
+                      {item.vote_average.toFixed(1)}{' '}
+                      <Text style={styles.voteCount}>
+                        ({formatVoteCount(item.vote_count)})
                       </Text>
-                    </View>
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -296,167 +624,3 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#050505', // Deep black background
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#050505',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    ...typography.body1,
-    color: colors.text.muted,
-  },
-  headerContainer: {
-    paddingBottom: spacing.xxl,
-  },
-  banner: {
-    width: '100%',
-    justifyContent: 'flex-end',
-    marginBottom: spacing.lg,
-  },
-  bannerContent: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-    zIndex: 1,
-  },
-  title: {
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: {width: 0, height: 2},
-    textShadowRadius: 4,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-    flexWrap: 'wrap',
-  },
-  metaText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  metaSeparator: {
-    marginHorizontal: spacing.sm,
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 12,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  addButtonText: {
-    ...typography.button,
-    color: '#FFFFFF',
-    marginLeft: spacing.xs,
-    fontSize: 14,
-  },
-  overview: {
-    ...typography.body2,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xl,
-    lineHeight: 24,
-  },
-  contentContainer: {
-    paddingBottom: 100,
-  },
-  rankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: spacing.lg,
-    // We remove paddingLeft to let the number hug the edge or be positioned uniquely
-  },
-  rankContainer: {
-    width: 60, // Fixed width for the ranking number
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: spacing.xs,
-  },
-  rankNumber: {
-    fontSize: 80,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    fontStyle: 'italic', // Gives it that dynamic speed look
-    // Emulating the "cut off" number look if desired, or just big bold text
-  },
-  movieCard: {
-    flex: 1,
-    height: 180,
-    flexDirection: 'row',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  cardPoster: {
-    width: 120,
-    height: '100%',
-  },
-  cardContent: {
-    flex: 1,
-    padding: spacing.md,
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(20, 20, 20, 0.6)', // Slight overlay on right side
-  },
-  cardHeader: {
-    marginBottom: spacing.xs,
-  },
-  cardMeta: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-    letterSpacing: 0.5,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: spacing.xs,
-  },
-  cardOverview: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    lineHeight: 16,
-    marginBottom: spacing.sm,
-  },
-  cardFooter: {
-    justifyContent: 'flex-end',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  ratingText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  voteCount: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '400',
-    fontSize: 12,
-  },
-});

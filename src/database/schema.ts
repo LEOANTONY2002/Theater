@@ -690,6 +690,30 @@ export class AIPersonalizationCache extends Realm.Object<AIPersonalizationCache>
   };
 }
 
+export class SavedCollection extends Realm.Object<SavedCollection> {
+  _id!: string; // TMDB Collection ID
+  name!: string;
+  overview?: string;
+  poster_path?: string;
+  backdrop_path?: string;
+  parts!: string; // JSON String of Movie[]
+  createdAt!: Date;
+
+  static schema: Realm.ObjectSchema = {
+    name: 'SavedCollection',
+    primaryKey: '_id',
+    properties: {
+      _id: 'string',
+      name: 'string',
+      overview: 'string?',
+      poster_path: 'string?',
+      backdrop_path: 'string?',
+      parts: 'string',
+      createdAt: 'date',
+    },
+  };
+}
+
 // ============================================================================
 // SCHEMA EXPORT
 // ============================================================================
@@ -714,4 +738,5 @@ export const schemas = [
   UserFeedback,
   UserPreferences,
   AIPersonalizationCache,
+  SavedCollection,
 ];

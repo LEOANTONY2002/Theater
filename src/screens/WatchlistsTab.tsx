@@ -164,9 +164,8 @@ export const WatchlistsTabScreen: React.FC = () => {
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
-                alignItems: 'center',
+                alignItems: 'flex-end',
                 paddingHorizontal: spacing.md,
-                marginBottom: spacing.sm,
               }}>
               <Text style={{...typography.h3, color: colors.text.primary}}>
                 {watchlistName}
@@ -202,6 +201,7 @@ export const WatchlistsTabScreen: React.FC = () => {
             data={contentItems}
             onItemPress={handleItemPress}
             onSeeAllPress={() => handleViewAll(watchlistId, watchlistName)}
+            isSeeAll={false}
             isLoading={itemsLoading}
           />
         </View>
