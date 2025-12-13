@@ -8,8 +8,8 @@ import {ContentItem} from '../components/MovieList';
 import {isAdultContent} from '../utils/adultContentFilter';
 import {SettingsManager} from '../store/settings';
 
-const MIN_ITEMS_THRESHOLD = 60; // Increased from 20 to show more results initially
-const MAX_PAGES_PER_BATCH = 10; // Increased from 5 to handle filters better
+const MIN_ITEMS_THRESHOLD = 20;
+const MAX_PAGES_PER_BATCH = 5;
 
 interface BatchedResponse {
   results: ContentItem[];

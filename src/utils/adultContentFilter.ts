@@ -226,11 +226,6 @@ export const isAdultContent = (
     return true;
   }
 
-  // 5. Check for suspicious patterns
-  if (hasSuspiciousPatterns(item)) {
-    return true;
-  }
-
   return false;
 };
 
@@ -314,10 +309,6 @@ export const debugContentFilter = (
     isProblematicLanguage(item.original_language, userRegion)
   ) {
     reasons.push(`Problematic language: ${item.original_language}`);
-  }
-
-  if (hasSuspiciousPatterns(item)) {
-    reasons.push('Suspicious patterns detected');
   }
 
   if (reasons.length > 0) {

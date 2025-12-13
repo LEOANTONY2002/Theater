@@ -6,20 +6,19 @@ import {RootStackParamList} from '../types/navigation';
 import {queryClient} from '../services/queryClient';
 import {colors} from '../styles/theme';
 
+import {navigationRef} from '../services/NavigationService';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
   useEffect(() => {
     // Monitor navigation state changes
-    const unsubscribe = (global as any).__navigationRef?.addListener?.(
-      'state',
-      (e: any) => {
-        // If we have too many routes in the stack, clear cache to prevent glitches
-        if (e.data.state?.routes?.length > 10) {
-          queryClient.clear();
-        }
-      },
-    );
+    const unsubscribe = navigationRef.addListener?.('state', (e: any) => {
+      // If we have too many routes in the stack, clear cache to prevent glitches
+      if (e.data.state?.routes?.length > 10) {
+        queryClient.clear();
+      }
+    });
 
     return unsubscribe;
   }, []);
@@ -34,18 +33,13 @@ export const AppNavigator = () => {
           card: colors.background.primary,
         },
       }}
-      ref={ref => {
-        (global as any).__navigationRef = ref;
-      }}>
+      ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           contentStyle: {backgroundColor: colors.background.primary},
           headerShown: false,
         }}>
-        <Stack.Screen
-          name="Main"
-          component={BottomTabNavigator}
-        />
+        <Stack.Screen name="Main" component={BottomTabNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

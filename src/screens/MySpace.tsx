@@ -48,6 +48,7 @@ import {getCinemaDNA, CinemaDNA, getTypeEmoji} from '../utils/cinemaDNA';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import {CollectionsManager} from '../store/collections';
 import {MyCollectionsList} from './MyCollectionsList';
+import {notificationService} from '../services/NotificationService';
 
 type MySpaceScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
@@ -80,6 +81,7 @@ export const MySpaceScreen = React.memo(() => {
   const [showOTTsModal, setShowOTTsModal] = useState(false);
   const [localOTTs, setLocalOTTs] = useState<any[]>([]);
   const [cinemaDNA, setCinemaDNA] = useState<CinemaDNA | null>(null);
+  const [hasUnread, setHasUnread] = useState(false);
   const {width, height} = useWindowDimensions();
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
@@ -195,13 +197,22 @@ export const MySpaceScreen = React.memo(() => {
 
   // Add focus effect to refresh filters
   useEffect(() => {
+    const checkUnread = async () => {
+      const unread = await notificationService.hasUnreadNotifications();
+      setHasUnread(unread);
+    };
+
     const unsubscribe = navigation.addListener('focus', () => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
       queryClient.invalidateQueries({queryKey: ['watchlists']});
       queryClient.invalidateQueries({queryKey: ['savedCollections']});
       loadMoodAnswers(); // Refresh mood answers when screen comes into focus
       loadCinemaDNA(); // Refresh cinema DNA when screen comes into focus
+      checkUnread(); // Check for unread notifications
     });
+
+    // Check on mount
+    checkUnread();
 
     return unsubscribe;
   }, [navigation, queryClient]);
@@ -826,6 +837,37 @@ export const MySpaceScreen = React.memo(() => {
             }}>
             My Space
           </Text>
+          <TouchableOpacity
+            onPress={() => navigateWithLimit('NotificationSettings')}
+            style={{
+              padding: isTablet ? 14 : 12,
+              borderRadius: borderRadius.round,
+              backgroundColor: colors.modal.blur,
+              borderWidth: 1,
+              borderBottomWidth: 0,
+              borderColor: colors.modal.content,
+              position: 'relative',
+            }}
+            activeOpacity={0.7}>
+            <Ionicons
+              name="notifications-outline"
+              size={isTablet ? 20 : 15}
+              color={colors.text.primary}
+            />
+            {hasUnread && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: isTablet ? 10 : 6,
+                  right: isTablet ? 10 : 6,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#FF3B30',
+                }}
+              />
+            )}
+          </TouchableOpacity>
         </View>
         {/* Two-column layout */}
         <View

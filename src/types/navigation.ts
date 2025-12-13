@@ -242,6 +242,7 @@ export type MySpaceStackParamList = {
   AISettingsScreen: undefined;
   AboutLegalScreen: undefined;
   CinemaInsightsScreen: undefined;
+  NotificationSettings: undefined;
   CinemaScreen: {
     id: string;
     type: 'movie' | 'tv';

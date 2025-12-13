@@ -122,7 +122,20 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 }) => {
   const navigation = useNavigation<TVShowDetailsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
-  const {show} = route.params;
+  const params = route.params as any;
+  const show = params.show || {
+    id: params.tvShowId || params.id,
+    name: params.name || params.title || '',
+    overview: '',
+    poster_path: null,
+    backdrop_path: null,
+    vote_average: 0,
+    first_air_date: '',
+    genre_ids: [],
+    origin_country: [],
+    popularity: 0,
+    original_language: '',
+  };
   const {isAIEnabled} = useAIEnabled();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
@@ -1482,7 +1495,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                     },
                   ]}>
                   <View>
-                    <Text style={styles.title}>{show.name}</Text>
+                    <Text style={styles.title}>
+                      {showDetails?.name || show.name}
+                    </Text>
                     {showDetails?.tagline && (
                       <Text style={styles.tagline}>
                         "{showDetails.tagline}"

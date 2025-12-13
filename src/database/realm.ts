@@ -1,7 +1,7 @@
 import Realm from 'realm';
 import {schemas} from './schema';
 
-export const SCHEMA_VERSION = 18; // Force clear all movie cache to fix undefined fields bug
+export const SCHEMA_VERSION = 20; // Incremented for notification enhancements
 
 let realmInstance: Realm | null = null;
 

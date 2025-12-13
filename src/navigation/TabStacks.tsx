@@ -28,6 +28,7 @@ import {EmotionalToneResultsScreen} from '../screens/EmotionalToneResults';
 import {OTTDetailsScreen} from '../screens/OTTDetails';
 import {CinemaScreen} from '../screens/CinemaScreen';
 import {CinemaInsightsScreen} from '../screens/CinemaInsightsScreen';
+import {NotificationSettings} from '../screens/NotificationSettings';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -314,6 +315,11 @@ export const MySpaceStackNavigator = () => (
         presentation: 'fullScreenModal',
         contentStyle: {backgroundColor: '#000000'},
       }}
+    />
+    <MySpaceStack.Screen
+      name="NotificationSettings"
+      component={NotificationSettings}
+      options={slideFromRightOptions}
     />
     <MySpaceStack.Screen
       name="CinemaInsightsScreen"

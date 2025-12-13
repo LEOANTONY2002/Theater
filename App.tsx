@@ -28,8 +28,10 @@ import {offlineCache} from './src/services/offlineCache';
 import {checkTMDB} from './src/services/tmdb';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors} from './src/styles/theme';
+import {notificationService} from './src/services/NotificationService';
 import {BlurPreference} from './src/store/blurPreference';
 import {initializeRealm} from './src/database/realm';
+import {detectRegion} from './src/services/regionDetection';
 
 export default function App() {
   const [themeReady, setThemeReady] = useState(false);
@@ -40,6 +42,27 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [showDNSModal, setShowDNSModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
+
+  // Initialize Notifications
+  useEffect(() => {
+    notificationService.requestUserPermission();
+    notificationService.onAppBootstrap();
+    const unsubscribe = notificationService.listen();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // Subscribe to Region Topic
+  useEffect(() => {
+    if (dbReady) {
+      detectRegion().then(region => {
+        if (region) {
+          notificationService.subscribeToTopic(region);
+        }
+      });
+    }
+  }, [dbReady]);
 
   // Initialize Realm database first
   useEffect(() => {

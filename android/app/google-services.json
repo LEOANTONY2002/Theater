@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "887670089717",
+    "project_id": "la-curations",
+    "storage_bucket": "la-curations.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:887670089717:android:cc226fe77f6068cb47e2bc",
+        "android_client_info": {
+          "package_name": "com.theater"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAStukV9jeLMUHt2zrYXd_G0GpYRBJL6JU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

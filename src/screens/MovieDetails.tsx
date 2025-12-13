@@ -132,7 +132,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   route,
 }) => {
   const navigation = useNavigation<MovieDetailsScreenNavigationProp>();
-  const {movie} = route.params;
+  const params = route.params as any;
+  const movie = params.movie || {
+    id: params.movieId || params.id,
+    title: params.title || 'Loading...',
+    overview: '',
+    poster_path: null,
+    backdrop_path: null,
+  };
   const {isAIEnabled} = useAIEnabled();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(true);
@@ -323,6 +330,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     isLoading: isLoadingDetails,
     error: movieDetailsError,
   } = useMovieDetails(movie.id);
+
+  // Use movieDetails title if available, otherwise fallback to movie.title
+  const displayTitle = movieDetails?.title || movie.title;
+  const displayOverview = movieDetails?.overview || movie.overview;
+  const displayBackdrop = movieDetails?.backdrop_path || movie.backdrop_path;
+  const displayPoster = movieDetails?.poster_path || movie.poster_path;
 
   // Record to history when user starts watching
   const addToHistory = useCallback(() => {
@@ -1502,7 +1515,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     },
                   ]}>
                   <View>
-                    <Text style={styles.title}>{movie.title}</Text>
+                    <Text style={styles.title}>{displayTitle}</Text>
                     {movieDetails?.tagline && (
                       <Text style={styles.tagline}>
                         "{movieDetails.tagline}"
@@ -1563,7 +1576,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           navigation.navigate('CinemaScreen', {
                             id: movie.id.toString(),
                             type: 'movie',
-                            title: movie.title,
+                            title: displayTitle,
                           });
                         }}
                         style={styles.watchButton}
@@ -1587,7 +1600,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     <WatchProvidersButton
                       providers={watchProviders}
                       contentId={movie.id}
-                      title={movie.title}
+                      title={displayTitle}
                       type="movie"
                     />
                     <TouchableOpacity
@@ -1846,7 +1859,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               return (
                 <View style={{paddingHorizontal: spacing.md}}>
                   <MovieTrivia
-                    title={movie.title}
+                    title={displayTitle}
                     year={new Date(movie.release_date).getFullYear().toString()}
                     type="movie"
                     contentId={movie.id}
@@ -1858,7 +1871,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 <WatchProviders
                   providers={watchProviders}
                   contentId={movie.id.toString()}
-                  title={movie.title}
+                  title={displayTitle}
                   type="movie"
                 />
               ) : null;
@@ -1969,15 +1982,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         visible={showIMDBModal}
         onClose={() => setShowIMDBModal(false)}
         imdbId={movieDetails?.imdb_id}
-        searchQuery={movie.title}
-        title={movie.title}
+        searchQuery={displayTitle}
+        title={displayTitle}
       />
 
       <IMDBModal
         visible={showRottenTomatoesModal}
         onClose={() => setShowRottenTomatoesModal(false)}
-        searchQuery={movie.title}
-        title={movie.title}
+        searchQuery={displayTitle}
+        title={displayTitle}
         type="rotten_tomatoes"
       />
     </View>

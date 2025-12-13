@@ -41,7 +41,7 @@ export const EmotionalTones: React.FC<EmotionalTonesProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicon
-          name="heart"
+          name="sparkles"
           size={20}
           color={colors.text.primary}
           style={styles.icon}

@@ -456,6 +456,7 @@ export const BottomTabNavigator = () => {
               routeName === 'AISettingsScreen' ||
               routeName === 'WatchlistsScreen' ||
               routeName === 'MyFiltersScreen' ||
+              routeName === 'NotificationSettings' ||
               routeName === 'CinemaScreen';
 
             return {
