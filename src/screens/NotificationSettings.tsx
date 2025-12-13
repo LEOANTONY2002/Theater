@@ -308,7 +308,11 @@ export const NotificationSettings: React.FC = () => {
           )
         ) : (
           <View style={styles.emptyState}>
-            <Icon name="bell-outline" size={64} color={colors.text.tertiary} />
+            <Icon
+              name="notifications-off-outline"
+              size={64}
+              color={colors.text.tertiary}
+            />
             <Text style={styles.emptyTitle}>No notifications yet</Text>
             <Text style={styles.emptySubtitle}>
               You'll see your notifications here when you receive them

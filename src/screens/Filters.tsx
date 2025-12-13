@@ -319,7 +319,7 @@ export const FiltersScreen = React.memo(() => {
   const renderEmpty = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>My Filters</Text>
+        <Text style={styles.emptyTitle}>Save your search filters</Text>
         <Text style={styles.emptyText}>
           Customize this screen with your own filters.
         </Text>

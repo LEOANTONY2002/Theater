@@ -195,9 +195,37 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.subtitle}>
-            Create a custom filter using natural language
-          </Text>
+          <View style={styles.inputContainer}>
+            <Icon
+              name="pricetag-outline"
+              size={20}
+              color={colors.text.tertiary}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={styles.nameInput}
+              placeholder="Filter name"
+              placeholderTextColor={colors.text.tertiary}
+              value={filterName}
+              onChangeText={setFilterName}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Icon
+              name="search-outline"
+              size={20}
+              color={colors.text.tertiary}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Search query (e.g., sci-fi movies from 2010s)"
+              placeholderTextColor={colors.text.tertiary}
+              value={query}
+              onChangeText={setQuery}
+            />
+          </View>
 
           <View style={styles.examplesContainer}>
             <Text style={styles.examplesTitle}>
@@ -225,71 +253,28 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
               <>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() =>
-                    setQuery('90s romantic comedies with happy endings')
-                  }>
-                  <Icon name="flash" size={14} color={colors.accent} />
+                  onPress={() => setQuery('highly rated Netflix series')}>
+                  <Icon name="sparkles" size={14} color={colors.accent} />
                   <Text style={styles.exampleChipText}>
-                    90s romantic comedies
+                    highly rated Netflix series
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() =>
-                    setQuery('highly rated sci-fi movies from 2020s')
-                  }>
-                  <Icon name="flash" size={14} color={colors.accent} />
-                  <Text style={styles.exampleChipText}>
-                    Highly rated sci-fi (2020s)
-                  </Text>
+                  onPress={() => setQuery('Popular kdramas')}>
+                  <Icon name="sparkles" size={14} color={colors.accent} />
+                  <Text style={styles.exampleChipText}>Popular kdramas</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.exampleChip}
-                  onPress={() =>
-                    setQuery('thriller TV shows under 45 minutes')
-                  }>
-                  <Icon name="flash" size={14} color={colors.accent} />
+                  onPress={() => setQuery('Popular animated movies')}>
+                  <Icon name="sparkles" size={14} color={colors.accent} />
                   <Text style={styles.exampleChipText}>
-                    Short thriller shows
+                    Popular animated movies
                   </Text>
                 </TouchableOpacity>
               </>
             )}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Icon
-              name="pricetag-outline"
-              size={20}
-              color={colors.text.tertiary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.nameInput}
-              placeholder="Filter name (e.g., My 90s Romcoms)"
-              placeholderTextColor={colors.text.tertiary}
-              value={filterName}
-              onChangeText={setFilterName}
-              maxLength={50}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Icon
-              name="search-outline"
-              size={20}
-              color={colors.text.tertiary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., dark comedy movies from 2010s"
-              placeholderTextColor={colors.text.tertiary}
-              value={query}
-              onChangeText={setQuery}
-              multiline
-              maxLength={200}
-            />
           </View>
 
           {error && (
@@ -299,31 +284,29 @@ export const AIFilterCreator: React.FC<AIFilterCreatorProps> = ({
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.parseButton}
-            onPress={handleCreate}
-            disabled={loading || !query.trim() || !filterName.trim()}>
-            <LinearGradient
-              colors={
-                loading || !query.trim() || !filterName.trim()
-                  ? ['#555', '#444']
-                  : [colors.primary, colors.secondary]
-              }
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 0}}
-              style={styles.parseButtonGradient}>
-              {loading ? (
-                <ActivityIndicator color={colors.text.primary} />
-              ) : (
-                <>
-                  <Icon name="sparkles" size={20} color={colors.text.primary} />
-                  <Text style={styles.parseButtonText}>
-                    {editingFilter ? 'Update Filter' : 'Create Filter'}
-                  </Text>
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+          {loading ? (
+            <ActivityIndicator color={colors.text.primary} />
+          ) : (
+            <TouchableOpacity
+              style={styles.parseButton}
+              onPress={handleCreate}
+              disabled={loading || !query.trim() || !filterName.trim()}>
+              <LinearGradient
+                colors={
+                  loading || !query.trim() || !filterName.trim()
+                    ? ['#555', '#444']
+                    : [colors.primary, colors.secondary]
+                }
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={styles.parseButtonGradient}>
+                <Text style={styles.parseButtonText}>
+                  {editingFilter ? 'Update Filter' : 'Create Filter'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+          <View style={{height: spacing.md}} />
         </MaybeBlurView>
       </View>
     </Modal>
@@ -338,6 +321,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.md,
+    minWidth: 300,
   },
   title: {
     flex: 1,
@@ -354,12 +338,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   examplesContainer: {
-    backgroundColor: colors.modal.content,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.modal.border,
   },
   examplesTitle: {
     ...typography.caption,
@@ -375,12 +356,13 @@ const styles = StyleSheet.create({
   exampleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.modal.content,
+    backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     marginBottom: spacing.sm,
     borderWidth: 1,
+    borderBottomWidth: 0,
     borderColor: colors.modal.border,
     gap: spacing.xs,
   },
@@ -391,29 +373,28 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.modal.content,
-    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    backgroundColor: colors.modal.blur,
+    borderRadius: borderRadius.round,
     borderWidth: 1,
+    borderBottomWidth: 0,
     borderColor: colors.modal.border,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: spacing.sm,
+    paddingLeft: spacing.md,
+    marginBottom: spacing.sm,
   },
   inputIcon: {
-    marginTop: 2,
     marginRight: spacing.sm,
   },
   nameInput: {
     flex: 1,
     color: colors.text.primary,
     ...typography.body1,
-    height: 40,
   },
   input: {
     flex: 1,
     color: colors.text.primary,
     ...typography.body1,
-    minHeight: 60,
     textAlignVertical: 'top',
   },
   errorContainer: {
@@ -428,11 +409,12 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.status.error,
     marginLeft: spacing.xs,
-    flex: 1,
+    maxWidth: 280,
   },
   parseButton: {
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.round,
     overflow: 'hidden',
+    alignSelf: 'center',
   },
   parseButtonGradient: {
     flexDirection: 'row',
@@ -445,5 +427,6 @@ const styles = StyleSheet.create({
     ...typography.body1,
     color: colors.text.primary,
     fontWeight: '600',
+    paddingHorizontal: spacing.md,
   },
 });
