@@ -5,6 +5,9 @@
         <!-- Customize your theme here. -->
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
         <item name="android:windowBackground">@color/app_bg</item>
+        <item name="colorPrimary">@color/app_bg</item>
+        <item name="colorPrimaryDark">@color/app_bg</item>
+        <item name="colorAccent">@color/app_bg</item>
     </style>
 
     <!-- Splash screen theme -->

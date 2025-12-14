@@ -6,14 +6,30 @@ import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.facebook.react.defaults.DefaultReactActivityDelegate;
 import org.devio.rn.splashscreen.SplashScreen;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.os.Build;
 
 public class MainActivity extends ReactActivity {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    // SplashScreen.show(this, true); // <-- Show splash screen
-    // setTheme(R.style.AppTheme);    // Optional: sets back the app theme
     super.onCreate(savedInstanceState);
+
+    // Create the Notification Channel
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        String channelId = "la_theater";
+        CharSequence name = "Main Notifications";
+        int importance = NotificationManager.IMPORTANCE_HIGH;
+        
+        NotificationChannel channel = new NotificationChannel(channelId, name, importance);
+        
+        // Register the channel with the system
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        if (notificationManager != null) {
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
   }
 
 

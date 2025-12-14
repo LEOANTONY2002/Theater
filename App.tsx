@@ -165,7 +165,12 @@ export default function App() {
         setHasCache(hasCacheData);
 
         // If already onboarded, then check connectivity
-        const ok = await checkInternet();
+        let ok = await checkInternet();
+        // Retry logic for cold starts (e.g. notification launch)
+        if (!ok) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          ok = await checkInternet();
+        }
         setIsOnline(ok);
         if (!ok && !hasCacheData) {
           setIsLoading(false);

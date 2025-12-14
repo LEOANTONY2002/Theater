@@ -39,8 +39,8 @@ class NotificationService {
   async createNotificationChannel() {
     if (Platform.OS === 'android') {
       await notifee.createChannel({
-        id: 'default',
-        name: 'Default Channel',
+        id: 'la_theater_v13',
+        name: 'Main Notifications',
         importance: AndroidImportance.HIGH,
       });
     }
@@ -48,22 +48,6 @@ class NotificationService {
 
   /**
    * Display notification with Notifee (supports images)
-   *
-   * IMPORTANT: To prevent duplicate notifications, your FCM backend should send
-   * DATA-ONLY messages (no "notification" field). Example payload:
-   *
-   * {
-   *   "data": {
-   *     "title": "New Movie Release",
-   *     "body": "Dune: Part Three is now available!",
-   *     "imageUrl": "https://image.tmdb.org/t/p/w500/poster.jpg",
-   *     "screen": "MovieDetails",
-   *     "movieId": "12345"
-   *   }
-   * }
-   *
-   * If you send a "notification" field, FCM will auto-display a basic notification
-   * in addition to this Notifee notification, causing duplicates.
    */
   async displayNotification(remoteMessage: any) {
     try {
@@ -90,11 +74,15 @@ class NotificationService {
         body,
         data: {
           ...remoteMessage.data,
-          messageId: remoteMessage.messageId, // Include messageId for marking as read
+          messageId: remoteMessage.messageId,
         },
         android: {
-          channelId: 'default',
+          channelId: 'la_theater',
           importance: AndroidImportance.HIGH,
+          smallIcon: 'ic_notification', // Explicitly use the transparent icon
+          color: '#FFFFFF',
+          colorized: true,
+          circularLargeIcon: true,
           largeIcon: imageUrl || undefined,
           style: imageUrl
             ? ({
@@ -415,6 +403,10 @@ class NotificationService {
         await messaging().registerDeviceForRemoteMessages();
       }
       await this.createNotificationChannel();
+
+      // Get and Log FCM Token
+      const token = await messaging().getToken();
+      console.log('🔥 FCM Token:', token);
 
       // Handle foreground Notifee events (when user taps notification while app is open)
       notifee.onForegroundEvent(({type, detail}) => {

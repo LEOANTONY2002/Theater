@@ -37,11 +37,16 @@
       </activity>
       
       <meta-data
+        android:name="com.google.firebase.messaging.default_notification_channel_id"
+        android:value="la_theater"
+        tools:replace="android:value" />
+      <meta-data
         android:name="com.google.firebase.messaging.default_notification_icon"
-        android:resource="@mipmap/ic_launcher" />
+        android:resource="@mipmap/ic_notification"
+        tools:replace="android:resource" />
       <meta-data
         android:name="com.google.firebase.messaging.default_notification_color"
-        android:resource="@color/app_bg"
+        android:resource="@color/notification_color"
         tools:replace="android:resource" />
 
     </application>

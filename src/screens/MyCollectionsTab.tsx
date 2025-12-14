@@ -158,7 +158,7 @@ export const MyCollectionsTab = () => {
     },
     imageContainer: {
       height:
-        isTablet && orientation === 'landscape' ? height * 0.2 : height * 0.3,
+        isTablet && orientation === 'landscape' ? height * 0.35 : height * 0.3,
       width: '100%',
       position: 'relative',
     },

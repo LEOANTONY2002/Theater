@@ -24,6 +24,7 @@ import {
   useWatchlistItems,
   useDeleteWatchlist,
   useAddToWatchlist,
+  useUpdateWatchlist,
 } from '../hooks/useWatchlists';
 import {HorizontalList} from '../components/HorizontalList';
 import {ContentItem} from '../components/MovieList';
@@ -40,327 +41,119 @@ import {useResponsive} from '../hooks/useResponsive';
 import {generateWatchlistCode, parseWatchlistCode} from '../utils/shareCode';
 import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
-import {MaybeBlurView} from '../components/MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
 
 type WatchlistsScreenNavigationProp =
   NativeStackNavigationProp<MySpaceStackParamList>;
 
-export const WatchlistsScreen: React.FC = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newWatchlistName, setNewWatchlistName] = useState('');
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importCode, setImportCode] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [pendingDeleteWatchlist, setPendingDeleteWatchlist] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+// 1. Move styles outside to prevent recreation
+const styles = StyleSheet.create({
+  container: {
+    height: '100%',
+    backgroundColor: colors.background.primary,
+    paddingTop: spacing.xxl,
+    paddingBottom: 200,
+    position: 'relative',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    overflow: 'hidden',
+    marginTop: 50,
+    borderRadius: borderRadius.round,
+    marginHorizontal: spacing.md,
+  },
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    color: colors.text.primary,
+    ...typography.h2,
+  },
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingTop: 100,
+    paddingBottom: 150,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 200,
+  },
+  emptyStateTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  emptyStateText: {
+    ...typography.body1,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    width: '80%',
+  },
+  loadingContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...typography.body1,
+    color: colors.text.secondary,
+  },
+  watchlistItem: {
+    backgroundColor: colors.background.tertiary,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    position: 'relative',
+    marginBottom: 10,
+    zIndex: 0,
+  },
+  watchlistHeader: {
+    flexDirection: 'column',
+    marginBottom: spacing.sm,
+  },
+  watchlistName: {
+    color: colors.text.primary,
+    ...typography.h3,
+  },
+  watchlistCount: {
+    color: colors.text.muted,
+    ...typography.body2,
+  },
+  listContainer: {
+    position: 'relative',
+    width: '120%',
+    overflow: 'scroll',
+    bottom: 10,
+    left: -30,
+    zIndex: 1,
+  },
+});
 
-  const {data: watchlists = [], isLoading} = useWatchlists();
-  const createWatchlistMutation = useCreateWatchlist();
-  const deleteWatchlistMutation = useDeleteWatchlist();
-  const addToWatchlistMutation = useAddToWatchlist();
-  const navigation = useNavigation<WatchlistsScreenNavigationProp>();
-  const {navigateWithLimit} = useNavigationState();
-  const {isTablet, orientation} = useResponsive();
-  const themeMode = BlurPreference.getMode();
-  const isSolid = themeMode === 'normal';
-
-  // Animated values for scroll
-  const scrollY = React.useRef(new Animated.Value(0)).current;
-  const headerAnim = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    const id = scrollY.addListener(({value}) => {
-      Animated.timing(headerAnim, {
-        toValue: value,
-        duration: 300,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false, // must be false for margin/background
-      }).start();
-    });
-    return () => scrollY.removeListener(id);
-  }, [scrollY, headerAnim]);
-
-  // Interpolated styles for the animated header
-  const animatedHeaderStyle = {
-    marginHorizontal: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [spacing.md, spacing.lg],
-      extrapolate: 'clamp',
-    }),
-    marginBottom: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [spacing.md, spacing.lg],
-      extrapolate: 'clamp',
-    }),
-    borderRadius: headerAnim.interpolate({
-      inputRange: [0, 40],
-      outputRange: [16, 24],
-      extrapolate: 'clamp',
-    }),
-  };
-  const blurOpacity = headerAnim.interpolate({
-    inputRange: [0, 40],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
-  const handleCreateWatchlist = async () => {
-    if (!newWatchlistName.trim()) {
-      Alert.alert('Error', 'Please enter a watchlist name');
-      return;
-    }
-
-    try {
-      await createWatchlistMutation.mutateAsync(newWatchlistName);
-      setNewWatchlistName('');
-      setShowCreateModal(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create watchlist');
-    }
-  };
-
-  const handleWatchlistPress = (watchlistId: string, watchlistName: string) => {
-    setPendingDeleteWatchlist({id: watchlistId, name: watchlistName});
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!pendingDeleteWatchlist) return;
-    try {
-      deleteWatchlistMutation.mutate(pendingDeleteWatchlist.id);
-      setShowDeleteConfirm(false);
-      setPendingDeleteWatchlist(null);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to delete watchlist');
-      setShowDeleteConfirm(false);
-      setPendingDeleteWatchlist(null);
-    }
-  };
-
-  const handleItemPress = useCallback(
-    (item: ContentItem) => {
-      if (item.type === 'movie') {
-        navigateWithLimit('MovieDetails', {movie: item as Movie});
-      } else {
-        navigateWithLimit('TVShowDetails', {show: item as TVShow});
-      }
-    },
-    [navigateWithLimit],
-  );
-
-  const handleCloseModal = () => {
-    setShowCreateModal(false);
-    setNewWatchlistName('');
-  };
-
-  const styles = StyleSheet.create({
-    container: {
-      height: '100%',
-      backgroundColor: colors.background.primary,
-      paddingTop: spacing.xxl,
-      paddingBottom: 200,
-      position: 'relative',
-    },
-    header: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 10,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: spacing.md,
-      overflow: 'hidden',
-      marginTop: 50,
-      borderRadius: borderRadius.round,
-      marginHorizontal: spacing.md,
-    },
-    title: {
-      flex: 1,
-      textAlign: 'center',
-      color: colors.text.primary,
-      ...typography.h2,
-    },
-    addButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      gap: spacing.sm,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.md,
-      height: 40,
-      width: 40,
-      zIndex: 1,
-    },
-    content: {
-      paddingHorizontal: spacing.md,
-      paddingTop: 100,
-      paddingBottom: 150,
-    },
-    emptyContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: isTablet && orientation === 'landscape' ? '20%' : '60%',
-      paddingBottom: 200,
-    },
-    emptyStateTitle: {
-      ...typography.h3,
-      color: colors.text.primary,
-      marginBottom: spacing.sm,
-    },
-    emptyStateText: {
-      ...typography.body1,
-      color: colors.text.secondary,
-      textAlign: 'center',
-      width: '80%',
-    },
-    loadingContainer: {
-      padding: spacing.xl,
-      alignItems: 'center',
-    },
-    loadingText: {
-      ...typography.body1,
-      color: colors.text.secondary,
-    },
-    watchlistItem: {
-      backgroundColor: colors.background.tertiary,
-      borderWidth: 1,
-      borderBottomWidth: 0,
-      borderColor: colors.modal.border,
-      borderRadius: borderRadius.lg,
-      padding: spacing.md,
-      position: 'relative',
-      height: isTablet ? 400 : 300,
-      marginBottom: 10,
-      zIndex: 0,
-    },
-    watchlistHeader: {
-      flexDirection: 'column',
-      marginBottom: spacing.sm,
-    },
-    watchlistName: {
-      color: colors.text.primary,
-      ...typography.h3,
-    },
-    watchlistCount: {
-      color: colors.text.muted,
-      ...typography.body2,
-    },
-    watchlistContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    card: {
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing.xs,
-      backgroundColor: colors.background.card,
-      borderWidth: 1,
-      borderColor: colors.modal.content,
-      borderRadius: borderRadius.md,
-      width: 80,
-      height: 80,
-      padding: spacing.xs,
-      zIndex: 1,
-    },
-    cardText: {
-      color: colors.text.secondary,
-      ...typography.body1,
-    },
-    listContainer: {
-      position: 'relative',
-      width: '120%',
-      overflow: 'scroll',
-      bottom: 10,
-      left: -30,
-      zIndex: 1,
-    },
-    modalContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-      width: '90%',
-      backgroundColor: colors.modal.active,
-      borderRadius: borderRadius.lg,
-      overflow: 'hidden',
-      position: 'relative',
-    },
-    importModalContent: {
-      width: '92%',
-      backgroundColor: colors.modal.active,
-      borderRadius: borderRadius.lg,
-      overflow: 'hidden',
-      paddingBottom: spacing.md,
-    },
-  });
-
-  const handleImportSubmit = useCallback(async () => {
-    if (!importCode.trim()) {
-      Alert.alert('Import', 'Please paste a valid code.');
-      return;
-    }
-    const parsed = parseWatchlistCode(importCode.trim());
-    if (!parsed || parsed.items.length === 0) {
-      Alert.alert('Import', 'Invalid or empty code.');
-      return;
-    }
-    try {
-      setIsImporting(true);
-      const newList = await createWatchlistMutation.mutateAsync(
-        `${parsed.name}`,
-      );
-      for (const it of parsed.items) {
-        try {
-          if (it.type === 'movie') {
-            const movie = await getMovieDetails(it.id);
-            await addToWatchlistMutation.mutateAsync({
-              watchlistId: newList.id,
-              item: movie,
-              itemType: 'movie',
-            });
-          } else {
-            const show = await getTVShowDetails(it.id);
-            await addToWatchlistMutation.mutateAsync({
-              watchlistId: newList.id,
-              item: show,
-              itemType: 'tv',
-            });
-          }
-        } catch (e) {}
-      }
-      setShowImportModal(false);
-      setImportCode('');
-      Alert.alert('Import Complete', 'Watchlist imported successfully.');
-    } catch (e) {
-      Alert.alert('Import Failed', 'Could not import this code.');
-    } finally {
-      setIsImporting(false);
-    }
-  }, [importCode, createWatchlistMutation]);
-
-  // Child component to render a watchlist and its results
-  const WatchlistItemWithResults = ({
+// 2. Extract WatchlistItemWithResults and Memoize it
+const WatchlistItemWithResults = React.memo(
+  ({
     watchlistId,
     watchlistName,
     itemCount,
     onWatchlistPress,
+    onEditPress,
     onItemPress,
   }: {
     watchlistId: string;
     watchlistName: string;
     itemCount: number;
     onWatchlistPress: (watchlistId: string, watchlistName: string) => void;
+    onEditPress: (id: string, name: string) => void;
     onItemPress: (item: ContentItem) => void;
   }) => {
     const {data: items = [], isLoading} = useWatchlistItems(watchlistId);
@@ -368,44 +161,48 @@ export const WatchlistsScreen: React.FC = () => {
     const [showStoryModal, setShowStoryModal] = React.useState(false);
     const [storyUri, setStoryUri] = React.useState<string | null>(null);
     const [storyLoading, setStoryLoading] = React.useState(false);
-    const [posterReady] = React.useState(false);
 
-    // Convert watchlist items to ContentItem format
-    const contentItems: ContentItem[] = items.map(item => {
-      if (item.type === 'movie') {
-        return {
-          id: item.id,
-          title: item.title || '',
-          originalTitle: item.originalTitle || '',
-          overview: item.overview,
-          poster_path: item.poster_path,
-          backdrop_path: item.backdrop_path,
-          vote_average: item.vote_average,
-          release_date: item.release_date || '',
-          genre_ids: item.genre_ids,
-          popularity: item.popularity,
-          original_language: item.original_language,
-          type: 'movie' as const,
-        };
-      } else {
-        return {
-          id: item.id,
-          name: item.name || '',
-          overview: item.overview,
-          poster_path: item.poster_path,
-          backdrop_path: item.backdrop_path,
-          vote_average: item.vote_average,
-          first_air_date: item.first_air_date || '',
-          genre_ids: item.genre_ids,
-          origin_country: item.origin_country || [],
-          popularity: item.popularity,
-          original_language: item.original_language,
-          type: 'tv' as const,
-        };
-      }
-    });
+    // Use hooks inside the component since it's now isolated
+    const {isTablet, orientation} = useResponsive();
 
-    // Generate import/share code for THIS watchlist (do NOT use the top-level importCode state)
+    const contentItems: ContentItem[] = React.useMemo(
+      () =>
+        items.map(item => {
+          if (item.type === 'movie') {
+            return {
+              id: item.id,
+              title: item.title || '',
+              originalTitle: item.originalTitle || '',
+              overview: item.overview,
+              poster_path: item.poster_path,
+              backdrop_path: item.backdrop_path,
+              vote_average: item.vote_average,
+              release_date: item.release_date || '',
+              genre_ids: item.genre_ids,
+              popularity: item.popularity,
+              original_language: item.original_language,
+              type: 'movie' as const,
+            };
+          } else {
+            return {
+              id: item.id,
+              name: item.name || '',
+              overview: item.overview,
+              poster_path: item.poster_path,
+              backdrop_path: item.backdrop_path,
+              vote_average: item.vote_average,
+              first_air_date: item.first_air_date || '',
+              genre_ids: item.genre_ids,
+              origin_country: item.origin_country || [],
+              popularity: item.popularity,
+              original_language: item.original_language,
+              type: 'tv' as const,
+            };
+          }
+        }),
+      [items],
+    );
+
     const shareCode = React.useMemo(
       () =>
         generateWatchlistCode(
@@ -415,7 +212,6 @@ export const WatchlistsScreen: React.FC = () => {
       [watchlistName, contentItems],
     );
 
-    // Calculate content type distribution
     const movieCount = contentItems.filter(
       item => item.type === 'movie',
     ).length;
@@ -454,7 +250,7 @@ export const WatchlistsScreen: React.FC = () => {
 
     return (
       <View style={{marginBottom: spacing.xl, position: 'relative'}}>
-        <View style={styles.watchlistItem}>
+        <View style={[styles.watchlistItem, {height: isTablet ? 400 : 300}]}>
           {isSharingStory && (
             <View
               style={{
@@ -493,7 +289,6 @@ export const WatchlistsScreen: React.FC = () => {
               position: 'absolute',
               bottom: -25,
               left: -50,
-              // paddingHorizontal: 10,
               zIndex: 0,
               transform: [
                 {
@@ -514,6 +309,16 @@ export const WatchlistsScreen: React.FC = () => {
               }}>
               <Text style={styles.watchlistName}>{watchlistName}</Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <TouchableOpacity
+                  style={{alignItems: 'center', padding: 5, marginRight: 6}}
+                  activeOpacity={0.9}
+                  onPress={() => onEditPress(watchlistId, watchlistName)}>
+                  <Ionicons
+                    name="pencil-outline"
+                    size={16}
+                    color={colors.text.muted}
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={{alignItems: 'center', padding: 5, marginRight: 6}}
                   activeOpacity={0.9}
@@ -568,8 +373,6 @@ export const WatchlistsScreen: React.FC = () => {
               <Text style={styles.watchlistCount}>No content</Text>
             )}
           </View>
-
-          {/* HorizontalList of watchlist items */}
           <View style={styles.listContainer}>
             <HorizontalList
               title={''}
@@ -596,10 +399,8 @@ export const WatchlistsScreen: React.FC = () => {
               }}
             />
           </View>
-          {/* No inline ViewShot; capture handled by PosterCaptureHost */}
         </View>
 
-        {/* Story Preview Modal */}
         <Modal
           visible={showStoryModal}
           animationType="fade"
@@ -725,7 +526,172 @@ export const WatchlistsScreen: React.FC = () => {
         </Modal>
       </View>
     );
+  },
+);
+
+export const WatchlistsScreen: React.FC = () => {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newWatchlistName, setNewWatchlistName] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importCode, setImportCode] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteWatchlist, setPendingDeleteWatchlist] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Edit State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingWatchlist, setEditingWatchlist] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [editName, setEditName] = useState('');
+
+  const {data: watchlists = [], isLoading} = useWatchlists();
+  const createWatchlistMutation = useCreateWatchlist();
+  const updateWatchlistMutation = useUpdateWatchlist();
+  const deleteWatchlistMutation = useDeleteWatchlist();
+  const addToWatchlistMutation = useAddToWatchlist();
+  const navigation = useNavigation<WatchlistsScreenNavigationProp>();
+  const {navigateWithLimit} = useNavigationState();
+  const {isTablet, orientation} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
+
+  // Animated values for scroll
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const headerAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const id = scrollY.addListener(({value}) => {
+      Animated.timing(headerAnim, {
+        toValue: value,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY, headerAnim]);
+
+  const handleCreateWatchlist = async () => {
+    if (!newWatchlistName.trim()) {
+      Alert.alert('Error', 'Please enter a watchlist name');
+      return;
+    }
+
+    try {
+      await createWatchlistMutation.mutateAsync(newWatchlistName);
+      setNewWatchlistName('');
+      setShowCreateModal(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create watchlist');
+    }
   };
+
+  // Memoize handlers to prevent passing new functions to React.memo child
+  const handleEditPress = useCallback((id: string, name: string) => {
+    setEditingWatchlist({id, name});
+    setEditName(name);
+    setShowEditModal(true);
+  }, []);
+
+  const handleUpdateWatchlist = async () => {
+    if (!editName.trim() || !editingWatchlist) {
+      Alert.alert('Error', 'Please enter a watchlist name');
+      return;
+    }
+
+    try {
+      await updateWatchlistMutation.mutateAsync({
+        id: editingWatchlist.id,
+        name: editName.trim(),
+      });
+      setShowEditModal(false);
+      setEditingWatchlist(null);
+      setEditName('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update watchlist');
+    }
+  };
+
+  const handleWatchlistPress = useCallback(
+    (watchlistId: string, watchlistName: string) => {
+      setPendingDeleteWatchlist({id: watchlistId, name: watchlistName});
+      setShowDeleteConfirm(true);
+    },
+    [],
+  );
+
+  const confirmDelete = async () => {
+    if (!pendingDeleteWatchlist) return;
+    try {
+      deleteWatchlistMutation.mutate(pendingDeleteWatchlist.id);
+      setShowDeleteConfirm(false);
+      setPendingDeleteWatchlist(null);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete watchlist');
+      setShowDeleteConfirm(false);
+      setPendingDeleteWatchlist(null);
+    }
+  };
+
+  const handleItemPress = useCallback(
+    (item: ContentItem) => {
+      if (item.type === 'movie') {
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
+      }
+    },
+    [navigateWithLimit],
+  );
+
+  const handleImportSubmit = useCallback(async () => {
+    if (!importCode.trim()) {
+      Alert.alert('Import', 'Please paste a valid code.');
+      return;
+    }
+    const parsed = parseWatchlistCode(importCode.trim());
+    if (!parsed || parsed.items.length === 0) {
+      Alert.alert('Import', 'Invalid or empty code.');
+      return;
+    }
+    try {
+      setIsImporting(true);
+      const newList = await createWatchlistMutation.mutateAsync(
+        `${parsed.name}`,
+      );
+      for (const it of parsed.items) {
+        try {
+          if (it.type === 'movie') {
+            const movie = await getMovieDetails(it.id);
+            await addToWatchlistMutation.mutateAsync({
+              watchlistId: newList.id,
+              item: movie,
+              itemType: 'movie',
+            });
+          } else {
+            const show = await getTVShowDetails(it.id);
+            await addToWatchlistMutation.mutateAsync({
+              watchlistId: newList.id,
+              item: show,
+              itemType: 'tv',
+            });
+          }
+        } catch (e) {}
+      }
+      setShowImportModal(false);
+      setImportCode('');
+      Alert.alert('Import Complete', 'Watchlist imported successfully.');
+    } catch (e) {
+      Alert.alert('Import Failed', 'Could not import this code.');
+    } finally {
+      setIsImporting(false);
+    }
+  }, [importCode, createWatchlistMutation]);
 
   return (
     <View style={{flex: 1}}>
@@ -811,19 +777,30 @@ export const WatchlistsScreen: React.FC = () => {
                 watchlistName={watchlist.name}
                 itemCount={watchlist.itemCount}
                 onWatchlistPress={handleWatchlistPress}
+                onEditPress={handleEditPress}
                 onItemPress={handleItemPress}
               />
             ))}
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
-            <Text style={styles.emptyStateText}>
-              Create your first watchlist to start organizing your favorite
-              movies and shows
-            </Text>
+            <View
+              style={{
+                marginTop:
+                  isTablet && orientation === 'landscape' ? '20%' : '60%',
+                alignItems: 'center',
+              }}>
+              <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
+              <Text style={styles.emptyStateText}>
+                Create your first watchlist to start organizing your favorite
+                movies and shows
+              </Text>
+            </View>
           </View>
         )}
+
+        {/* Placeholder to ensure content isn't hidden by FAB */}
+        <View style={{height: 100}} />
 
         {/* Import Watchlist Modal */}
         <Modal
@@ -1295,6 +1272,189 @@ export const WatchlistsScreen: React.FC = () => {
                           ...typography.button,
                         }}>
                         Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Edit Watchlist Modal */}
+        <Modal
+          visible={showEditModal}
+          backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
+          animationType="fade"
+          statusBarTranslucent
+          navigationBarTranslucent
+          onRequestClose={() => setShowEditModal(false)}>
+          {!isSolid && (
+            <BlurView
+              blurType="dark"
+              blurAmount={10}
+              overlayColor="rgba(0, 0, 0, 0.5)"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+          )}
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+            <View
+              style={{
+                width: isTablet ? '40%' : '85%',
+                borderRadius: borderRadius.xl,
+                overflow: 'hidden',
+              }}>
+              {isSolid ? (
+                <LinearGradient
+                  colors={[
+                    'rgba(111, 111, 111, 0.42)',
+                    'rgba(20, 20, 20, 0.7)',
+                  ]}
+                  start={{x: 1, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={{
+                    borderRadius: borderRadius.xl,
+                  }}>
+                  <View
+                    style={{
+                      padding: spacing.xl,
+                      backgroundColor: 'black',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(0, 0, 0, 0.3)',
+                      borderRadius: borderRadius.xl,
+                    }}>
+                    <Text
+                      style={{
+                        ...typography.h2,
+                        color: colors.text.primary,
+                        marginBottom: spacing.md,
+                        textAlign: 'center',
+                      }}>
+                      Edit Watchlist
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: colors.background.tertiary,
+                        color: colors.text.primary,
+                        padding: spacing.md,
+                        borderRadius: borderRadius.md,
+                        marginBottom: spacing.md,
+                        borderWidth: 1,
+                        borderColor: colors.modal.border,
+                        ...typography.body1,
+                      }}
+                      placeholder="Watchlist Name"
+                      placeholderTextColor={colors.text.muted}
+                      value={editName}
+                      onChangeText={setEditName}
+                      autoFocus
+                    />
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'flex-end',
+                        gap: spacing.md,
+                      }}>
+                      <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                        <Text
+                          style={{
+                            ...typography.button,
+                            color: colors.text.secondary,
+                          }}>
+                          Cancel
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={handleUpdateWatchlist}>
+                        <Text
+                          style={{...typography.button, color: colors.primary}}>
+                          Save
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      height: isTablet ? '150%' : '100%',
+                      width: '180%',
+                      transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+                      left: isTablet ? '-30%' : '-50%',
+                      bottom: isTablet ? '-20%' : '-30%',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </LinearGradient>
+              ) : (
+                <View
+                  style={{
+                    padding: spacing.xl,
+                    backgroundColor: colors.modal.blur,
+                    borderRadius: borderRadius.xl,
+                    borderTopWidth: 1,
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderColor: colors.modal.content,
+                  }}>
+                  <Text
+                    style={{
+                      ...typography.h2,
+                      color: colors.text.primary,
+                      marginBottom: spacing.md,
+                    }}>
+                    Edit Watchlist
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background.tertiary,
+                      color: colors.text.primary,
+                      padding: spacing.md,
+                      borderRadius: borderRadius.md,
+                      marginBottom: spacing.md,
+                      borderWidth: 1,
+                      borderColor: colors.modal.border,
+                      ...typography.body1,
+                    }}
+                    placeholder="Watchlist Name"
+                    placeholderTextColor={colors.text.muted}
+                    value={editName}
+                    onChangeText={setEditName}
+                    autoFocus
+                  />
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'flex-end',
+                      gap: spacing.md,
+                    }}>
+                    <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                      <Text
+                        style={{
+                          ...typography.button,
+                          color: colors.text.secondary,
+                        }}>
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleUpdateWatchlist}>
+                      <Text
+                        style={{
+                          ...typography.button,
+                          color: colors.text.primary,
+                        }}>
+                        Save
                       </Text>
                     </TouchableOpacity>
                   </View>

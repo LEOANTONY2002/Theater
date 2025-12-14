@@ -118,11 +118,10 @@ export const MyCollectionsList = ({
       fontSize: isTablet ? 12 : 10,
     },
     emptyContainer: {
-      flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
       padding: spacing.xl,
-      paddingTop: 100,
+      minHeight: 300,
     },
     emptyTitle: {
       ...typography.h3,
@@ -225,7 +224,6 @@ export const MyCollectionsList = ({
   if (!loading && collections.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Icon name="library-outline" size={64} color={colors.text.muted} />
         <Text style={styles.emptyTitle}>No Collections Saved</Text>
         <Text style={styles.emptySubtitle}>
           Save your favorite movie collections to access them quickly.
