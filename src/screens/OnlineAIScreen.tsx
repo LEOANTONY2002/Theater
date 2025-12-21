@@ -1441,7 +1441,7 @@ export const OnlineAIScreen: React.FC = () => {
                   overflow: 'hidden',
                   borderRadius: borderRadius.xl,
                 }}>
-                <MaybeBlurView body>
+                <MaybeBlurView body style={{flex: 1}}>
                   <View style={{padding: spacing.md, paddingTop: spacing.sm}}>
                     {/* New chat */}
                     <TouchableOpacity

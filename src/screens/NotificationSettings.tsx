@@ -166,25 +166,29 @@ export const NotificationSettings: React.FC = () => {
               />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Notifications</Text>
-            <TouchableOpacity
-              activeOpacity={1}
-              style={{
-                backgroundColor: isSolid
-                  ? colors.modal.blur
-                  : 'rgba(122, 122, 122, 0.25)',
-                padding: isTablet ? 12 : 10,
-                borderRadius: borderRadius.round,
-                borderColor: colors.modal.content,
-                borderWidth: 1,
-                borderBottomWidth: 0,
-              }}
-              onPress={handleClearAll}>
-              <Icon
-                name="trash-outline"
-                size={isTablet ? 20 : 16}
-                color={colors.text.primary}
-              />
-            </TouchableOpacity>
+            {history.length > 0 ? (
+              <TouchableOpacity
+                activeOpacity={1}
+                style={{
+                  backgroundColor: isSolid
+                    ? colors.modal.blur
+                    : 'rgba(122, 122, 122, 0.25)',
+                  padding: isTablet ? 12 : 10,
+                  borderRadius: borderRadius.round,
+                  borderColor: colors.modal.content,
+                  borderWidth: 1,
+                  borderBottomWidth: 0,
+                }}
+                onPress={handleClearAll}>
+                <Icon
+                  name="trash-outline"
+                  size={isTablet ? 20 : 16}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={{width: 40}} />
+            )}
           </View>
         </View>
 

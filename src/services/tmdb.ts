@@ -1332,14 +1332,33 @@ export const getTVShowReviews = async (tvId: number, page = 1) => {
 
 export const checkTMDB = async (): Promise<boolean> => {
   try {
-    // Use the same API instance as the rest of the app
-    const response = await tmdbApi.get('/configuration', {
+    // Check API reachability instead of website
+    // If we can reach the API (even if key is invalid), DNS is fine
+    await tmdbApi.get('/configuration', {
       timeout: 5000,
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
     });
-    console.log('TMDB Check SUCCESS:', response.status);
-    return response.status === 200;
+
+    console.log('TMDB API Check SUCCESS');
+    return true;
   } catch (error: any) {
-    console.log('TMDB Check FAILED:', error?.message || error);
+    // If we got a response (even 4xx/5xx), it means we reached the server
+    // So DNS/Connection is effectively working
+    if (error.response) {
+      console.log(
+        'TMDB API Check Reachable (Response received):',
+        error.response.status,
+      );
+      return true;
+    }
+
+    console.log(
+      'TMDB API Check FAILED (Network/DNS):',
+      error?.message || error,
+    );
     return false;
   }
 };

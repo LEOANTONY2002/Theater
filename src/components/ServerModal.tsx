@@ -114,7 +114,7 @@ export const ServerModal: React.FC<ServerModalProps> = ({
                 borderWidth: isSolid ? 0 : 1,
                 borderColor: isSolid ? colors.modal.blur : colors.modal.content,
               }}>
-              <MaybeBlurView body>
+              <MaybeBlurView body style={{flex: 1}}>
                 <View style={styles.modalBody}>
                   <ScrollView
                     horizontal

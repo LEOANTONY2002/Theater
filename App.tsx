@@ -19,7 +19,7 @@ import {AppNavigator} from './src/navigation/AppNavigator';
 import {queryClient} from './src/services/queryClient';
 import {PosterCaptureHost} from './src/components/PosterCaptureHost';
 import {enableScreens} from 'react-native-screens';
-import {DNSInstructionsModal} from './src/components/DNSInstructionsModal';
+import {DNSSetupGuide} from './src/components/DNSSetupGuide';
 import {checkInternet} from './src/services/connectivity';
 import {NoInternet} from './src/screens/NoInternet';
 import Onboarding from './src/screens/Onboarding';
@@ -140,58 +140,66 @@ export default function App() {
     }
   };
 
+  // 1. Immediate Startup Checks (Internet & TMDB)
+  // MUST RUN NO MATTER WHAT
+  useEffect(() => {
+    const runStartupChecks = async () => {
+      console.log('[App] 🚀 Running Update Startup Checks...');
+
+      // Check Internet
+      let ok = await checkInternet();
+      // Retry logic for cold starts
+      if (!ok) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        ok = await checkInternet();
+      }
+      setIsOnline(ok);
+      console.log('[App] 🌐 Internet Status:', ok);
+
+      // Check TMDB Immediately - logic updated to run even if internet check is ambiguous
+      // If internet is strictly down, TMDB will fail too, which is fine
+      console.log('[App] 🎬 Checking TMDB availability...');
+      const tmdbOk = await checkTMDB();
+      console.log('[App] 🎬 TMDB Status:', tmdbOk);
+
+      // If TMDB fails, ALWAYS show DNS modal as requested
+      if (!tmdbOk) {
+        setShowDNSModal(true);
+      }
+    };
+
+    runStartupChecks();
+  }, []);
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Wait for Realm to be ready before checking onboarding
+        // Wait for Realm to be ready
         if (!dbReady) {
-          console.log('[App] Waiting for Realm to initialize...');
           return;
         }
 
-        console.log('[App] Realm is ready, checking onboarding state...');
-        // Load onboarding state first
+        // Load onboarding state
         const ob = await OnboardingManager.getState();
         setIsOnboarded(!!ob.isOnboarded);
 
         if (!ob.isOnboarded) {
-          // Show onboarding immediately; no API calls needed
           setIsLoading(false);
           return;
         }
 
-        // Only preload content after onboarding is complete
+        // Check cache for offline mode
         const hasCacheData = await offlineCache.hasCachedContent();
         setHasCache(hasCacheData);
 
-        // If already onboarded, then check connectivity
-        let ok = await checkInternet();
-        // Retry logic for cold starts (e.g. notification launch)
-        if (!ok) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          ok = await checkInternet();
-        }
-        setIsOnline(ok);
-        if (!ok && !hasCacheData) {
-          setIsLoading(false);
-          return;
-        }
-
-        // Check DNS if online and onboarded
-        if (ok && isOnboarded) {
-          const tmdbOk = await checkTMDB();
-          if (!tmdbOk) {
-            setShowDNSModal(true);
-          }
-        }
-
         setIsLoading(false);
       } catch (error) {
+        console.error('Initialization error:', error);
         setIsLoading(false);
       }
     };
     initializeApp();
-  }, [dbReady]); // Run when Realm is ready
+  }, [dbReady]);
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: string) => {
@@ -200,10 +208,8 @@ export default function App() {
         setIsOnline(ok);
 
         // Check DNS when app becomes active again
-        if (ok && isOnboarded) {
-          const tmdbOk = await checkTMDB();
-          if (!tmdbOk) setShowDNSModal(true);
-        }
+        const tmdbOk = await checkTMDB();
+        if (!tmdbOk) setShowDNSModal(true);
       }
     };
     const subscription = AppState.addEventListener(
@@ -213,31 +219,10 @@ export default function App() {
     return () => {
       subscription?.remove();
     };
-  }, [isOnboarded]);
-
-  // Periodic connectivity check
-  // useEffect(() => {
-  //   const checkConnectivity = async () => {
-  //     const ok = await checkInternet();
-  //     setIsOnline(ok);
-  //   };
-
-  //   // Check connectivity every 10 seconds
-  //   const interval = setInterval(checkConnectivity, 10000);
-
-  //   return () => clearInterval(interval);
-  // }, []);
-
-  // if (isLoading) {
-  //   return (
-  //     <>
-  //       <StatusBar barStyle="light-content" backgroundColor="#0A0A1A" />
-  //       <LoadingScreen message="Personalizing your experience..." />
-  //     </>
-  //   );
-  // }
+  }, []);
 
   // Avoid flashing Home before theme/onboarding state is known
+  // BUT Render DNS Modal if needed
   if (!dbReady || !themeReady || isLoading || isOnboarded === null) {
     return (
       <>
@@ -250,21 +235,26 @@ export default function App() {
     );
   }
 
-  // OnboardingManager.setIsOnboarded(false);
-
-  // Show onboarding if required
-
-  // Priority logic for modals:
-  // 1. If no internet -> show NoInternet
-  // 2. If internet but DNS blocked -> show DNS modal
-  // 3. If both internet and DNS work -> show normal app
-
   // After onboarding is completed, if offline and no cache, show NoInternet (highest priority)
-  if (!isOnline && !hasCache) {
+  if (!isOnline && !hasCache && isOnboarded && !showDNSModal) {
     return (
       <QueryClientProvider client={queryClient}>
         <StatusBar barStyle="dark-content" backgroundColor="#000007" />
         <NoInternet onRetry={handleTryAgain} isRetrying={retrying} />
+      </QueryClientProvider>
+    );
+  }
+
+  // If DNS is blocked, show DNS Instructions Modal as a separate full screen
+  if (showDNSModal) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <StatusBar barStyle="dark-content" backgroundColor="#000007" />
+        <DNSSetupGuide
+          visible={true}
+          onTryAgain={handleTryAgain}
+          isRetrying={retrying}
+        />
       </QueryClientProvider>
     );
   }
@@ -280,20 +270,11 @@ export default function App() {
         ) : (
           <>
             <AppNavigator />
-            {/* <PerformanceMonitor screenName="AppRoot" /> */}
-            {/* Centralized off-screen poster capture host */}
             <PosterCaptureHost />
             {(() => {
-              // Make queryClient globally accessible for monitoring
               (global as any).queryClient = queryClient;
               return null;
             })()}
-            {/* Show DNS modal only if internet is on but DNS is blocked */}
-            <DNSInstructionsModal
-              visible={showDNSModal && isOnline}
-              onClose={() => setShowDNSModal(false)}
-              onTryAgain={handleTryAgain}
-            />
           </>
         )}
       </SafeAreaView>

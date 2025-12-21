@@ -930,7 +930,7 @@ export const MySpaceScreen = React.memo(() => {
                   ))
                 ) : (
                   <View style={styles.emptyTextContainer}>
-                    <Text style={styles.emptyText}>No filters yet</Text>
+                    <Text style={styles.emptyText}>No filters</Text>
                   </View>
                 )}
               </View>
@@ -984,7 +984,7 @@ export const MySpaceScreen = React.memo(() => {
                   ))
                 ) : (
                   <View style={styles.emptyTextContainer}>
-                    <Text style={styles.emptyText}>No watchlists yet</Text>
+                    <Text style={styles.emptyText}>No watchlists</Text>
                   </View>
                 )}
               </View>
@@ -1037,7 +1037,7 @@ export const MySpaceScreen = React.memo(() => {
                   ))
                 ) : (
                   <View style={styles.emptyTextContainer}>
-                    <Text style={styles.emptyText}>Tap to manage</Text>
+                    <Text style={styles.emptyText}>No collections</Text>
                   </View>
                 )}
               </View>

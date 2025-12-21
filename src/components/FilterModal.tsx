@@ -534,7 +534,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         },
         1,
       );
-      if (res?.results?.length > 0) {
+      if ((res?.results?.length ?? 0) > 0) {
         setShowSaveModal(true);
         setNewFilterName('');
       } else {
@@ -663,7 +663,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             </TouchableOpacity>
           </View>
         </MaybeBlurView>
-        <MaybeBlurView body>
+        <MaybeBlurView body style={{flex: 1}}>
           <ScrollView
             showsVerticalScrollIndicator={false}
             style={styles.scrollContent}>
@@ -1942,7 +1942,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
             }}>
-            <MaybeBlurView body>
+            <MaybeBlurView body style={{flex: 1}}>
               <View style={{flex: 1}}>
                 <LanguageSettings
                   singleSelect
@@ -2053,7 +2053,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
             }}>
-            <MaybeBlurView body>
+            <MaybeBlurView body style={{flex: 1}}>
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
@@ -2261,7 +2261,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
             }}>
-            <MaybeBlurView body>
+            <MaybeBlurView body style={{flex: 1}}>
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{

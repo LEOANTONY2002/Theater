@@ -125,7 +125,7 @@ export const QuickDecision: React.FC<QuickDecisionProps> = ({
         </MaybeBlurView>
 
         <View style={styles.bodyWrapper}>
-          <MaybeBlurView body>
+          <MaybeBlurView body style={{flex: 1}}>
             {loading && (
               <View style={styles.loadingContainer}>
                 <GradientSpinner colors={[colors.primary, colors.secondary]} />

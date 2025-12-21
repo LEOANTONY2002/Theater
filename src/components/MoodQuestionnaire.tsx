@@ -346,7 +346,7 @@ export const MoodQuestionnaire: React.FC<MoodQuestionnaireProps> = ({
             <Ionicons name="close" size={20} color={colors.text.primary} />
           </TouchableOpacity>
         </MaybeBlurView>
-        <MaybeBlurView body>
+        <MaybeBlurView body style={{flex: 1}}>
           <View style={styles.progressContainer}>
             <Text style={styles.progressText}>
               {currentQuestionIndex + 1} of {MOOD_QUESTIONS.length}

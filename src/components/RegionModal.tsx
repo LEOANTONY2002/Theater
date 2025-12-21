@@ -162,7 +162,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
             borderWidth: isSolid ? 0 : 1,
             borderColor: isSolid ? colors.modal.blur : colors.modal.content,
           }}>
-          <MaybeBlurView body>
+          <MaybeBlurView body style={{flex: 1}}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <GradientSpinner

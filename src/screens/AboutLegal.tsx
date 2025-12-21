@@ -437,7 +437,7 @@ const AboutLegalScreen: React.FC = () => {
                   overflow: 'hidden',
                   borderRadius: borderRadius.xl,
                 }}>
-                <MaybeBlurView body>
+                <MaybeBlurView body style={{flex: 1}}>
                   <View style={{padding: spacing.md}}>
                     <Text style={styles.privacyText}>
                       Tell me about your theater experience
@@ -545,7 +545,7 @@ const AboutLegalScreen: React.FC = () => {
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
             }}>
-            <MaybeBlurView body>
+            <MaybeBlurView body style={{flex: 1}}>
               <ScrollView
                 style={styles.modalBody}
                 showsVerticalScrollIndicator={false}>
@@ -685,7 +685,7 @@ const AboutLegalScreen: React.FC = () => {
               overflow: 'hidden',
               borderRadius: borderRadius.xl,
             }}>
-            <MaybeBlurView body>
+            <MaybeBlurView body style={{flex: 1}}>
               <ScrollView
                 style={styles.modalBody}
                 showsVerticalScrollIndicator={false}>

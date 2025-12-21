@@ -43,21 +43,21 @@ const instructions = [
     text: 'Go to Google AI Studio',
     hasButton: true,
   },
-  {
-    id: '2',
-    image: require('../assets/AI2.png'),
-    text: 'Click on "Create API key"',
-  },
-  {
-    id: '3',
-    image: require('../assets/AI3.png'),
-    text: 'Type a name for your API key',
-  },
-  {
-    id: '4',
-    image: require('../assets/AI4.png'),
-    text: 'Select a project or create new',
-  },
+  // {
+  //   id: '2',
+  //   image: require('../assets/AI2.png'),
+  //   text: 'Click on "Create API key"',
+  // },
+  // {
+  //   id: '3',
+  //   image: require('../assets/AI3.png'),
+  //   text: 'Type a name for your API key',
+  // },
+  // {
+  //   id: '4',
+  //   image: require('../assets/AI4.png'),
+  //   text: 'Select a project or create new',
+  // },
   {
     id: '5',
     image: require('../assets/AI5.png'),

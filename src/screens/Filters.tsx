@@ -1,5 +1,13 @@
 import React, {useCallback, useMemo, useState, useEffect} from 'react';
-import {View, Text, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  useWindowDimensions,
+} from 'react-native';
 import {colors, spacing, typography} from '../styles/theme';
 import {useQuery} from '@tanstack/react-query';
 import {FiltersManager} from '../store/filters';
@@ -22,11 +30,12 @@ import {
 import FastImage from 'react-native-fast-image';
 import {useResponsive} from '../hooks/useResponsive';
 
-export const FiltersScreen = React.memo(() => {
+export const FiltersScreen = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const [bannerContent, setBannerContent] = useState<ContentItem[]>([]);
   const {isTablet, orientation} = useResponsive();
+  const {width, height} = useWindowDimensions();
 
   // Get real saved filters data
   const {data: savedFilters = [], isLoading} = useQuery({
@@ -232,42 +241,19 @@ export const FiltersScreen = React.memo(() => {
       flexDirection: 'column',
       alignItems: 'center',
       paddingHorizontal: spacing.md,
-      paddingVertical: orientation === 'landscape' ? '20%' : '50%',
+      paddingVertical: orientation === 'landscape' ? '20%' : '25%',
     },
     emptyTitle: {
-      ...typography.h2,
+      ...typography.h3,
       color: colors.text.primary,
       marginBottom: spacing.sm,
+      marginTop: -100,
     },
     emptyText: {
       ...typography.body1,
-      color: colors.text.secondary,
+      color: colors.text.muted,
+      fontSize: 11,
       textAlign: 'center',
-    },
-    footerContainer: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xxl,
-      alignItems: 'center',
-    },
-    footerContent: {
-      alignItems: 'center',
-      maxWidth: 400,
-    },
-    footerIcon: {
-      marginBottom: spacing.md,
-      opacity: 0.6,
-    },
-    footerTitle: {
-      ...typography.h2,
-      color: colors.text.primary,
-      marginBottom: spacing.sm,
-      textAlign: 'center',
-    },
-    footerText: {
-      ...typography.body1,
-      color: colors.text.secondary,
-      textAlign: 'center',
-      marginBottom: spacing.md,
     },
   });
 
@@ -319,31 +305,50 @@ export const FiltersScreen = React.memo(() => {
   const renderEmpty = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
+        <Image
+          source={require('../assets/MyFiltersPoster.png')}
+          style={{width: width * 0.6, height: height * 0.6}}
+          resizeMode="contain"
+        />
         <Text style={styles.emptyTitle}>Save your search filters</Text>
         <Text style={styles.emptyText}>
           Customize this screen with your own filters.
         </Text>
-        <GradientButton
+        <TouchableOpacity
           onPress={() =>
             navigation.navigate('Main', {
               screen: 'MySpace',
               params: {screen: 'MyFiltersScreen'},
             })
           }
-          title="Create Your First Filter"
-          isIcon={false}
-          style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
-        />
-        <View style={{height: spacing.xxl}} />
-        <QuickAddFilters onQuickAdd={handleQuickAdd} onAISave={handleAISave} />
+          style={{
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+            backgroundColor: colors.modal.blur,
+            borderRadius: borderRadius.round,
+            borderWidth: 1,
+            borderBottomWidth: 0,
+            borderColor: colors.modal.header,
+            marginTop: spacing.md,
+          }}>
+          <Text
+            style={{
+              ...typography.body1,
+              fontSize: 11,
+              color: colors.text.primary,
+            }}>
+            Manage Filters
+          </Text>
+        </TouchableOpacity>
       </View>
     );
-  }, [navigation, handleQuickAdd, handleAISave]);
+  }, [navigation]);
 
   const renderFooter = useCallback(() => {
     if (savedFilters.length === 0) return null;
     return (
-      <View style={styles.footerContainer}>
+      <View
+        style={{paddingHorizontal: spacing.lg, paddingVertical: spacing.xxl}}>
         <View
           style={{
             padding: spacing.lg,
@@ -419,4 +424,4 @@ export const FiltersScreen = React.memo(() => {
       />
     </View>
   );
-});
+};
