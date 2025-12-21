@@ -58,7 +58,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
     useEffect(() => {
       if (!items || items.length === 0) return;
       const size = isTablet ? 'original' : 'w500';
-      items.slice(0, MAX_FILTERS).forEach((dataItem: any) => {
+      items.slice(0, 3).forEach((dataItem: any) => {
         const posterPath =
           dataItem.item?.poster_path || dataItem.item?.backdrop_path;
         if (posterPath) {
@@ -216,5 +216,13 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
         />
       </View>
     ) : null;
+  },
+  (prev, next) => {
+    if (prev.items.length !== next.items.length) return false;
+    for (let i = 0; i < prev.items.length; i++) {
+      if (prev.items[i].item.id !== next.items[i].item.id) return false;
+      if (prev.items[i].type !== next.items[i].type) return false;
+    }
+    return true;
   },
 );

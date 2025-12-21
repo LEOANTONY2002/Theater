@@ -96,7 +96,6 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
             : undefined
         }
         onEndReachedThreshold={0.5}
-        removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         updateCellsBatchingPeriod={50}
         initialNumToRender={15}

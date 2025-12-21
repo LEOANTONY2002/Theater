@@ -10,6 +10,7 @@ interface ContentTagsParams {
   type: 'movie' | 'tv';
   contentId?: number;
   enabled?: boolean;
+  poster_path?: string;
 }
 
 /**
@@ -23,6 +24,7 @@ export function useContentTags({
   type,
   contentId,
   enabled = true,
+  poster_path,
 }: ContentTagsParams) {
   const {isAIEnabled} = useAIEnabled();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -66,10 +68,12 @@ export function useContentTags({
             ...result.thematicTags.map(t => ({
               ...t,
               category: 'thematic' as const,
+              poster_path,
             })),
             ...result.emotionalTags.map(t => ({
               ...t,
               category: 'emotional' as const,
+              poster_path,
             })),
           ];
 

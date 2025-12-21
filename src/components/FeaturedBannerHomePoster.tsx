@@ -79,218 +79,218 @@ type FeaturedBannerHomePosterProps = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export const FeaturedBannerHomePoster: React.FC<
-  FeaturedBannerHomePosterProps
-> = ({item, type}) => {
-  const {width} = useWindowDimensions();
-  const [loading, setLoading] = useState(true);
-  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
-  const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
-  const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
-  const removeFromWatchlistMutation = useRemoveFromWatchlist();
-  const {navigateWithLimit} = useNavigationState();
+export const FeaturedBannerHomePoster: React.FC<FeaturedBannerHomePosterProps> =
+  React.memo(({item, type}) => {
+    const {width} = useWindowDimensions();
+    const [loading, setLoading] = useState(true);
+    const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+    const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
+    const {data: watchlistContainingItem} = useWatchlistContainingItem(item.id);
+    const removeFromWatchlistMutation = useRemoveFromWatchlist();
+    const {navigateWithLimit} = useNavigationState();
 
-  const handlePress = useCallback(() => {
-    if (type === 'movie') {
-      navigateWithLimit('MovieDetails', {movie: item as Movie});
-    } else {
-      navigateWithLimit('TVShowDetails', {show: item as TVShow});
-    }
-  }, [navigateWithLimit, item, type]);
-
-  const handleWatchlistPress = useCallback(async () => {
-    if (isInAnyWatchlist && watchlistContainingItem) {
-      // If item is already in a watchlist, remove it
-      try {
-        await removeFromWatchlistMutation.mutateAsync({
-          watchlistId: watchlistContainingItem,
-          itemId: item.id,
-        });
-      } catch (error) {
-        Alert.alert('Error', 'Failed to remove from watchlist');
+    const handlePress = useCallback(() => {
+      if (type === 'movie') {
+        navigateWithLimit('MovieDetails', {movie: item as Movie});
+      } else {
+        navigateWithLimit('TVShowDetails', {show: item as TVShow});
       }
-    } else {
-      // If item is not in any watchlist, show modal to add it
-      setShowWatchlistModal(true);
-    }
-  }, [
-    isInAnyWatchlist,
-    watchlistContainingItem,
-    removeFromWatchlistMutation,
-    item.id,
-  ]);
-  const isTablet = useResponsive().isTablet;
+    }, [navigateWithLimit, item, type]);
 
-  const styles = StyleSheet.create({
-    skeletonContainer: {
-      width: '100%',
-      height: 500,
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      zIndex: 0,
-    },
-    cardContainer: {
-      width: isTablet ? 400 : width * 0.7,
-      height: isTablet ? 650 : 500,
-      backgroundColor: 'rgba(3, 0, 17, 0.99)',
-      alignSelf: 'center',
-      borderRadius: 50,
-      overflow: 'hidden',
-      shadowColor: '#000000',
-      shadowOffset: {width: 6, height: 10},
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 30,
-      borderWidth: 1,
-      borderColor: 'rgba(91, 91, 91, 0.2)',
-    },
-    imageStyle: {
-      borderRadius: 32,
-    },
-    gradientOverlay: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: '65%',
-      borderBottomLeftRadius: 32,
-      borderBottomRightRadius: 32,
-    },
-    absoluteContent: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 32,
-      alignItems: 'center',
-      width: '100%',
-    },
-    genreContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.xs,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.md,
-      paddingHorizontal: 16,
-    },
-    genreWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    genre: {
-      ...typography.caption,
-      color: 'rgba(255, 255, 255, 0.68)',
-      marginRight: spacing.xs,
-    },
-    genreDot: {
-      ...typography.h3,
-      color: 'rgba(163, 163, 163, 0.68)',
-      marginHorizontal: spacing.xs,
-    },
-    buttonRow: {
-      display: 'flex',
-      flex: 1,
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 4,
-      paddingHorizontal: 56,
-    },
-    watchButton: {
-      flex: 1,
-      borderRadius: borderRadius.round,
-      marginRight: 12,
-    },
-    watchButtonText: {
-      fontWeight: '700',
-      fontSize: 16,
-    },
-    addButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.modal.header,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 2},
-      shadowOpacity: 0.18,
-      shadowRadius: 6,
-      elevation: 4,
-    },
-  });
+    const handleWatchlistPress = useCallback(async () => {
+      if (isInAnyWatchlist && watchlistContainingItem) {
+        // If item is already in a watchlist, remove it
+        try {
+          await removeFromWatchlistMutation.mutateAsync({
+            watchlistId: watchlistContainingItem,
+            itemId: item.id,
+          });
+        } catch (error) {
+          Alert.alert('Error', 'Failed to remove from watchlist');
+        }
+      } else {
+        // If item is not in any watchlist, show modal to add it
+        setShowWatchlistModal(true);
+      }
+    }, [
+      isInAnyWatchlist,
+      watchlistContainingItem,
+      removeFromWatchlistMutation,
+      item.id,
+    ]);
+    const isTablet = useResponsive().isTablet;
 
-  const uri = `https://image.tmdb.org/t/p/${isTablet ? 'original' : 'w500'}${
-    item?.poster_path || item?.backdrop_path || ''
-  }`;
+    const styles = StyleSheet.create({
+      skeletonContainer: {
+        width: '100%',
+        height: 500,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        zIndex: 0,
+      },
+      cardContainer: {
+        width: isTablet ? 400 : width * 0.7,
+        height: isTablet ? 650 : 500,
+        backgroundColor: 'rgba(3, 0, 17, 0.99)',
+        alignSelf: 'center',
+        borderRadius: 50,
+        overflow: 'hidden',
+        shadowColor: '#000000',
+        shadowOffset: {width: 6, height: 10},
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        elevation: 30,
+        borderWidth: 1,
+        borderColor: 'rgba(91, 91, 91, 0.2)',
+      },
+      imageStyle: {
+        borderRadius: 32,
+      },
+      gradientOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: '65%',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+      },
+      absoluteContent: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 32,
+        alignItems: 'center',
+        width: '100%',
+      },
+      genreContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: spacing.xs,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.md,
+        paddingHorizontal: 16,
+      },
+      genreWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+      },
+      genre: {
+        ...typography.caption,
+        color: 'rgba(255, 255, 255, 0.68)',
+        marginRight: spacing.xs,
+      },
+      genreDot: {
+        ...typography.h3,
+        color: 'rgba(163, 163, 163, 0.68)',
+        marginHorizontal: spacing.xs,
+      },
+      buttonRow: {
+        display: 'flex',
+        flex: 1,
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 4,
+        paddingHorizontal: 56,
+      },
+      watchButton: {
+        flex: 1,
+        borderRadius: borderRadius.round,
+        marginRight: 12,
+      },
+      watchButtonText: {
+        fontWeight: '700',
+        fontSize: 12,
+      },
+      addButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: colors.modal.header,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.18,
+        shadowRadius: 6,
+        elevation: 4,
+      },
+    });
 
-  return (
-    <View>
-      <FastImage
-        onLoadEnd={() => setLoading(false)}
-        source={{
-          uri,
-          priority: FastImage.priority.high,
-          cache: FastImage.cacheControl.immutable,
-        }}
-        style={styles.cardContainer}
-        resizeMode={FastImage.resizeMode.cover}>
-        {/* {loading && (
+    const uri = `https://image.tmdb.org/t/p/${isTablet ? 'original' : 'w500'}${
+      item?.poster_path || item?.backdrop_path || ''
+    }`;
+
+    return (
+      <View>
+        <FastImage
+          onLoadEnd={() => setLoading(false)}
+          source={{
+            uri,
+            priority: FastImage.priority.high,
+            cache: FastImage.cacheControl.immutable,
+          }}
+          style={styles.cardContainer}
+          resizeMode={FastImage.resizeMode.cover}>
+          {/* {loading && (
           <View style={styles.skeletonContainer}>
             <BannerHomeSkeleton />
           </View>
         )} */}
-        <LinearGradient
-          colors={['transparent', 'rgba(0, 0, 0, 0.64)', 'rgb(0, 0, 0)']}
-          style={styles.gradientOverlay}
-        />
-        <View style={styles.absoluteContent}>
-          {/* Genres */}
-          <View style={styles.genreContainer}>
-            {item.genre_ids?.slice(0, 3).map((genreId, index) => (
-              <View key={genreId} style={styles.genreWrapper}>
-                <Text style={styles.genre}>
-                  {type === 'movie' ? movieGenres[genreId] : tvGenres[genreId]}
-                </Text>
-                {index < Math.min(item.genre_ids.length - 1, 2) && (
-                  <Text style={styles.genreDot}>•</Text>
+          <LinearGradient
+            colors={['transparent', 'rgba(0, 0, 0, 0.64)', 'rgb(0, 0, 0)']}
+            style={styles.gradientOverlay}
+          />
+          <View style={styles.absoluteContent}>
+            {/* Genres */}
+            <View style={styles.genreContainer}>
+              {item.genre_ids?.slice(0, 3).map((genreId, index) => (
+                <View key={genreId} style={styles.genreWrapper}>
+                  <Text style={styles.genre}>
+                    {type === 'movie'
+                      ? movieGenres[genreId]
+                      : tvGenres[genreId]}
+                  </Text>
+                  {index < Math.min(item.genre_ids.length - 1, 2) && (
+                    <Text style={styles.genreDot}>•</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+            {/* Buttons */}
+            <View style={styles.buttonRow}>
+              <GradientButton
+                title="Watch Now"
+                onPress={handlePress}
+                style={styles.watchButton}
+              />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleWatchlistPress}>
+                {isInAnyWatchlist ? (
+                  <Ionicon
+                    name="checkmark"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                ) : (
+                  <Ionicon name="add" size={24} color={colors.text.primary} />
                 )}
-              </View>
-            ))}
+              </TouchableOpacity>
+            </View>
           </View>
-          {/* Buttons */}
-          <View style={styles.buttonRow}>
-            <GradientButton
-              title="Watch Now"
-              onPress={handlePress}
-              style={styles.watchButton}
-              textStyle={styles.watchButtonText}
-            />
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleWatchlistPress}>
-              {isInAnyWatchlist ? (
-                <Ionicon
-                  name="checkmark"
-                  size={24}
-                  color={colors.text.primary}
-                />
-              ) : (
-                <Ionicon name="add" size={24} color={colors.text.primary} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </FastImage>
+        </FastImage>
 
-      <WatchlistModal
-        visible={showWatchlistModal}
-        onClose={() => setShowWatchlistModal(false)}
-        item={item}
-        itemType={type}
-      />
-    </View>
-  );
-};
+        <WatchlistModal
+          visible={showWatchlistModal}
+          onClose={() => setShowWatchlistModal(false)}
+          item={item}
+          itemType={type}
+        />
+      </View>
+    );
+  });

@@ -40,10 +40,7 @@ import {
 import {FeaturedBannerHome} from '../components/FeaturedBannerHome';
 import {useRegion} from '../hooks/useApp';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import {FiltersManager} from '../store/filters';
-import {SavedFilter} from '../types/filters';
 import {searchFilterContent} from '../services/tmdb';
-import {HomeFilterRow} from '../components/HomeFilterRow';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
@@ -405,15 +402,6 @@ export const HomeScreen = React.memo(() => {
         }
       : ({} as any),
   );
-
-  const {data: savedFilters, isLoading: isLoadingSavedFilters} = useQuery({
-    queryKey: ['savedFilters'],
-    queryFn: () => FiltersManager.getSavedFilters(),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
-  });
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -892,26 +880,6 @@ export const HomeScreen = React.memo(() => {
       });
     }
 
-    // Saved Filters section
-    if (!isLoadingSavedFilters && savedFilters && savedFilters.length > 0) {
-      sectionsList.push({
-        id: 'savedFilters',
-        type: 'savedFilters',
-        data: savedFilters,
-      });
-    }
-
-    // No saved filters section - show when no filters exist
-    if (
-      !isLoadingSavedFilters &&
-      (!savedFilters || savedFilters.length === 0)
-    ) {
-      sectionsList.push({
-        id: 'noSavedFilters',
-        type: 'noSavedFilters',
-      });
-    }
-
     return sectionsList;
   }, [
     featuredItems,
@@ -920,8 +888,7 @@ export const HomeScreen = React.memo(() => {
     recentTVShows,
     showMoreContent,
     top10ContentByRegion,
-    savedFilters,
-    isLoadingSavedFilters,
+
     isFetchingRecentMovies,
     isFetchingRecentTV,
     region,
@@ -1139,23 +1106,6 @@ export const HomeScreen = React.memo(() => {
             </View>
           );
 
-        case 'savedFilters':
-          return (
-            <View>
-              {/* <View style={styles.heading}>
-                <LinearGradient
-                  colors={['transparent', colors.background.primary]}
-                  start={{x: 0.5, y: 0}}
-                  end={{x: 0.5, y: 1}}
-                  style={[styles.gradient, {height: isTablet ? 200 : 100}]}
-                />
-                <Text style={styles.headingText}>My Filters</Text>
-              </View> */}
-              {item.data?.map((filter: SavedFilter) => (
-                <HomeFilterRow key={filter.id} savedFilter={filter} />
-              ))}
-            </View>
-          );
         case 'ottTabbedSection':
           return (
             <OttTabbedSection
@@ -1193,64 +1143,6 @@ export const HomeScreen = React.memo(() => {
 
         case 'myLanguageTVShowsInOTTsSection':
           return <MyLanguageTVShowsInOTTsSection />;
-
-        case 'noSavedFilters':
-          return (
-            <View
-              style={{
-                padding: spacing.lg,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: spacing.xl,
-                marginBottom: spacing.xxl,
-              }}>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: '600',
-                  color: colors.text.primary,
-                  textAlign: 'center',
-                  marginBottom: spacing.md,
-                  fontFamily: 'Inter_18pt-SemiBold',
-                }}>
-                This is not the end...
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: colors.text.muted,
-                  textAlign: 'center',
-                  marginBottom: spacing.xl,
-                  lineHeight: 20,
-                  fontFamily: 'Inter_18pt-Regular',
-                }}>
-                Create your own personalized filters to discover movies and
-                shows tailored just for you!
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate('Main', {
-                    screen: 'MySpace',
-                    params: {screen: 'MyFiltersScreen'},
-                  })
-                }
-                style={{
-                  paddingHorizontal: spacing.md,
-                  borderRadius: borderRadius.round,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                }}>
-                <FastImage
-                  source={require('../assets/next.webp')}
-                  style={{
-                    width: isTablet ? 40 : 30,
-                    height: isTablet ? 40 : 30,
-                  }}
-                />
-              </TouchableOpacity>
-            </View>
-          );
 
         default:
           return null;
@@ -1402,6 +1294,8 @@ export const HomeScreen = React.memo(() => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 100}}
         ListFooterComponent={<View style={{height: 100}} />}
+        initialNumToRender={3}
+        maxToRenderPerBatch={2}
         // Keep mounted to preserve scroll; hide when not focused
         // style={{display: isFocused ? ('flex' as const) : ('none' as const)}}
         // pointerEvents={isFocused ? 'auto' : 'none'}

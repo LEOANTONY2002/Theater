@@ -17,15 +17,8 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
   ({item, onPress, v2 = false}) => {
     const {isTablet} = useResponsive();
     const [imageError, setImageError] = useState(false);
-    const [isOffline, setIsOffline] = useState(false);
-
-    useEffect(() => {
-      const checkConnectivity = async () => {
-        const offline = await checkInternet();
-        setIsOffline(!offline);
-      };
-      checkConnectivity();
-    }, []);
+    // Simplified image loading without per-card connectivity check
+    // If the image fails to load, `onError` will handle it.
 
     const imgPath = v2 ? item.backdrop_path : item.poster_path;
     // Use smaller image sizes on phones to improve scroll performance
@@ -60,7 +53,14 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
     return (
       <>
         <TouchableOpacity
-          style={[styles.container, cardDynamicStyle]}
+          style={[
+            styles.container,
+            cardDynamicStyle,
+            imageError && {
+              padding: spacing.xxl,
+              backgroundColor: colors.background.tag,
+            },
+          ]}
           onPress={handlePress}
           activeOpacity={0.9}
           delayPressIn={0}
@@ -68,16 +68,24 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
           delayLongPress={0}>
           <FastImage
             source={
-              imageError && isOffline
-                ? require('../assets/theater.webp')
+              imageError
+                ? require('../assets/theaterai.webp')
                 : {
-                    uri: imageUrl || 'https://via.placeholder.com/300x450',
+                    uri: imageUrl,
                     priority: FastImage.priority.normal,
-                    cache: FastImage.cacheControl.immutable,
+                    cache: FastImage.cacheControl.web,
                   }
             }
-            style={styles.image}
-            resizeMode={FastImage.resizeMode.cover}
+            style={
+              imageError
+                ? {
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0.5,
+                  }
+                : styles.image
+            }
+            resizeMode={FastImage.resizeMode.contain}
             onError={() => setImageError(true)}
           />
         </TouchableOpacity>
@@ -126,7 +134,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    backgroundColor: colors.background.card,
+    backgroundColor: colors.background.tag,
     borderRadius: borderRadius.md,
   },
   skeleton: {

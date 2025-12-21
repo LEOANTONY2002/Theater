@@ -425,6 +425,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     type: 'movie',
     contentId: movie.id,
     enabled: !!(movieDetails && isAIEnabled),
+    poster_path: movie.poster_path || movieDetails?.poster_path,
   });
 
   // Set loading to false when data is available
@@ -1877,20 +1878,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
               ) : null;
             case 'similar':
               return (
-                <Animated.View
-                  style={{
-                    zIndex: 2,
-                    opacity: similarFadeAnim,
-                    transform: [
-                      {
-                        translateY: similarFadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [30, 0],
-                        }),
-                      },
-                    ],
-                    minHeight: 200, // Ensure minimum height
-                  }}>
+                <>
                   {isAIEnabled && (
                     <>
                       {/* Content Tags Section */}
@@ -1913,7 +1901,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           </Text>
                         </View>
                       ) : (
-                        <View style={{minHeight: 200}}>
+                        <View>
                           {Array.isArray(aiSimilarMovies) &&
                             aiSimilarMovies.length > 0 && (
                               <HorizontalList
@@ -1937,8 +1925,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       />
                     </View>
                   ) : null}
-                </Animated.View>
+                </>
               );
+
             case 'reviews':
               return (
                 <View onLayout={() => setReviewsVisible(true)}>
@@ -1959,7 +1948,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           }
         }}
         keyExtractor={(item: any) => item.id}
-        removeClippedSubviews={true}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 150}}
         alwaysBounceVertical

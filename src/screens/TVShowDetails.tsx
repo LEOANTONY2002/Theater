@@ -157,6 +157,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     type: 'tv',
     contentId: show.id,
     enabled: !!(showDetails && isAIEnabled),
+    poster_path: show.poster_path || showDetails?.poster_path,
   });
 
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
@@ -1887,7 +1888,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={styles.episodesContainer}
                       keyExtractor={(ep: Episode) => ep.id.toString()}
-                      removeClippedSubviews={true}
                       renderItem={renderEpisodeItem}
                     />
                   ) : (
@@ -2177,7 +2177,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         }}
         keyExtractor={(item: any) => item.id}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews
         ListFooterComponent={<View style={{height: 200}} />}
       />
 

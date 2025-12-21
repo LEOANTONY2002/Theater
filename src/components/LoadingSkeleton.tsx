@@ -471,64 +471,72 @@ export const HomeScreenSkeleton = () => (
   </View>
 );
 
-const styles = StyleSheet.create({
-  bannerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-    marginBottom: 24,
-    position: 'relative',
-  },
-  headingSkeletonContainer: {
-    marginLeft: spacing.md,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-    position: 'relative',
-  },
-  horizontalListContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing.md,
-    gap: 0,
-    position: 'relative',
-  },
-  horizontalCardContainer: {
-    marginRight: spacing.sm,
-  },
-  row: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    overflow: 'scroll',
-    position: 'relative',
-    paddingLeft: spacing.md,
-  },
-  grid: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 4,
-    margin: 'auto',
-    position: 'relative',
-  },
-  detail: {
-    width: '100%',
-    alignItems: 'center',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    paddingTop: spacing.md,
-  },
-  centered: {
-    width: '100%',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 10,
-  },
-});
+export const CollectionScreenSkeleton = () => {
+  const {isTablet} = useResponsive();
+  const screenHeight = Dimensions.get('window').height;
+  const bannerHeight = screenHeight * 0.55;
+
+  return (
+    <View style={{flex: 1, backgroundColor: '#050505'}}>
+      {/* Banner Skeleton */}
+      <View style={{position: 'relative', height: bannerHeight, width: '100%'}}>
+        <AnimatedShimmer
+          width={SCREEN_WIDTH}
+          height={bannerHeight}
+          radius={0}
+        />
+        <LinearGradient
+          colors={['transparent', '#050505']}
+          style={StyleSheet.absoluteFill}
+        />
+        {/* Banner Content (Title, Meta, Button) */}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: spacing.lg,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            zIndex: 1,
+            gap: spacing.md,
+          }}>
+          <AnimatedShimmer width={250} height={40} radius={8} />
+          <AnimatedShimmer width={300} height={20} radius={4} />
+          <AnimatedShimmer width={200} height={50} radius={25} />
+        </View>
+      </View>
+
+      {/* List Skeleton */}
+      <View style={{padding: spacing.md}}>
+        {[...Array(3)].map((_, i) => (
+          <View
+            key={i}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: spacing.xl,
+            }}>
+            <View
+              style={{
+                width: 60,
+                alignItems: 'center',
+                marginRight: spacing.sm,
+              }}>
+              <AnimatedShimmer width={40} height={60} radius={8} />
+            </View>
+            <View style={{flex: 1}}>
+              <AnimatedShimmer
+                width={SCREEN_WIDTH - 90}
+                height={180}
+                radius={borderRadius.xl}
+              />
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
 
 export const PersonalizedBannerSkeleton = () => {
   const {isTablet, width: screenWidth} = useResponsive();
@@ -594,3 +602,62 @@ export const ReviewsSkeleton = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  bannerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    marginBottom: 24,
+    position: 'relative',
+  },
+  headingSkeletonContainer: {
+    marginLeft: spacing.md,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  horizontalListContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.md,
+    gap: 0,
+    position: 'relative',
+  },
+  horizontalCardContainer: {
+    marginRight: spacing.sm,
+  },
+  row: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    overflow: 'scroll',
+    position: 'relative',
+    paddingLeft: spacing.md,
+  },
+  grid: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+    margin: 'auto',
+    position: 'relative',
+  },
+  detail: {
+    width: '100%',
+    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    paddingTop: spacing.md,
+  },
+  centered: {
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 10,
+  },
+});

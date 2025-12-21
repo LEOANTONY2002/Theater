@@ -30,6 +30,7 @@ export function useThematicGenres(limit: number = 10) {
           tag: t.tag,
           description: t.description,
           confidence: t.confidence,
+          poster_path: t.poster_path,
         })),
       };
     },
@@ -67,6 +68,7 @@ export function useEmotionalTags(limit: number = 10) {
           tag: t.tag,
           description: t.description,
           confidence: t.confidence,
+          poster_path: t.poster_path,
         })),
       };
     },

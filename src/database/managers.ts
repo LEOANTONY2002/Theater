@@ -349,6 +349,7 @@ export const RealmThematicTagsManager = {
         category: tag.category as string,
         count: tag.count as number,
         confidence: tag.confidence as number,
+        poster_path: tag.poster_path as string | undefined,
       }));
     } catch (error) {
       console.error('[RealmTags] Error getting tags:', error);
@@ -374,6 +375,7 @@ export const RealmThematicTagsManager = {
         category: tag.category as string,
         count: tag.count as number,
         confidence: tag.confidence as number,
+        poster_path: tag.poster_path as string | undefined,
       }));
     } catch (error) {
       console.error('[RealmTags] Error getting top tags:', error);
@@ -387,6 +389,7 @@ export const RealmThematicTagsManager = {
       description: string;
       category: string;
       confidence: number;
+      poster_path?: string;
     }>,
   ): Promise<void> {
     try {
@@ -420,6 +423,9 @@ export const RealmThematicTagsManager = {
             existing.confidence = newConfidence;
             existing.lastSeen = now;
             existing.description = newTag.description;
+            if (newTag.poster_path) {
+              existing.poster_path = newTag.poster_path;
+            }
           } else {
             // Create new with normalized tag
             realm.create('ThematicTag', {
@@ -430,6 +436,7 @@ export const RealmThematicTagsManager = {
               count: 1,
               lastSeen: now,
               confidence: newTag.confidence,
+              poster_path: newTag.poster_path,
             });
           }
         });

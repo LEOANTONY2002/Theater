@@ -491,7 +491,6 @@ export const CategoryScreen = () => {
           getItemLayout={getItemLayout}
           numColumns={columns}
           columnWrapperStyle={styles.row}
-          removeClippedSubviews={true}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
           ListFooterComponent={

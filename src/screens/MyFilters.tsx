@@ -15,6 +15,7 @@ import {
   Clipboard,
   Alert,
   Easing,
+  useWindowDimensions,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {SavedFilter, SORT_OPTIONS} from '../types/filters';
@@ -50,6 +51,8 @@ import {BlurPreference} from '../store/blurPreference';
 import {QuickAddFilters} from '../components/QuickAddFilters';
 import {AIFilterCreator} from '../components/AIFilterCreator';
 import {ReorderFiltersModal} from '../components/ReorderFiltersDialog';
+
+const {width, height} = useWindowDimensions();
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -308,13 +311,14 @@ export const MyFiltersScreen = () => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: isTablet && orientation === 'landscape' ? '20%' : '60%',
+      marginTop: '25%',
       paddingBottom: 200,
     },
     emptyStateTitle: {
       ...typography.h3,
       color: colors.text.primary,
       marginBottom: spacing.sm,
+      marginTop: -100,
     },
     modalTitle: {
       ...typography.h3,
@@ -1334,17 +1338,23 @@ export const MyFiltersScreen = () => {
           </>
         ) : (
           <View style={styles.emptyContainer}>
+            <Image
+              source={require('../assets/MyFiltersPoster.png')}
+              style={{width: width * 0.6, height: height * 0.5}}
+              resizeMode="contain"
+            />
             <Text style={styles.emptyStateTitle}>No Filters Yet</Text>
             <Text style={styles.emptyStateText}>
-              customize the app content with your filters. You can see your
-              filter contents in Home and Explore screen. You can Quick add the
-              filter in the search.
+              Save your favorite search filters here.
             </Text>
             <GradientButton
               onPress={() => setShowAddModal(true)}
               title="Create Your First Filter"
               isIcon={false}
-              style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
+              style={{
+                borderRadius: borderRadius.round,
+                marginVertical: spacing.lg,
+              }}
             />
             <QuickAddFilters
               onQuickAdd={handleQuickAdd}
@@ -1936,6 +1946,7 @@ export const MyFiltersScreen = () => {
                 }}
                 onAISave={handleSaveFilter}
                 hideHeader
+                variant="large"
               />
             </View>
           </MaybeBlurView>

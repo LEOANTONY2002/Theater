@@ -205,7 +205,6 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
       data={filteredLanguages}
       keyExtractor={item => item.iso_639_1}
       renderItem={renderLanguageItem}
-      removeClippedSubviews
       initialNumToRender={20}
       windowSize={12}
       maxToRenderPerBatch={20}
@@ -237,12 +236,18 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
               <TouchableOpacity
                 onPress={() => setSearchQuery('')}
                 style={styles.clearButton}>
-                <Icon name="close-circle" size={20} color={colors.text.secondary} />
+                <Icon
+                  name="close-circle"
+                  size={20}
+                  color={colors.text.secondary}
+                />
               </TouchableOpacity>
             )}
           </View>
           <Text style={styles.description}>
-            {searchQuery ? `${filteredLanguages.length} results` : 'All Languages'}
+            {searchQuery
+              ? `${filteredLanguages.length} results`
+              : 'All Languages'}
           </Text>
         </>
       }

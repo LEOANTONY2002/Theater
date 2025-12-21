@@ -226,7 +226,9 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
               </Text>
             </View>
             {data?.length > 0 && isSeeAll ? (
-              <TouchableOpacity onPress={onSeeAllPress} style={showSeeAllText ? styles.seeAllContainer : undefined}>
+              <TouchableOpacity
+                onPress={onSeeAllPress}
+                style={showSeeAllText ? styles.seeAllContainer : undefined}>
                 {showSeeAllText && (
                   <Text style={styles.seeAllText}>See All</Text>
                 )}
@@ -242,7 +244,9 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
         ) : hideTitle && data?.length > 0 && isSeeAll ? (
           <View style={styles.headerContainer}>
             <View style={styles.headerTitle} />
-            <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllContainer}>
+            <TouchableOpacity
+              onPress={onSeeAllPress}
+              style={styles.seeAllContainer}>
               <Text style={styles.seeAllText}>See All</Text>
               <Ionicon
                 name="chevron-forward-outline"
@@ -264,11 +268,10 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReached={onEndReached}
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
-            initialNumToRender={4}
-            windowSize={3}
-            maxToRenderPerBatch={3}
-            updateCellsBatchingPeriod={100}
-            removeClippedSubviews={true}
+            initialNumToRender={3}
+            windowSize={2}
+            maxToRenderPerBatch={2}
+            updateCellsBatchingPeriod={50}
             getItemLayout={getItemLayout}
             decelerationRate={Platform.OS === 'ios' ? 'fast' : 0.98}
             ListFooterComponent={

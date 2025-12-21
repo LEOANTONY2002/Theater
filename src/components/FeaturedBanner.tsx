@@ -153,11 +153,13 @@ export const FeaturedBanner = memo(
       slides.slice(0, 5).forEach((s: any) => {
         if (s?.backdrop_path) {
           const uri = `https://image.tmdb.org/t/p/${size}${s.backdrop_path}`;
-          FastImage.preload([{
-            uri,
-            priority: FastImage.priority.high,
-            cache: FastImage.cacheControl.immutable,
-          }]);
+          FastImage.preload([
+            {
+              uri,
+              priority: FastImage.priority.high,
+              cache: FastImage.cacheControl.immutable,
+            },
+          ]);
         }
       });
       // Preload remaining images with slight delay
@@ -166,11 +168,13 @@ export const FeaturedBanner = memo(
           slides.slice(5).forEach((s: any) => {
             if (s?.backdrop_path) {
               const uri = `https://image.tmdb.org/t/p/${size}${s.backdrop_path}`;
-              FastImage.preload([{
-                uri,
-                priority: FastImage.priority.normal,
-                cache: FastImage.cacheControl.immutable,
-              }]);
+              FastImage.preload([
+                {
+                  uri,
+                  priority: FastImage.priority.normal,
+                  cache: FastImage.cacheControl.immutable,
+                },
+              ]);
             }
           });
         }, 500);
@@ -189,11 +193,13 @@ export const FeaturedBanner = memo(
         const s: any = slides[i];
         if (s?.backdrop_path) {
           const uri = `https://image.tmdb.org/t/p/${size}${s.backdrop_path}`;
-          FastImage.preload([{
-            uri,
-            priority: FastImage.priority.high,
-            cache: FastImage.cacheControl.immutable,
-          }]);
+          FastImage.preload([
+            {
+              uri,
+              priority: FastImage.priority.high,
+              cache: FastImage.cacheControl.immutable,
+            },
+          ]);
         }
       });
     }, [activeIndex, slides]);
@@ -517,9 +523,9 @@ export const FeaturedBanner = memo(
         });
 
         // Detect the actual type of this slide
-        const slideType = (slide as any).type || 
-          ((slide as any).title ? 'movie' : 'tv');
-        
+        const slideType =
+          (slide as any).type || ((slide as any).title ? 'movie' : 'tv');
+
         // Local handlers bound to slide to avoid depending on `current`
         const onPress = () => {
           if (slideType === 'movie') {
@@ -627,19 +633,22 @@ export const FeaturedBanner = memo(
                     {slide.genre_ids
                       ?.slice(0, 3)
                       .map((genreId: number) => {
-                        const genreName = slideType === 'movie' 
-                          ? movieGenres[genreId] 
-                          : tvGenres[genreId];
-                        return genreName ? {id: genreId, name: genreName} : null;
+                        const genreName =
+                          slideType === 'movie'
+                            ? movieGenres[genreId]
+                            : tvGenres[genreId];
+                        return genreName
+                          ? {id: genreId, name: genreName}
+                          : null;
                       })
-                      .filter((g): g is {id: number; name: string} => g !== null)
+                      .filter(
+                        (g): g is {id: number; name: string} => g !== null,
+                      )
                       .map((genre, idx, arr) => (
                         <View
                           key={`${genre.id}-${idx}`}
                           style={styles.genreWrapper}>
-                          <Text style={styles.genre}>
-                            {genre.name}
-                          </Text>
+                          <Text style={styles.genre}>{genre.name}</Text>
                           {idx < arr.length - 1 && (
                             <Text style={styles.genreDot}>•</Text>
                           )}
@@ -733,7 +742,6 @@ export const FeaturedBanner = memo(
               index,
             })}
             initialScrollIndex={0}
-            removeClippedSubviews
           />
         ) : (
           // Single item fallback

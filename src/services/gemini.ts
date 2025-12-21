@@ -665,7 +665,7 @@ export async function getPersonalizedRecommendation(
       }
 
       if (tmdbData) {
-        return {
+        const result = {
           id: tmdbData.id,
           title: tmdbData.title,
           name: tmdbData.name,
@@ -678,6 +678,16 @@ export async function getPersonalizedRecommendation(
           genre_ids: tmdbData.genre_ids || [],
           media_type: aiRecommendation.type,
         };
+
+        // Cache the result (1 hour TTL)
+        await cache.set(
+          CACHE_KEYS.AI_RECOMMENDATION,
+          cacheKey,
+          result,
+          1000 * 60 * 60,
+        );
+
+        return result;
       }
     }
 

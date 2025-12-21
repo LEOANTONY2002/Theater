@@ -430,6 +430,7 @@ export class ThematicTag extends Realm.Object<ThematicTag> {
   count!: number;
   lastSeen!: Date;
   confidence!: number;
+  poster_path?: string;
 
   static schema: Realm.ObjectSchema = {
     name: 'ThematicTag',
@@ -442,6 +443,7 @@ export class ThematicTag extends Realm.Object<ThematicTag> {
       count: 'double',
       lastSeen: 'date',
       confidence: 'double',
+      poster_path: 'string?',
     },
   };
 }

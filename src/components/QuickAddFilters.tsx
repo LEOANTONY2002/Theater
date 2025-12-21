@@ -10,12 +10,14 @@ interface QuickAddFiltersProps {
   onAISave?: (filter: SavedFilter) => void;
   hideHeader?: boolean;
   onOpenAICreator?: () => void;
+  variant?: 'default' | 'large';
 }
 
 export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
   onQuickAdd,
   hideHeader = false,
   onOpenAICreator,
+  variant = 'default',
 }) => {
   const quickAddItems = [
     {
@@ -90,6 +92,8 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
     },
   ];
 
+  const isLarge = variant === 'large';
+
   return (
     <View style={styles.container}>
       {!hideHeader && (
@@ -104,15 +108,21 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
           </TouchableOpacity>
         </View>
       )}
-      <View style={styles.grid}>
+      <View style={[styles.grid, isLarge && styles.gridLarge]}>
         {quickAddItems.map((item, index) => (
           <TouchableOpacity
             key={index}
             activeOpacity={0.9}
-            style={styles.card}
+            style={[styles.card, isLarge && styles.cardLarge]}
             onPress={() => onQuickAdd(item.name, item.params, item.type)}>
-            <Ionicons name={item.icon} size={16} color={colors.text.primary} />
-            <Text style={styles.text}>{item.name}</Text>
+            <Ionicons
+              name={item.icon}
+              size={isLarge ? 20 : 16}
+              color={colors.text.primary}
+            />
+            <Text style={[styles.text, isLarge && styles.textLarge]}>
+              {item.name}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -159,6 +169,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
   },
+  gridLarge: {
+    paddingHorizontal: spacing.xs,
+    gap: spacing.md,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -170,10 +184,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.modal.border,
   },
+  cardLarge: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.modal.content,
+  },
   text: {
     ...typography.body2,
     color: colors.text.primary,
     fontWeight: '600',
     fontSize: 10,
+  },
+  textLarge: {
+    fontSize: 14,
   },
 });

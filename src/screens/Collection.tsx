@@ -15,6 +15,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {borderRadius, colors, spacing, typography} from '../styles/theme';
+import {CollectionScreenSkeleton} from '../components/LoadingSkeleton';
 import {tmdbApi} from '../services/api';
 import {Movie} from '../types/movie';
 import {CollectionsManager} from '../store/collections';
@@ -363,11 +364,7 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
   });
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
+    return <CollectionScreenSkeleton />;
   }
 
   if (!collection) {

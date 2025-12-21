@@ -1163,7 +1163,6 @@ export const OTTDetailsScreen: React.FC<Props> = ({route, navigation}) => {
         getItemLayout={getItemLayout}
         viewabilityConfig={viewabilityConfig}
         onViewableItemsChanged={onViewableItemsChanged}
-        removeClippedSubviews={true}
         updateCellsBatchingPeriod={100}
       />
     </View>

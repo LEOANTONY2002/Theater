@@ -97,7 +97,6 @@ export const MovieList: React.FC<MovieListProps> = ({
           />
         ) : undefined
       }
-      removeClippedSubviews={true}
       maxToRenderPerBatch={6}
       windowSize={5}
       initialNumToRender={6}

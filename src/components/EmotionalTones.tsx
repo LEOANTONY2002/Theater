@@ -5,9 +5,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {useEmotionalTags} from '../hooks/useThematicGenres';
+import {getImageUrl} from '../services/tmdb';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -61,18 +63,45 @@ export const EmotionalTones: React.FC<EmotionalTonesProps> = ({
             key={index}
             onPress={() => handleTagPress(item.tag)}
             activeOpacity={0.8}>
-            <LinearGradient
-              colors={['rgb(10, 0, 18)', 'rgb(16, 0, 28)']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={[styles.tagCard, isTablet && styles.tagCardTablet]}>
+            <View style={[styles.tagCard, isTablet && styles.tagCardTablet]}>
+              {item.poster_path && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '60%',
+                    overflow: 'hidden',
+                    borderTopRightRadius: borderRadius.lg,
+                    borderBottomRightRadius: borderRadius.lg,
+                  }}>
+                  <Image
+                    source={{uri: getImageUrl(item.poster_path, 'w185')}}
+                    style={{width: '100%', height: '100%', opacity: 0.6}}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={['rgb(10, 0, 18)', 'transparent']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <LinearGradient
+                    colors={['transparent', 'rgb(10, 0, 18)']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 0, y: 1}}
+                    style={StyleSheet.absoluteFill}
+                  />
+                </View>
+              )}
               <View style={styles.tagHeader}>
                 <Text style={styles.tagText}>{item.tag}</Text>
               </View>
               <Text style={styles.confidenceText}>
                 {Math.round(item.confidence * 100)}%
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -110,7 +139,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   tagCard: {
-    width: 150,
+    width: 180,
     height: 100,
     padding: spacing.md,
     borderRadius: borderRadius.lg,
@@ -118,6 +147,7 @@ const styles = StyleSheet.create({
     borderColor: colors.modal.blur,
     marginRight: spacing.sm,
     justifyContent: 'center',
+    backgroundColor: 'rgb(10, 0, 18)',
   },
   tagCardTablet: {
     width: 200,
@@ -125,7 +155,6 @@ const styles = StyleSheet.create({
   },
   tagHeader: {
     flexDirection: 'row',
-    width: '80%',
     alignContent: 'flex-start',
   },
   tagText: {
@@ -141,7 +170,7 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontWeight: '900',
     position: 'absolute',
-    top: 0,
+    bottom: 0,
     right: 10,
     opacity: 0.2,
   },

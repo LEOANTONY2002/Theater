@@ -1127,7 +1127,7 @@ export const MySpaceScreen = React.memo(() => {
                     ? colors.modal.content
                     : colors.background.border,
                   width: width * 0.32,
-                  minWidth: isTablet ? 200 : 130,
+                  minWidth: isTablet ? 200 : 80,
                   height: isTablet ? 80 : 50,
                   marginBottom: 0,
                 }}>

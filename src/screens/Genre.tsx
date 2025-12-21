@@ -391,7 +391,6 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
         ]}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        removeClippedSubviews
         ListFooterComponent={renderFooter}
         ListEmptyComponent={
           !isLoading && !isFetching ? (

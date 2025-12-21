@@ -133,7 +133,6 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.imageList}
-        removeClippedSubviews
       />
 
       {/* Full Screen Image Modal */}
