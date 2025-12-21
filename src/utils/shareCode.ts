@@ -6,9 +6,10 @@
 // Example: THTR1:TXkgTGlzdA; m2s9,m3g4,t1yz
 
 function toBase64Url(input: string): string {
-  const b64 = typeof Buffer !== 'undefined'
-    ? Buffer.from(input, 'utf8').toString('base64')
-    : (globalThis as any).btoa(unescape(encodeURIComponent(input)));
+  const b64 =
+    typeof Buffer !== 'undefined'
+      ? Buffer.from(input, 'utf8').toString('base64')
+      : (globalThis as any).btoa(unescape(encodeURIComponent(input)));
   return b64.replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
@@ -24,7 +25,8 @@ export type MinimalFilter = {
 export function generateFilterCode(filter: MinimalFilter): string {
   const safeName = (filter.name || 'Filter').trim().slice(0, 60);
   const nameB64 = toBase64Url(safeName);
-  const typeChar = filter.type === 'movie' ? 'm' : filter.type === 'tv' ? 't' : 'a';
+  const typeChar =
+    filter.type === 'movie' ? 'm' : filter.type === 'tv' ? 't' : 'a';
   const paramsJson = JSON.stringify(filter.params || {});
   const paramsB64 = toBase64Url(paramsJson);
   return `THTRF:${nameB64};${typeChar};${paramsB64}`;
@@ -59,13 +61,16 @@ export function parseFilterCode(code: string): MinimalFilter | null {
       params = {};
     }
   }
-  const type: 'all' | 'movie' | 'tv' = typeChar === 'm' ? 'movie' : typeChar === 't' ? 'tv' : 'all';
-  return { name: name || 'Imported Filter', type, params };
+  const type: 'all' | 'movie' | 'tv' =
+    typeChar === 'm' ? 'movie' : typeChar === 't' ? 'tv' : 'all';
+  return {name: name || 'Imported Filter', type, params};
 }
 
 // ===== Helpers =====
 // Parse URLs both in web and RN without relying on URL class availability
-function extractCodeAndRedirectFromUrl(input: string): { redirect: string | null; code: string | null } | null {
+function extractCodeAndRedirectFromUrl(
+  input: string,
+): {redirect: string | null; code: string | null} | null {
   try {
     // Extract query part
     const qIndex = input.indexOf('?');
@@ -88,7 +93,9 @@ function extractCodeAndRedirectFromUrl(input: string): { redirect: string | null
 }
 
 function fromBase64Url(b64url: string): string {
-  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((b64url.length + 3) % 4);
+  const b64 =
+    b64url.replace(/-/g, '+').replace(/_/g, '/') +
+    '==='.slice((b64url.length + 3) % 4);
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(b64, 'base64').toString('utf8');
   }
@@ -100,7 +107,7 @@ function fromBase64Url(b64url: string): string {
   }
 }
 
-export type MinimalWatchlistItem = { id: number; type: 'movie' | 'tv' };
+export type MinimalWatchlistItem = {id: number; type: 'movie' | 'tv'};
 
 export function generateWatchlistCode(
   name: string,
@@ -114,7 +121,9 @@ export function generateWatchlistCode(
   return `THTRW:${nameB64};${tokens}`;
 }
 
-export function parseWatchlistCode(code: string): { name: string; items: MinimalWatchlistItem[] } | null {
+export function parseWatchlistCode(
+  code: string,
+): {name: string; items: MinimalWatchlistItem[]} | null {
   if (!code) return null;
   let trimmed = code.trim();
   // Accept URL forms: https://lacurations.vercel.app/theater?redirect=watchlistcode&code=...
@@ -143,9 +152,112 @@ export function parseWatchlistCode(code: string): { name: string; items: Minimal
       if (!idPart) continue;
       const id = parseInt(idPart, 36);
       if (!Number.isFinite(id)) continue;
-      if (typeChar === 'm') items.push({ id, type: 'movie' });
-      else if (typeChar === 't') items.push({ id, type: 'tv' });
+      if (typeChar === 'm') items.push({id, type: 'movie'});
+      else if (typeChar === 't') items.push({id, type: 'tv'});
     }
   }
-  return { name: name || 'Imported Watchlist', items };
+  return {name: name || 'Imported Watchlist', items};
+}
+
+export interface ExportableWatchlist {
+  name: string;
+  items: MinimalWatchlistItem[];
+}
+
+export function generateAllWatchlistsCode(
+  watchlists: ExportableWatchlist[],
+): string {
+  const segments = watchlists.map(wl => {
+    const safeName = (wl.name || 'Watchlist').trim().slice(0, 60);
+    const nameB64 = toBase64Url(safeName);
+    const tokens = wl.items
+      .map(it => `${it.type === 'movie' ? 'm' : 't'}${it.id.toString(36)}`)
+      .join(',');
+    return `${nameB64};${tokens}`;
+  });
+  return `THTRA:${segments.join('|')}`;
+}
+
+export function parseAllWatchlistsCode(
+  code: string,
+): ExportableWatchlist[] | null {
+  if (!code) return null;
+  let trimmed = code.trim();
+  if (!trimmed.startsWith('THTRA:')) return null;
+
+  const body = trimmed.slice('THTRA:'.length);
+  if (!body) return [];
+
+  const segments = body.split('|');
+  const results: ExportableWatchlist[] = [];
+
+  for (const seg of segments) {
+    const [nameB64, tokenStr = ''] = seg.split(';');
+    let name = 'Imported Watchlist';
+    try {
+      name = fromBase64Url(nameB64);
+    } catch {}
+
+    const items: MinimalWatchlistItem[] = [];
+    if (tokenStr) {
+      for (const tok of tokenStr.split(',')) {
+        if (!tok) continue;
+        const typeChar = tok[0];
+        const idPart = tok.slice(1);
+        if (!idPart) continue;
+        const id = parseInt(idPart, 36);
+        if (!Number.isFinite(id)) continue;
+        if (typeChar === 'm') items.push({id, type: 'movie'});
+        else if (typeChar === 't') items.push({id, type: 'tv'});
+      }
+    }
+    results.push({name, items});
+  }
+  return results;
+}
+
+// ===== Collections =====
+// Format: THTRC:<id_base36>
+// All Collections Format: THTRAC:<id_base36>,<id_base36>,...
+
+export function generateCollectionCode(id: number): string {
+  return `THTRC:${id.toString(36)}`;
+}
+
+export function parseCollectionCode(code: string): number | null {
+  if (!code) return null;
+  let trimmed = code.trim();
+  // URL handling
+  if (/^https?:\/\//i.test(trimmed)) {
+    const parsed = extractCodeAndRedirectFromUrl(trimmed);
+    if (parsed && parsed.redirect === 'collectioncode' && parsed.code) {
+      trimmed = parsed.code.trim();
+    }
+  }
+  if (!trimmed.startsWith('THTRC:')) return null;
+  const idPart = trimmed.slice('THTRC:'.length);
+  const id = parseInt(idPart, 36);
+  return Number.isFinite(id) ? id : null;
+}
+
+export function generateAllCollectionsCode(ids: number[]): string {
+  const tokens = ids.map(id => id.toString(36)).join(',');
+  return `THTRAC:${tokens}`;
+}
+
+export function parseAllCollectionsCode(code: string): number[] | null {
+  if (!code) return null;
+  let trimmed = code.trim();
+  if (!trimmed.startsWith('THTRAC:')) return null;
+
+  const body = trimmed.slice('THTRAC:'.length);
+  if (!body) return [];
+
+  const ids: number[] = [];
+  for (const tok of body.split(',')) {
+    if (!tok) continue;
+    const id = parseInt(tok, 36);
+    if (Number.isFinite(id)) ids.push(id);
+  }
+  return ids;
 }

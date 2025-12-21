@@ -244,34 +244,12 @@ export const EmotionalToneResultsScreen: React.FC = () => {
 
         {/* Error */}
         <View style={styles.emptyContainer}>
-          <Icon
-            name="alert-circle"
-            size={48}
-            color={isQuotaError ? colors.accent : colors.text.muted}
-          />
           <Text style={styles.emptyText}>
-            {isQuotaError ? 'API Quota Exceeded' : error}
+            {isQuotaError ? 'Cannot reach Gemini AI' : error}
           </Text>
           {isQuotaError && (
             <>
-              <Text style={styles.quotaSubtext}>
-                Please update your Gemini API key in settings or try again later
-              </Text>
-              <TouchableOpacity
-                style={styles.settingsButton}
-                onPress={() => {
-                  // Navigate to MySpace tab, then to AISettings
-                  (navigation as any).navigate('MySpace', {
-                    screen: 'AISettings',
-                  });
-                }}>
-                <Icon
-                  name="settings-outline"
-                  size={20}
-                  color={colors.background.primary}
-                />
-                <Text style={styles.settingsButtonText}>AI Settings</Text>
-              </TouchableOpacity>
+              <Text style={styles.quotaSubtext}>Please try again later</Text>
             </>
           )}
         </View>
@@ -280,220 +258,262 @@ export const EmotionalToneResultsScreen: React.FC = () => {
   }
 
   return (
-    <GestureHandlerRootView>
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <View style={{flex: 1, backgroundColor: colors.background.primary}}>
         <LinearGradient
-          colors={['rgba(19, 0, 47, 0.36)', 'transparent']}
+          colors={[
+            colors.background.primary,
+            colors.background.primary,
+            'transparent',
+          ]}
           style={{
-            height: windowWidth * 0.5,
             position: 'absolute',
-            top: 0,
             left: 0,
             right: 0,
+            top: 0,
+            height: 150,
+            zIndex: 1,
+            pointerEvents: 'none',
           }}
         />
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}>
-            <Icon name="chevron-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{tag}</Text>
+        <View
+          style={{
+            position: 'absolute',
+            top: 50,
+            left: 0,
+            right: 0,
+            zIndex: 2,
+            paddingHorizontal: spacing.lg,
+          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}>
+              <Icon name="chevron-back" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{tag}</Text>
+          </View>
         </View>
 
-        {/* Carousel */}
-        <View style={styles.carouselWrapper}>
-          {/* Background Confidence Scores */}
-          <View style={styles.scoreContainer} pointerEvents="none">
-            {results.slice(0, MAX_RESULTS).map((item, idx) => (
-              <Animated.View
-                key={idx}
-                style={[styles.scoreWrapper, animatedScoreStyles[idx]]}>
-                <Text
-                  style={[
-                    styles.confidenceScore,
-                    {
-                      fontSize: isTablet ? 120 : 80,
-                      opacity: 0.1,
-                    },
-                  ]}>
-                  {Math.round(item.confidence * 100)}%
-                </Text>
-                <Image
-                  source={require('../assets/match.png')}
-                  style={{
-                    position: 'absolute',
-                    zIndex: 1,
-                    width: 100,
-                    height: 80,
-                    objectFit: 'contain',
-                    opacity: 1,
-                  }}
-                />
-              </Animated.View>
-            ))}
-          </View>
-
-          <Carousel
-            width={windowWidth}
-            height={isTablet ? windowWidth * 0.8 + 70 : windowWidth}
-            data={results.slice(0, MAX_RESULTS)}
-            mode="horizontal-stack"
-            modeConfig={{
-              snapDirection: 'left',
-              stackInterval: cardOverlap,
-              showLength: 2,
-            }}
-            style={{width: windowWidth, alignSelf: 'center'}}
-            loop={false}
-            pagingEnabled
-            onProgressChange={(_, absoluteProgress) => {
-              progressValue.value = absoluteProgress;
-            }}
-            renderItem={({item, animationValue}) => {
-              const animatedStyle = useAnimatedStyle(() => {
-                const scale = interpolate(
-                  animationValue.value,
-                  [-1, 0, 1],
-                  [0, 1, 0.9],
-                );
-
-                const opacity = interpolate(
-                  animationValue.value,
-                  [-1, 0, 0],
-                  [0.5, 1, 0.8],
-                );
-                return {
-                  transform: [{scale}],
-                  opacity,
-                };
-              });
-
-              const posterPath =
-                item.content.poster_path || item.content.backdrop_path;
-              const posterUri = posterPath
-                ? `https://image.tmdb.org/t/p/${
-                    isTablet ? 'original' : 'w500'
-                  }${posterPath}`
-                : null;
-
-              return (
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={() => handleItemPress(item)}>
-                  <Animated.View
-                    style={[
-                      styles.cardStack,
-                      {height: isTablet ? windowWidth * 0.8 + 70 : windowWidth},
-                      animatedStyle,
-                    ]}>
-                    {posterUri ? (
-                      <FastImage
-                        source={{
-                          uri: posterUri,
-                          priority: FastImage.priority.high,
-                          cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={[
-                          styles.card,
-                          {
-                            width: isTablet
-                              ? windowWidth * 0.5
-                              : windowWidth * 0.6,
-                            height: isTablet ? windowWidth * 0.8 : windowWidth,
-                          },
-                        ]}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.card,
-                          {
-                            backgroundColor: colors.background.secondary,
-                            width: cardWidth,
-                            height: cardHeight,
-                          },
-                        ]}
-                      />
-                    )}
-                  </Animated.View>
-                </TouchableOpacity>
-              );
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.container}
+          contentContainerStyle={{paddingTop: 80}}>
+          <LinearGradient
+            colors={['rgba(19, 0, 47, 0.36)', 'transparent']}
+            style={{
+              height: windowWidth * 0.5,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
             }}
           />
-          {/* Info Section */}
-          <View style={styles.infoSection}>
-            {results.slice(0, MAX_RESULTS).map((item, idx) => {
-              const title =
-                item.type === 'movie'
-                  ? (item.content as Movie).title
-                  : (item.content as TVShow).name;
-              const year =
-                item.type === 'movie'
-                  ? (item.content as Movie).release_date?.split('-')[0]
-                  : (item.content as TVShow).first_air_date?.split('-')[0];
-              const languageCode =
-                item.type === 'movie'
-                  ? (item.content as Movie).original_language
-                  : (item.content as TVShow).original_language;
-              // Use IMDb rating from AI if available, otherwise TMDB rating
-              const rating = item.imdbRating || item.content.vote_average;
-              const languageName =
-                getLanguage(languageCode) || languageCode?.toUpperCase();
 
-              return (
+          {/* Carousel */}
+          <View style={styles.carouselWrapper}>
+            {/* Background Confidence Scores */}
+            <View style={styles.scoreContainer} pointerEvents="none">
+              {results.slice(0, MAX_RESULTS).map((item, idx) => (
                 <Animated.View
                   key={idx}
-                  style={[styles.infoContent, animatedInfoStyles[idx]]}>
-                  <Text style={styles.movieTitle} numberOfLines={2}>
-                    {title}
+                  style={[styles.scoreWrapper, animatedScoreStyles[idx]]}>
+                  <Text
+                    style={[
+                      styles.confidenceScore,
+                      {
+                        fontSize: isTablet ? 120 : 80,
+                        opacity: 0.1,
+                      },
+                    ]}>
+                    {Math.round(item.confidence * 100)}%
                   </Text>
-                  <View style={styles.metaRow}>
-                    <Text style={styles.movieMeta}>{year}</Text>
-                    <Text style={styles.metaDot}>•</Text>
-                    <Text style={styles.movieMeta}>{languageName}</Text>
-                    {rating && (
-                      <>
-                        <Text style={styles.metaDot}>•</Text>
-                        <View style={styles.ratingContainer}>
-                          <Icon
-                            name="star"
-                            size={12}
-                            color={colors.text.secondary}
-                          />
-                          <Text style={styles.movieMeta}>
-                            {rating.toFixed(1)}
-                          </Text>
-                        </View>
-                      </>
-                    )}
-                  </View>
+                  <Image
+                    source={require('../assets/match.png')}
+                    style={{
+                      position: 'absolute',
+                      zIndex: 1,
+                      width: 100,
+                      height: 80,
+                      objectFit: 'contain',
+                      opacity: 1,
+                    }}
+                  />
+                </Animated.View>
+              ))}
+            </View>
 
-                  {/* Why This Match */}
-                  <View style={styles.matchReasonContainer}>
-                    <View style={styles.matchReasonHeader}>
-                      <Icon
-                        name="sparkles"
-                        size={16}
-                        color={colors.accent}
-                        style={{marginRight: 6}}
-                      />
-                      <Text style={styles.matchReasonTitle}>
-                        Why This Match
+            <Carousel
+              width={windowWidth}
+              height={isTablet ? windowWidth * 0.8 + 70 : windowWidth}
+              data={results.slice(0, MAX_RESULTS)}
+              mode="horizontal-stack"
+              modeConfig={{
+                snapDirection: 'left',
+                stackInterval: cardOverlap,
+                showLength: 2,
+              }}
+              style={{width: windowWidth, alignSelf: 'center'}}
+              loop={false}
+              pagingEnabled
+              onProgressChange={(_, absoluteProgress) => {
+                progressValue.value = absoluteProgress;
+              }}
+              renderItem={({item, animationValue}) => {
+                const animatedStyle = useAnimatedStyle(() => {
+                  const scale = interpolate(
+                    animationValue.value,
+                    [-1, 0, 1],
+                    [0, 1, 0.9],
+                  );
+
+                  const opacity = interpolate(
+                    animationValue.value,
+                    [-1, 0, 0],
+                    [0.5, 1, 0.8],
+                  );
+                  return {
+                    transform: [{scale}],
+                    opacity,
+                  };
+                });
+
+                const posterPath =
+                  item.content.poster_path || item.content.backdrop_path;
+                const posterUri = posterPath
+                  ? `https://image.tmdb.org/t/p/${
+                      isTablet ? 'original' : 'w500'
+                    }${posterPath}`
+                  : null;
+
+                return (
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => handleItemPress(item)}>
+                    <Animated.View
+                      style={[
+                        styles.cardStack,
+                        {
+                          height: isTablet
+                            ? windowWidth * 0.8 + 70
+                            : windowWidth,
+                        },
+                        animatedStyle,
+                      ]}>
+                      {posterUri ? (
+                        <FastImage
+                          source={{
+                            uri: posterUri,
+                            priority: FastImage.priority.high,
+                            cache: FastImage.cacheControl.immutable,
+                          }}
+                          style={[
+                            styles.card,
+                            {
+                              width: isTablet
+                                ? windowWidth * 0.5
+                                : windowWidth * 0.6,
+                              height: isTablet
+                                ? windowWidth * 0.8
+                                : windowWidth,
+                            },
+                          ]}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.card,
+                            {
+                              backgroundColor: colors.background.secondary,
+                              width: cardWidth,
+                              height: cardHeight,
+                            },
+                          ]}
+                        />
+                      )}
+                    </Animated.View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+            {/* Info Section */}
+            <View style={styles.infoSection}>
+              {results.slice(0, MAX_RESULTS).map((item, idx) => {
+                const title =
+                  item.type === 'movie'
+                    ? (item.content as Movie).title
+                    : (item.content as TVShow).name;
+                const year =
+                  item.type === 'movie'
+                    ? (item.content as Movie).release_date?.split('-')[0]
+                    : (item.content as TVShow).first_air_date?.split('-')[0];
+                const languageCode =
+                  item.type === 'movie'
+                    ? (item.content as Movie).original_language
+                    : (item.content as TVShow).original_language;
+                // Use IMDb rating from AI if available, otherwise TMDB rating
+                const rating = item.imdbRating || item.content.vote_average;
+                const languageName =
+                  getLanguage(languageCode) || languageCode?.toUpperCase();
+
+                return (
+                  <Animated.View
+                    key={idx}
+                    style={[styles.infoContent, animatedInfoStyles[idx]]}>
+                    <Text style={styles.movieTitle} numberOfLines={2}>
+                      {title}
+                    </Text>
+                    <View style={styles.metaRow}>
+                      <Text style={styles.movieMeta}>{year}</Text>
+                      <Text style={styles.metaDot}>•</Text>
+                      <Text style={styles.movieMeta}>{languageName}</Text>
+                      {rating && (
+                        <>
+                          <Text style={styles.metaDot}>•</Text>
+                          <View style={styles.ratingContainer}>
+                            <Icon
+                              name="star"
+                              size={12}
+                              color={colors.text.secondary}
+                            />
+                            <Text style={styles.movieMeta}>
+                              {rating.toFixed(1)}
+                            </Text>
+                          </View>
+                        </>
+                      )}
+                    </View>
+
+                    {/* Why This Match */}
+                    <View style={styles.matchReasonContainer}>
+                      <View style={styles.matchReasonHeader}>
+                        <Icon
+                          name="sparkles"
+                          size={16}
+                          color={colors.accent}
+                          style={{marginRight: 6}}
+                        />
+                        <Text style={styles.matchReasonTitle}>
+                          Why This Match
+                        </Text>
+                      </View>
+                      <Text style={styles.matchReasonText} numberOfLines={4}>
+                        {item.matchReason}
                       </Text>
                     </View>
-                    <Text style={styles.matchReasonText} numberOfLines={4}>
-                      {item.matchReason}
-                    </Text>
-                  </View>
-                </Animated.View>
-              );
-            })}
+                  </Animated.View>
+                );
+              })}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+          <View style={{height: 200}} />
+        </ScrollView>
+      </View>
     </GestureHandlerRootView>
   );
 };
@@ -571,7 +591,6 @@ const styles = StyleSheet.create({
     borderColor: colors.modal.blurDark,
   },
   infoSection: {
-    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     minHeight: 200,
     marginTop: 40,
@@ -587,12 +606,12 @@ const styles = StyleSheet.create({
   },
   movieTitle: {
     ...typography.h2,
-    fontSize: 24,
     color: colors.text.primary,
     marginBottom: spacing.xs,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: {width: 0, height: 2},
     textShadowRadius: 4,
+    textAlign: 'center',
   },
   metaRow: {
     flexDirection: 'row',
@@ -622,7 +641,7 @@ const styles = StyleSheet.create({
   },
   matchReasonContainer: {
     borderRadius: borderRadius.md,
-    padding: spacing.md,
+    marginTop: spacing.md,
   },
   matchReasonHeader: {
     flexDirection: 'row',
@@ -637,7 +656,8 @@ const styles = StyleSheet.create({
   matchReasonText: {
     ...typography.body2,
     color: colors.text.secondary,
-    lineHeight: 20,
+    lineHeight: 16,
+    fontSize: 11,
   },
   // Loading & Error states
   titleContainer: {

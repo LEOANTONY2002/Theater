@@ -11,15 +11,26 @@ export const FiltersManager = {
     }));
   },
 
-  async saveFilter(name: string, params: any, type: 'all' | 'movie' | 'tv'): Promise<string> {
+  async saveFilter(
+    name: string,
+    params: any,
+    type: 'all' | 'movie' | 'tv',
+  ): Promise<string> {
     return await RealmFiltersManager.saveFilter(name, params, type);
   },
 
-  async updateFilter(id: string, filter: {name: string; params: any; type: 'all' | 'movie' | 'tv'}): Promise<void> {
+  async updateFilter(
+    id: string,
+    filter: {name: string; params: any; type: 'all' | 'movie' | 'tv'},
+  ): Promise<void> {
     await RealmFiltersManager.updateFilter(id, filter);
   },
 
   async deleteFilter(id: string): Promise<void> {
     await RealmFiltersManager.deleteFilter(id);
+  },
+
+  async reorderFilters(ids: string[]): Promise<void> {
+    await RealmFiltersManager.reorderFilters(ids);
   },
 };

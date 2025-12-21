@@ -1381,3 +1381,8 @@ export async function fetchContentFromAI(
     ),
   ).then(results => results.filter(Boolean));
 }
+
+export const getCollectionDetails = async (collectionId: number) => {
+  const response = await tmdbApi.get(`/collection/${collectionId}`);
+  return response.data;
+};

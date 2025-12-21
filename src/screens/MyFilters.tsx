@@ -4,16 +4,20 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
+  ScrollView,
   Image,
-  Modal,
-  TextInput,
+  Dimensions,
+  Animated,
   ActivityIndicator,
+  Modal,
+  FlatList,
+  TextInput,
   Clipboard,
   Alert,
+  Easing,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {SavedFilter} from '../types/filters';
+import {SavedFilter, SORT_OPTIONS} from '../types/filters';
 import {FiltersManager} from '../store/filters';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -25,6 +29,7 @@ import {useGenres} from '../hooks/useGenres';
 import {
   getOptimizedImageUrl,
   getAvailableWatchProviders,
+  getPersonById,
 } from '../services/tmdb';
 import {HorizontalListSkeleton} from '../components/LoadingSkeleton';
 import CreateButton from '../components/createButton';
@@ -34,16 +39,17 @@ import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {BlurView} from '@react-native-community/blur';
 import ShareLib from 'react-native-share';
-import {Animated, Easing} from 'react-native';
+
 import {useResponsive} from '../hooks/useResponsive';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {generateFilterCode, parseFilterCode} from '../utils/shareCode';
-import {modalStyles} from '../styles/styles';
 import {ContentItem} from '../components/MovieList';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {GradientButton} from '../components/GradientButton';
 import {BlurPreference} from '../store/blurPreference';
 import {QuickAddFilters} from '../components/QuickAddFilters';
+import {AIFilterCreator} from '../components/AIFilterCreator';
+import {ReorderFiltersModal} from '../components/ReorderFiltersDialog';
 
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
@@ -51,7 +57,13 @@ export const MyFiltersScreen = () => {
   const [importCode, setImportCode] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
+  const [showAICreator, setShowAICreator] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
+  const [editingFilterSection, setEditingFilterSection] = useState<
+    string | undefined
+  >(undefined);
   const [deletingFilter, setDeletingFilter] = useState<SavedFilter | null>(
     null,
   );
@@ -135,9 +147,22 @@ export const MyFiltersScreen = () => {
       queryClient.invalidateQueries({queryKey: ['savedFilters']});
       setDeletingFilter(null);
     } catch (error) {
-      setDeletingFilter(null);
+      console.error('Error deleting filter:', error);
     }
   }, [deletingFilter, queryClient]);
+
+  const handleReorder = useCallback(
+    async (reorderedFilters: SavedFilter[]) => {
+      try {
+        await FiltersManager.reorderFilters(reorderedFilters.map(f => f.id));
+        queryClient.invalidateQueries({queryKey: ['savedFilters']});
+      } catch (error) {
+        console.error('Error reordering filters:', error);
+        Alert.alert('Error', 'Failed to reorder filters');
+      }
+    },
+    [queryClient],
+  );
 
   // Quick add filters: create a filter in one tap
   const handleQuickAdd = useCallback(
@@ -225,20 +250,31 @@ export const MyFiltersScreen = () => {
       left: 0,
       right: 0,
       zIndex: 10,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: spacing.md,
-      overflow: 'hidden',
-      marginTop: 50,
-      borderRadius: borderRadius.round,
-      marginHorizontal: spacing.md,
+      marginTop: 60,
     },
     title: {
-      flex: 1,
-      textAlign: 'center',
+      textAlign: 'left',
       color: colors.text.primary,
       ...typography.h2,
+      paddingHorizontal: spacing.md,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.modal.blur,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.header,
+      opacity: 0.8,
+      gap: 8,
+    },
+    actionButtonText: {
+      color: colors.text.primary,
+      ...typography.button,
+      fontSize: 14,
     },
     modalContainer: {
       flex: 1,
@@ -265,7 +301,7 @@ export const MyFiltersScreen = () => {
     },
     content: {
       paddingHorizontal: spacing.md,
-      paddingTop: 100, // Make sure this is at least the header height
+      paddingTop: 160, // Increased for taller header
       paddingBottom: 150,
     },
     emptyContainer: {
@@ -279,6 +315,10 @@ export const MyFiltersScreen = () => {
       ...typography.h3,
       color: colors.text.primary,
       marginBottom: spacing.sm,
+    },
+    modalTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
     },
     emptyStateText: {
       ...typography.body1,
@@ -305,24 +345,21 @@ export const MyFiltersScreen = () => {
     filterName: {
       color: colors.text.primary,
       ...typography.h3,
-    },
-    filterContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      top: 10,
+      flex: 1,
     },
     card: {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: spacing.xs,
-      // backgroundColor: colors.background.card,
-      borderWidth: 1,
-      borderColor: colors.modal.blur,
+      gap: 2,
+      backgroundColor: colors.modal.blur,
       borderRadius: borderRadius.md,
-      width: 80,
-      height: 80,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.header,
+      opacity: 0.8,
+      width: 72,
+      height: 72,
       padding: spacing.xs,
       zIndex: 1,
     },
@@ -337,14 +374,16 @@ export const MyFiltersScreen = () => {
       paddingHorizontal: spacing.lg,
     },
     cardText: {
-      color: colors.text.secondary,
-      ...typography.body1,
+      color: '#9CA3AF',
+      ...typography.caption,
+      fontSize: 11,
+      textAlign: 'center',
+      fontWeight: '500',
     },
     genreContainer: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.xs,
-      marginTop: spacing.xs,
       paddingHorizontal: 2,
       width: '100%',
     },
@@ -399,14 +438,20 @@ export const MyFiltersScreen = () => {
     },
     providerCardDynamic: {
       // allow the provider card to extend horizontally when many logos
-      width: undefined as unknown as number,
-      minWidth: 80 as unknown as number,
+      width: 'auto',
+      minWidth: 80,
       paddingHorizontal: spacing.xs,
     },
     providerGridDynamic: {
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.xs,
+    },
+
+    iconBox: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 2,
     },
   });
 
@@ -417,7 +462,7 @@ export const MyFiltersScreen = () => {
   }: {
     filter: SavedFilter;
     allGenres: Genre[];
-    onEdit: (f: SavedFilter) => void;
+    onEdit: (f: SavedFilter, section?: string) => void;
   }) => {
     const type = filter?.type;
     const sortBy = filter?.params?.sort_by?.split('.')[0][0];
@@ -445,6 +490,52 @@ export const MyFiltersScreen = () => {
       filter?.params?.['first_air_date.lte'];
     const fromYear = fromDate ? new Date(fromDate).getFullYear() : null;
     const toYear = toDate ? new Date(toDate).getFullYear() : null;
+
+    // Additional params extraction
+    const runtimeGte = filter?.params?.with_runtime_gte;
+    const runtimeLte = filter?.params?.with_runtime_lte;
+    const certification = filter?.params?.certification;
+    const voteCountGte = filter?.params?.['vote_count.gte'];
+    const voteCountLte = filter?.params?.['vote_count.lte'];
+    const castIds = filter?.params?.with_cast
+      ? filter.params.with_cast.split(',').filter(Boolean)
+      : [];
+    const castCount = castIds.length;
+    const firstCastId = castIds[0] ? parseInt(castIds[0], 10) : null;
+
+    const crewIds = filter?.params?.with_crew
+      ? filter.params.with_crew.split(',').filter(Boolean)
+      : [];
+    const crewCount = crewIds.length;
+    const firstCrewId = crewIds[0] ? parseInt(crewIds[0], 10) : null;
+
+    // Fetch First Cast Name
+    const {data: firstCastPerson} = useQuery({
+      queryKey: ['person', firstCastId],
+      queryFn: () => getPersonById(firstCastId!),
+      enabled: !!firstCastId,
+      staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    });
+
+    // Fetch First Crew Name
+    const {data: firstCrewPerson} = useQuery({
+      queryKey: ['person', firstCrewId],
+      queryFn: () => getPersonById(firstCrewId!),
+      enabled: !!firstCrewId,
+      staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    });
+    const keywordCount = filter?.params?.with_keywords
+      ? filter.params.with_keywords.split(',').filter(Boolean).length
+      : 0;
+    const companyCount = filter?.params?.with_companies
+      ? filter.params.with_companies.split(',').filter(Boolean).length
+      : 0;
+    const networkCount = filter?.params?.with_networks
+      ? filter.params.with_networks.split(',').filter(Boolean).length
+      : 0;
+    const releaseTypeCount = filter?.params?.with_release_type
+      ? filter.params.with_release_type.split('|').filter(Boolean).length
+      : 0;
 
     // Fetch filter content for this filter
     const {
@@ -483,6 +574,7 @@ export const MyFiltersScreen = () => {
           poster_path: item.poster_path,
           backdrop_path: item.backdrop_path,
           vote_average: item.vote_average,
+          vote_count: item.vote_count || 0,
           release_date: item.release_date || '',
           genre_ids: item.genre_ids,
           popularity: item.popularity,
@@ -583,7 +675,9 @@ export const MyFiltersScreen = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-              <Text style={styles.filterName}>{filter.name}</Text>
+              <Text style={styles.filterName} numberOfLines={1}>
+                {filter.name}
+              </Text>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
                 {contentItems?.length > 0 && (
                   <TouchableOpacity
@@ -622,6 +716,7 @@ export const MyFiltersScreen = () => {
             {genreNames && (
               <View style={[styles.genreContainer, {minHeight: 20}]}>
                 <Text
+                  numberOfLines={1}
                   style={[
                     styles.genreText,
                     {flex: 1, flexWrap: 'wrap', lineHeight: 18},
@@ -634,254 +729,351 @@ export const MyFiltersScreen = () => {
 
           {/* HorizontalList of filter search results */}
           <View style={styles.listContainer}>
-            <View style={styles.filterContent}>
+            <ScrollView
+              style={{
+                paddingHorizontal: spacing.md,
+                marginTop: 10,
+              }}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{gap: spacing.sm, paddingLeft: 15}}>
+              {/* Type */}
+              {type && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'type')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name={
+                        type === 'movie'
+                          ? 'film-outline'
+                          : type === 'tv'
+                          ? 'tv-outline'
+                          : 'apps-outline'
+                      }
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Sort */}
+              {sortBy && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'sort')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="swap-vertical-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {SORT_OPTIONS.find(
+                      opt => opt.value === filter?.params?.sort_by,
+                    )?.label || 'Sort'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Rating */}
+              {rating && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'rating')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="star"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {rating}+
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Language */}
+              {language && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'language')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="language"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {language.name || language.english_name}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Year */}
+              {(fromYear || toYear) && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'year')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {fromYear && toYear
+                      ? `${fromYear}-${toYear}`
+                      : fromYear
+                      ? `${fromYear}+`
+                      : `<${toYear}`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Runtime */}
+              {(runtimeGte || runtimeLte) && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'runtime')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="time-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {runtimeGte && runtimeLte
+                      ? `${runtimeGte}-${runtimeLte}m`
+                      : runtimeGte
+                      ? `>${runtimeGte}m`
+                      : `<${runtimeLte}m`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Certification */}
+              {certification && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'certification')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {certification}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Vote Count */}
+              {(voteCountGte || voteCountLte) && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'rating')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="stats-chart-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {voteCountGte ? `>${voteCountGte}` : `<${voteCountLte}`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Cast */}
+              {castCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'cast')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="people-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {firstCastPerson?.name || 'Cast'}
+                    {castCount > 1 ? ` +${castCount - 1}` : ''}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Crew */}
+              {crewCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'crew')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="videocam-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {firstCrewPerson?.name || 'Crew'}
+                    {crewCount > 1 ? ` +${crewCount - 1}` : ''}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Keywords */}
+              {keywordCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'keywords')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="key-outline"
+                      size={20}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {keywordCount} Keys
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Companies */}
+              {companyCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'companies')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="business-outline"
+                      size={14}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {companyCount} Corps
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Networks */}
+              {networkCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'networks')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="desktop-outline"
+                      size={14}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {networkCount} nets
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Release Type */}
+              {releaseTypeCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => onEdit(filter, 'release_type')}
+                  style={styles.card}>
+                  <View style={styles.iconBox}>
+                    <Ionicons
+                      name="calendar-number-outline"
+                      size={14}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                  <Text style={styles.cardText} numberOfLines={1}>
+                    {releaseTypeCount} Types
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Watch Providers */}
               {(() => {
-                const blocks: React.ReactElement[] = [];
-
-                blocks.push(<View style={{width: 15}} />);
-
-                // Type block
-                if (type) {
-                  blocks.push(
-                    <View style={styles.card}>
-                      <Ionicons
-                        name={
-                          type === 'movie'
-                            ? 'film-outline'
-                            : type === 'tv'
-                            ? 'tv-outline'
-                            : 'apps-outline'
-                        }
-                        size={15}
-                        color={colors.text.primary}
-                      />
-                      <Text style={styles.cardText} numberOfLines={1}>
-                        {type?.charAt(0).toUpperCase() + type?.slice(1)}
-                      </Text>
-                    </View>,
-                  );
-                }
-
-                if (sortBy) {
-                  blocks.push(
-                    <View style={styles.card}>
-                      <Ionicons
-                        name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
-                        size={15}
-                        color={colors.text.primary}
-                      />
-                      <Text style={styles.cardText} numberOfLines={1}>
-                        {sortBy.toString()}
-                      </Text>
-                    </View>,
-                  );
-                }
-                if (rating) {
-                  blocks.push(
-                    <View style={styles.card}>
-                      <Ionicons
-                        name="star"
-                        size={15}
-                        color={colors.text.primary}
-                      />
-                      <Text style={styles.cardText} numberOfLines={1}>
-                        {rating.toString()}
-                      </Text>
-                    </View>,
-                  );
-                }
-
-                // Language
-                if (language) {
-                  blocks.push(
-                    <View style={styles.card}>
-                      <Ionicons
-                        name="language"
-                        size={15}
-                        color={colors.text.primary}
-                      />
-                      <Text style={styles.cardText} numberOfLines={1}>
-                        {language?.name || language?.english_name}
-                      </Text>
-                    </View>,
-                  );
-                }
-
-                // Years
-                if (fromYear) {
-                  blocks.push(
-                    <View style={styles.card}>
-                      <Ionicons
-                        name="calendar-outline"
-                        size={15}
-                        color={colors.text.primary}
-                      />
-                      <Text style={styles.cardText} numberOfLines={1}>
-                        {fromYear}
-                      </Text>
-                    </View>,
-                  );
-                }
-                if (toYear) {
-                  blocks.push(
-                    <View style={styles.card}>
-                      <Text style={styles.cardText} numberOfLines={1}>
-                        {toYear}
-                      </Text>
-                      <Ionicons
-                        name="calendar-outline"
-                        size={15}
-                        color={colors.text.primary}
-                      />
-                    </View>,
-                  );
-                }
-
-                // Watch providers
                 const provider = (filter?.params as any)
                   ?.with_watch_providers as string | undefined;
-                if (provider && provider.trim().length > 0) {
-                  const ids = provider
-                    .split(/[,|]/)
-                    .map(p => p.trim())
-                    .filter(Boolean)
-                    .map(rawId => String(parseInt(rawId, 10)));
-                  const logos = ids
-                    .map((id, idx) => ({
-                      id,
-                      key: `${filter.id}-prov-${idx}`,
-                      path: providerLogoById[id] || null,
-                    }))
-                    .filter(x => !!x.path);
+                if (!provider || provider.trim().length === 0) return null;
 
-                  const count = logos.length;
-                  if (count === 0) {
-                    // fallback to icon-only if no logos resolved
-                    blocks.push(
-                      <View style={styles.card}>
-                        <Ionicons
-                          name="play"
-                          size={20}
-                          color={colors.text.secondary}
-                        />
-                      </View>,
-                    );
-                  } else if (count === 1) {
-                    blocks.push(
-                      <View style={styles.card}>
+                const ids = provider
+                  .split(/[,|]/)
+                  .map(p => p.trim())
+                  .filter(Boolean)
+                  .map(rawId => String(parseInt(rawId, 10)));
+                const logos = ids
+                  .map((id, idx) => ({
+                    id,
+                    key: `${filter.id}-prov-${idx}`,
+                    path: providerLogoById[id] || null,
+                  }))
+                  .filter(x => !!x.path);
+
+                if (logos.length === 0) return null;
+
+                return (
+                  <TouchableOpacity
+                    onPress={() => onEdit(filter, 'providers')}
+                    style={styles.card}>
+                    <View
+                      style={[
+                        styles.iconBox,
+                        {
+                          width: 'auto',
+                          paddingHorizontal: 4,
+                          gap: 4,
+                          flexDirection: 'row',
+                        },
+                      ]}>
+                      {logos.slice(0, 3).map(l => (
                         <Image
-                          key={logos[0].key}
+                          key={l.key}
                           source={{
                             uri: getOptimizedImageUrl(
-                              logos[0].path as string,
+                              l.path as string,
                               'small',
                             ),
                           }}
-                          style={styles.providerIconLarge}
+                          style={{width: 14, height: 14, borderRadius: 4}}
                           resizeMode="contain"
-                          accessibilityLabel={`Provider ${logos[0].id}`}
                         />
-                      </View>,
-                    );
-                  } else if (count <= 4) {
-                    blocks.push(
-                      <View style={styles.card}>
-                        <View style={styles.providerGrid}>
-                          <View style={styles.providerRow}>
-                            {logos.slice(0, Math.min(2, count)).map(l => (
-                              <Image
-                                key={l.key}
-                                source={{
-                                  uri: getOptimizedImageUrl(
-                                    l.path as string,
-                                    'small',
-                                  ),
-                                }}
-                                style={styles.providerIconGrid}
-                                resizeMode="contain"
-                                accessibilityLabel={`Provider ${l.id}`}
-                              />
-                            ))}
-                          </View>
-                          <View style={styles.providerRow}>
-                            {logos.slice(2, Math.min(4, count)).map(l => (
-                              <Image
-                                key={l.key}
-                                source={{
-                                  uri: getOptimizedImageUrl(
-                                    l.path as string,
-                                    'small',
-                                  ),
-                                }}
-                                style={styles.providerIconGrid}
-                                resizeMode="contain"
-                                accessibilityLabel={`Provider ${l.id}`}
-                              />
-                            ))}
-                          </View>
-                        </View>
-                      </View>,
-                    );
-                  } else {
-                    // More than 4: extend horizontally with 2 rows, repeating pattern
-                    const top = logos.filter((_, i) => i % 2 === 0);
-                    const bottom = logos.filter((_, i) => i % 2 === 1);
-                    blocks.push(
-                      <View style={[styles.card, styles.providerCardDynamic]}>
-                        <View style={styles.providerGridDynamic}>
-                          <View style={styles.providerRow}>
-                            {top.map(l => (
-                              <Image
-                                key={`top-${l.key}`}
-                                source={{
-                                  uri: getOptimizedImageUrl(
-                                    l.path as string,
-                                    'small',
-                                  ),
-                                }}
-                                style={styles.providerIconGrid}
-                                resizeMode="contain"
-                                accessibilityLabel={`Provider ${l.id}`}
-                              />
-                            ))}
-                          </View>
-                          <View style={styles.providerRow}>
-                            {bottom.map(l => (
-                              <Image
-                                key={`bot-${l.key}`}
-                                source={{
-                                  uri: getOptimizedImageUrl(
-                                    l.path as string,
-                                    'small',
-                                  ),
-                                }}
-                                style={styles.providerIconGrid}
-                                resizeMode="contain"
-                                accessibilityLabel={`Provider ${l.id}`}
-                              />
-                            ))}
-                          </View>
-                        </View>
-                      </View>,
-                    );
-                  }
-
-                  blocks.push(<View style={{width: 25}} />);
-                }
-
-                // Render as horizontal FlatList
-                return (
-                  <FlatList
-                    data={blocks}
-                    keyExtractor={(_, idx) => `${filter.id}-chip-${idx}`}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{gap: spacing.sm}}
-                    renderItem={({item}) => item}
-                  />
+                      ))}
+                      {logos.length > 3 && (
+                        <Text
+                          style={{
+                            // ...typography.caption, // Assuming typography is defined elsewhere
+                            fontSize: 10,
+                            color: colors.text.secondary,
+                          }}>
+                          +{logos.length - 3}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={styles.cardText} numberOfLines={1}>
+                      Providers
+                    </Text>
+                  </TouchableOpacity>
                 );
               })()}
-            </View>
+              <View style={{width: 32}} />
+            </ScrollView>
             {flattenedData?.length > 0 ? (
               <HorizontalList
                 title={''}
@@ -1048,85 +1240,66 @@ export const MyFiltersScreen = () => {
   return (
     <View style={{flex: 1}}>
       <LinearGradient
-        colors={[colors.background.primary, 'transparent']}
+        colors={[
+          colors.background.primary,
+          colors.background.primary,
+          'transparent',
+        ]}
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
           top: 0,
-          height: 150,
+          height: 250,
           zIndex: 1,
           pointerEvents: 'none',
         }}
       />
       <View style={styles.header}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            zIndex: 1,
-          }}>
+        <Text style={styles.title}>My Filters</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{gap: 8, paddingHorizontal: spacing.md}}
+          style={{marginTop: 12}}>
           <TouchableOpacity
-            activeOpacity={0.9}
-            style={{
-              backgroundColor: isSolid
-                ? colors.modal.blur
-                : 'rgba(122, 122, 122, 0.25)',
-              padding: isTablet ? 12 : 10,
-              borderRadius: borderRadius.round,
-              borderColor: colors.modal.blur,
-              borderWidth: 1,
-            }}
-            onPress={() => navigation.goBack()}>
-            <Ionicons
-              name="chevron-back-outline"
-              size={isTablet ? 20 : 16}
-              color={colors.text.primary}
-            />
+            style={styles.actionButton}
+            onPress={() => setShowAddModal(true)}>
+            <Ionicons name="add" size={18} color={colors.text.primary} />
+            <Text style={styles.actionButtonText}>New</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>My Filters</Text>
-          <View style={styles.addRow}>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowQuickAddModal(true)}>
+            <Ionicons name="flash" size={14} color={colors.text.primary} />
+            <Text style={styles.actionButtonText}>Quick Add</Text>
+          </TouchableOpacity>
+
+          {savedFilters.length > 1 && (
             <TouchableOpacity
-              activeOpacity={0.9}
-              style={{
-                backgroundColor: isSolid
-                  ? colors.modal.blur
-                  : 'rgba(122, 122, 122, 0.25)',
-                padding: isTablet ? 12 : 10,
-                borderRadius: borderRadius.round,
-                borderColor: colors.modal.blur,
-                borderWidth: 1,
-              }}
-              onPress={() => setShowImportModal(true)}>
+              style={styles.actionButton}
+              onPress={() => setShowReorderModal(true)}>
               <Ionicons
-                name="download-outline"
-                size={isTablet ? 20 : 16}
+                name="swap-vertical"
+                size={16}
                 color={colors.text.primary}
               />
+              <Text style={styles.actionButtonText}>Reorder</Text>
             </TouchableOpacity>
-            {savedFilters.length > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={{
-                  backgroundColor: isSolid
-                    ? colors.modal.blur
-                    : 'rgba(122, 122, 122, 0.25)',
-                  padding: isTablet ? 12 : 10,
-                  borderRadius: borderRadius.round,
-                  borderColor: colors.modal.blur,
-                  borderWidth: 1,
-                }}
-                onPress={() => setShowAddModal(true)}>
-                <Ionicons
-                  name="add"
-                  size={isTablet ? 20 : 16}
-                  color={colors.text.primary}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowImportModal(true)}>
+            <Ionicons
+              name="download-outline"
+              size={16}
+              color={colors.text.primary}
+            />
+            <Text style={styles.actionButtonText}>Import</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       <Animated.ScrollView
@@ -1149,14 +1322,14 @@ export const MyFiltersScreen = () => {
                   key={filter.id}
                   filter={filter}
                   allGenres={allGenres}
-                  onEdit={setEditingFilter}
+                  onEdit={(f, section) => {
+                    setEditingFilter(f);
+                    setEditingFilterSection(section);
+                    setShowAddModal(true);
+                  }}
                 />
               ))}
             </View>
-            <QuickAddFilters
-              onQuickAdd={handleQuickAdd}
-              onAISave={handleSaveFilter}
-            />
             <View style={{height: 200}} />
           </>
         ) : (
@@ -1176,20 +1349,34 @@ export const MyFiltersScreen = () => {
             <QuickAddFilters
               onQuickAdd={handleQuickAdd}
               onAISave={handleSaveFilter}
+              onOpenAICreator={() => setShowAICreator(true)}
             />
           </View>
         )}
       </Animated.ScrollView>
+
+      <ReorderFiltersModal
+        visible={showReorderModal}
+        onClose={() => setShowReorderModal(false)}
+        filters={savedFilters}
+        onReorder={handleReorder}
+      />
 
       <MyFiltersModal
         visible={showAddModal || !!editingFilter}
         onClose={() => {
           setShowAddModal(false);
           setEditingFilter(null);
+          setEditingFilterSection(undefined);
         }}
         onSave={handleSaveFilter}
         editingFilter={editingFilter}
-        onDelete={handleDelete}
+        initialScrollSection={editingFilterSection}
+        onDelete={id => {
+          setShowAddModal(false);
+          setEditingFilter(null);
+          setDeletingFilter(savedFilters.find(f => f.id === id) || null);
+        }}
       />
 
       {/* Delete Confirmation Modal */}
@@ -1655,6 +1842,103 @@ export const MyFiltersScreen = () => {
               </View>
             )}
           </View>
+        </View>
+      </Modal>
+      <AIFilterCreator
+        visible={showAICreator}
+        onClose={() => setShowAICreator(false)}
+        onSave={filter => {
+          handleSaveFilter(filter);
+          setShowAICreator(false);
+        }}
+      />
+
+      {/* Quick Add Modal */}
+      <Modal
+        visible={showQuickAddModal}
+        animationType="slide"
+        backdropColor={colors.modal.blurDark}
+        statusBarTranslucent={true}
+        onRequestClose={() => setShowQuickAddModal(false)}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor: 'transparent',
+          }}>
+          <MaybeBlurView
+            header
+            style={[
+              {
+                marginTop: 20,
+              },
+            ]}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+              }}>
+              <Ionicons name="flash" size={20} color={colors.text.muted} />
+              <Text style={styles.modalTitle}>Quick Add</Text>
+            </View>
+            <View style={{flexDirection: 'row', gap: spacing.sm}}>
+              <TouchableOpacity
+                onPress={() => setShowAICreator(true)}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons name="sparkles" size={20} color={colors.accent} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowQuickAddModal(false)}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+          </MaybeBlurView>
+          <MaybeBlurView body style={{flex: 1}}>
+            <View style={{padding: spacing.md}}>
+              <QuickAddFilters
+                onQuickAdd={(name, params, type) => {
+                  handleQuickAdd(name, params, type);
+                  setShowQuickAddModal(false);
+                }}
+                onAISave={handleSaveFilter}
+                hideHeader
+              />
+            </View>
+          </MaybeBlurView>
         </View>
       </Modal>
     </View>

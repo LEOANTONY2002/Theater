@@ -47,7 +47,7 @@ import {BlurPreference} from '../store/blurPreference';
 import {getCinemaDNA, CinemaDNA, getTypeEmoji} from '../utils/cinemaDNA';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import {CollectionsManager} from '../store/collections';
-import {MyCollectionsList} from './MyCollectionsList';
+
 import {notificationService} from '../services/NotificationService';
 
 type MySpaceScreenNavigationProp =
@@ -66,7 +66,7 @@ export const MySpaceScreen = React.memo(() => {
   const queryClient = useQueryClient();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
-  const [showMyCollectionsModal, setShowMyCollectionsModal] = useState(false);
+
   // Footer-related modals moved to About & Legal screen
 
   const [showMoodModal, setShowMoodModal] = useState(false);
@@ -994,10 +994,10 @@ export const MySpaceScreen = React.memo(() => {
             <TouchableOpacity
               style={styles.tile}
               activeOpacity={0.9}
-              onPress={() => setShowMyCollectionsModal(true)}>
+              onPress={() => navigateWithLimit('MyCollectionsScreen')}>
               <View style={styles.tileHeaderRow}>
                 <Image
-                  source={require('../assets/mywatchlists.png')} // Reusing watchlist icon as requested
+                  source={require('../assets/mycollections.png')} // Reusing watchlist icon as requested
                   style={styles.icon}
                 />
                 <Text style={styles.tileTitle}>My Collections</Text>
@@ -1464,86 +1464,9 @@ export const MySpaceScreen = React.memo(() => {
           </TouchableOpacity>
         </View>
         <View
-          style={{height: isTablet && orientation === 'landscape' ? 200 : 100}}
+          style={{height: isTablet && orientation === 'landscape' ? 400 : 200}}
         />
       </View>
-      <Modal
-        visible={showMyCollectionsModal}
-        animationType="slide"
-        statusBarTranslucent={true}
-        backdropColor={colors.modal.blurDark}
-        onRequestClose={() => setShowMyCollectionsModal(false)}>
-        {forceBlurAll && (
-          <BlurView
-            blurType="dark"
-            blurAmount={10}
-            overlayColor={colors.modal.blurDark}
-            style={{
-              flex: 1,
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}
-          />
-        )}
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'flex-end',
-            margin: isTablet ? spacing.xl : spacing.md,
-            borderRadius: borderRadius.xl,
-            backgroundColor: 'transparent',
-          }}>
-          <MaybeBlurView
-            header
-            style={{
-              marginTop: 20,
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.sm,
-              }}>
-              <Image
-                source={require('../assets/mywatchlists.png')}
-                style={{
-                  width: 20,
-                  height: 20,
-                  objectFit: 'contain',
-                  opacity: 0.7,
-                }}
-              />
-              <Text
-                style={{
-                  color: colors.text.primary,
-                  ...typography.h3,
-                }}>
-                My Collections
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => setShowMyCollectionsModal(false)}
-              style={{
-                padding: spacing.sm,
-                backgroundColor: colors.modal.blur,
-                borderRadius: borderRadius.round,
-              }}>
-              <Ionicons name="close" size={20} color={colors.text.primary} />
-            </TouchableOpacity>
-          </MaybeBlurView>
-
-          <MaybeBlurView
-            body
-            style={{maxHeight: height - (isTablet ? 200 : 150)}}>
-            <MyCollectionsList
-              contentContainerStyle={{paddingVertical: spacing.md}}
-            />
-          </MaybeBlurView>
-        </View>
-      </Modal>
 
       {/* My Language Modal - single select using LanguageSettings in local mode */}
       <Modal

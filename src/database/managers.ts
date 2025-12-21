@@ -303,6 +303,27 @@ export const RealmFiltersManager = {
       console.error('[RealmFilters] Error deleting filter:', error);
     }
   },
+
+  async reorderFilters(ids: string[]): Promise<void> {
+    try {
+      const realm = getRealm();
+      const now = Date.now();
+      realm.write(() => {
+        ids.forEach((id, index) => {
+          const filter = realm.objectForPrimaryKey('SavedFilter', id);
+          if (filter) {
+            // Update createdAt to reflect new order
+            // Sorting is descending, so earlier items in list (smaller index)
+            // should have later timestamps (larger value)
+            filter.createdAt = new Date(now - index * 1000);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('[RealmFilters] Error reordering filters:', error);
+      throw error;
+    }
+  },
 };
 
 // ============================================================================

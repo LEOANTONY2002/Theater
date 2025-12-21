@@ -406,6 +406,77 @@ class WatchlistManager {
       return null;
     }
   }
+  async reorderWatchlists(ids: string[]): Promise<void> {
+    try {
+      const realm = getRealm();
+      const now = Date.now();
+      realm.write(() => {
+        ids.forEach((id, index) => {
+          const watchlist = realm.objectForPrimaryKey('Watchlist', id);
+          if (watchlist) {
+            // Update createdAt to reflect new order
+            // Sorting is descending, so earlier items in list (smaller index)
+            // should have later timestamps (larger value)
+            watchlist.createdAt = new Date(now - index * 1000);
+          }
+        });
+      });
+      queryClient.invalidateQueries({queryKey: ['watchlists']});
+      this.notifyListeners();
+    } catch (error) {
+      console.error('[WatchlistManager] Error reordering watchlists:', error);
+      throw error;
+    }
+  }
+
+  async deleteAllWatchlists(): Promise<void> {
+    try {
+      const realm = getRealm();
+      realm.write(() => {
+        const allWatchlists = realm.objects('Watchlist');
+        const allItems = realm.objects('WatchlistItem');
+        realm.delete(allItems);
+        realm.delete(allWatchlists);
+      });
+      queryClient.invalidateQueries({queryKey: ['watchlists']});
+      this.notifyListeners();
+    } catch (error) {
+      console.error('[WatchlistManager] Error deleting all watchlists:', error);
+      throw error;
+    }
+  }
+
+  async getAllWatchlistsExportData(): Promise<
+    Array<{name: string; items: {id: number; type: 'movie' | 'tv'}[]}>
+  > {
+    try {
+      const realm = getRealm();
+      // Get all watchlists
+      const watchlists = realm.objects('Watchlist').sorted('createdAt', true);
+      const allData: Array<{
+        name: string;
+        items: {id: number; type: 'movie' | 'tv'}[];
+      }> = [];
+
+      for (const wl of watchlists) {
+        const wId = wl._id as string;
+        const items = realm
+          .objects('WatchlistItem')
+          .filtered('watchlistId == $0', wId);
+        allData.push({
+          name: wl.name as string,
+          items: Array.from(items).map(i => ({
+            id: i.contentId as number,
+            type: i.type as 'movie' | 'tv',
+          })),
+        });
+      }
+      return allData;
+    } catch (error) {
+      console.error('[WatchlistManager] Export error', error);
+      return [];
+    }
+  }
 }
 
 export const watchlistManager = new WatchlistManager();

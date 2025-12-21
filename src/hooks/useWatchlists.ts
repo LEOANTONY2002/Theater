@@ -140,3 +140,25 @@ export const useWatchlistContainingItem = (itemId: number) => {
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
+
+export const useReorderWatchlists = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => watchlistManager.reorderWatchlists(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['watchlists']});
+    },
+  });
+};
+
+export const useDeleteAllWatchlists = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => watchlistManager.deleteAllWatchlists(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['watchlists']});
+    },
+  });
+};

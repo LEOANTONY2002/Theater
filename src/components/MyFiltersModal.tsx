@@ -75,6 +75,7 @@ interface MyFiltersModalProps {
   onSave: (filter: SavedFilter) => void;
   editingFilter?: SavedFilter | null;
   onDelete: (id: string) => void;
+  initialScrollSection?: string;
 }
 
 export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
@@ -83,6 +84,7 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
   onSave,
   onDelete,
   editingFilter = null,
+  initialScrollSection,
 }) => {
   const [filterName, setFilterName] = useState('');
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>('all');
@@ -297,6 +299,32 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
     }
   }, [visible, editingFilter]);
 
+  // Scroll refs
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const [sectionYRefs, setSectionYRefs] = useState<Record<string, number>>({});
+
+  const handleLayout = (section: string, event: any) => {
+    const layout = event.nativeEvent.layout;
+    setSectionYRefs(prev => ({...prev, [section]: layout.y}));
+  };
+
+  useEffect(() => {
+    if (
+      visible &&
+      initialScrollSection &&
+      sectionYRefs[initialScrollSection] !== undefined &&
+      scrollViewRef.current
+    ) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({
+          y: sectionYRefs[initialScrollSection],
+          animated: true,
+        });
+      }, 500); // Slight delay to ensure layout is ready and modal animation is done
+    }
+  }, [visible, initialScrollSection, sectionYRefs]);
+
+  // Load editing filter data
   useEffect(() => {
     const loadLanguages = async () => {
       try {
@@ -746,10 +774,13 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
         </MaybeBlurView>
         <MaybeBlurView body style={{flex: 1}}>
           <ScrollView
+            ref={scrollViewRef}
             style={styles.scrollContent}
             showsVerticalScrollIndicator={false}>
             {/* Filter Name */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('name', e)}>
               <Text style={styles.sectionTitle}>Filter Name</Text>
               <TextInput
                 style={[
@@ -780,7 +811,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Content Type */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('type', e)}>
               <Text style={styles.sectionTitle}>Content Type</Text>
               <View style={styles.contentTypeContainer}>
                 <TouchableOpacity
@@ -874,7 +907,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Genres */}
-            <View style={[styles.section, {paddingHorizontal: 0}]}>
+            <View
+              style={[styles.section, {paddingHorizontal: 0}]}
+              onLayout={e => handleLayout('genres', e)}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Genres</Text>
                 <View
@@ -1027,7 +1062,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Exclude Genres */}
-            <View style={[styles.section, {paddingHorizontal: 0}]}>
+            <View
+              style={[styles.section, {paddingHorizontal: 0}]}
+              onLayout={e => handleLayout('exclude_genres', e)}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle]}>Exclude Genres</Text>
                 <View
@@ -1148,7 +1185,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Sort By with Order Toggle */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('sort', e)}>
               <Text style={styles.sectionTitle}>Sort By</Text>
               <View
                 style={
@@ -1172,7 +1211,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Language (uses LanguageSettings modal) */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('language', e)}>
               <Text style={styles.sectionTitle}>Original Language</Text>
               <TouchableOpacity
                 style={[
@@ -1212,7 +1253,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Rating */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('rating', e)}>
               <GradientProgressBar
                 value={filters['vote_average.gte'] || 1}
                 minValue={0}
@@ -1294,7 +1337,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View> */}
 
             {/* Cast & Crew */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('cast', e)}>
               <AdvancedFilterSearch
                 title="Cast"
                 placeholder="Search for actors..."
@@ -1329,7 +1374,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Keywords */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('keywords', e)}>
               <AdvancedFilterSearch
                 title="Keywords"
                 placeholder="Search for keywords..."
@@ -1348,7 +1395,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             {/* Companies (Movies) / Networks (TV) */}
             {contentType === 'movie' || contentType === 'all' ? (
-              <View style={styles.section}>
+              <View
+                style={styles.section}
+                onLayout={e => handleLayout('companies', e)}>
                 <AdvancedFilterSearch
                   title="Production Companies"
                   placeholder="Search for companies..."
@@ -1368,7 +1417,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             ) : null}
 
             {contentType === 'tv' || contentType === 'all' ? (
-              <View style={styles.section}>
+              <View
+                style={styles.section}
+                onLayout={e => handleLayout('networks', e)}>
                 <AdvancedFilterSearch
                   title="TV Networks"
                   placeholder="Search for networks..."
@@ -1388,7 +1439,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             ) : null}
 
             {/* Age Certification */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('certification', e)}>
               <Text style={styles.sectionTitle}>Age Rating</Text>
               <View
                 style={
@@ -1427,7 +1480,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
 
             {/* Release Type (Movies only) */}
             {contentType === 'movie' && (
-              <View style={styles.section}>
+              <View
+                style={styles.section}
+                onLayout={e => handleLayout('release_type', e)}>
                 <Text style={styles.sectionTitle}>Release Type</Text>
                 <View style={{gap: spacing.xs}}>
                   {RELEASE_TYPES.map(type => {
@@ -1493,7 +1548,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             )}
 
             {/* Runtime Range */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('runtime', e)}>
               <Text style={styles.sectionTitle}>Runtime (minutes)</Text>
               <View style={{gap: spacing.md}}>
                 <GradientProgressBar
@@ -1524,7 +1581,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Release Date */}
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={e => handleLayout('year', e)}>
               <Text style={styles.sectionTitle}>
                 {contentType === 'movie' ? 'Release Date' : 'Air Date'}
               </Text>
@@ -1555,7 +1614,9 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
             </View>
 
             {/* Watch Providers */}
-            <View style={[styles.section, {paddingHorizontal: 0}]}>
+            <View
+              style={[styles.section, {paddingHorizontal: 0}]}
+              onLayout={e => handleLayout('providers', e)}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Watch Providers</Text>
                 <View

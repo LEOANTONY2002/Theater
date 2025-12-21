@@ -9,6 +9,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import {borderRadius, colors} from '../styles/theme';
 import Ionicon from 'react-native-vector-icons/Ionicons';
+import {useResponsive} from '../hooks/useResponsive';
 
 interface GradientButtonProps {
   onPress: () => void;
@@ -31,21 +32,22 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   isIcon = true,
   v2 = false,
 }) => {
+  const {isTablet} = useResponsive();
   const styles = StyleSheet.create({
     container: {},
     button: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 8,
-      paddingHorizontal: 24,
-      paddingVertical: 12,
+      gap: 6,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
       borderRadius: 8,
       width: fullWidth ? '100%' : undefined,
     },
     text: {
       color: !v2 ? colors.text.primary : colors.background.primary,
-      fontSize: 16,
+      fontSize: isTablet ? 14 : 12,
       fontWeight: '600',
       textAlign: 'center',
       fontFamily: 'Inter_18pt-Regular',
@@ -73,7 +75,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
         {isIcon && (
           <Ionicon
             name="play"
-            size={24}
+            size={isTablet ? 24 : 15}
             color={!v2 ? colors.text.primary : colors.background.primary}
           />
         )}

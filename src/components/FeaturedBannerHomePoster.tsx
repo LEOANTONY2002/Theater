@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ImageBackground,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,
   Button,
   Alert,
 } from 'react-native';
@@ -29,8 +29,6 @@ import {
 } from '../hooks/useWatchlists';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useResponsive} from '../hooks/useResponsive';
-const {width} = Dimensions.get('window');
-const BANNER_HEIGHT = 680;
 
 // Genre mappings
 const movieGenres: {[key: number]: string} = {
@@ -84,6 +82,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export const FeaturedBannerHomePoster: React.FC<
   FeaturedBannerHomePosterProps
 > = ({item, type}) => {
+  const {width} = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
@@ -132,7 +131,7 @@ export const FeaturedBannerHomePoster: React.FC<
       zIndex: 0,
     },
     cardContainer: {
-      width: isTablet ? 400 : 300,
+      width: isTablet ? 400 : width * 0.7,
       height: isTablet ? 650 : 500,
       backgroundColor: 'rgba(3, 0, 17, 0.99)',
       alignSelf: 'center',
@@ -202,8 +201,6 @@ export const FeaturedBannerHomePoster: React.FC<
     watchButton: {
       flex: 1,
       borderRadius: borderRadius.round,
-      paddingHorizontal: 36,
-      paddingVertical: 14,
       marginRight: 12,
     },
     watchButtonText: {

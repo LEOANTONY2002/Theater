@@ -29,6 +29,7 @@ import {OTTDetailsScreen} from '../screens/OTTDetails';
 import {CinemaScreen} from '../screens/CinemaScreen';
 import {CinemaInsightsScreen} from '../screens/CinemaInsightsScreen';
 import {NotificationSettings} from '../screens/NotificationSettings';
+import {MyCollectionsScreen} from '../screens/MyCollections';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -320,6 +321,11 @@ export const MySpaceStackNavigator = () => (
       name="NotificationSettings"
       component={NotificationSettings}
       options={slideFromRightOptions}
+    />
+
+    <MySpaceStack.Screen
+      name="MyCollectionsScreen"
+      component={MyCollectionsScreen}
     />
     <MySpaceStack.Screen
       name="CinemaInsightsScreen"

@@ -25,7 +25,11 @@ import {
   useDeleteWatchlist,
   useAddToWatchlist,
   useUpdateWatchlist,
+  useReorderWatchlists,
+  useDeleteAllWatchlists,
 } from '../hooks/useWatchlists';
+import {ReorderWatchlistsDialog} from '../components/ReorderWatchlistsDialog';
+import {Watchlist} from '../store/watchlists';
 import {HorizontalList} from '../components/HorizontalList';
 import {ContentItem} from '../components/MovieList';
 import {useNavigation} from '@react-navigation/native';
@@ -38,7 +42,13 @@ import {modalStyles} from '../styles/styles';
 import {useNavigationState} from '../hooks/useNavigationState';
 import LinearGradient from 'react-native-linear-gradient';
 import {useResponsive} from '../hooks/useResponsive';
-import {generateWatchlistCode, parseWatchlistCode} from '../utils/shareCode';
+import {
+  generateWatchlistCode,
+  parseWatchlistCode,
+  generateAllWatchlistsCode,
+  parseAllWatchlistsCode,
+} from '../utils/shareCode';
+import {watchlistManager} from '../store/watchlists';
 import {getMovieDetails, getTVShowDetails} from '../services/tmdbWithCache';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {BlurPreference} from '../store/blurPreference';
@@ -56,29 +66,38 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   header: {
-    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    overflow: 'hidden',
-    marginTop: 50,
-    borderRadius: borderRadius.round,
-    marginHorizontal: spacing.md,
+    marginTop: 60,
   },
   title: {
-    flex: 1,
-    textAlign: 'center',
+    textAlign: 'left',
     color: colors.text.primary,
     ...typography.h2,
+    paddingHorizontal: spacing.md,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.modal.blur,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.header,
+    opacity: 0.8,
+    gap: 8,
+  },
+  actionButtonText: {
+    color: colors.text.primary,
+    ...typography.button,
+    fontSize: 14,
   },
   content: {
     paddingHorizontal: spacing.md,
-    paddingTop: 100,
     paddingBottom: 150,
   },
   emptyContainer: {
@@ -177,6 +196,7 @@ const WatchlistItemWithResults = React.memo(
               poster_path: item.poster_path,
               backdrop_path: item.backdrop_path,
               vote_average: item.vote_average,
+              vote_count: 0,
               release_date: item.release_date || '',
               genre_ids: item.genre_ids,
               popularity: item.popularity,
@@ -547,6 +567,14 @@ export const WatchlistsScreen: React.FC = () => {
     id: string;
     name: string;
   } | null>(null);
+  const [showReorderModal, setShowReorderModal] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [exportCode, setExportCode] = useState<string | null>(null);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({visible: false, title: '', message: ''});
   const [editName, setEditName] = useState('');
 
   const {data: watchlists = [], isLoading} = useWatchlists();
@@ -554,6 +582,8 @@ export const WatchlistsScreen: React.FC = () => {
   const updateWatchlistMutation = useUpdateWatchlist();
   const deleteWatchlistMutation = useDeleteWatchlist();
   const addToWatchlistMutation = useAddToWatchlist();
+  const reorderWatchlistsMutation = useReorderWatchlists();
+  const deleteAllWatchlistsMutation = useDeleteAllWatchlists();
   const navigation = useNavigation<WatchlistsScreenNavigationProp>();
   const {navigateWithLimit} = useNavigationState();
   const {isTablet, orientation} = useResponsive();
@@ -649,18 +679,92 @@ export const WatchlistsScreen: React.FC = () => {
     [navigateWithLimit],
   );
 
+  const handleExportAll = useCallback(async () => {
+    try {
+      const data = await watchlistManager.getAllWatchlistsExportData();
+      if (data.length === 0) {
+        setCustomAlert({
+          visible: true,
+          title: 'Export',
+          message: 'No watchlists to export.',
+        });
+        return;
+      }
+      const code = generateAllWatchlistsCode(data);
+      setExportCode(code);
+    } catch (e) {
+      setCustomAlert({
+        visible: true,
+        title: 'Export Failed',
+        message: 'Could not export watchlists.',
+      });
+    }
+  }, []);
+
   const handleImportSubmit = useCallback(async () => {
-    if (!importCode.trim()) {
-      Alert.alert('Import', 'Please paste a valid code.');
+    const code = importCode.trim();
+    if (!code) {
+      setCustomAlert({
+        visible: true,
+        title: 'Import',
+        message: 'Please paste a valid code.',
+      });
       return;
     }
-    const parsed = parseWatchlistCode(importCode.trim());
-    if (!parsed || parsed.items.length === 0) {
-      Alert.alert('Import', 'Invalid or empty code.');
-      return;
-    }
+
     try {
       setIsImporting(true);
+
+      // Try bulk parsing first
+      const bulkParsed = parseAllWatchlistsCode(code);
+      if (bulkParsed && bulkParsed.length > 0) {
+        let importedCount = 0;
+        for (const wl of bulkParsed) {
+          try {
+            const newList = await createWatchlistMutation.mutateAsync(wl.name);
+            for (const it of wl.items) {
+              try {
+                if (it.type === 'movie') {
+                  const movie = await getMovieDetails(it.id);
+                  await addToWatchlistMutation.mutateAsync({
+                    watchlistId: newList.id,
+                    item: movie,
+                    itemType: 'movie',
+                  });
+                } else {
+                  const show = await getTVShowDetails(it.id);
+                  await addToWatchlistMutation.mutateAsync({
+                    watchlistId: newList.id,
+                    item: show,
+                    itemType: 'tv',
+                  });
+                }
+              } catch (e) {}
+            }
+            importedCount++;
+          } catch (e) {}
+        }
+        setShowImportModal(false);
+        setImportCode('');
+        setCustomAlert({
+          visible: true,
+          title: 'Import Complete',
+          message: `${importedCount} watchlists imported successfully.`,
+        });
+        return;
+      }
+
+      // Fallback to single watchlist parsing
+      const parsed = parseWatchlistCode(code);
+      if (!parsed || parsed.items.length === 0) {
+        setCustomAlert({
+          visible: true,
+          title: 'Import',
+          message: 'Invalid or empty code.',
+        });
+        return;
+      }
+
       const newList = await createWatchlistMutation.mutateAsync(
         `${parsed.name}`,
       );
@@ -685,74 +789,98 @@ export const WatchlistsScreen: React.FC = () => {
       }
       setShowImportModal(false);
       setImportCode('');
-      Alert.alert('Import Complete', 'Watchlist imported successfully.');
+      setCustomAlert({
+        visible: true,
+        title: 'Import Complete',
+        message: 'Watchlist imported successfully.',
+      });
     } catch (e) {
-      Alert.alert('Import Failed', 'Could not import this code.');
+      setCustomAlert({
+        visible: true,
+        title: 'Import Failed',
+        message: 'Could not import this code.',
+      });
     } finally {
       setIsImporting(false);
     }
-  }, [importCode, createWatchlistMutation]);
+  }, [importCode, createWatchlistMutation, addToWatchlistMutation, watchlists]);
+
+  const handleReorder = useCallback(
+    async (reordered: Watchlist[]) => {
+      try {
+        await reorderWatchlistsMutation.mutateAsync(reordered.map(w => w.id));
+      } catch (e) {
+        Alert.alert('Error', 'Failed to reorder watchlists');
+      }
+    },
+    [reorderWatchlistsMutation],
+  );
+
+  const handleDeleteAll = useCallback(() => {
+    setShowDeleteAllConfirm(true);
+  }, []);
 
   return (
     <View style={{flex: 1}}>
       <LinearGradient
-        colors={[colors.background.primary, 'transparent']}
+        colors={[
+          colors.background.primary,
+          colors.background.primary,
+          'transparent',
+        ]}
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
           top: 0,
-          height: 150,
+          height: 250,
           zIndex: 1,
           pointerEvents: 'none',
         }}
       />
       <View style={styles.header}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            zIndex: 1,
-          }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: isSolid
-                ? colors.modal.blur
-                : 'rgba(122, 122, 122, 0.25)',
-              padding: isTablet ? 12 : 10,
-              borderRadius: borderRadius.round,
-              borderColor: colors.modal.blur,
-              borderWidth: 1,
-            }}
-            onPress={() => navigation.goBack()}>
-            <Ionicons
-              name="chevron-back-outline"
-              size={isTablet ? 20 : 16}
-              color={colors.text.primary}
-            />
-          </TouchableOpacity>
-          <Text style={styles.title}>Watchlists</Text>
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <Text style={styles.title}>My Watchlists</Text>
+
+        <Animated.ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{gap: 8, paddingHorizontal: spacing.md}}
+          style={{marginTop: 12}}>
+          {watchlists.length > 1 && (
             <TouchableOpacity
-              style={{
-                backgroundColor: isSolid
-                  ? colors.modal.blur
-                  : 'rgba(122, 122, 122, 0.25)',
-                padding: isTablet ? 12 : 10,
-                borderRadius: borderRadius.round,
-                borderColor: colors.modal.blur,
-                borderWidth: 1,
-              }}
-              onPress={() => setShowImportModal(true)}>
+              style={styles.actionButton}
+              onPress={() => setShowReorderModal(true)}>
               <Ionicons
-                name="download-outline"
-                size={isTablet ? 20 : 16}
+                name="swap-vertical"
+                size={16}
                 color={colors.text.primary}
               />
+              <Text style={styles.actionButtonText}>Reorder</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleExportAll}>
+            <Ionicons
+              name="share-social-outline"
+              size={16}
+              color={colors.text.primary}
+            />
+            <Text style={styles.actionButtonText}>Export All</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowImportModal(true)}>
+            <Ionicons
+              name="download-outline"
+              size={16}
+              color={colors.text.primary}
+            />
+            <Text style={styles.actionButtonText}>Import</Text>
+          </TouchableOpacity>
+        </Animated.ScrollView>
       </View>
       <Animated.ScrollView
         style={styles.container}
@@ -1464,6 +1592,330 @@ export const WatchlistsScreen: React.FC = () => {
           </View>
         </Modal>
       </Animated.ScrollView>
+      {/* Delete All Confirm Modal */}
+      <Modal
+        visible={showDeleteAllConfirm}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowDeleteAllConfirm(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: isSolid ? 'rgba(0,0,0,0.5)' : 'transparent',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {!isSolid && (
+            <BlurView
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          <View
+            style={{
+              width: isTablet ? '40%' : '85%',
+              padding: spacing.xl,
+              backgroundColor: colors.modal.blur,
+              borderRadius: borderRadius.xl,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: colors.modal.content,
+            }}>
+            <Text
+              style={{
+                ...typography.h2,
+                color: colors.text.primary,
+                marginBottom: spacing.sm,
+                textAlign: 'center',
+              }}>
+              Delete All Watchlists?
+            </Text>
+            <Text
+              style={{
+                ...typography.body2,
+                color: colors.text.secondary,
+                textAlign: 'center',
+                marginBottom: spacing.xl,
+              }}>
+              Are you sure you want to delete ALL watchlists? This action cannot
+              be undone.
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: spacing.md,
+                width: '100%',
+              }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                  backgroundColor: colors.modal.content,
+                }}
+                onPress={() => setShowDeleteAllConfirm(false)}>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    ...typography.button,
+                  }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                  backgroundColor: '#ef4444',
+                }}
+                onPress={async () => {
+                  try {
+                    await deleteAllWatchlistsMutation.mutateAsync();
+                    setShowDeleteAllConfirm(false);
+                  } catch (e) {
+                    setCustomAlert({
+                      visible: true,
+                      title: 'Error',
+                      message: 'Failed to delete watchlists',
+                    });
+                  }
+                }}>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    ...typography.button,
+                  }}>
+                  Delete All
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Export Modal */}
+      <Modal
+        visible={!!exportCode}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setExportCode(null)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: isSolid ? 'rgba(0,0,0,0.5)' : 'transparent',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {!isSolid && (
+            <BlurView
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          <View
+            style={{
+              width: isTablet ? '40%' : '85%',
+              padding: spacing.xl,
+              backgroundColor: colors.modal.blur,
+              borderRadius: borderRadius.xl,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: colors.modal.content,
+            }}>
+            <Text
+              style={{
+                ...typography.h2,
+                color: colors.text.primary,
+                marginBottom: spacing.sm,
+                textAlign: 'center',
+              }}>
+              Export All Watchlists
+            </Text>
+            <Text
+              style={{
+                ...typography.body2,
+                color: colors.text.secondary,
+                textAlign: 'center',
+                marginBottom: spacing.xl,
+              }}>
+              Choose an action for your export code.
+            </Text>
+            <View style={{gap: spacing.md}}>
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                  backgroundColor: colors.modal.content,
+                }}
+                onPress={() => {
+                  if (exportCode) {
+                    Clipboard.setString(exportCode);
+                    setExportCode(null);
+                    setCustomAlert({
+                      visible: true,
+                      title: 'Copied',
+                      message: 'Export code copied to clipboard.',
+                    });
+                  }
+                }}>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    ...typography.button,
+                  }}>
+                  Copy Code
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                  backgroundColor: colors.text.primary,
+                }}
+                onPress={async () => {
+                  if (exportCode) {
+                    try {
+                      await ShareLib.open({
+                        title: 'My Watchlists',
+                        message: exportCode,
+                      });
+                      setExportCode(null);
+                    } catch (e) {
+                      // Ignore
+                    }
+                  }
+                }}>
+                <Text
+                  style={{
+                    color: colors.background.primary,
+                    ...typography.button,
+                  }}>
+                  Share
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  padding: spacing.md,
+                  borderRadius: borderRadius.round,
+                  alignItems: 'center',
+                }}
+                onPress={() => setExportCode(null)}>
+                <Text
+                  style={{
+                    color: colors.text.secondary,
+                    ...typography.button,
+                  }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Alert Modal */}
+      <Modal
+        visible={customAlert.visible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() =>
+          setCustomAlert(prev => ({...prev, visible: false}))
+        }>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: isSolid ? 'rgba(0,0,0,0.5)' : 'transparent',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {!isSolid && (
+            <BlurView
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          <View
+            style={{
+              width: isTablet ? '40%' : '85%',
+              padding: spacing.xl,
+              backgroundColor: colors.modal.blur,
+              borderRadius: borderRadius.xl,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: colors.modal.content,
+            }}>
+            <Text
+              style={{
+                ...typography.h2,
+                color: colors.text.primary,
+                marginBottom: spacing.sm,
+                textAlign: 'center',
+              }}>
+              {customAlert.title}
+            </Text>
+            <Text
+              style={{
+                ...typography.body2,
+                color: colors.text.secondary,
+                textAlign: 'center',
+                marginBottom: spacing.xl,
+              }}>
+              {customAlert.message}
+            </Text>
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                padding: spacing.md,
+                borderRadius: borderRadius.round,
+                alignItems: 'center',
+                backgroundColor: colors.modal.content,
+              }}
+              onPress={() =>
+                setCustomAlert(prev => ({...prev, visible: false}))
+              }>
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  ...typography.button,
+                }}>
+                OK
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reorder Modal */}
+      {showReorderModal && (
+        <ReorderWatchlistsDialog
+          visible={showReorderModal}
+          onClose={() => setShowReorderModal(false)}
+          watchlists={watchlists}
+          onReorder={handleReorder}
+        />
+      )}
     </View>
   );
 };

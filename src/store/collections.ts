@@ -38,4 +38,16 @@ export const CollectionsManager = {
   async deleteCollection(id: string): Promise<void> {
     await RealmCollectionsManager.deleteCollection(id);
   },
+
+  async getAllCollectionsExportData(): Promise<number[]> {
+    const collections = await RealmCollectionsManager.getSavedCollections();
+    return collections.map(col => Number(col.id));
+  },
+
+  async deleteAllCollections(): Promise<void> {
+    const collections = await RealmCollectionsManager.getSavedCollections();
+    for (const col of collections) {
+      await RealmCollectionsManager.deleteCollection(col.id);
+    }
+  },
 };

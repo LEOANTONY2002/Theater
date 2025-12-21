@@ -43,36 +43,36 @@ const instructions = [
     text: 'Go to Google AI Studio',
     hasButton: true,
   },
-  // {
-  //   id: '2',
-  //   image: require('../assets/AI2.png'),
-  //   text: 'Click on "Create API key"',
-  // },
-  // {
-  //   id: '3',
-  //   image: require('../assets/AI3.png'),
-  //   text: 'Type a name for your API key',
-  // },
+  {
+    id: '2',
+    image: require('../assets/AI2.png'),
+    text: 'Click on "Create API key"',
+  },
+  {
+    id: '3',
+    image: require('../assets/AI3.png'),
+    text: 'Type a name for your API key',
+  },
   // {
   //   id: '4',
   //   image: require('../assets/AI4.png'),
   //   text: 'Select a project or create new',
   // },
-  {
-    id: '5',
-    image: require('../assets/AI5.png'),
-    text: 'Copy the API key',
-  },
-  {
-    id: '6',
-    image: require('../assets/AI6.png'),
-    text: 'Paste the API key here',
-  },
-  {
-    id: '7',
-    image: require('../assets/AI7.png'),
-    text: 'Save and continue',
-  },
+  // {
+  //   id: '5',
+  //   image: require('../assets/AI5.png'),
+  //   text: 'Copy the API key',
+  // },
+  // {
+  //   id: '6',
+  //   image: require('../assets/AI6.png'),
+  //   text: 'Paste the API key here',
+  // },
+  // {
+  //   id: '7',
+  //   image: require('../assets/AI7.png'),
+  //   text: 'Save and continue',
+  // },
 ];
 
 // Fallback models in case API fetch fails

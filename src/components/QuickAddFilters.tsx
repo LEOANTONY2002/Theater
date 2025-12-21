@@ -7,14 +7,16 @@ import {SavedFilter} from '../types/filters';
 
 interface QuickAddFiltersProps {
   onQuickAdd: (name: string, params: any, type: 'movie' | 'tv' | 'all') => void;
-  onAISave: (filter: SavedFilter) => void;
+  onAISave?: (filter: SavedFilter) => void;
+  hideHeader?: boolean;
+  onOpenAICreator?: () => void;
 }
 
 export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
   onQuickAdd,
-  onAISave,
+  hideHeader = false,
+  onOpenAICreator,
 }) => {
-  const [showAICreator, setShowAICreator] = useState(false);
   const quickAddItems = [
     {
       name: 'Sci‑Fi Series',
@@ -90,16 +92,18 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>Quick add</Text>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.aiButton}
-          onPress={() => setShowAICreator(true)}>
-          <Ionicons name="sparkles" size={16} color={colors.accent} />
-          <Text style={styles.aiButtonText}>AI Create</Text>
-        </TouchableOpacity>
-      </View>
+      {!hideHeader && (
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Quick add</Text>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.aiButton}
+            onPress={onOpenAICreator}>
+            <Ionicons name="sparkles" size={16} color={colors.accent} />
+            <Text style={styles.aiButtonText}>AI Create</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <View style={styles.grid}>
         {quickAddItems.map((item, index) => (
           <TouchableOpacity
@@ -112,15 +116,6 @@ export const QuickAddFilters: React.FC<QuickAddFiltersProps> = ({
           </TouchableOpacity>
         ))}
       </View>
-
-      <AIFilterCreator
-        visible={showAICreator}
-        onClose={() => setShowAICreator(false)}
-        onSave={filter => {
-          onAISave(filter);
-          setShowAICreator(false);
-        }}
-      />
     </View>
   );
 };

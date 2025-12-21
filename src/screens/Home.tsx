@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   AppState,
+  Image,
 } from 'react-native';
 import {
   useMoviesList,
@@ -1101,27 +1102,10 @@ export const HomeScreen = React.memo(() => {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => setShowMoodModal(true)}>
-                  <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}
-                    style={{
-                      padding: 10,
-                      paddingHorizontal: 25,
-                      borderRadius: 50,
-                      marginTop: 15,
-                      alignItems: 'center',
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: colors.text.primary,
-                        fontFamily: 'Inter_18pt-Regular',
-                      }}>
-                      Start
-                    </Text>
-                  </LinearGradient>
+                  <Image
+                    source={require('../assets/next.webp')}
+                    style={{width: 24, height: 24}}
+                  />
                 </TouchableOpacity>
               </View>
             </View>

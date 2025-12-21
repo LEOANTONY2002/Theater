@@ -224,6 +224,7 @@ export type MySpaceStackParamList = {
   MySpaceScreen: undefined;
   MyFiltersScreen: undefined;
   WatchlistsScreen: undefined;
+  MyCollectionsScreen: undefined;
   MovieDetails: {movie: Movie};
   TVShowDetails: {show: TVShow};
   Collection: {collectionId: number};
