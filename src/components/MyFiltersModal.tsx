@@ -1219,10 +1219,12 @@ export const MyFiltersModal: React.FC<MyFiltersModalProps> = ({
                 style={[
                   styles.sectionHeader,
                   {
-                    backgroundColor: isSolid
-                      ? colors.modal.blur
-                      : colors.modal.border,
+                    backgroundColor: colors.modal.blur,
                     borderRadius: borderRadius.md,
+                    borderWidth: 1,
+                    borderBottomWidth: 0,
+                    borderColor: colors.modal.header,
+                    height: 50,
                   },
                 ]}
                 onPress={() => {

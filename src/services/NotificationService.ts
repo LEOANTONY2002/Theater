@@ -2,7 +2,11 @@ import messaging from '@react-native-firebase/messaging';
 import {PermissionsAndroid, Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {navigate} from './NavigationService';
-import notifee, {AndroidImportance, AndroidStyle} from '@notifee/react-native';
+import notifee, {
+  AndroidImportance,
+  AndroidStyle,
+  EventType,
+} from '@notifee/react-native';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -125,6 +129,22 @@ class NotificationService {
       return false;
     } catch (error) {
       console.error('Error requesting notification permission:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if notification permissions are granted
+   */
+  async checkPermission(): Promise<boolean> {
+    try {
+      const authStatus = await messaging().hasPermission();
+      return (
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL
+      );
+    } catch (error) {
+      console.error('Error checking notification permission:', error);
       return false;
     }
   }
@@ -410,7 +430,7 @@ class NotificationService {
 
       // Handle foreground Notifee events (when user taps notification while app is open)
       notifee.onForegroundEvent(({type, detail}) => {
-        if (type === 1) {
+        if (type === EventType.PRESS) {
           // PRESS
           console.log('👆 Notifee notification pressed (foreground):', detail);
           if (detail.notification?.data) {
@@ -420,10 +440,31 @@ class NotificationService {
             if (messageId && typeof messageId === 'string') {
               this.markNotificationAsRead(messageId);
             }
-            this.handleNotificationNavigation({data: detail.notification.data});
+            // Navigate AFTER a small delay to ensure navigation container is ready
+            setTimeout(() => {
+              this.handleNotificationNavigation({
+                data: detail.notification?.data,
+              });
+            }, 500);
           }
         }
       });
+
+      // Handle Background Launch (Cold Start via Notifee)
+      const initialNotification = await notifee.getInitialNotification();
+      if (initialNotification) {
+        console.log(
+          '🚀 App launched via Notifee notification:',
+          initialNotification,
+        );
+        const {notification} = initialNotification;
+        if (notification.data) {
+          // Delay navigation slightly to allow app to hydrate
+          setTimeout(() => {
+            this.handleNotificationNavigation({data: notification.data});
+          }, 1200);
+        }
+      }
 
       console.log('✅ Notification service initialized');
     } catch (error) {
@@ -437,11 +478,158 @@ class NotificationService {
   async subscribeToTopic(topic: string): Promise<boolean> {
     try {
       await messaging().subscribeToTopic(topic);
+      await this.saveSubscriptionState(topic, true);
       console.log(`✅ Subscribed to topic: ${topic}`);
       return true;
     } catch (error) {
       console.error(`Error subscribing to topic:`, error);
       return false;
+    }
+  }
+
+  /**
+   * Unsubscribe from topic
+   */
+  async unsubscribeFromTopic(topic: string): Promise<boolean> {
+    try {
+      await messaging().unsubscribeFromTopic(topic);
+      await this.saveSubscriptionState(topic, false);
+      console.log(`✅ Unsubscribed from topic: ${topic}`);
+      return true;
+    } catch (error) {
+      console.error(`Error unsubscribing from topic:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Save subscription state
+   */
+  private async saveSubscriptionState(topic: string, isSubscribed: boolean) {
+    try {
+      const subscriptions = await this.getSubscribedTopics();
+      if (isSubscribed) {
+        if (!subscriptions.includes(topic)) {
+          subscriptions.push(topic);
+        }
+      } else {
+        const index = subscriptions.indexOf(topic);
+        if (index > -1) {
+          subscriptions.splice(index, 1);
+        }
+      }
+      await AsyncStorage.setItem(
+        'notification_subscriptions',
+        JSON.stringify(subscriptions),
+      );
+    } catch (error) {
+      console.error('Error saving subscription state:', error);
+    }
+  }
+
+  /**
+   * Get all subscribed topics
+   */
+  async getSubscribedTopics(): Promise<string[]> {
+    try {
+      const stored = await AsyncStorage.getItem('notification_subscriptions');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+      // Default subscriptions if nothing stored (first run)
+      return ['all', 'trending'];
+    } catch (error) {
+      console.error('Error getting subscribed topics:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if subscribed to topic
+   */
+  async isSubscribedToTopic(topic: string): Promise<boolean> {
+    const topics = await this.getSubscribedTopics();
+    return topics.includes(topic);
+  }
+
+  /**
+   * Initialize subscriptions on app launch, respecting user preferences
+   */
+  async initializeSubscriptions(region?: string) {
+    const topics = await this.getSubscribedTopics();
+
+    // Subscribe to stored topics
+    for (const topic of topics) {
+      await messaging().subscribeToTopic(topic);
+    }
+
+    // Handle region: Only subscribe if "all" (General Updates) is enabled
+    if (region && topics.includes('all')) {
+      await messaging().subscribeToTopic(region);
+      console.log(`✅ Subscribed to region topic: ${region}`);
+    }
+  }
+  /**
+   * Schedule a notification for a future release
+   */
+  async scheduleReleaseNotification(
+    id: string,
+    title: string,
+    body: string,
+    date: Date,
+    data: any,
+    imageUrl?: string | null,
+  ): Promise<string> {
+    try {
+      // Create a trigger notification
+      const trigger: any = {
+        type: 0, // TimestampTrigger in Notifee (TriggerType.TIMESTAMP = 0)
+        timestamp: date.getTime(),
+      };
+
+      await notifee.createTriggerNotification(
+        {
+          id,
+          title,
+          body,
+          data,
+          android: {
+            channelId: 'la_theater_v13', // Use existing channel
+            importance: AndroidImportance.HIGH,
+            smallIcon: 'ic_notification',
+            color: '#FFFFFF',
+            pressAction: {
+              id: 'default',
+            },
+            largeIcon: imageUrl || undefined,
+            style: imageUrl
+              ? ({
+                  type: AndroidStyle.BIGPICTURE,
+                  picture: imageUrl,
+                } as any)
+              : undefined,
+          },
+        },
+        trigger,
+      );
+
+      console.log(`✅ Scheduled notification for ${date.toISOString()}`);
+      return id;
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a scheduled notification
+   */
+  async cancelScheduledNotification(id: string): Promise<void> {
+    try {
+      await notifee.cancelNotification(id);
+      console.log(`✅ Cancelled notification: ${id}`);
+    } catch (error) {
+      console.error('Error cancelling notification:', error);
     }
   }
 }

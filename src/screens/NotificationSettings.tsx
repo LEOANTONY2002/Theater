@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ImageBackground,
+  Image,
+  useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import {notificationService} from '../services/NotificationService';
 import {navigate} from '../services/NavigationService';
@@ -16,6 +19,8 @@ import {useNavigation} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
+import {detectRegion} from '../services/regionDetection';
+import {NotificationSettingsModal} from '../components/NotificationSettingsModal';
 
 interface NotificationHistoryItem {
   id: string;
@@ -32,13 +37,25 @@ interface NotificationHistoryItem {
 export const NotificationSettings: React.FC = () => {
   const navigation = useNavigation();
   const [history, setHistory] = useState<NotificationHistoryItem[]>([]);
+  const [hasPermission, setHasPermission] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isEnabling, setIsEnabling] = useState(false);
   const {isTablet} = useResponsive();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
+  const {width} = useWindowDimensions();
 
   const loadData = async () => {
     try {
+      const perm = await notificationService.checkPermission();
+      const subscribedTopics = await notificationService.getSubscribedTopics();
+      const hasAnySubscription = subscribedTopics.length > 0;
+
+      // If permission is strictly missing from OS, it's disabled.
+      // If permission exists but user unsubscribed from ALL topics, treat as disabled in UI.
+      setHasPermission(perm && hasAnySubscription);
+
       const notifHistory = await notificationService.getNotificationHistory();
       console.log(
         '📋 Loaded notification history:',
@@ -118,6 +135,27 @@ export const NotificationSettings: React.FC = () => {
 
   const groupedNotifications = groupNotificationsByDate(history);
 
+  const handleEnableNotifications = async () => {
+    setIsEnabling(true);
+    try {
+      const enabled = await notificationService.requestUserPermission();
+      // Don't set state immediately. Wait for subscriptions to complete.
+      if (enabled) {
+        // Subscribe to topics if enabled
+        await notificationService.subscribeToTopic('all');
+        await notificationService.subscribeToTopic('trending');
+        const region = await detectRegion();
+        if (region) {
+          await notificationService.subscribeToTopic(region);
+        }
+        // loadData will check for 'all' subscription and update hasPermission state
+        await loadData();
+      }
+    } finally {
+      setIsEnabling(false);
+    }
+  };
+
   const handleClearAll = async () => {
     await notificationService.clearAllNotifications();
     setHistory([]);
@@ -125,6 +163,39 @@ export const NotificationSettings: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Fixed Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Notifications</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.actionsScroll}
+          contentContainerStyle={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowSettingsModal(true)}>
+            <Icon
+              name="settings-outline"
+              size={18}
+              color={colors.text.primary}
+            />
+            <Text style={styles.actionButtonText}>Settings</Text>
+          </TouchableOpacity>
+          {history.length > 0 && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleClearAll}>
+              <Icon
+                name="trash-outline"
+                size={18}
+                color={colors.text.primary}
+              />
+              <Text style={styles.actionButtonText}>Delete All</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
+
       {/* Notification List */}
       <ScrollView
         style={styles.scrollView}
@@ -137,61 +208,6 @@ export const NotificationSettings: React.FC = () => {
             tintColor={colors.primary}
           />
         }>
-        {/* Header (Inside ScrollView) */}
-        <View style={styles.header}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              zIndex: 1,
-            }}>
-            <TouchableOpacity
-              activeOpacity={1}
-              style={{
-                backgroundColor: isSolid
-                  ? colors.modal.blur
-                  : 'rgba(122, 122, 122, 0.25)',
-                padding: isTablet ? 12 : 10,
-                borderRadius: borderRadius.round,
-                borderColor: colors.modal.content,
-                borderWidth: 1,
-                borderBottomWidth: 0,
-              }}
-              onPress={() => navigation.goBack()}>
-              <Icon
-                name="chevron-back-outline"
-                size={isTablet ? 20 : 16}
-                color={colors.text.primary}
-              />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Notifications</Text>
-            {history.length > 0 ? (
-              <TouchableOpacity
-                activeOpacity={1}
-                style={{
-                  backgroundColor: isSolid
-                    ? colors.modal.blur
-                    : 'rgba(122, 122, 122, 0.25)',
-                  padding: isTablet ? 12 : 10,
-                  borderRadius: borderRadius.round,
-                  borderColor: colors.modal.content,
-                  borderWidth: 1,
-                  borderBottomWidth: 0,
-                }}
-                onPress={handleClearAll}>
-                <Icon
-                  name="trash-outline"
-                  size={isTablet ? 20 : 16}
-                  color={colors.text.primary}
-                />
-              </TouchableOpacity>
-            ) : (
-              <View style={{width: 40}} />
-            )}
-          </View>
-        </View>
-
         {history.length > 0 ? (
           Object.entries(groupedNotifications).map(
             ([dateGroup, notifications]) => (
@@ -312,19 +328,45 @@ export const NotificationSettings: React.FC = () => {
           )
         ) : (
           <View style={styles.emptyState}>
-            <Icon
-              name="notifications-off-outline"
-              size={64}
-              color={colors.text.tertiary}
+            <Image
+              source={require('../assets/notificationOff.png')}
+              style={{
+                width: isTablet ? width / 3 : width / 2,
+                height: isTablet ? width / 3 : width / 2,
+              }}
             />
-            <Text style={styles.emptyTitle}>No notifications yet</Text>
-            <Text style={styles.emptySubtitle}>
-              You'll see your notifications here when you receive them
+            <Text style={styles.emptyTitle}>
+              {hasPermission ? 'No notifications yet' : 'Let the bell ring'}
             </Text>
+            <Text style={styles.emptySubtitle}>
+              {hasPermission
+                ? "You'll see your notifications here when you receive them"
+                : 'Turn on the notification to get your cherry picks, updates and more'}
+            </Text>
+
+            {!hasPermission && (
+              <TouchableOpacity
+                style={styles.enableButton}
+                onPress={handleEnableNotifications}
+                disabled={isEnabling}>
+                {isEnabling ? (
+                  <ActivityIndicator size="small" color={colors.text.primary} />
+                ) : (
+                  <Text style={styles.enableButtonText}>
+                    Turn On Notifications
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         )}
         <View style={styles.footer} />
       </ScrollView>
+      <NotificationSettingsModal
+        visible={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onUpdate={loadData}
+      />
     </View>
   );
 };
@@ -338,28 +380,44 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    marginTop: 50, // Match MyFilters marginTop
+    paddingHorizontal: spacing.md,
+    marginTop: 60, // Match MyFilters
     marginBottom: spacing.md,
+    zIndex: 10,
   },
   headerTitle: {
-    flex: 1,
-    ...typography.h2,
-    textAlign: 'center', // Center title like MyFilters
     color: colors.text.primary,
+    ...typography.h2,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  iconButton: {
+  backButton: {
+    alignSelf: 'flex-start',
+    padding: 4,
+    marginLeft: -4,
+  },
+  actionsScroll: {
+    flexGrow: 0,
+  },
+  actionsContainer: {
+    gap: spacing.sm,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.modal.blur,
-    padding: 10,
-    borderRadius: borderRadius.round,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12, // Match MyFilters/Watchlists
     borderWidth: 1,
     borderBottomWidth: 0,
     borderColor: colors.modal.content,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+  },
+  actionButtonText: {
+    color: colors.text.primary,
+    ...typography.button,
+    fontSize: 14,
   },
   iconButtonDisabled: {
     opacity: 0.5,
@@ -464,17 +522,32 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.text.primary,
+    color: colors.text.secondary,
     marginTop: spacing.lg,
     marginBottom: spacing.xs,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.text.secondary,
+    color: colors.text.muted,
     textAlign: 'center',
     lineHeight: 20,
   },
   footer: {
     height: 40,
+  },
+  enableButton: {
+    marginTop: spacing.xl,
+    backgroundColor: colors.modal.blur,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.round,
+  },
+  enableButtonText: {
+    color: colors.text.primary,
+    fontWeight: '600',
+    fontSize: 12,
   },
 });

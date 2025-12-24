@@ -54,6 +54,10 @@ export const useTVShowDetails = (tvShowId: number) => {
     queryKey: ['tvshow', tvShowId],
     queryFn: async () => {
       const details = await getTVShowDetails(tvShowId);
+      // Preserve episode data before caching
+      const nextEpisode = details?.next_episode_to_air;
+      const lastEpisode = details?.last_episode_to_air;
+
       // Cache full details in Realm
       if (details) {
         cacheTVShowDetails(
@@ -63,7 +67,13 @@ export const useTVShowDetails = (tvShowId: number) => {
           details.videos?.results,
         );
       }
-      return details;
+
+      // Return details with episode data preserved
+      return {
+        ...details,
+        next_episode_to_air: nextEpisode,
+        last_episode_to_air: lastEpisode,
+      };
     },
     gcTime: TMDB_DETAILS_GC,
     staleTime: TMDB_DETAILS_STALE,

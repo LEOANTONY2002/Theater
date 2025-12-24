@@ -30,6 +30,7 @@ import {CinemaScreen} from '../screens/CinemaScreen';
 import {CinemaInsightsScreen} from '../screens/CinemaInsightsScreen';
 import {NotificationSettings} from '../screens/NotificationSettings';
 import {MyCollectionsScreen} from '../screens/MyCollections';
+import {MyCalendarScreen} from '../screens/MyCalendar';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -320,6 +321,11 @@ export const MySpaceStackNavigator = () => (
     <MySpaceStack.Screen
       name="NotificationSettings"
       component={NotificationSettings}
+      options={slideFromRightOptions}
+    />
+    <MySpaceStack.Screen
+      name="MyCalendarScreen"
+      component={MyCalendarScreen}
       options={slideFromRightOptions}
     />
 

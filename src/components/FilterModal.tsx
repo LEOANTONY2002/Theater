@@ -90,7 +90,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [contentType, setContentType] = useState<'all' | 'movie' | 'tv'>(
     initialContentType,
   );
-  const [filters, setFilters] = useState<FilterParams>(initialFilters);
+  const [filters, setFilters] = useState<FilterParams>({
+    sort_by: 'popularity.desc',
+    with_runtime_gte: 1,
+    ...initialFilters,
+  });
   const [showAISearch, setShowAISearch] = useState(false);
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
@@ -142,7 +146,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       setSavedFilters(filters);
     };
     fetchFilters();
-  });
+  }, []);
 
   // Only set filters and contentType from props when modal is opened or filters change
   useEffect(() => {
@@ -159,9 +163,17 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             .filter(Boolean)
             .join('|'),
         };
-        setFilters(normalized);
+        setFilters({
+          sort_by: 'popularity.desc',
+          with_runtime_gte: 1,
+          ...normalized,
+        });
       } else {
-        setFilters(initialFilters);
+        setFilters({
+          sort_by: 'popularity.desc',
+          with_runtime_gte: 1,
+          ...initialFilters,
+        });
       }
       setContentType(initialContentType);
     }
@@ -269,7 +281,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   const handleReset = () => {
-    setFilters({});
+    setFilters({sort_by: 'popularity.desc', with_runtime_gte: 1});
     setContentType('all');
     // Clear Phase 2 advanced filter states
     setSelectedCast([]);
@@ -670,7 +682,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             {/* Saved Filters Section */}
             {savedFilters.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>My Filters</Text>
+                <Text style={[styles.sectionTitle, {marginBottom: -5}]}>
+                  My Filters
+                </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -680,17 +694,17 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                       key={filter.id}
                       style={[
                         {
-                          backgroundColor: isSolid
-                            ? colors.modal.blur
-                            : colors.modal.border,
+                          backgroundColor: colors.modal.blur,
                           paddingHorizontal: spacing.md,
-                          paddingVertical: spacing.xl,
+                          paddingVertical: spacing.lg,
                           marginRight: spacing.sm,
                           borderRadius: borderRadius.lg,
                           width: 100,
-                          height: 100,
                           alignItems: 'center',
                           justifyContent: 'center',
+                          borderWidth: 1,
+                          borderBottomWidth: 0,
+                          borderColor: colors.modal.header,
                         },
                         JSON.stringify(filters) ===
                           JSON.stringify(filter.params) &&
@@ -736,7 +750,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     size={20}
                     color={
                       contentType === 'all'
-                        ? colors.accent
+                        ? colors.text.primary
                         : colors.text.secondary
                     }
                   />
@@ -765,7 +779,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     size={20}
                     color={
                       contentType === 'movie'
-                        ? colors.accent
+                        ? colors.text.primary
                         : colors.text.secondary
                     }
                   />
@@ -794,7 +808,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     size={20}
                     color={
                       contentType === 'tv'
-                        ? colors.accent
+                        ? colors.text.primary
                         : colors.text.secondary
                     }
                   />
@@ -1120,10 +1134,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 style={[
                   styles.sectionHeader,
                   {
-                    backgroundColor: isSolid
-                      ? colors.modal.blur
-                      : colors.modal.border,
+                    backgroundColor: colors.modal.blur,
                     borderRadius: borderRadius.md,
+                    height: 50,
+                    borderWidth: 1,
+                    borderBottomWidth: 0,
+                    borderColor: colors.modal.header,
                   },
                 ]}
                 activeOpacity={0.9}

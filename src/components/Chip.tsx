@@ -33,7 +33,7 @@ export const Chip: React.FC<ChipProps> = ({
         ? colors.modal.blur
         : isWatchlist
         ? colors.modal.header
-        : colors.modal.border,
+        : colors.modal.blur,
       borderRadius: borderRadius.lg,
       width: width,
       height: height,
@@ -42,6 +42,9 @@ export const Chip: React.FC<ChipProps> = ({
       position: 'relative',
       overflow: 'hidden',
       padding: spacing.md,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.content,
     },
     imageOnlyChip: {
       padding: spacing.sm,
@@ -49,7 +52,9 @@ export const Chip: React.FC<ChipProps> = ({
       minHeight: 60,
     },
     selectedChip: {
-      backgroundColor: colors.modal.activeBorder,
+      backgroundColor: colors.modal.active,
+      borderWidth: 1,
+      borderBottomWidth: 0,
       borderColor: colors.modal.activeBorder,
     },
     chipContent: {

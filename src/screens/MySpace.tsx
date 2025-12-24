@@ -837,37 +837,57 @@ export const MySpaceScreen = React.memo(() => {
             }}>
             My Space
           </Text>
-          <TouchableOpacity
-            onPress={() => navigateWithLimit('NotificationSettings')}
-            style={{
-              padding: isTablet ? 14 : 12,
-              borderRadius: borderRadius.round,
-              backgroundColor: colors.modal.blur,
-              borderWidth: 1,
-              borderBottomWidth: 0,
-              borderColor: colors.modal.content,
-              position: 'relative',
-            }}
-            activeOpacity={0.7}>
-            <Ionicons
-              name="notifications-outline"
-              size={isTablet ? 20 : 15}
-              color={colors.text.primary}
-            />
-            {hasUnread && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: isTablet ? 10 : 6,
-                  right: isTablet ? 10 : 6,
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#FF3B30',
-                }}
+          <View style={{flexDirection: 'row', gap: spacing.sm}}>
+            <TouchableOpacity
+              onPress={() => navigateWithLimit('MyCalendarScreen')}
+              style={{
+                padding: isTablet ? 14 : 12,
+                borderRadius: borderRadius.round,
+                backgroundColor: colors.modal.blur,
+                borderWidth: 1,
+                borderBottomWidth: 0,
+                borderColor: colors.modal.content,
+              }}
+              activeOpacity={0.7}>
+              <Ionicons
+                name="calendar-outline"
+                size={isTablet ? 20 : 15}
+                color={colors.text.primary}
               />
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigateWithLimit('NotificationSettings')}
+              style={{
+                padding: isTablet ? 14 : 12,
+                borderRadius: borderRadius.round,
+                backgroundColor: colors.modal.blur,
+                borderWidth: 1,
+                borderBottomWidth: 0,
+                borderColor: colors.modal.content,
+                position: 'relative',
+              }}
+              activeOpacity={0.7}>
+              <Ionicons
+                name="notifications-outline"
+                size={isTablet ? 20 : 15}
+                color={colors.text.primary}
+              />
+              {hasUnread && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: isTablet ? 10 : 6,
+                    right: isTablet ? 10 : 6,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: '#FF3B30',
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
         {/* Two-column layout */}
         <View

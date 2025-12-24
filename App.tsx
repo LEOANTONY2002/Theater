@@ -57,9 +57,8 @@ export default function App() {
   useEffect(() => {
     if (dbReady) {
       detectRegion().then(region => {
-        if (region) {
-          notificationService.subscribeToTopic(region);
-        }
+        // Initialize subscriptions respecting user preferences
+        notificationService.initializeSubscriptions(region || undefined);
       });
     }
   }, [dbReady]);

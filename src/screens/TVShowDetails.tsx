@@ -16,6 +16,8 @@ import {
   FlatList,
   Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {notificationService} from '../services/NotificationService';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {
   useTVShowDetails,
@@ -98,6 +100,8 @@ import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {getCriticRatings} from '../services/gemini';
 import {IMDBModal} from '../components/IMDBModal';
+import {ScheduleWatchModal} from '../components/ScheduleWatchModal';
+import {FeedbackModal} from '../components/FeedbackModal';
 import {BlurPreference} from '../store/blurPreference';
 
 type TVShowDetailsScreenNavigationProp = NativeStackNavigationProp<
@@ -140,6 +144,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isScheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [scheduledWatchDate, setScheduledWatchDate] = useState<Date | null>(
+    null,
+  );
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const {
@@ -147,6 +155,227 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     isLoading,
     error: showDetailsError,
   } = useTVShowDetails(show.id);
+
+  // Calendar state
+  const [isInCalendar, setIsInCalendar] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    visible: boolean;
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+
+  const nextEpisode =
+    (show as any)?.next_episode_to_air ||
+    (showDetails as any)?.next_episode_to_air;
+
+  const isFuture = useMemo(() => {
+    if (!nextEpisode?.air_date) return false;
+    return new Date(nextEpisode.air_date) > new Date();
+  }, [nextEpisode, showDetails, isLoading]);
+
+  useEffect(() => {
+    const checkCalendar = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('calendar_items');
+        if (stored) {
+          const items = JSON.parse(stored);
+          const exists = items.some(
+            (i: any) => i.id === show.id && i.type === 'tv',
+          );
+          setIsInCalendar(exists);
+
+          const customSchedule = items.find(
+            (i: any) =>
+              i.id === show.id &&
+              i.type === 'tv' &&
+              i.schedulerType === 'custom',
+          );
+
+          if (customSchedule) {
+            setScheduledWatchDate(
+              new Date(customSchedule.date || customSchedule.releaseDate),
+            );
+          } else {
+            setScheduledWatchDate(null);
+          }
+        }
+      } catch (e) {}
+    };
+    checkCalendar();
+  }, [show.id, isScheduleModalVisible]);
+
+  const handleToggleCalendar = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('calendar_items');
+      let items = stored ? JSON.parse(stored) : [];
+
+      if (isInCalendar) {
+        // Remove
+        const item = items.find(
+          (i: any) => i.id === show.id && i.type === 'tv',
+        );
+        if (item && item.notificationId) {
+          await notificationService.cancelScheduledNotification(
+            item.notificationId,
+          );
+        }
+        items = items.filter(
+          (i: any) => !(i.id === show.id && i.type === 'tv'),
+        );
+        setIsInCalendar(false);
+      } else {
+        // Add
+        if (!nextEpisode?.air_date) return;
+
+        const releaseDate = new Date(nextEpisode.air_date);
+        // Set notification for 7am on release day
+        releaseDate.setHours(7, 0, 0, 0);
+
+        const notifId = `tv_release_${show.id}_${nextEpisode.episode_number}`;
+
+        // Only schedule if date is future
+        if (releaseDate > new Date()) {
+          await notificationService.scheduleReleaseNotification(
+            notifId,
+            'New Episode Today!',
+            `${show.name} - ${
+              nextEpisode.name || 'New Episode'
+            } is airing today.`,
+            releaseDate,
+            {screen: 'TVShowDetails', showId: show.id},
+            show.poster_path
+              ? `https://image.tmdb.org/t/p/w200${show.poster_path}`
+              : null,
+          );
+        }
+
+        items.push({
+          id: show.id,
+          type: 'tv',
+          title: show.name,
+          posterPath: show.poster_path,
+          releaseDate: nextEpisode.air_date,
+          notificationId: notifId,
+        });
+        setIsInCalendar(true);
+      }
+      await AsyncStorage.setItem('calendar_items', JSON.stringify(items));
+    } catch (error) {
+      console.error('Error toggling calendar', error);
+    }
+  };
+
+  const handleScheduleWatch = async (
+    date: Date,
+    type?: 'release' | 'custom',
+  ) => {
+    if (type === 'release') {
+      if (!isInCalendar) {
+        await handleToggleCalendar();
+        setFeedback({
+          visible: true,
+          type: 'success',
+          title: 'Scheduled',
+          message: 'You have been subscribed to release notifications.',
+        });
+      } else {
+        setFeedback({
+          visible: true,
+          type: 'info',
+          title: 'Already Scheduled',
+          message: 'You are already subscribed to release notifications.',
+        });
+      }
+      return;
+    }
+
+    // Validate date is in the future
+    if (date.getTime() <= Date.now()) {
+      setFeedback({
+        visible: true,
+        type: 'error',
+        title: 'Invalid Time',
+        message:
+          'You cannot schedule a screening in the past. Please select a future time.',
+      });
+      return;
+    }
+
+    try {
+      const stored = await AsyncStorage.getItem('calendar_items');
+      let items = stored ? JSON.parse(stored) : [];
+
+      // Remove existing custom schedule for this show
+      const existingIndex = items.findIndex(
+        (i: any) =>
+          i.id === show.id && i.type === 'tv' && i.schedulerType === 'custom',
+      );
+
+      if (existingIndex > -1) {
+        const oldItem = items[existingIndex];
+        if (oldItem.notificationId) {
+          await notificationService.cancelScheduledNotification(
+            oldItem.notificationId,
+          );
+        }
+        items.splice(existingIndex, 1);
+      }
+
+      const notifId = `tv_schedule_${show.id}`;
+
+      await notificationService.scheduleReleaseNotification(
+        notifId,
+        'TV Screening',
+        `It's time to watch ${show.name}!`,
+        date,
+        {screen: 'TVShowDetails', tvShowId: show.id},
+        show.poster_path
+          ? `https://image.tmdb.org/t/p/w200${show.poster_path}`
+          : null,
+      );
+
+      items.push({
+        id: show.id,
+        type: 'tv',
+        title: show.name,
+        posterPath: show.poster_path,
+        releaseDate: nextEpisode?.air_date || '', // Optional for custom schedule
+        date: date.toISOString(),
+        schedulerType: 'custom',
+        notificationId: notifId,
+      });
+
+      await AsyncStorage.setItem('calendar_items', JSON.stringify(items));
+      setIsInCalendar(true);
+      setScheduledWatchDate(date); // Instant UI update
+      setFeedback({
+        visible: true,
+        type: 'success',
+        title: 'Scheduled',
+        message: `Screening set for ${date.toLocaleString([], {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`,
+      });
+    } catch (error) {
+      console.error('Error scheduling watch', error);
+      setFeedback({
+        visible: true,
+        type: 'error',
+        title: 'Scheduling Failed',
+        message: 'Could not schedule the screening. Please try again.',
+      });
+    }
+  };
 
   // Generate and store thematic/emotional tags for this TV show
   const {isGenerating: isGeneratingTags, tags: contentTags} = useContentTags({
@@ -263,6 +492,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   // Watch providers and first streaming icon (prefer flatrate → free → rent → buy → ads)
   const {data: watchProviders} = useWatchProviders(show.id, 'tv');
+  const hasOTT = useMemo(() => {
+    if (!watchProviders) return false;
+    return (
+      (watchProviders.flatrate && watchProviders.flatrate.length > 0) ||
+      (watchProviders.rent && watchProviders.rent.length > 0) ||
+      (watchProviders.buy && watchProviders.buy.length > 0) ||
+      (watchProviders.free && watchProviders.free.length > 0) ||
+      (watchProviders.ads && watchProviders.ads.length > 0)
+    );
+  }, [watchProviders]);
   const streamingIcon = useMemo(() => {
     const p = (watchProviders || {}) as any;
     const pick =
@@ -948,6 +1187,26 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       marginTop: -spacing.sm,
       paddingHorizontal: spacing.sm,
     },
+    buttonContainerColumn: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 12,
+      width: '100%',
+      marginTop: -spacing.sm,
+      paddingHorizontal: spacing.sm,
+    },
+    buttonRowTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+    },
+    buttonRowBottom: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+    },
     watchButton: {
       flex: 1,
       borderRadius: borderRadius.round,
@@ -963,16 +1222,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       width: 48,
       height: 48,
       borderRadius: 24,
-      backgroundColor: colors.modal.header,
+      backgroundColor: colors.modal.blur,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: colors.modal.border,
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 2},
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 4,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.header,
     },
     genreContainer: {
       flexDirection: 'row',
@@ -1435,6 +1690,63 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       }}
                       resizeMode="contain"></ImageBackground>
 
+                    <ScheduleWatchModal
+                      visible={isScheduleModalVisible}
+                      onClose={() => setScheduleModalVisible(false)}
+                      title={show.name}
+                      onSchedule={handleScheduleWatch}
+                      releaseDate={
+                        isFuture && nextEpisode?.air_date
+                          ? new Date(nextEpisode.air_date)
+                          : null
+                      }
+                      existingDate={scheduledWatchDate}
+                      onRemove={async () => {
+                        try {
+                          const stored = await AsyncStorage.getItem(
+                            'calendar_items',
+                          );
+                          if (stored) {
+                            const items = JSON.parse(stored);
+                            const idx = items.findIndex(
+                              (i: any) =>
+                                i.id === show.id &&
+                                i.type === 'tv' &&
+                                i.schedulerType === 'custom',
+                            );
+                            if (idx > -1) {
+                              const item = items[idx];
+                              if (item.notificationId) {
+                                await notificationService.cancelScheduledNotification(
+                                  item.notificationId,
+                                );
+                              }
+                              items.splice(idx, 1);
+                              await AsyncStorage.setItem(
+                                'calendar_items',
+                                JSON.stringify(items),
+                              );
+                              setScheduledWatchDate(null);
+                              setFeedback({
+                                visible: true,
+                                type: 'success',
+                                title: 'Removed',
+                                message: 'Schedule has been removed.',
+                              });
+                            }
+                          }
+                        } catch (e) {}
+                      }}
+                    />
+
+                    <FeedbackModal
+                      visible={feedback.visible}
+                      type={feedback.type}
+                      title={feedback.title}
+                      message={feedback.message}
+                      onClose={() => setFeedback({...feedback, visible: false})}
+                    />
+
                     {isPosterLoading && !isPlaying && <BannerSkeleton />}
                     {!isPlaying ? (
                       <Animated.View style={{opacity: posterFadeAnim}}>
@@ -1555,68 +1867,226 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       </>
                     )}
                   </View>
-                  <View style={styles.buttonRow}>
-                    {cinema && isFocused ? (
-                      <GradientButton
-                        title="Watch Trailer"
-                        onPress={() => {
-                          navigation.navigate('CinemaScreen', {
-                            id: show.id.toString(),
-                            type: 'tv',
-                            title: show.name,
-                            season,
-                            episode,
-                          });
-                        }}
-                        isIcon={isTablet ? true : false}
-                        style={styles.watchButton}
-                        textStyle={styles.watchButtonText}
-                      />
+                  <View
+                    style={
+                      hasOTT || isFuture
+                        ? styles.buttonContainerColumn
+                        : styles.buttonRow
+                    }>
+                    {hasOTT || isFuture ? (
+                      <>
+                        <View style={styles.buttonRowTop}>
+                          <GradientButton
+                            title="Watch Trailer"
+                            isIcon={true}
+                            onPress={() => {
+                              setIsPlaying(true);
+                            }}
+                            style={{
+                              ...styles.watchButton,
+                              opacity: isPlaying ? 0.3 : 1,
+                            }}
+                            textStyle={styles.watchButtonText}
+                          />
+                          <WatchProvidersButton
+                            providers={watchProviders}
+                            contentId={show.id}
+                            title={show.name}
+                            type="tv"
+                          />
+                        </View>
+                        <View style={styles.buttonRowBottom}>
+                          {isFuture && (
+                            <TouchableOpacity
+                              style={{
+                                paddingHorizontal: spacing.md,
+                                paddingVertical: 12,
+                                borderRadius: borderRadius.round,
+                                backgroundColor: colors.modal.blur,
+                                borderColor: colors.modal.content,
+                                borderWidth: 1,
+                                borderBottomWidth: 0,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 6,
+                              }}
+                              onPress={handleToggleCalendar}
+                              activeOpacity={0.7}>
+                              <Ionicons
+                                name={
+                                  isInCalendar
+                                    ? 'notifications'
+                                    : 'notifications-outline'
+                                }
+                                size={18}
+                                color={isInCalendar ? colors.accent : '#fff'}
+                              />
+                              <View>
+                                <Text
+                                  style={{
+                                    ...typography.body1,
+                                    color: colors.text.secondary,
+                                    fontSize: 9,
+                                  }}>
+                                  {isInCalendar ? 'Airing On' : 'Remind Me'}
+                                </Text>
+                                <Text
+                                  style={{
+                                    ...typography.body1,
+                                    color: colors.text.primary,
+                                    fontSize: 11,
+                                  }}>
+                                  {(() => {
+                                    const dateStr = nextEpisode?.air_date;
+                                    if (!dateStr) return '';
+                                    return new Date(dateStr).toLocaleDateString(
+                                      undefined,
+                                      {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      },
+                                    );
+                                  })()}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={() => {
+                              setScheduleModalVisible(true);
+                            }}
+                            activeOpacity={0.7}>
+                            <Ionicons
+                              name={
+                                scheduledWatchDate
+                                  ? 'calendar'
+                                  : 'calendar-outline'
+                              }
+                              size={18}
+                              color={colors.text.primary}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={handleWatchlistPress}
+                            disabled={removeFromWatchlistMutation.isPending}>
+                            <Ionicons
+                              name={
+                                isInAnyWatchlist ? 'checkmark-circle' : 'add'
+                              }
+                              size={18}
+                              color={
+                                isInAnyWatchlist ? colors.text.primary : '#fff'
+                              }
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={handleOpenPoster}
+                            disabled={isSharingPoster}
+                            activeOpacity={0.9}>
+                            {isSharingPoster ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <Ionicons
+                                name="logo-instagram"
+                                size={20}
+                                color="#fff"
+                              />
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </>
                     ) : (
-                      <GradientButton
-                        title="Watch Trailer"
-                        isIcon={isTablet ? true : false}
-                        onPress={() => {
-                          setIsPlaying(true);
-                        }}
-                        style={{
-                          ...styles.watchButton,
-                          opacity: isPlaying ? 0.3 : 1,
-                        }}
-                        textStyle={styles.watchButtonText}
-                      />
-                    )}
-                    <WatchProvidersButton
-                      providers={watchProviders}
-                      contentId={show.id}
-                      title={show.name}
-                      type="tv"
-                    />
-                    <TouchableOpacity
-                      style={styles.addButton}
-                      onPress={handleWatchlistPress}
-                      disabled={removeFromWatchlistMutation.isPending}>
-                      <Ionicons
-                        name={isInAnyWatchlist ? 'checkmark' : 'add'}
-                        size={24}
-                        color={isInAnyWatchlist ? colors.accent : '#fff'}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.addButton}
-                      onPress={handleOpenPoster}
-                      disabled={isSharingPoster}
-                      activeOpacity={0.9}>
-                      {isSharingPoster ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Ionicons
-                          name="logo-instagram"
-                          size={20}
-                          color="#fff"
+                      <>
+                        <GradientButton
+                          title="Watch Trailer"
+                          isIcon={isTablet ? true : false}
+                          onPress={() => {
+                            setIsPlaying(true);
+                          }}
+                          style={{
+                            ...styles.watchButton,
+                            paddingHorizontal: isTablet
+                              ? spacing.xl
+                              : spacing.md,
+                            opacity: isPlaying ? 0.3 : 1,
+                          }}
+                          textStyle={{
+                            ...typography.body1,
+                            fontWeight: 'bold',
+                            fontSize: isTablet ? 14 : 11,
+                          }}
                         />
-                      )}
-                    </TouchableOpacity>
+                        <WatchProvidersButton
+                          providers={watchProviders}
+                          contentId={show.id}
+                          title={show.name}
+                          type="tv"
+                        />
+                        <TouchableOpacity
+                          style={styles.addButton}
+                          onPress={() => {
+                            setScheduleModalVisible(true);
+                          }}
+                          activeOpacity={0.7}>
+                          <Ionicons
+                            name={
+                              scheduledWatchDate
+                                ? 'calendar'
+                                : 'calendar-outline'
+                            }
+                            size={18}
+                            color={colors.text.primary}
+                          />
+                        </TouchableOpacity>
+                        {isFuture && (
+                          <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={handleToggleCalendar}
+                            activeOpacity={0.7}>
+                            <Ionicons
+                              name={
+                                isInCalendar
+                                  ? 'notifications'
+                                  : 'notifications-outline'
+                              }
+                              size={18}
+                              color={isInCalendar ? colors.accent : '#fff'}
+                            />
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={styles.addButton}
+                          onPress={handleWatchlistPress}
+                          disabled={removeFromWatchlistMutation.isPending}>
+                          <Ionicons
+                            name={isInAnyWatchlist ? 'checkmark-circle' : 'add'}
+                            size={18}
+                            color={
+                              isInAnyWatchlist ? colors.text.primary : '#fff'
+                            }
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.addButton}
+                          onPress={handleOpenPoster}
+                          disabled={isSharingPoster}
+                          activeOpacity={0.9}>
+                          {isSharingPoster ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Ionicons
+                              name="logo-instagram"
+                              size={20}
+                              color="#fff"
+                            />
+                          )}
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </View>
                   <View style={styles.genreContainer}>
                     {showDetails?.genres &&
@@ -1683,8 +2153,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           flexDirection: 'row',
                           alignItems: 'center',
                           backgroundColor: colors.modal.blur,
-                          padding: 4,
                           paddingHorizontal: spacing.sm,
+                          height: 40,
                           borderRadius: borderRadius.md,
                           borderWidth: 1,
                           borderBottomWidth: 0,
@@ -1694,7 +2164,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           source={require('../assets/imdb.webp')}
                           style={{
                             width: 50,
-                            height: 30,
+                            height: 20,
                             resizeMode: 'contain',
                           }}
                         />
@@ -1731,8 +2201,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           alignItems: 'center',
                           gap: spacing.sm,
                           backgroundColor: colors.modal.blur,
-                          padding: 4,
                           paddingHorizontal: spacing.sm,
+                          height: 40,
                           borderRadius: borderRadius.md,
                           borderWidth: 1,
                           borderBottomWidth: 0,
@@ -1741,8 +2211,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         <Image
                           source={require('../assets/tomato.png')}
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: 20,
+                            height: 20,
                             resizeMode: 'contain',
                             marginVertical: 2,
                           }}
@@ -2028,10 +2498,19 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                                         color: colors.text.primary,
                                         fontWeight: 'bold',
                                       }}>
-                                      {s.season_number}
+                                      {s.season_number === 0
+                                        ? 'S'
+                                        : s.season_number}
                                     </Text>
 
                                     <View style={styles.seasonItemInfo}>
+                                      <Text
+                                        style={{
+                                          ...typography.h3,
+                                          color: colors.text.primary,
+                                        }}>
+                                        {s.name}
+                                      </Text>
                                       <View
                                         style={{
                                           flexDirection: 'row',

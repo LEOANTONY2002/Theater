@@ -1,5 +1,12 @@
 import React, {useCallback, useState} from 'react';
-import {View, Text, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  useWindowDimensions,
+} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {useWatchlists, useWatchlistItems} from '../hooks/useWatchlists';
 import {HorizontalList} from '../components/HorizontalList';
@@ -14,6 +21,7 @@ import {GradientButton} from '../components/GradientButton';
 import {WatchlistAnalyzer} from '../components/WatchlistAnalyzer';
 import {QuickDecision} from '../components/QuickDecision';
 import {useAIEnabled} from '../hooks/useAIEnabled';
+import {Image} from 'react-native';
 
 export const WatchlistsTabScreen: React.FC = () => {
   const {data: watchlists = [], isLoading} = useWatchlists();
@@ -25,6 +33,7 @@ export const WatchlistsTabScreen: React.FC = () => {
     ContentItem[]
   >([]);
   const {isAIEnabled} = useAIEnabled();
+  const {width} = useWindowDimensions();
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -86,14 +95,15 @@ export const WatchlistsTabScreen: React.FC = () => {
       paddingVertical: orientation === 'landscape' ? '20%' : '50%',
     },
     emptyTitle: {
-      ...typography.h2,
-      color: colors.text.primary,
+      ...typography.h3,
+      color: colors.text.secondary,
       marginBottom: spacing.sm,
     },
     emptyText: {
-      ...typography.body1,
-      color: colors.text.secondary,
+      ...typography.body2,
+      color: colors.text.muted,
       textAlign: 'center',
+      width: isTablet ? 400 : 300,
     },
     loadingContainer: {
       flex: 1,
@@ -219,22 +229,17 @@ export const WatchlistsTabScreen: React.FC = () => {
   const renderEmpty = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
+        <Image
+          source={require('../assets/watchlistsEmpty.png')}
+          style={{
+            width: isTablet ? width / 3 : width / 2,
+            height: isTablet ? width / 3 : width / 2,
+          }}
+        />
         <Text style={styles.emptyTitle}>No Watchlists Yet</Text>
         <Text style={styles.emptyText}>
-          Create your first watchlist to start organizing your favorite movies
-          and shows
+          Start adding your favorite movies and shows to your watchlists
         </Text>
-        <GradientButton
-          onPress={() =>
-            navigation.navigate('Main', {
-              screen: 'MySpace',
-              params: {screen: 'WatchlistsScreen'},
-            })
-          }
-          title="Create Your First Watchlist"
-          isIcon={false}
-          style={{borderRadius: borderRadius.round, marginTop: spacing.lg}}
-        />
       </View>
     );
   }, [navigation]);

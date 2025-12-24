@@ -100,14 +100,18 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isSolid ? colors.modal.blur : colors.modal.border,
+      backgroundColor: colors.modal.blur,
       borderRadius: borderRadius.md,
       paddingHorizontal: spacing.sm,
-      gap: spacing.sm,
+      paddingLeft: spacing.md,
+      gap: spacing.xs,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.header,
     },
     searchInput: {
       flex: 1,
-      height: 44,
+      height: 50,
       color: colors.text.primary,
       ...typography.body2,
     },
@@ -209,7 +213,7 @@ export const AdvancedFilterSearch: React.FC<AdvancedFilterSearchProps> = ({
 
       {/* Search Input */}
       <View style={styles.searchContainer}>
-        <Icon name="search" size={18} color={colors.text.tertiary} />
+        <Icon name="search" size={15} color={colors.text.tertiary} />
         <TextInput
           style={styles.searchInput}
           placeholder={placeholder}

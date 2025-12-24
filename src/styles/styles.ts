@@ -38,7 +38,7 @@ export const modalStyles = StyleSheet.create({
     borderRadius: borderRadius.xl,
   },
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
   },
   sectionTitle: {
@@ -66,8 +66,11 @@ export const modalStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
     padding: spacing.md,
-    backgroundColor: colors.modal.border,
+    backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.header,
   },
   contentTypeButtonSolid: {
     flex: 1,
@@ -78,10 +81,15 @@ export const modalStyles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
   },
   activeButton: {
+    backgroundColor: colors.modal.active,
+    borderWidth: 1,
+    borderBottomWidth: 0,
     borderColor: colors.modal.activeBorder,
-    backgroundColor: colors.modal.activeBorder,
   },
   activeButtonSolid: {
     borderColor: colors.modal.active,
@@ -92,15 +100,17 @@ export const modalStyles = StyleSheet.create({
     ...typography.button,
   },
   activeText: {
-    color: colors.modal.activeText,
-    fontFamily: 'Inter_18pt-Regular',
-    fontWeight: '600',
+    color: colors.text.primary,
+    ...typography.button,
   },
   pickerContainer: {
-    backgroundColor: colors.modal.border,
+    backgroundColor: colors.modal.blur,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     paddingLeft: spacing.sm,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.header,
   },
   pickerContainerSolid: {
     backgroundColor: colors.modal.blur,
@@ -122,9 +132,12 @@ export const modalStyles = StyleSheet.create({
   },
   dateButton: {
     flex: 1,
-    backgroundColor: colors.modal.border,
+    backgroundColor: colors.modal.blur,
     padding: spacing.md,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.header,
     alignItems: 'center',
   },
   dateButtonSolid: {
@@ -132,6 +145,9 @@ export const modalStyles = StyleSheet.create({
     backgroundColor: colors.modal.blur,
     padding: spacing.md,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
     alignItems: 'center',
   },
   dateButtonText: {
@@ -156,6 +172,9 @@ export const modalStyles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
     borderRadius: borderRadius.round,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
     alignItems: 'center',
   },
   resetButton: {
@@ -226,7 +245,9 @@ export const modalStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    minHeight: 40,
   },
   tag: {
     backgroundColor: colors.modal.border,

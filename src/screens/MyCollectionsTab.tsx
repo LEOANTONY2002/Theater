@@ -218,19 +218,17 @@ export const MyCollectionsTab = () => {
       justifyContent: 'center',
       alignItems: 'center',
       padding: spacing.xl,
-      paddingTop: 100,
     },
     emptyTitle: {
       ...typography.h3,
-      color: colors.text.primary,
-      marginTop: spacing.md,
+      color: colors.text.secondary,
       marginBottom: spacing.xs,
     },
     emptySubtitle: {
       ...typography.body2,
       color: colors.text.muted,
       textAlign: 'center',
-      maxWidth: 250,
+      maxWidth: isTablet ? 400 : 300,
     },
   });
 
@@ -331,9 +329,16 @@ export const MyCollectionsTab = () => {
   if (!loading && collections.length === 0) {
     return (
       <View style={styles.emptyContainer}>
+        <Image
+          source={require('../assets/collectionsEmpty.png')}
+          style={{
+            width: isTablet ? width / 3 : width / 2,
+            height: isTablet ? width / 3 : width / 2,
+          }}
+        />
         <Text style={styles.emptyTitle}>No Collections Saved</Text>
         <Text style={styles.emptySubtitle}>
-          Save your favorite movie collections to access them quickly.
+          Start saving your favorite movie collections to access them quickly.
         </Text>
       </View>
     );

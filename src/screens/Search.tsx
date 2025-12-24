@@ -242,19 +242,26 @@ export const SearchScreen = React.memo(() => {
         style={{width: 220, opacity: 0.5, marginBottom: -30}}
         resizeMode="contain"
       />
-      <View style={{position: 'relative'}}>
+      <Text style={styles.noResultsTitle}>No results found</Text>
+      <Text style={styles.noResultsText}>
+        Try different keywords or try AI Search.
+      </Text>
+      <TouchableOpacity onPress={() => setIsAISearchMode(true)}>
         <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
           style={{
-            position: 'absolute',
-            bottom: 0,
-            width: '100%',
-            height: 40,
-            zIndex: 1,
-          }}
-          colors={['transparent', colors.background.primary]}
-        />
-        <Text style={styles.noResultsTitle}>No results found</Text>
-      </View>
+            padding: 12,
+            paddingHorizontal: spacing.lg,
+            borderRadius: borderRadius.round,
+            marginTop: spacing.md,
+          }}>
+          <Text style={{...typography.body1, color: colors.text.primary}}>
+            AI Search
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 
@@ -608,24 +615,15 @@ export const SearchScreen = React.memo(() => {
       paddingHorizontal: spacing.xl,
     },
     noResultsTitle: {
-      color: colors.text.muted,
-      fontSize: 40,
-      opacity: 0.5,
-      fontWeight: '900',
+      ...typography.h3,
+      color: colors.text.secondary,
       textAlign: 'center',
-      fontFamily: 'Inter_18pt-Regular',
     },
     noResultsText: {
-      color: colors.text.secondary,
+      color: colors.text.muted,
       ...typography.body1,
       textAlign: 'center',
-      marginTop: spacing.sm,
-    },
-    noResultsSubtext: {
-      color: colors.text.secondary,
-      ...typography.body2,
-      textAlign: 'center',
-      marginTop: spacing.sm,
+      fontSize: 12,
     },
     // Tab styles
     tabContainer: {

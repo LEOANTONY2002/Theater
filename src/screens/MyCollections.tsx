@@ -11,6 +11,7 @@ import {
   Animated,
   Image,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import ShareLib from 'react-native-share';
 import {BlurView} from '@react-native-community/blur';
@@ -41,6 +42,7 @@ export const MyCollectionsScreen = () => {
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
+  const {width} = useWindowDimensions();
 
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
@@ -289,14 +291,13 @@ export const MyCollectionsScreen = () => {
     },
     emptyTitle: {
       ...typography.h3,
-      color: colors.text.primary,
-      marginTop: spacing.md,
+      color: colors.text.secondary,
     },
     emptySubtitle: {
       ...typography.body2,
-      color: colors.text.secondary,
+      color: colors.text.muted,
       textAlign: 'center',
-      maxWidth: 250,
+      maxWidth: isTablet ? 400 : 300,
       marginTop: spacing.xs,
     },
   });
@@ -370,10 +371,12 @@ export const MyCollectionsScreen = () => {
           </View>
         ) : collections.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons
-              name="albums-outline"
-              size={64}
-              color={colors.text.muted}
+            <Image
+              source={require('../assets/collectionsEmpty.png')}
+              style={{
+                width: isTablet ? width / 3 : width / 2,
+                height: isTablet ? width / 3 : width / 2,
+              }}
             />
             <Text style={styles.emptyTitle}>No Collections</Text>
             <Text style={styles.emptySubtitle}>

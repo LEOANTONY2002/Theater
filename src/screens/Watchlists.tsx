@@ -12,6 +12,7 @@ import {
   Image,
   Platform,
   Clipboard,
+  useWindowDimensions,
 } from 'react-native';
 import ShareLib from 'react-native-share';
 import {BlurView} from '@react-native-community/blur';
@@ -108,14 +109,13 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     ...typography.h3,
-    color: colors.text.primary,
+    color: colors.text.secondary,
     marginBottom: spacing.sm,
   },
   emptyStateText: {
     ...typography.body1,
-    color: colors.text.secondary,
+    color: colors.text.muted,
     textAlign: 'center',
-    width: '80%',
   },
   loadingContainer: {
     padding: spacing.xl,
@@ -589,6 +589,7 @@ export const WatchlistsScreen: React.FC = () => {
   const {isTablet, orientation} = useResponsive();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
+  const {width} = useWindowDimensions();
 
   // Animated values for scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -915,11 +916,24 @@ export const WatchlistsScreen: React.FC = () => {
             <View
               style={{
                 marginTop:
-                  isTablet && orientation === 'landscape' ? '20%' : '60%',
+                  isTablet && orientation === 'landscape' ? '20%' : '20%',
                 alignItems: 'center',
               }}>
+              <Image
+                source={require('../assets/watchlistsEmpty.png')}
+                style={{
+                  width: isTablet ? width / 3 : width / 2,
+                  height: isTablet ? width / 3 : width / 2,
+                }}
+              />
               <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
-              <Text style={styles.emptyStateText}>
+              <Text
+                style={[
+                  styles.emptyStateText,
+                  {
+                    width: isTablet ? 400 : 300,
+                  },
+                ]}>
                 Create your first watchlist to start organizing your favorite
                 movies and shows
               </Text>
