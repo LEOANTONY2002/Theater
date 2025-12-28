@@ -98,8 +98,8 @@ import {getRealm} from '../database/realm';
 import ShareLib, {Social} from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
-import {getCriticRatings} from '../services/gemini';
 import {IMDBModal} from '../components/IMDBModal';
+import {useContentAnalysis} from '../hooks/useContentAnalysis';
 import {ScheduleWatchModal} from '../components/ScheduleWatchModal';
 import {FeedbackModal} from '../components/FeedbackModal';
 import {BlurPreference} from '../store/blurPreference';
@@ -156,6 +156,27 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     error: showDetailsError,
   } = useTVShowDetails(show.id);
 
+  // Memoize genres to prevent unnecessary re-renders
+  const genresArray = useMemo(
+    () => showDetails?.genres?.map((g: Genre) => g.name) || [],
+    [showDetails?.genres],
+  );
+
+  // Unified AI Analysis
+  const {data: analysisData, isLoading: isAnalysisLoading} = useContentAnalysis(
+    {
+      title: show.name,
+      year: (
+        (show as any).first_air_date || (showDetails as any)?.first_air_date
+      )?.split('-')[0],
+      overview: show.overview || showDetails?.overview || '',
+      genres: genresArray,
+      type: 'tv',
+      contentId: show.id,
+      enabled: !!(showDetails && isAIEnabled),
+    },
+  );
+
   // Calendar state
   const [isInCalendar, setIsInCalendar] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -174,9 +195,24 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     (show as any)?.next_episode_to_air ||
     (showDetails as any)?.next_episode_to_air;
 
+  console.log('[TVShowDetails] Debug:', {
+    showId: show.id,
+    showName: show.name,
+    nextEpisode,
+    showDetailsLoaded: !!showDetails,
+    hasNextEpisodeInShow: !!(show as any)?.next_episode_to_air,
+    hasNextEpisodeInDetails: !!(showDetails as any)?.next_episode_to_air,
+  });
+
   const isFuture = useMemo(() => {
-    if (!nextEpisode?.air_date) return false;
-    return new Date(nextEpisode.air_date) > new Date();
+    if (!nextEpisode?.air_date) {
+      console.log('[TVShowDetails] No air_date found');
+      return false;
+    }
+    const airDate = new Date(nextEpisode.air_date);
+    const now = new Date();
+    const isFuture = airDate > now;
+    return isFuture;
   }, [nextEpisode, showDetails, isLoading]);
 
   useEffect(() => {
@@ -387,6 +423,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     contentId: show.id,
     enabled: !!(showDetails && isAIEnabled),
     poster_path: show.poster_path || showDetails?.poster_path,
+    tags: analysisData?.tags,
   });
 
   const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(show.id);
@@ -416,6 +453,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   // Ref for FlatList to preserve scroll position
   const flatListRef = useRef<FlatList>(null);
+  const loadingRatingsRef = useRef<number | null>(null);
 
   // Format large numbers to compact form (e.g., 1.5K, 2.3M)
   const formatCompact = (value?: number | null): string => {
@@ -529,36 +567,37 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     addToHistory();
   }, []);
 
-  // Load AI critic ratings for TV show
+  // Load AI critic ratings for TV show (Merged from cache/analysis)
   useEffect(() => {
     const loadRatings = async () => {
-      try {
-        setIsLoadingAiImdb(true);
-        const yearStr = (() => {
-          const d =
-            (show as any).first_air_date ||
-            (showDetails as any)?.first_air_date;
-          try {
-            return d ? new Date(d).getFullYear().toString() : undefined;
-          } catch {
-            return undefined;
-          }
-        })();
-        const res = await getCriticRatings({
-          title: show.name,
-          year: yearStr,
-          type: 'tv',
-          contentId: show.id,
-        });
-        setAiRatings(res);
-      } catch (e) {
-        // ignore
-      } finally {
-        setIsLoadingAiImdb(false);
+      setIsLoadingAiImdb(true);
+      if (loadingRatingsRef.current === show.id && !analysisData) return;
+      loadingRatingsRef.current = show.id;
+
+      // Note: For TV shows, we typically don't scrape IMDB directly in the same way as movies OR we might?
+      // Current code didn't scrape IMDB for TV shows, only called getCriticRatings.
+      // So we strictly rely on analysisData here.
+
+      const currentRatings = {
+        imdb: analysisData?.ratings?.imdb ?? aiRatings?.imdb ?? null,
+        rotten_tomatoes:
+          analysisData?.ratings?.rotten_tomatoes ??
+          aiRatings?.rotten_tomatoes ??
+          null,
+        imdb_votes:
+          analysisData?.ratings?.imdb_votes ?? aiRatings?.imdb_votes ?? null,
+      };
+
+      if (analysisData?.ratings) {
+        setAiRatings(currentRatings);
+      } else {
+        // Try cache? Logic already in hook, but if we want to show stale cache immediately?
+        // Hook handles it.
       }
+      setIsLoadingAiImdb(false);
     };
     loadRatings();
-  }, [show.id, show.name, showDetails]);
+  }, [show.id, show.name, showDetails, analysisData]);
 
   // Check connectivity and cache status for this specific TV show
   useEffect(() => {
@@ -579,33 +618,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   }, [show.id]);
 
   const retryAiRatings = useCallback(async () => {
-    try {
-      setIsLoadingAiImdb(true);
-      const yearStr = (() => {
-        const d =
-          (show as any).first_air_date || (showDetails as any)?.first_air_date;
-        try {
-          return d ? new Date(d).getFullYear().toString() : undefined;
-        } catch {
-          return undefined;
-        }
-      })();
-      const res = await getCriticRatings({
-        title: show.name,
-        year: yearStr,
-        type: 'tv',
-        contentId: show.id,
-      });
-      if (__DEV__) {
-      }
-      setAiRatings(res);
-    } catch (e) {
-      if (__DEV__) {
-      }
-    } finally {
-      setIsLoadingAiImdb(false);
-    }
-  }, [show.id, show.name, showDetails]);
+    queryClient.invalidateQueries({
+      queryKey: ['contentAnalysis', show.id, 'tv'],
+    });
+  }, [show.id, queryClient]);
 
   const handleRetry = async () => {
     if (retrying) return;
@@ -946,13 +962,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   }, [showDetails, selectedSeason]);
 
   // Use memoized AI similar TV shows hook
-  const {data: aiSimilarShows = [], isLoading: isLoadingAiSimilar} =
-    useAISimilarTVShows(
-      show.id,
-      showDetails?.name,
-      showDetails?.overview,
-      showDetails?.genres,
-    );
+  // AI Similar shows hook removed to save rate limit
+  const aiSimilarShows: any[] = [];
+  const isLoadingAiSimilar = false;
 
   const trailer = showDetails?.videos?.results?.find(
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
@@ -1017,7 +1029,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             <Text style={styles.infoDot}>•</Text>
             <Text style={styles.info}>
               {new Date(episode.air_date).toLocaleDateString('en-US', {
-                month: 'long',
+                month: 'short',
                 day: 'numeric',
                 year: 'numeric',
               })}
@@ -1807,7 +1819,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       ],
                     },
                   ]}>
-                  <View>
+                  <View
+                    style={{
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '80%',
+                    }}>
                     <Text style={styles.title}>
                       {showDetails?.name || show.name}
                     </Text>
@@ -1880,7 +1898,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             title="Watch Trailer"
                             isIcon={true}
                             onPress={() => {
-                              setIsPlaying(true);
+                              // setIsPlaying(true);
+                              navigation.navigate('CinemaScreen', {
+                                id: show.id.toString(),
+                                type: 'tv',
+                                title: show.name,
+                                season,
+                                episode,
+                              });
                             }}
                             style={{
                               ...styles.watchButton,
@@ -2005,7 +2030,14 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           title="Watch Trailer"
                           isIcon={isTablet ? true : false}
                           onPress={() => {
-                            setIsPlaying(true);
+                            // setIsPlaying(true);
+                            navigation.navigate('CinemaScreen', {
+                              id: show.id.toString(),
+                              type: 'tv',
+                              title: show.name,
+                              season,
+                              episode,
+                            });
                           }}
                           style={{
                             ...styles.watchButton,
@@ -2270,14 +2302,20 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   <MovieTrivia
                     title={show.name}
                     year={
-                      showDetails?.first_air_date
-                        ? new Date(showDetails.first_air_date)
+                      (show as any).first_air_date ||
+                      (showDetails as any)?.first_air_date
+                        ? new Date(
+                            (show as any).first_air_date ||
+                              (showDetails as any)?.first_air_date,
+                          )
                             .getFullYear()
                             .toString()
                         : undefined
                     }
                     type="tv"
                     contentId={show.id}
+                    trivia={analysisData?.trivia}
+                    loading={isAnalysisLoading}
                   />
                 </View>
               );
@@ -2585,19 +2623,24 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         Theater AI is curating similar shows...
                       </Text>
                     </View>
-                  ) : (
-                    <>
-                      {Array.isArray(aiSimilarShows) &&
-                        aiSimilarShows.length > 0 && (
-                          <HorizontalList
-                            title="Similar shows by Theater AI"
-                            data={aiSimilarShows}
-                            onItemPress={handleItemPress}
-                            isSeeAll={false}
-                          />
-                        )}
-                    </>
-                  )}
+                  ) : aiSimilarShows && aiSimilarShows.length > 0 ? (
+                    <HorizontalList
+                      title="More Like This"
+                      data={aiSimilarShows.map((s: TVShow) => ({
+                        ...s,
+                        type: 'tv',
+                      }))}
+                      onItemPress={item =>
+                        navigation.push('TVShowDetails', {show: item as TVShow})
+                      }
+                      onSeeAllPress={() =>
+                        navigation.push('SimilarTVShows', {
+                          tvId: show.id,
+                          title: show.name,
+                        })
+                      }
+                    />
+                  ) : null}
                 </>
               ) : null;
             case 'productionInfo':

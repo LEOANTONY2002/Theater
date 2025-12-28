@@ -11,6 +11,7 @@ import {
   Easing,
   ScrollView,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {Modal} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
@@ -21,7 +22,6 @@ import {GradientSpinner} from './GradientSpinner';
 import {MicButton} from './MicButton';
 import LinearGradient from 'react-native-linear-gradient';
 import {MaybeBlurView} from './MaybeBlurView';
-import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
 import Markdown from 'react-native-markdown-display';
 import {AIReportFlag} from './AIReportFlag';
 import {HorizontalList} from './HorizontalList';
@@ -77,7 +77,6 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
-  const androidInset = useAndroidKeyboardInset(10);
   const navigation = useNavigation<any>();
   const themeMode = BlurPreference.getMode();
 
@@ -510,248 +509,255 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
           backgroundColor: 'transparent',
           overflow: 'hidden',
         }}>
-        <Animated.View
-          style={[
-            {flex: 1, position: 'relative'},
-            {
-              opacity: fadeAnim,
-              transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
-            },
-          ]}>
-          <MaybeBlurView
-            header
-            isAI
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+          style={{flex: 1}}>
+          <Animated.View
             style={[
+              {flex: 1, position: 'relative'},
               {
-                marginTop: 20,
-                overflow: 'hidden',
+                opacity: fadeAnim,
+                transform: [{translateY: slideUpAnim}, {scale: scaleAnim}],
               },
             ]}>
-            <LinearGradient
-              colors={['rgba(18, 1, 51, 0.87)', 'rgba(42, 0, 39, 0.83)']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.sm,
-                flex: 1,
-                paddingRight: 10,
-              }}>
-              <Icon
-                name="sparkles"
-                size={20}
-                color={colors.text.muted}
-                style={{flexShrink: 0}}
-              />
-              <Text
-                numberOfLines={1}
+            <MaybeBlurView
+              header
+              isAI
+              style={[
+                {
+                  marginTop: 20,
+                  overflow: 'hidden',
+                },
+              ]}>
+              <LinearGradient
+                colors={['rgba(18, 1, 51, 0.87)', 'rgba(42, 0, 39, 0.83)']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
                 style={{
-                  flex: 1,
-                  color: colors.text.primary,
-                  ...typography.h3,
-                  fontSize: isTablet ? 16 : 14,
-                }}>
-                Chat about {personName}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={{
-                padding: spacing.sm,
-                backgroundColor: colors.modal.blur,
-                borderRadius: borderRadius.round,
-                borderTopWidth: 1,
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderColor: colors.modal.content,
-              }}>
-              <Icon name="close" size={20} color={colors.text.primary} />
-            </TouchableOpacity>
-          </MaybeBlurView>
-          <View
-            style={{
-              flex: 1,
-              overflow: 'hidden',
-              borderRadius: 40,
-            }}>
-            <LinearGradient
-              colors={['rgb(18, 1, 51)', 'rgb(42, 0, 39)']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-            <View style={styles.container}>
-              <FlatList
-                ref={flatListRef}
-                data={messages}
-                renderItem={renderMessage}
-                keyExtractor={item => item.id}
-                contentContainerStyle={[styles.chat]}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                onContentSizeChange={() =>
-                  flatListRef.current?.scrollToEnd({animated: true})
-                }
-                onLayout={() =>
-                  flatListRef.current?.scrollToEnd({animated: true})
-                }
-                ListFooterComponent={
-                  <>
-                    {isLoading && (
-                      <Animated.View
-                        style={{
-                          marginHorizontal: spacing.lg,
-                          marginBottom: 32,
-                        }}>
-                        <GradientSpinner
-                          size={30}
-                          style={{
-                            alignItems: 'center',
-                            alignSelf: 'center',
-                            backgroundColor: 'transparent',
-                          }}
-                          colors={[colors.primary, colors.secondary]}
-                        />
-                        <Animated.Text
-                          style={[
-                            {
-                              color: colors.text.secondary,
-                              textAlign: 'center',
-                              fontSize: 12,
-                              marginTop: 4,
-                              fontStyle: 'italic',
-                            },
-                            {opacity: pulseAnim},
-                          ]}>
-                          Theater AI is thinking...
-                        </Animated.Text>
-                      </Animated.View>
-                    )}
-                    <View style={{height: 250}} />
-                  </>
-                }
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
               />
               <View
                 style={{
-                  zIndex: 1,
-                  backgroundColor: 'rgb(23, 1, 42)',
-                  borderRadius: borderRadius.xl,
-                  paddingVertical: spacing.md,
-                  position: 'absolute',
-                  bottom: spacing.md,
-                  left: spacing.md,
-                  right: spacing.md,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  flex: 1,
+                  paddingRight: 10,
                 }}>
-                <View style={{zIndex: 1, marginBottom: spacing.sm}}>
-                  <Text style={styles.suggestionsTitle}>Try asking:</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.suggestionsScrollContent}>
-                    {DEFAULT_PERSON_QUESTIONS.map((question, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={styles.suggestionChip}
-                        onPress={() => handleSend(question)}
-                        activeOpacity={0.7}>
-                        <Text style={styles.suggestionText}>{question}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                  <LinearGradient
-                    colors={['transparent', 'rgb(23, 1, 42)']}
-                    start={{x: 0, y: 1}}
-                    end={{x: 1, y: 0}}
-                    style={{
-                      width: '30%',
-                      height: 40,
-                      position: 'absolute',
-                      bottom: 0,
-                      right: -1,
-                      pointerEvents: 'none',
-                    }}
-                  />
-                </View>
+                <Icon
+                  name="sparkles"
+                  size={20}
+                  color={colors.text.muted}
+                  style={{flexShrink: 0}}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    flex: 1,
+                    color: colors.text.primary,
+                    ...typography.h3,
+                    fontSize: isTablet ? 16 : 14,
+                  }}>
+                  Chat about {personName}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={onClose}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Icon name="close" size={20} color={colors.text.primary} />
+              </TouchableOpacity>
+            </MaybeBlurView>
+            <View
+              style={{
+                flex: 1,
+                overflow: 'hidden',
+                borderRadius: 40,
+              }}>
+              <LinearGradient
+                colors={['rgb(18, 1, 51)', 'rgb(42, 0, 39)']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
+              />
+              <View style={styles.container}>
+                <FlatList
+                  ref={flatListRef}
+                  data={messages}
+                  renderItem={renderMessage}
+                  keyExtractor={item => item.id}
+                  contentContainerStyle={[styles.chat]}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  onContentSizeChange={() =>
+                    flatListRef.current?.scrollToEnd({animated: true})
+                  }
+                  onLayout={() =>
+                    flatListRef.current?.scrollToEnd({animated: true})
+                  }
+                  ListFooterComponent={
+                    <>
+                      {isLoading && (
+                        <Animated.View
+                          style={{
+                            marginHorizontal: spacing.lg,
+                            marginBottom: 32,
+                          }}>
+                          <GradientSpinner
+                            size={30}
+                            style={{
+                              alignItems: 'center',
+                              alignSelf: 'center',
+                              backgroundColor: 'transparent',
+                            }}
+                            colors={[colors.primary, colors.secondary]}
+                          />
+                          <Animated.Text
+                            style={[
+                              {
+                                color: colors.text.secondary,
+                                textAlign: 'center',
+                                fontSize: 12,
+                                marginTop: 4,
+                                fontStyle: 'italic',
+                              },
+                              {opacity: pulseAnim},
+                            ]}>
+                            Thinking...
+                          </Animated.Text>
+                        </Animated.View>
+                      )}
+                      <View style={{height: 250}} />
+                    </>
+                  }
+                />
                 <View
                   style={{
-                    marginHorizontal: isTablet ? 100 : spacing.md,
-                    borderRadius: 50,
-                    overflow: 'hidden',
-                    zIndex: 3,
+                    zIndex: 1,
+                    backgroundColor: 'rgb(23, 1, 42)',
+                    borderRadius: borderRadius.xl,
+                    paddingVertical: spacing.md,
+                    position: 'absolute',
+                    bottom: spacing.md,
+                    left: spacing.md,
+                    right: spacing.md,
                   }}>
-                  <TouchableWithoutFeedback
-                    onPress={() => inputRef.current?.focus()}>
-                    <View style={styles.inputRow}>
-                      <TextInput
-                        ref={inputRef}
-                        style={[styles.input, {height: isTablet ? 50 : 40}]}
-                        value={inputText}
-                        onChangeText={setInputText}
-                        placeholder={`Ask about ${personName}...`}
-                        placeholderTextColor={colors.text.tertiary}
-                        editable={true}
-                        onFocus={() =>
-                          setTimeout(
-                            () =>
-                              flatListRef.current?.scrollToEnd({
-                                animated: true,
-                              }),
-                            50,
-                          )
-                        }
-                        onSubmitEditing={() => handleSend()}
-                        returnKeyType="send"
-                      />
-                      <MicButton
-                        onPartialText={text => {
-                          if (text) setInputText(text);
-                        }}
-                        onFinalText={text => {
-                          setInputText(text);
-                          inputRef.current?.focus();
-                        }}
-                      />
-                      <Animated.View>
+                  <View style={{zIndex: 1, marginBottom: spacing.sm}}>
+                    <Text style={styles.suggestionsTitle}>Try asking:</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.suggestionsScrollContent}>
+                      {DEFAULT_PERSON_QUESTIONS.map((question, idx) => (
                         <TouchableOpacity
-                          style={[
-                            styles.sendButton,
-                            {opacity: isLoading || !inputText.trim() ? 0.5 : 1},
-                          ]}
-                          onPress={() => handleSend()}
-                          disabled={isLoading || !inputText.trim()}>
-                          <Icon
-                            name={'send'}
-                            size={24}
-                            color={
-                              isLoading || !inputText.trim()
-                                ? colors.modal.active
-                                : colors.text.primary
-                            }
-                          />
+                          key={idx}
+                          style={styles.suggestionChip}
+                          onPress={() => handleSend(question)}
+                          activeOpacity={0.7}>
+                          <Text style={styles.suggestionText}>{question}</Text>
                         </TouchableOpacity>
-                      </Animated.View>
-                    </View>
-                  </TouchableWithoutFeedback>
+                      ))}
+                    </ScrollView>
+                    <LinearGradient
+                      colors={['transparent', 'rgb(23, 1, 42)']}
+                      start={{x: 0, y: 1}}
+                      end={{x: 1, y: 0}}
+                      style={{
+                        width: '30%',
+                        height: 40,
+                        position: 'absolute',
+                        bottom: 0,
+                        right: -1,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </View>
+                  <View
+                    style={{
+                      marginHorizontal: isTablet ? 100 : spacing.md,
+                      borderRadius: 50,
+                      overflow: 'hidden',
+                      zIndex: 3,
+                    }}>
+                    <TouchableWithoutFeedback
+                      onPress={() => inputRef.current?.focus()}>
+                      <View style={styles.inputRow}>
+                        <TextInput
+                          ref={inputRef}
+                          style={[styles.input, {height: isTablet ? 50 : 40}]}
+                          value={inputText}
+                          onChangeText={setInputText}
+                          placeholder={`Ask about ${personName}...`}
+                          placeholderTextColor={colors.text.tertiary}
+                          editable={true}
+                          onFocus={() =>
+                            setTimeout(
+                              () =>
+                                flatListRef.current?.scrollToEnd({
+                                  animated: true,
+                                }),
+                              50,
+                            )
+                          }
+                          onSubmitEditing={() => handleSend()}
+                          returnKeyType="send"
+                        />
+                        <MicButton
+                          onPartialText={text => {
+                            if (text) setInputText(text);
+                          }}
+                          onFinalText={text => {
+                            setInputText(text);
+                            inputRef.current?.focus();
+                          }}
+                        />
+                        <Animated.View>
+                          <TouchableOpacity
+                            style={[
+                              styles.sendButton,
+                              {
+                                opacity:
+                                  isLoading || !inputText.trim() ? 0.5 : 1,
+                              },
+                            ]}
+                            onPress={() => handleSend()}
+                            disabled={isLoading || !inputText.trim()}>
+                            <Icon
+                              name={'send'}
+                              size={24}
+                              color={
+                                isLoading || !inputText.trim()
+                                  ? colors.modal.active
+                                  : colors.text.primary
+                              }
+                            />
+                          </TouchableOpacity>
+                        </Animated.View>
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </View>
                 </View>
-              </View>
-              {/* <Text
+                {/* <Text
               numberOfLines={1}
               style={{
                 textAlign: 'center',
@@ -765,9 +771,10 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
               Responses are AI generated and for entertainment purposes
               only.
             </Text> */}
+              </View>
             </View>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

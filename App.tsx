@@ -24,7 +24,6 @@ import {checkInternet} from './src/services/connectivity';
 import {NoInternet} from './src/screens/NoInternet';
 import Onboarding from './src/screens/Onboarding';
 import {OnboardingManager} from './src/store/onboarding';
-import {offlineCache} from './src/services/offlineCache';
 import {checkTMDB} from './src/services/tmdb';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors} from './src/styles/theme';
@@ -186,10 +185,6 @@ export default function App() {
           setIsLoading(false);
           return;
         }
-
-        // Check cache for offline mode
-        const hasCacheData = await offlineCache.hasCachedContent();
-        setHasCache(hasCacheData);
 
         setIsLoading(false);
       } catch (error) {

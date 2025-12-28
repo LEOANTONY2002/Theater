@@ -17,6 +17,8 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {AISettingsManager} from '../store/aiSettings';
 
 // TODO: Replace with your reporting inbox
+import {AI_CONSTANTS} from '../config/aiConstants';
+
 const REPORT_EMAIL = 'la.curations@gmail.com';
 
 export type AIReportFlagProps = {
@@ -56,9 +58,9 @@ export const AIReportFlag: React.FC<AIReportFlagProps> = ({
       (async () => {
         try {
           const settings = await AISettingsManager.getSettings();
-          setModel(settings.model || 'gemini-2.5-flash');
+          setModel(settings.model || AI_CONSTANTS.DEFAULT_MODEL);
         } catch (e) {
-          setModel('gemini-2.5-flash');
+          setModel(AI_CONSTANTS.DEFAULT_MODEL);
         }
       })();
     }

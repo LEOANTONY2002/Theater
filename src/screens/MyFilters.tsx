@@ -52,8 +52,6 @@ import {QuickAddFilters} from '../components/QuickAddFilters';
 import {AIFilterCreator} from '../components/AIFilterCreator';
 import {ReorderFiltersModal} from '../components/ReorderFiltersDialog';
 
-const {width, height} = useWindowDimensions();
-
 export const MyFiltersScreen = () => {
   const queryClient = useQueryClient();
   const [showImportModal, setShowImportModal] = useState(false);
@@ -76,6 +74,7 @@ export const MyFiltersScreen = () => {
     () => new Date().toISOString().split('T')[0],
     [],
   );
+  const {width, height} = useWindowDimensions();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
 

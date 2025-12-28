@@ -62,10 +62,8 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
     category: 'thematic' | 'emotional',
     index: number,
   ) => {
-    const gradientColors =
-      category === 'thematic'
-        ? ['#8B5CF6', '#6366F1'] // Purple for thematic
-        : ['#EC4899', '#F43F5E']; // Pink for emotional
+    // Determine colors logic kept for reference but not used in styles directly here
+    // const gradientColors = ...
 
     return (
       <TouchableOpacity
@@ -76,15 +74,13 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
         <View style={styles.tagContent}>
           <View style={styles.tagTextContainer}>
             <Text style={styles.tagText} numberOfLines={1}>
-              {tag.tag}
+              {tag.tag ?? ''}
             </Text>
-            <Text style={styles.tagDescription}>{tag.description}</Text>
+            <Text style={styles.tagDescription}>{tag.description ?? ''}</Text>
           </View>
-          {/* <View style={styles.confidenceBadge}> */}
           <Text style={styles.confidenceText}>
-            {Math.round(tag.confidence * 100)}%
+            {`${Math.round((tag.confidence ?? 0) * 100)}%`}
           </Text>
-          {/* </View> */}
         </View>
       </TouchableOpacity>
     );
@@ -97,15 +93,17 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Thematic Genres</Text>
-            <Text style={styles.sectionSubtitle}>Story themes & patterns</Text>
+            <Text style={styles.sectionSubtitle}>
+              Story themes &amp; patterns
+            </Text>
           </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tagsContainer}>
-            {thematicTags.map((tag, index) =>
-              renderTag(tag, 'thematic', index),
-            )}
+            {thematicTags
+              .filter(tag => tag && tag.tag)
+              .map((tag, index) => renderTag(tag, 'thematic', index))}
           </ScrollView>
         </View>
       )}
@@ -115,15 +113,15 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Emotional Tones</Text>
-            <Text style={styles.sectionSubtitle}>Moods & atmosphere</Text>
+            <Text style={styles.sectionSubtitle}>Moods &amp; atmosphere</Text>
           </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tagsContainer}>
-            {emotionalTags.map((tag, index) =>
-              renderTag(tag, 'emotional', index),
-            )}
+            {emotionalTags
+              .filter(tag => tag && tag.tag)
+              .map((tag, index) => renderTag(tag, 'emotional', index))}
           </ScrollView>
         </View>
       )}

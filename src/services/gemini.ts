@@ -8,8 +8,10 @@ import {
   cacheTVShowAI,
 } from '../database/contentCache';
 
+import {AI_CONSTANTS} from '../config/aiConstants';
+
 // Default fallback values
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = AI_CONSTANTS.DEFAULT_MODEL;
 // Note: Do NOT hardcode API keys. Users must provide their own key via settings.
 
 // Dynamic function to get current settings
@@ -248,19 +250,19 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
     safetySettings: [
       {
         category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
       {
         category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
       {
         category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
       {
         category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
     ],
   };
@@ -338,6 +340,267 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
 
   // If we exhaust retries, throw the last error
   throw lastError || new Error('Unknown error calling Gemini');
+}
+
+// Optimization: Get ALL AI content in 1 call (Ratings, Trivia, Tags, Similar)
+export async function getContentAnalysis({
+  title,
+  year,
+  overview,
+  genres,
+  type,
+  contentId,
+  skipImdb = false,
+}: {
+  title: string;
+  year?: string;
+  overview: string;
+  genres: string;
+  type: 'movie' | 'tv';
+  contentId?: number;
+  skipImdb?: boolean;
+}): Promise<{
+  ratings?: {
+    imdb?: number | null;
+    rotten_tomatoes?: number | null;
+    imdb_votes?: number | null;
+    source?: string;
+  };
+  trivia?: Array<{
+    fact: string;
+    category: 'Production' | 'Cast' | 'Behind the Scenes' | 'Fun Fact';
+  }>;
+  tags?: {
+    thematicTags: Array<{tag: string; description: string; confidence: number}>;
+    emotionalTags: Array<{
+      tag: string;
+      description: string;
+      confidence: number;
+    }>;
+  };
+  similar?: Array<{title: string; year: string}>;
+} | null> {
+  // 1. Check Realm Cache for ALL fields
+  if (contentId) {
+    const {getMovie, getTVShow} = await import('../database/contentCache');
+    const cached =
+      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
+
+    if (cached) {
+      const hasRatings =
+        cached.ai_ratings_cached_at &&
+        Date.now() - (cached.ai_ratings_cached_at as Date).getTime() <
+          180 * 24 * 60 * 60 * 1000; // 6 months
+      const hasTrivia = !!cached.ai_trivia;
+      const hasTags = !!cached.ai_tags;
+      const hasSimilar = !!cached.ai_similar;
+
+      // If we have EVERYTHING efficient, return cached
+      if (hasRatings && hasTrivia && hasTags && hasSimilar) {
+        // Validate that "hasTrivia" isn't just an empty array
+        const triviaStr = cached.ai_trivia || '[]';
+        // Quick check without parsing everything if possible
+        const isTriviaEmpty = triviaStr === '[]' || triviaStr.length < 5;
+
+        if (!isTriviaEmpty) {
+          try {
+            const ratings = {
+              imdb: cached.ai_imdb_rating as number | null,
+              rotten_tomatoes: cached.ai_rotten_tomatoes as number | null,
+              imdb_votes: cached.ai_imdb_votes as number | null,
+              source: 'cached',
+            };
+
+            let trivia: Array<{
+              fact: string;
+              category:
+                | 'Production'
+                | 'Cast'
+                | 'Behind the Scenes'
+                | 'Fun Fact';
+            }> = [];
+            let tags = undefined;
+            let similar: Array<{title: string; year: string}> = [];
+
+            if (cached.ai_trivia) {
+              const parsedTrivia = JSON.parse(cached.ai_trivia);
+              if (Array.isArray(parsedTrivia)) {
+                // Handle both raw strings (legacy/current prompt) and objects (future)
+                trivia = parsedTrivia.map((item: any) => {
+                  if (typeof item === 'string') {
+                    return {
+                      fact: item,
+                      category: [
+                        'Production',
+                        'Cast',
+                        'Behind the Scenes',
+                        'Fun Fact',
+                      ][Math.floor(Math.random() * 4)] as
+                        | 'Production'
+                        | 'Cast'
+                        | 'Behind the Scenes'
+                        | 'Fun Fact',
+                    };
+                  }
+                  return item;
+                });
+              }
+            }
+            if (cached.ai_tags) tags = JSON.parse(cached.ai_tags);
+            if (cached.ai_similar) similar = JSON.parse(cached.ai_similar);
+
+            return {
+              ratings,
+              trivia,
+              tags,
+              similar,
+            };
+          } catch (e) {
+            /* ignore parse errors, continue to fetch */
+          }
+        }
+      }
+    }
+  }
+
+  const yearSuffix = year ? ` (${year})` : '';
+
+  // 2. Construct Master Prompt
+  const system = {
+    role: 'system' as const,
+    content: `You are Theater AI, an expert film/TV analyst. 
+    Analyze the ${type} "${title}${yearSuffix}" based on its story/metadata.
+    
+    Return a SINGLE JSON object with these 4 sections:
+    
+    1. "ratings": {
+       "imdb": number (0.0-10.0, or null),
+       "rotten_tomatoes": number (0-100, or null),
+       "imdb_votes": number (integer, or null)
+    }
+    
+    2. "trivia": [
+       "5 interesting/rare facts about production, cast, or lore"
+       (return array of 5 strings)
+    ]
+    
+    3. "tags": {
+       "thematicTags": [{"tag": "2-4 words", "description": "short explanation", "confidence": 0.0-1.0}],
+       "emotionalTags": [{"tag": "2-4 words", "description": "short explanation", "confidence": 0.0-1.0}]
+       (3-5 tags for each category)
+    }
+    
+    4. "similar": [
+       {"title": "Title", "year": "YYYY"}
+    ]
+    (5 recommendations based on STORY/NARRATIVE similarity, not just genre. JSON array of objects)
+
+    STRICT JSON ONLY. No markdown, no explanations.`,
+  };
+
+  const user = {
+    role: 'user' as const,
+    content: `Analyze "${title}${yearSuffix}"\nOverview: ${overview}\nGenres: ${genres}`,
+  };
+
+  try {
+    const response = await callGemini([system, user]);
+
+    // 3. Parse Response
+    let parsed: any = null;
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      parsed = JSON.parse(jsonMatch[0]);
+    } else {
+      parsed = JSON.parse(response);
+    }
+
+    if (!parsed) return null;
+
+    // 4. Normalize Data
+    const result = {
+      ratings: {
+        imdb: skipImdb
+          ? undefined
+          : typeof parsed.ratings?.imdb === 'number'
+          ? parsed.ratings.imdb
+          : null,
+        rotten_tomatoes:
+          typeof parsed.ratings?.rotten_tomatoes === 'number'
+            ? parsed.ratings.rotten_tomatoes
+            : null,
+        imdb_votes: skipImdb
+          ? undefined
+          : typeof parsed.ratings?.imdb_votes === 'number'
+          ? parsed.ratings.imdb_votes
+          : null,
+        source: 'ai',
+      },
+      trivia:
+        parsed.trivia && Array.isArray(parsed.trivia)
+          ? parsed.trivia.map((t: any) => {
+              if (typeof t === 'string') {
+                return {
+                  fact: t,
+                  category: [
+                    'Production',
+                    'Cast',
+                    'Behind the Scenes',
+                    'Fun Fact',
+                  ][Math.floor(Math.random() * 4)],
+                };
+              }
+              return t;
+            })
+          : [],
+      tags: parsed.tags || undefined,
+      similar: Array.isArray(parsed.similar) ? parsed.similar : [],
+    };
+
+    // 5. Cache in Realm
+    if (contentId) {
+      const {getRealm} = await import('../database/realm');
+      const realm = getRealm();
+      realm.write(() => {
+        const content =
+          type === 'movie'
+            ? realm.objectForPrimaryKey('Movie', contentId)
+            : realm.objectForPrimaryKey('TVShow', contentId);
+
+        if (content) {
+          // Update Ratings
+          if (!skipImdb && result.ratings.imdb)
+            content.ai_imdb_rating = result.ratings.imdb;
+          if (!skipImdb && result.ratings.imdb_votes)
+            content.ai_imdb_votes = result.ratings.imdb_votes;
+          if (result.ratings.rotten_tomatoes)
+            content.ai_rotten_tomatoes = result.ratings.rotten_tomatoes;
+          if (result.ratings.imdb || result.ratings.rotten_tomatoes)
+            content.ai_ratings_cached_at = new Date();
+
+          // Update Trivia
+          if (parsed.trivia && Array.isArray(parsed.trivia)) {
+            content.ai_trivia = JSON.stringify(parsed.trivia);
+          }
+
+          // Update Tags (and add to Global Tags Manager if needed, but we can do that in the hook)
+          if (result.tags) {
+            content.ai_tags = JSON.stringify(result.tags);
+          }
+
+          // Update Similar
+          if (result.similar && result.similar.length > 0) {
+            content.ai_similar = JSON.stringify(result.similar);
+          }
+        }
+      });
+    }
+
+    return result as any;
+  } catch (error) {
+    console.warn('[getContentAnalysis] Failed:', error);
+    return null;
+  }
 }
 
 // For Movie/Show Details: get similar by story

@@ -17,8 +17,10 @@ export interface AISettingsInput {
   isDefault?: boolean;
 }
 
+import {AI_CONSTANTS} from '../config/aiConstants';
+
 const DEFAULT_SETTINGS: AISettings = {
-  model: 'gemini-2.5-flash-lite',
+  model: AI_CONSTANTS.DEFAULT_MODEL,
   apiKey: null,
   isDefault: true,
 };
@@ -33,6 +35,8 @@ export class AISettingsManager {
       );
 
       const isDefault = isDefaultStr === 'true' || isDefaultStr === null;
+
+      // (Constraint removed: gemini-2.5-flash-lite is now allowed)
 
       return {
         model: model || DEFAULT_SETTINGS.model,

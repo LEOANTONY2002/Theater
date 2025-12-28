@@ -1,6 +1,6 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {HomeScreen} from '../screens/Home';
+import {HomeTabbedScreen} from '../screens/HomeTabbed';
 import {SearchScreen} from '../screens/Search';
 import {MoviesAndSeriesScreen} from '../screens/MoviesAndSeries';
 import {CurationScreen} from '../screens/Curation';
@@ -70,7 +70,7 @@ export const HomeStackNavigator = () => (
   <HomeStack.Navigator screenOptions={defaultScreenOptions}>
     <HomeStack.Screen
       name="HomeScreen"
-      component={HomeScreen}
+      component={HomeTabbedScreen}
       options={{title: 'Home'}}
     />
     <HomeStack.Screen

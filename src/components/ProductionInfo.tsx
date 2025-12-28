@@ -44,19 +44,19 @@ export const ProductionInfo: React.FC<ProductionInfoProps> = ({
       <Text style={styles.sectionTitle}>Production Info</Text>
 
       {/* Budget & Revenue */}
-      {((budget && budget > 0) || (revenue && revenue > 0)) && (
+      {((budget || 0) > 0 || (revenue || 0) > 0) && (
         <View style={styles.infoBlock}>
           <View style={styles.financialRow}>
-            {budget && budget > 0 && (
+            {(budget || 0) > 0 && (
               <View style={styles.financialItem}>
                 <Text style={styles.label}>Budget</Text>
-                <Text style={styles.value}>{formatCurrency(budget)}</Text>
+                <Text style={styles.value}>{formatCurrency(budget!)}</Text>
               </View>
             )}
-            {revenue && revenue > 0 && (
+            {(revenue || 0) > 0 && (
               <View style={styles.financialItem}>
                 <Text style={styles.label}>Revenue</Text>
-                <Text style={styles.value}>{formatCurrency(revenue)}</Text>
+                <Text style={styles.value}>{formatCurrency(revenue!)}</Text>
               </View>
             )}
           </View>

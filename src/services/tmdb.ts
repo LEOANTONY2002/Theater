@@ -534,7 +534,7 @@ export const getMovieDetails = async (movieId: number) => {
 };
 
 export const getTVShowDetails = async (tvId: number) => {
-  // Check Realm cache first
+  // Check Realm cache first for other details
   try {
     const {getTVShow} = await import('../database/contentCache');
     const cachedShow = getTVShow(tvId);
@@ -545,7 +545,28 @@ export const getTVShowDetails = async (tvId: number) => {
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
       if (cacheAge < thirtyDays) {
-        // Return in TMDB API format
+        // Fetch ONLY fresh episode air dates (lightweight API call)
+        let episodeData: {
+          next_episode_to_air?: any;
+          last_episode_to_air?: any;
+          seasons?: any[];
+        } = {};
+
+        try {
+          const episodeResponse = await tmdbApi.get(`/tv/${tvId}`);
+          episodeData = {
+            next_episode_to_air: episodeResponse.data.next_episode_to_air,
+            last_episode_to_air: episodeResponse.data.last_episode_to_air,
+            seasons: episodeResponse.data.seasons,
+          };
+        } catch (error) {
+          console.warn(
+            '[getTVShowDetails] Failed to fetch episode air dates:',
+            error,
+          );
+        }
+
+        // Return cached data with fresh episode air dates
         return {
           id: cachedShow._id,
           name: cachedShow.name,
@@ -571,6 +592,7 @@ export const getTVShowDetails = async (tvId: number) => {
           popularity: cachedShow.popularity,
           status: cachedShow.status,
           type: cachedShow.type,
+          seasons: episodeData.seasons || [],
           credits: {
             cast: cachedShow.cast ? JSON.parse(cachedShow.cast) : [],
             crew: cachedShow.crew ? JSON.parse(cachedShow.crew) : [],
@@ -596,12 +618,15 @@ export const getTVShowDetails = async (tvId: number) => {
             ? JSON.parse(cachedShow.spoken_languages)
             : [],
           tagline: cachedShow.tagline,
+          // Always include fresh episode air dates
+          next_episode_to_air: episodeData.next_episode_to_air,
+          last_episode_to_air: episodeData.last_episode_to_air,
         };
       }
     }
   } catch (error) {}
 
-  // Cache miss or expired - fetch from TMDB
+  // Cache miss or expired - fetch full details from TMDB (includes episode data)
   const response = await tmdbApi.get(`/tv/${tvId}`, {
     params: {
       append_to_response:

@@ -240,10 +240,22 @@ export const useAISimilarMovies = (
   title?: string,
   overview?: string,
   genres?: Genre[],
+  candidates?: Array<{title: string; year: string}>,
 ) => {
   return useQuery({
-    queryKey: ['ai_similar_movies', movieId],
+    queryKey: ['ai_similar_movies', movieId, candidates ? 'resolved' : 'fetch'],
     queryFn: async () => {
+      // If we already have candidates (from useContentAnalysis), just resolve them
+      if (candidates && candidates.length > 0) {
+        const tmdbMovies = await fetchContentFromAI(candidates, 'movie');
+        return tmdbMovies
+          .filter((m: any) => m && m.poster_path)
+          .map((m: any) => ({
+            ...m,
+            type: 'movie' as const,
+          }));
+      }
+
       if (!title || !overview) {
         return [];
       }

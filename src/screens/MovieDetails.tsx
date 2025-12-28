@@ -94,8 +94,8 @@ import ShareLib, {Social} from 'react-native-share';
 import {requestPosterCapture} from '../components/PosterCaptureHost';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
-import {getCriticRatings} from '../services/gemini';
 import {IMDBModal} from '../components/IMDBModal';
+import {useContentAnalysis} from '../hooks/useContentAnalysis';
 import {ScheduleWatchModal} from '../components/ScheduleWatchModal';
 import {FeedbackModal} from '../components/FeedbackModal';
 
@@ -236,6 +236,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
   // Ref for FlatList to preserve scroll position
   const flatListRef = useRef<FlatList>(null);
+  const loadingRatingsRef = useRef<number | null>(null);
 
   // Check connectivity and cache status for this specific movie
   useEffect(() => {
@@ -383,6 +384,27 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     isLoading: isLoadingDetails,
     error: movieDetailsError,
   } = useMovieDetails(movie.id);
+
+  // Memoize genres to prevent unnecessary re-renders
+  const genresArray = useMemo(
+    () => movieDetails?.genres?.map((g: Genre) => g.name) || [],
+    [movieDetails?.genres],
+  );
+
+  // Unified AI Analysis
+  const {data: analysisData, isLoading: isAnalysisLoading} = useContentAnalysis(
+    {
+      title: movie.title,
+      year: (
+        (movie as any).release_date || (movieDetails as any)?.release_date
+      )?.split('-')[0],
+      overview: movie.overview || movieDetails?.overview || '',
+      genres: genresArray,
+      type: 'movie',
+      contentId: movie.id,
+      enabled: !!(movieDetails && isAIEnabled),
+    },
+  );
 
   // Use movieDetails title if available, otherwise fallback to movie.title
   const displayTitle = movieDetails?.title || movie.title;
@@ -659,6 +681,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     contentId: movie.id,
     enabled: !!(movieDetails && isAIEnabled),
     poster_path: movie.poster_path || movieDetails?.poster_path,
+    tags: analysisData?.tags,
   });
 
   // Set loading to false when data is available
@@ -672,134 +695,45 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     }
   }, [movieDetails, isLoadingDetails]);
 
-  // Parallel ratings loading: Cache → (Scraping + AI simultaneously)
-  // Faster perceived performance, no waiting for sequential operations
+  // Parallel ratings loading: Cache → Scraper + Analysis Hook
   useEffect(() => {
     const loadRatings = async () => {
-      try {
-        if (!movieDetails) return;
+      if (!movieDetails) return;
+      if (loadingRatingsRef.current === movie.id && !analysisData) return;
+      loadingRatingsRef.current = movie.id;
 
-        const yearStr = (() => {
-          const d = (movie as any).release_date;
-          try {
-            return d ? new Date(d).getFullYear().toString() : undefined;
-          } catch {
-            return undefined;
-          }
-        })();
+      let scrapedRating: any = null;
+      const imdbId = movieDetails?.imdb_id;
 
-        // Step 1: Check cache first
-        const {getMovie} = await import('../database/contentCache');
-        const cached = getMovie(movie.id);
-
-        if (cached?.ai_ratings_cached_at) {
-          const age =
-            Date.now() - (cached.ai_ratings_cached_at as Date).getTime();
-          if (age < 180 * 24 * 60 * 60 * 1000) {
-            // Cache is valid, use it
-            console.log('[Movie Ratings] Using cached ratings');
-            setAiRatings({
-              imdb: cached.ai_imdb_rating as number | null,
-              rotten_tomatoes: cached.ai_rotten_tomatoes as number | null,
-              imdb_votes: cached.ai_imdb_votes as number | null,
-            });
-            return; // Exit early, cache is good
-          }
-        }
-
-        // Step 2: Run scraping and AI in parallel with progressive UI updates
-        const imdbId = movieDetails?.imdb_id;
-
-        console.log('[Movie Ratings] Starting parallel fetch:', {
-          imdbId,
-          movieTitle: movie.title,
-          movieId: movie.id,
-        });
-
-        // Track results as they arrive
-        let scrapedRating: any = null;
-        let aiRes: any = null;
-        let completedCount = 0;
-        const totalTasks = 2;
-
-        const updateUI = () => {
-          // Merge current results: scraped IMDB ALWAYS takes precedence
-          const currentRatings = {
-            imdb: scrapedRating?.rating
-              ? parseFloat(scrapedRating.rating)
-              : aiRes?.imdb ?? null,
-            rotten_tomatoes: aiRes?.rotten_tomatoes ?? null,
-            imdb_votes: scrapedRating?.voteCount
-              ? parseVoteCountString(scrapedRating.voteCount)
-              : aiRes?.imdb_votes ?? null,
-          };
-
-          console.log('[Movie Ratings] Progressive update:', {
-            completedCount,
-            scrapedAvailable: !!scrapedRating?.rating,
-            aiAvailable: !!aiRes,
-            currentRatings,
-          });
-
-          setAiRatings(currentRatings);
-        };
-
-        // Launch scraping (only if IMDB ID exists)
-        const scrapingPromise = imdbId
-          ? (async () => {
-              try {
-                console.log(
-                  '[Movie Ratings] Attempting IMDB scraping:',
-                  imdbId,
-                );
-                const {getIMDBRating} = await import('../services/scrap');
-                const result = await getIMDBRating(imdbId, movie.id);
-                console.log('[Movie Ratings] Scraping finished:', result);
-                scrapedRating = result;
-                completedCount++;
-                updateUI(); // Update UI immediately when scraping completes
-              } catch (error) {
-                console.warn('[Movie Ratings] Scraping error:', error);
-                completedCount++;
-              }
-            })()
-          : Promise.resolve().then(() => {
-              completedCount++;
-            });
-
-        // Launch AI (always runs for Rotten Tomatoes)
-        const aiPromise = (async () => {
-          try {
-            console.log('[Movie Ratings] Calling AI');
-            const result = await getCriticRatings({
-              title: movie.title,
-              year: yearStr,
-              type: 'movie',
-              contentId: movie.id,
-              skipImdb: false,
-            });
-            console.log('[Movie Ratings] AI finished:', result);
-            aiRes = result;
-            completedCount++;
-            updateUI(); // Update UI immediately when AI completes
-          } catch (error) {
-            console.warn('[Movie Ratings] AI error:', error);
-            completedCount++;
-          }
-        })();
-
-        // Wait for both to complete (but UI already updated progressively)
-        await Promise.all([scrapingPromise, aiPromise]);
-
-        console.log('[Movie Ratings] All operations completed');
-      } catch (e) {
-        if (__DEV__) {
-          console.warn('[Movie Ratings] Error loading ratings:', e);
+      // Launch scraping if IMDB ID exists
+      if (imdbId) {
+        try {
+          const {getIMDBRating} = await import('../services/scrap');
+          scrapedRating = await getIMDBRating(imdbId, movie.id);
+        } catch (e) {
+          console.warn('[Movie Ratings] Scraping error:', e);
         }
       }
+
+      // Merge current results: scraped IMDB ALWAYS takes precedence
+      const currentRatings = {
+        imdb: scrapedRating?.rating
+          ? parseFloat(scrapedRating.rating)
+          : analysisData?.ratings?.imdb ?? aiRatings?.imdb ?? null,
+        rotten_tomatoes:
+          analysisData?.ratings?.rotten_tomatoes ??
+          aiRatings?.rotten_tomatoes ??
+          null,
+        imdb_votes: scrapedRating?.voteCount
+          ? parseVoteCountString(scrapedRating.voteCount)
+          : analysisData?.ratings?.imdb_votes ?? aiRatings?.imdb_votes ?? null,
+      };
+
+      setAiRatings(currentRatings);
     };
+
     loadRatings();
-  }, [movie.id, movie.title, movieDetails]);
+  }, [movie.id, movieDetails, analysisData]);
 
   // Helper to parse vote count strings (e.g., "1.2M" -> 1200000)
   const parseVoteCountString = (voteCountText: string): number | null => {
@@ -865,13 +799,14 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   }, [movie]);
   const blurType = BlurPreference.getMode();
 
-  // Use memoized AI similar movies hook
-  const {data: aiSimilarMovies = [], isLoading: isLoadingAiSimilar} =
+  // AI Similar movies resolution
+  const {data: resolvedAiSimilarMovies, isLoading: isLoadingAiSimilar} =
     useAISimilarMovies(
       movie.id,
-      movieDetails?.title,
-      movieDetails?.overview,
+      movie.title,
+      movie.overview,
       movieDetails?.genres,
+      analysisData?.similar,
     );
 
   const handleWatchlistPress = useCallback(async () => {
@@ -1786,7 +1721,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       ],
                     },
                   ]}>
-                  <View>
+                  <View
+                    style={{
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '80%',
+                    }}>
                     <Text style={styles.title}>{displayTitle}</Text>
                     {movieDetails?.tagline && (
                       <Text style={styles.tagline}>
@@ -1852,7 +1793,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             title="Watch Trailer"
                             isIcon={true}
                             onPress={() => {
-                              setIsPlaying(true);
+                              // setIsPlaying(true);
+                              navigation.navigate('CinemaScreen', {
+                                id: movie.id.toString(),
+                                type: 'movie',
+                                title: displayTitle,
+                              });
                             }}
                             style={{
                               ...styles.watchButton,
@@ -1977,7 +1923,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           title="Watch Trailer"
                           isIcon={isTablet ? true : false}
                           onPress={() => {
-                            setIsPlaying(true);
+                            // setIsPlaying(true);
+                            navigation.navigate('CinemaScreen', {
+                              id: movie.id.toString(),
+                              type: 'movie',
+                              title: displayTitle,
+                            });
                           }}
                           style={{
                             ...styles.watchButton,
@@ -2296,6 +2247,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     year={new Date(movie.release_date).getFullYear().toString()}
                     type="movie"
                     contentId={movie.id}
+                    trivia={analysisData?.trivia}
+                    loading={isAnalysisLoading}
                   />
                 </View>
               );
@@ -2332,19 +2285,23 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             Theater AI is curating similar movies...
                           </Text>
                         </View>
-                      ) : (
-                        <View>
-                          {Array.isArray(aiSimilarMovies) &&
-                            aiSimilarMovies.length > 0 && (
-                              <HorizontalList
-                                title="Similar movies by Theater AI"
-                                data={aiSimilarMovies}
-                                onItemPress={handleItemPress}
-                                isSeeAll={false}
-                              />
-                            )}
+                      ) : resolvedAiSimilarMovies &&
+                        resolvedAiSimilarMovies.length > 0 ? (
+                        <View style={{marginTop: spacing.md}}>
+                          <HorizontalList
+                            title="More Like This"
+                            prefix="Theater AI"
+                            data={resolvedAiSimilarMovies}
+                            onItemPress={handleItemPress}
+                            onSeeAllPress={() =>
+                              navigation.push('SimilarMovies', {
+                                movieId: movie.id,
+                                title: movie.title,
+                              })
+                            }
+                          />
                         </View>
-                      )}
+                      ) : null}
                     </>
                   )}
                   {similarMoviesData.length > 0 ? (

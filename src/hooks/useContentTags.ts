@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import {generateTagsForContent} from '../services/gemini';
+import React, {useEffect, useState} from 'react';
+
 import {ThematicTagsManager} from '../store/thematicTags';
 import {useAIEnabled} from './useAIEnabled';
 
@@ -11,11 +11,19 @@ interface ContentTagsParams {
   contentId?: number;
   enabled?: boolean;
   poster_path?: string;
+  tags?: {
+    thematicTags: Array<{tag: string; description: string; confidence: number}>;
+    emotionalTags: Array<{
+      tag: string;
+      description: string;
+      confidence: number;
+    }>;
+  };
 }
 
 /**
- * Hook to generate and store thematic/emotional tags for a content item
- * Called on details screen to incrementally build tag database
+ * Hook to store thematic/emotional tags for a content item in the manager
+ * Now passive: receives tags from useContentAnalysis instead of fetching
  */
 export function useContentTags({
   title,
@@ -25,78 +33,66 @@ export function useContentTags({
   contentId,
   enabled = true,
   poster_path,
+  tags,
 }: ContentTagsParams) {
   const {isAIEnabled} = useAIEnabled();
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [hasGenerated, setHasGenerated] = useState(false);
-  const [tags, setTags] = useState<{
-    thematicTags: Array<{tag: string; description: string; confidence: number}>;
-    emotionalTags: Array<{
-      tag: string;
-      description: string;
-      confidence: number;
-    }>;
-  } | null>(null);
+  const isGeneratingRef = React.useRef(false);
+  const [hasRecorded, setHasRecorded] = useState(false);
+
+  // Reset when content changes
+  useEffect(() => {
+    isGeneratingRef.current = false;
+    setHasRecorded(false);
+  }, [contentId]);
 
   useEffect(() => {
-    if (!enabled || !isAIEnabled || !title || !overview || hasGenerated) {
+    // Only record if tags are provided and we haven't recorded yet
+    if (
+      !enabled ||
+      !isAIEnabled ||
+      !tags ||
+      hasRecorded ||
+      isGeneratingRef.current
+    ) {
       return;
     }
 
-    const generateAndStoreTags = async () => {
+    const recordTags = async () => {
       try {
-        setIsGenerating(true);
+        isGeneratingRef.current = true;
 
-        // Generate tags for this content
-        // The AI call itself is cached for 6 months in gemini.ts
-        // Even if cached, we count every visit to build accurate preference profile
-        const result = await generateTagsForContent(
-          title,
-          overview,
-          genres,
-          type,
-          contentId,
-        );
+        // Store tags globally for pattern analysis
+        const allTags = [
+          ...(tags.thematicTags || []).map(t => ({
+            ...t,
+            category: 'thematic' as const,
+            poster_path,
+          })),
+          ...(tags.emotionalTags || []).map(t => ({
+            ...t,
+            category: 'emotional' as const,
+            poster_path,
+          })),
+        ];
 
-        if (result) {
-          // Set tags for display (only if component still mounted)
-          setTags(result);
-
-          // Store tags globally for pattern analysis
-          // Count EVERY visit - visiting same movie 10 times = counted 10 times
-          const allTags = [
-            ...result.thematicTags.map(t => ({
-              ...t,
-              category: 'thematic' as const,
-              poster_path,
-            })),
-            ...result.emotionalTags.map(t => ({
-              ...t,
-              category: 'emotional' as const,
-              poster_path,
-            })),
-          ];
-
-          // This runs async - even if user leaves, it will complete
+        if (allTags.length > 0) {
           await ThematicTagsManager.addTags(allTags);
-        } else {
         }
 
-        setHasGenerated(true);
+        setHasRecorded(true);
       } catch (error) {
-        console.error('[ContentTags] ❌ Error generating tags:', error);
+        console.error('[ContentTags] ❌ Error recording tags:', error);
       } finally {
-        setIsGenerating(false);
+        isGeneratingRef.current = false;
       }
     };
 
-    // Start immediately (no delay needed)
-    generateAndStoreTags();
-  }, [title, overview, genres, type, enabled, isAIEnabled, hasGenerated]);
+    recordTags();
+  }, [tags, enabled, isAIEnabled, hasRecorded, poster_path]);
 
   return {
-    isGenerating,
-    hasGenerated,
-    tags,
+    isGenerating: false,
+    hasGenerated: hasRecorded,
+    tags: tags || null,
   };
 }

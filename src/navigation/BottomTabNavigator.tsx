@@ -8,8 +8,14 @@ import {
   getFocusedRouteNameFromRoute,
   CommonActions,
 } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Feather';
-import Ionicon from 'react-native-vector-icons/Ionicons';
+import {Home as HomeBold} from '@solar-icons/react-native/dist/icons/ui/Bold/Home.mjs';
+import {Home as HomeLinear} from '@solar-icons/react-native/dist/icons/ui/Linear/Home.mjs';
+import {Magnifer as MagniferBold} from '@solar-icons/react-native/dist/icons/search/Bold/Magnifer.mjs';
+import {Magnifer as MagniferLinear} from '@solar-icons/react-native/dist/icons/search/Linear/Magnifer.mjs';
+import {Layers as LayersBold} from '@solar-icons/react-native/dist/icons/tools/Bold/Layers.mjs';
+import {Layers as LayersLinear} from '@solar-icons/react-native/dist/icons/tools/Linear/Layers.mjs';
+import {User as UserBold} from '@solar-icons/react-native/dist/icons/users/Bold/User.mjs';
+import {User as UserLinear} from '@solar-icons/react-native/dist/icons/users/Linear/User.mjs';
 import {TabParamList} from '../types/navigation';
 import {
   HomeStackNavigator,
@@ -58,15 +64,16 @@ const TabIcon = ({
   focused,
   color,
   size,
-  name,
-  type,
+  ActiveIcon,
+  InactiveIcon,
 }: {
   focused: boolean;
   color: string;
   size?: number;
-  name: string;
-  type: string;
+  ActiveIcon: any;
+  InactiveIcon: any;
 }) => {
+  const Icon = focused ? ActiveIcon : InactiveIcon;
   return (
     <View style={styles.iconContainer}>
       <View
@@ -76,21 +83,7 @@ const TabIcon = ({
             opacity: focused ? 1 : 0.7,
           },
         ]}>
-        {type === 'ion' ? (
-          <Ionicon
-            name={name}
-            size={size || 20}
-            color={color}
-            suppressHighlighting={true}
-          />
-        ) : (
-          <Icon
-            name={name}
-            size={size || 20}
-            color={color}
-            suppressHighlighting={true}
-          />
-        )}
+        <Icon size={size || 24} color={color} />
       </View>
     </View>
   );
@@ -222,9 +215,9 @@ export const BottomTabNavigator = () => {
               tabBarIcon: ({focused, color}: any) => (
                 <TabIcon
                   focused={focused}
-                  name="home"
                   color={color}
-                  type="feather"
+                  ActiveIcon={HomeBold}
+                  InactiveIcon={HomeLinear}
                 />
               ),
               tabBarLabel: 'Home',
@@ -281,9 +274,9 @@ export const BottomTabNavigator = () => {
               tabBarIcon: ({focused, color}: any) => (
                 <TabIcon
                   focused={focused}
-                  name="search"
                   color={color}
-                  type="feather"
+                  ActiveIcon={MagniferBold}
+                  InactiveIcon={MagniferLinear}
                 />
               ),
               tabBarLabel: 'Explore',
@@ -313,64 +306,7 @@ export const BottomTabNavigator = () => {
             };
           }}
         />
-        <Tab.Screen
-          name="MoviesAndSeries"
-          component={MoviesAndSeriesStackNavigator}
-          listeners={({navigation}) => ({
-            tabPress: e => {
-              // prevent the default behavior (which would activate the tab first)
-              e.preventDefault();
-              // Navigate to the tab and explicitly target its initial screen.
-              // This causes the nested navigator to be at the root BEFORE the tab is shown.
-              navigation.dispatch(
-                CommonActions.navigate({
-                  name: 'MoviesAndSeries',
-                  params: {screen: 'MoviesAndSeriesScreen'}, // initial screen name in MoviesAndSeriesStackNavigator
-                }),
-              );
-            },
-          })}
-          options={({route}: any) => {
-            const routeName =
-              getFocusedRouteNameFromRoute(route) ?? 'MoviesAndSeriesScreen';
-            const shouldHide = routeName === 'CinemaScreen';
 
-            return {
-              tabBarIcon: ({focused, color}: any) => (
-                <TabIcon
-                  focused={focused}
-                  name="film"
-                  color={color}
-                  type="feather"
-                />
-              ),
-              tabBarLabel: 'Browse',
-              tabBarStyle: shouldHide
-                ? {display: 'none'}
-                : {
-                    backgroundColor: 'transparent',
-                    height: isTablet ? 90 : 70,
-                    borderTopWidth: 0,
-                    paddingTop: isTablet ? spacing.md : spacing.sm,
-                    position: 'absolute',
-                    bottom: isTablet ? 30 : 16,
-                    shadowOpacity: 0,
-                    marginHorizontal:
-                      isTablet && orientation === 'portrait'
-                        ? '18%'
-                        : isTablet && orientation === 'landscape'
-                        ? '27%'
-                        : !isTablet && orientation === 'landscape'
-                        ? '24%'
-                        : 24,
-                    borderRadius: borderRadius.round,
-                    alignItems: 'center',
-                    justifyContent:
-                      orientation === 'landscape' ? 'space-between' : 'center',
-                  },
-            };
-          }}
-        />
         <Tab.Screen
           name="Curation"
           component={CurationStackNavigator}
@@ -397,9 +333,9 @@ export const BottomTabNavigator = () => {
               tabBarIcon: ({focused, color}: any) => (
                 <TabIcon
                   focused={focused}
-                  name="layers"
                   color={color}
-                  type="feather"
+                  ActiveIcon={LayersBold}
+                  InactiveIcon={LayersLinear}
                 />
               ),
               tabBarLabel: 'Curation',
@@ -464,9 +400,9 @@ export const BottomTabNavigator = () => {
               tabBarIcon: ({focused, color}: any) => (
                 <TabIcon
                   focused={focused}
-                  name="user"
                   color={color}
-                  type="feather"
+                  ActiveIcon={UserBold}
+                  InactiveIcon={UserLinear}
                 />
               ),
               tabBarLabel: 'My space',

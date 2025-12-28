@@ -253,10 +253,21 @@ export const useAISimilarTVShows = (
   title?: string,
   overview?: string,
   genres?: Genre[],
+  candidates?: Array<{title: string; year: string}>,
 ) => {
   return useQuery({
-    queryKey: ['ai_similar_tvshows', tvShowId],
+    queryKey: [
+      'ai_similar_tvshows',
+      tvShowId,
+      candidates ? 'resolved' : 'fetch',
+    ],
     queryFn: async () => {
+      // If we already have candidates (from useContentAnalysis), just resolve them
+      if (candidates && candidates.length > 0) {
+        const shows = await fetchContentFromAI(candidates, 'tv');
+        return shows;
+      }
+
       if (!title || !overview) return [];
 
       // Import here to avoid circular dependency

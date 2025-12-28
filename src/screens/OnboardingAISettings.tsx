@@ -25,8 +25,9 @@ import {useQueryClient} from '@tanstack/react-query';
 import {useResponsive} from '../hooks/useResponsive';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
+import {AI_CONSTANTS} from '../config/aiConstants';
 
-const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
+const DEFAULT_MODEL = AI_CONSTANTS.DEFAULT_MODEL;
 
 interface GeminiModel {
   id: string;
@@ -75,29 +76,7 @@ const instructions = [
   // },
 ];
 
-// Fallback models in case API fetch fails
-const FALLBACK_MODELS: GeminiModel[] = [
-  {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    description: 'Latest and fastest model with improved performance',
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
-    description: 'Fast and efficient for most tasks',
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    description: 'More capable model for complex reasoning',
-  },
-  {
-    id: 'gemini-1.0-pro',
-    name: 'Gemini 1.0 Pro',
-    description: 'Stable and reliable model',
-  },
-];
+const FALLBACK_MODELS: GeminiModel[] = AI_CONSTANTS.MODELS;
 
 // Function to fetch available Gemini models from the API
 const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
@@ -121,37 +100,56 @@ const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
     }
 
     const data = await response.json();
+    let apiModels: GeminiModel[] = [];
 
-    if (!data.models || !Array.isArray(data.models)) {
-      return FALLBACK_MODELS;
+    if (data.models && Array.isArray(data.models)) {
+      apiModels = data.models
+        .filter(
+          (model: any) =>
+            model.name &&
+            model.name.includes('gemini') &&
+            model.supportedGenerationMethods &&
+            model.supportedGenerationMethods.includes('generateContent'),
+        )
+        .map((model: any) => ({
+          id: model.name.replace('models/', ''),
+          name: model.displayName || model.name.replace('models/', ''),
+          description:
+            model.description || 'Gemini AI model for text generation',
+          displayName: model.displayName,
+          supportedGenerationMethods: model.supportedGenerationMethods,
+        }));
     }
 
-    // Filter and format models for text generation
-    const geminiModels = data.models
-      .filter(
-        (model: any) =>
-          model.name &&
-          model.name.includes('gemini') &&
-          model.supportedGenerationMethods &&
-          model.supportedGenerationMethods.includes('generateContent'),
-      )
-      .map((model: any) => ({
-        id: model.name.replace('models/', ''),
-        name: model.displayName || model.name.replace('models/', ''),
-        description: model.description || 'Gemini AI model for text generation',
-        displayName: model.displayName,
-        supportedGenerationMethods: model.supportedGenerationMethods,
-      }))
-      .sort((a: GeminiModel, b: GeminiModel) => {
-        // Sort by version (newer first)
-        if (a.id.includes('2.5')) return -1;
-        if (b.id.includes('2.5')) return 1;
-        if (a.id.includes('1.5')) return -1;
-        if (b.id.includes('1.5')) return 1;
-        return 0;
-      });
+    // Merge strategy: Start with FALLBACK_MODELS (our curated list)
+    // Then add any unique models from API that aren't in our curated list
+    const combinedModels = [...FALLBACK_MODELS];
+    const existingIds = new Set(combinedModels.map(m => m.id));
 
-    return geminiModels.length > 0 ? geminiModels : FALLBACK_MODELS;
+    apiModels.forEach(model => {
+      // If we don't have this model in our curated list, add it
+      if (!existingIds.has(model.id)) {
+        combinedModels.push(model);
+      }
+    });
+
+    return combinedModels.sort((a: GeminiModel, b: GeminiModel) => {
+      // Sort by version (newer first)
+      const getVersion = (id: string) => {
+        if (id.includes('2.5')) return 3;
+        if (id.includes('2.0')) return 2;
+        if (id.includes('1.5')) return 1;
+        return 0;
+      };
+
+      const verA = getVersion(a.id);
+      const verB = getVersion(b.id);
+
+      if (verA !== verB) return verB - verA; // Descending version
+
+      // If same version, default name sort
+      return a.name.localeCompare(b.name);
+    });
   } catch (error) {
     return FALLBACK_MODELS;
   }
@@ -301,7 +299,7 @@ const OnboardingAISettings: React.FC<{
 
       // Make a test call to the Gemini API to validate the key
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`,
         {
           method: 'POST',
           headers: {

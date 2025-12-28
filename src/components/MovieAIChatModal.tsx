@@ -22,7 +22,7 @@ import {GradientSpinner} from './GradientSpinner';
 import {MicButton} from './MicButton';
 import LinearGradient from 'react-native-linear-gradient';
 import {MaybeBlurView} from './MaybeBlurView';
-import useAndroidKeyboardInset from '../hooks/useAndroidKeyboardInset';
+
 import Markdown from 'react-native-markdown-display';
 import {AIReportFlag} from './AIReportFlag';
 import {HorizontalList} from './HorizontalList';
@@ -93,7 +93,6 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
-  const androidInset = useAndroidKeyboardInset(10);
   const navigation = useNavigation<any>();
   const themeMode = BlurPreference.getMode();
 
@@ -602,7 +601,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
           overflow: 'hidden',
         }}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
           style={{flex: 1}}>
           <Animated.View
@@ -737,7 +736,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                                 opacity: pulseAnim,
                               },
                             ]}>
-                            Theater AI is thinking...
+                            Thinking...
                           </Animated.Text>
                         </Animated.View>
                       )}

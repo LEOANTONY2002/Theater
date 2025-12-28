@@ -268,9 +268,7 @@ export const HorizontalList: React.FC<HorizontalListProps> = memo(
             onEndReached={onEndReached}
             onEndReachedThreshold={0.5}
             style={isTop10 ? {marginLeft: -spacing.md} : {}}
-            initialNumToRender={3}
-            windowSize={2}
-            maxToRenderPerBatch={2}
+            initialNumToRender={5}
             updateCellsBatchingPeriod={50}
             getItemLayout={getItemLayout}
             decelerationRate={Platform.OS === 'ios' ? 'fast' : 0.98}

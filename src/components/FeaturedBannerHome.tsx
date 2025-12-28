@@ -79,7 +79,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
         alignItems: 'center',
         justifyContent: 'center',
         width: windowWidth,
-        paddingTop: isTablet ? 140 : 100,
+        paddingTop: isTablet ? 200 : 160,
         paddingBottom: isTablet ? 100 : 50,
       },
       gradient: {
@@ -92,7 +92,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
       },
       titleContainer: {
         position: 'absolute',
-        top: 20,
+        top: 80,
         left: 0,
         right: 0,
         bottom: 0,
