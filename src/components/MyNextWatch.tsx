@@ -14,7 +14,7 @@ import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
 import {GradientSpinner} from './GradientSpinner';
 import {getImageUrl} from '../services/tmdb';
-import {getPersonalizedRecommendation} from '../services/gemini';
+import {getPersonalizedRecommendation} from '../services/groq';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import FastImage from 'react-native-fast-image';

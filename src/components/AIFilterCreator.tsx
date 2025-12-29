@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {parseNaturalLanguageToFilters} from '../services/gemini';
+import {parseNaturalLanguageToFilters} from '../services/groq';
 import {useGenres} from '../hooks/useGenres';
 import LinearGradient from 'react-native-linear-gradient';
 import {MaybeBlurView} from './MaybeBlurView';

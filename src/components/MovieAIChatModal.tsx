@@ -17,7 +17,7 @@ import {Modal} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useResponsive} from '../hooks/useResponsive';
-import {cinemaChat} from '../services/gemini';
+import {cinemaChat} from '../services/groq';
 import {GradientSpinner} from './GradientSpinner';
 import {MicButton} from './MicButton';
 import LinearGradient from 'react-native-linear-gradient';
@@ -47,6 +47,7 @@ type MovieAIChatModalProps = {
   movieOverview: string;
   movieGenres: string[];
   contentType?: 'movie' | 'tv';
+  contentId: string | number;
   onSelectContent?: (content: ContentItem) => void;
 };
 
@@ -84,12 +85,17 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   movieOverview,
   movieGenres,
   contentType = 'movie',
+  contentId,
   onSelectContent,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [isRateLimitExceeded, setIsRateLimitExceeded] = useState(false);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(
+    null,
+  );
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
@@ -132,6 +138,41 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
       scaleAnim.setValue(0.95);
     }
   }, [visible]);
+
+  // Countdown timer for rate limit
+  useEffect(() => {
+    if (rateLimitCountdown !== null && rateLimitCountdown > 0) {
+      const interval = setInterval(() => {
+        setRateLimitCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            clearInterval(interval);
+            setIsRateLimitExceeded(false);
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [rateLimitCountdown]);
+
+  // Scroll to bottom helper
+  const scrollToBottom = (animated = true) => {
+    if (!flatListRef.current) return;
+    const handleScroll = () => {
+      flatListRef.current?.scrollToEnd({animated});
+    };
+    handleScroll();
+    requestAnimationFrame(handleScroll);
+    setTimeout(handleScroll, 150);
+  };
+
+  // Scroll when messages change or loading
+  useEffect(() => {
+    if (messages.length > 0 || isLoading) {
+      scrollToBottom(true);
+    }
+  }, [messages, isLoading]);
 
   // Pulse animation for loading states (matching OnlineAI screen)
   useEffect(() => {
@@ -215,9 +256,10 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
         };
 
         // Prepare chat messages from the updated messages array
-        const conversationMessages = updatedMessages.filter(
-          msg => msg.id !== '1',
-        );
+        // Send only last 4 messages for context (including the new user message)
+        const conversationMessages = updatedMessages
+          .filter(msg => msg.id !== '1')
+          .slice(-4);
         const chatMessages = [
           contextMessage,
           ...conversationMessages.map(msg => ({
@@ -416,8 +458,10 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                 }
               }
             }
-            // Update the AI message with tmdbResults
-            aiMessage.tmdbResults = resolved.slice(0, 10);
+            // Update the AI message with tmdbResults, filtering out the current content
+            aiMessage.tmdbResults = resolved
+              .filter(r => String(r.id) !== String(contentId))
+              .slice(0, 10);
           } catch (e) {
             console.error('Error resolving TMDB results:', e);
           }
@@ -426,20 +470,26 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
         setMessages(prev => [...prev, aiMessage]);
       } catch (error) {
         console.error('Error getting AI response:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
 
-        // Recreate conversationMessages for error logging
-        const errorConversationMessages = updatedMessages.filter(
-          msg => msg.id !== '1',
-        );
-        console.error(
-          'Chat messages being sent:',
-          JSON.stringify(errorConversationMessages, null, 2),
-        );
+        const errText = String(error);
+        const is429 = /429/.test(errText);
+        const retryAfter = (error as any)?.retryAfter;
+
+        if (is429) {
+          setIsRateLimitExceeded(true);
+          setRateLimitCountdown(retryAfter || 60);
+        }
+
+        let friendly = 'Sorry, I encountered an error. Please try again later.';
+        if (is429) {
+          friendly = `Rate limit exceeded. Please wait ${
+            retryAfter ? retryAfter + 's' : 'a moment'
+          } before trying again.`;
+        }
 
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: 'Sorry, I encountered an error. Please try again later.',
+          text: friendly,
           sender: 'ai',
           timestamp: new Date(),
         };
@@ -576,7 +626,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
             height: 40,
             position: 'absolute',
             bottom: 0,
-            right: -1,
+            right: 0,
             pointerEvents: 'none',
           }}
         />
@@ -700,12 +750,8 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
-                  onContentSizeChange={() =>
-                    flatListRef.current?.scrollToEnd({animated: true})
-                  }
-                  onLayout={() =>
-                    flatListRef.current?.scrollToEnd({animated: true})
-                  }
+                  onContentSizeChange={() => scrollToBottom(true)}
+                  onLayout={() => scrollToBottom(true)}
                   ListFooterComponent={
                     <>
                       {isLoading && (
@@ -748,13 +794,37 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                   style={{
                     zIndex: 1,
                     backgroundColor: 'rgb(23, 1, 42)',
-                    borderRadius: borderRadius.xl,
+                    borderColor: colors.modal.blur,
+                    borderWidth: 1,
+                    borderRadius: 40,
                     paddingVertical: spacing.md,
                     position: 'absolute',
                     bottom: spacing.md,
                     left: spacing.md,
                     right: spacing.md,
                   }}>
+                  {/* Rate limit countdown indicator */}
+                  {rateLimitCountdown !== null && rateLimitCountdown > 0 && (
+                    <View
+                      style={{
+                        paddingHorizontal: spacing.md,
+                        paddingBottom: spacing.sm,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: spacing.xs,
+                      }}>
+                      <Icon name="time-outline" size={14} color="#ff6464" />
+                      <Text
+                        style={{
+                          color: '#ff6464',
+                          fontSize: 12,
+                          fontWeight: '600',
+                        }}>
+                        Rate limit active. Retry in {rateLimitCountdown}s
+                      </Text>
+                    </View>
+                  )}
                   {renderSuggestions()}
                   <View
                     style={{
@@ -762,6 +832,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                       borderRadius: 50,
                       overflow: 'hidden',
                       zIndex: 3,
+                      marginTop: spacing.sm,
                     }}>
                     <TouchableWithoutFeedback
                       onPress={() => inputRef.current?.focus()}>
@@ -771,11 +842,22 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                           style={[styles.input, {height: isTablet ? 50 : 40}]}
                           value={inputText}
                           onChangeText={setInputText}
-                          placeholder={`Ask about ${
-                            contentType === 'tv' ? 'this show' : 'this movie'
-                          }...`}
+                          placeholder={
+                            rateLimitCountdown !== null &&
+                            rateLimitCountdown > 0
+                              ? `Wait ${rateLimitCountdown}s...`
+                              : `Ask about ${
+                                  contentType === 'tv'
+                                    ? 'this show'
+                                    : 'this movie'
+                                }...`
+                          }
                           placeholderTextColor={colors.text.tertiary}
-                          editable={true}
+                          editable={
+                            !isLoading &&
+                            (rateLimitCountdown === null ||
+                              rateLimitCountdown <= 0)
+                          }
                           onFocus={() =>
                             setTimeout(
                               () =>
@@ -803,11 +885,21 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
                               styles.sendButton,
                               {
                                 opacity:
-                                  isLoading || !inputText.trim() ? 0.5 : 1,
+                                  isLoading ||
+                                  !inputText.trim() ||
+                                  (rateLimitCountdown !== null &&
+                                    rateLimitCountdown > 0)
+                                    ? 0.5
+                                    : 1,
                               },
                             ]}
                             onPress={() => handleSend()}
-                            disabled={isLoading || !inputText.trim()}>
+                            disabled={
+                              isLoading ||
+                              !inputText.trim() ||
+                              (rateLimitCountdown !== null &&
+                                rateLimitCountdown > 0)
+                            }>
                             <Icon
                               name={'send'}
                               size={24}

@@ -1,5 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
-import {getPersonalizedRecommendations} from '../services/gemini';
+import {getPersonalizedRecommendations} from '../services/groq';
 import {searchMovies, searchTVShows} from '../services/tmdb';
 import {HistoryManager} from '../store/history';
 import {useAIEnabled} from './useAIEnabled';

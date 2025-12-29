@@ -58,6 +58,14 @@ export type HomeStackParamList = {
     season?: number;
     episode?: number;
   };
+  SimilarMovies: {
+    movieId: number;
+    title: string;
+  };
+  SimilarTVShows: {
+    tvId: number;
+    title: string;
+  };
 };
 
 export type SearchStackParamList = {
@@ -85,6 +93,14 @@ export type SearchStackParamList = {
     title: string;
     season?: number;
     episode?: number;
+  };
+  SimilarMovies: {
+    movieId: number;
+    title: string;
+  };
+  SimilarTVShows: {
+    tvId: number;
+    title: string;
   };
 };
 
@@ -121,6 +137,14 @@ export type MoviesAndSeriesStackParamList = {
     season?: number;
     episode?: number;
   };
+  SimilarMovies: {
+    movieId: number;
+    title: string;
+  };
+  SimilarTVShows: {
+    tvId: number;
+    title: string;
+  };
 };
 
 export type MoviesStackParamList = {
@@ -153,6 +177,14 @@ export type MoviesStackParamList = {
     title: string;
     season?: number;
     episode?: number;
+  };
+  SimilarMovies: {
+    movieId: number;
+    title: string;
+  };
+  SimilarTVShows: {
+    tvId: number;
+    title: string;
   };
 };
 
@@ -187,6 +219,14 @@ export type TVShowsStackParamList = {
     season?: number;
     episode?: number;
   };
+  SimilarMovies: {
+    movieId: number;
+    title: string;
+  };
+  SimilarTVShows: {
+    tvId: number;
+    title: string;
+  };
 };
 
 export type CurationStackParamList = {
@@ -217,6 +257,14 @@ export type CurationStackParamList = {
     title: string;
     season?: number;
     episode?: number;
+  };
+  SimilarMovies: {
+    movieId: number;
+    title: string;
+  };
+  SimilarTVShows: {
+    tvId: number;
+    title: string;
   };
 };
 
@@ -251,6 +299,14 @@ export type MySpaceStackParamList = {
     title: string;
     season?: number;
     episode?: number;
+  };
+  SimilarMovies: {
+    movieId: number;
+    title: string;
+  };
+  SimilarTVShows: {
+    tvId: number;
+    title: string;
   };
 };
 

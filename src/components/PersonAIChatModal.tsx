@@ -17,7 +17,7 @@ import {Modal} from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useResponsive} from '../hooks/useResponsive';
-import {cinemaChat} from '../services/gemini';
+import {cinemaChat} from '../services/groq';
 import {GradientSpinner} from './GradientSpinner';
 import {MicButton} from './MicButton';
 import LinearGradient from 'react-native-linear-gradient';
@@ -74,6 +74,9 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(
+    null,
+  );
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const {isTablet} = useResponsive();
@@ -114,6 +117,40 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
       scaleAnim.setValue(0.95);
     }
   }, [visible]);
+
+  // Countdown timer for rate limit
+  useEffect(() => {
+    if (rateLimitCountdown !== null && rateLimitCountdown > 0) {
+      const interval = setInterval(() => {
+        setRateLimitCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            clearInterval(interval);
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [rateLimitCountdown]);
+
+  // Scroll to bottom helper
+  const scrollToBottom = (animated = true) => {
+    if (!flatListRef.current) return;
+    const handleScroll = () => {
+      flatListRef.current?.scrollToEnd({animated});
+    };
+    handleScroll();
+    requestAnimationFrame(handleScroll);
+    setTimeout(handleScroll, 150);
+  };
+
+  // Scroll when messages change or loading
+  useEffect(() => {
+    if (messages.length > 0 || isLoading) {
+      scrollToBottom(true);
+    }
+  }, [messages, isLoading]);
 
   useEffect(() => {
     if (isLoading) {
@@ -194,7 +231,9 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
           content: buildContext(),
         };
 
-        const conversationMessages = updatedMessages.filter(m => m.id !== '1');
+        const conversationMessages = updatedMessages
+          .filter(m => m.id !== '1')
+          .slice(-4);
         const chatMessages = [
           contextMessage,
           ...conversationMessages.map(m => ({
@@ -400,9 +439,24 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
         setMessages(prev => [...prev, aiMessage]);
       } catch (error) {
         console.error('Error getting AI response:', error);
+        const errText = String(error);
+        const is429 = /429/.test(errText);
+        const retryAfter = (error as any)?.retryAfter;
+
+        if (is429) {
+          setRateLimitCountdown(retryAfter || 60);
+        }
+
+        let friendly = 'Sorry, I encountered an error. Please try again later.';
+        if (is429) {
+          friendly = `Rate limit exceeded. Please wait ${
+            retryAfter ? retryAfter + 's' : 'a moment'
+          } before trying again.`;
+        }
+
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: 'Sorry, I encountered an error. Please try again later.',
+          text: friendly,
           sender: 'ai',
           timestamp: new Date(),
         };
@@ -609,12 +663,8 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
-                  onContentSizeChange={() =>
-                    flatListRef.current?.scrollToEnd({animated: true})
-                  }
-                  onLayout={() =>
-                    flatListRef.current?.scrollToEnd({animated: true})
-                  }
+                  onContentSizeChange={() => scrollToBottom(true)}
+                  onLayout={() => scrollToBottom(true)}
                   ListFooterComponent={
                     <>
                       {isLoading && (
@@ -662,6 +712,28 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                     left: spacing.md,
                     right: spacing.md,
                   }}>
+                  {/* Rate limit countdown indicator */}
+                  {rateLimitCountdown !== null && rateLimitCountdown > 0 && (
+                    <View
+                      style={{
+                        paddingHorizontal: spacing.md,
+                        paddingBottom: spacing.sm,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: spacing.xs,
+                      }}>
+                      <Icon name="time-outline" size={14} color="#ff6464" />
+                      <Text
+                        style={{
+                          color: '#ff6464',
+                          fontSize: 12,
+                          fontWeight: '600',
+                        }}>
+                        Rate limit active. Retry in {rateLimitCountdown}s
+                      </Text>
+                    </View>
+                  )}
                   <View style={{zIndex: 1, marginBottom: spacing.sm}}>
                     <Text style={styles.suggestionsTitle}>Try asking:</Text>
                     <ScrollView
@@ -707,9 +779,18 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                           style={[styles.input, {height: isTablet ? 50 : 40}]}
                           value={inputText}
                           onChangeText={setInputText}
-                          placeholder={`Ask about ${personName}...`}
+                          placeholder={
+                            rateLimitCountdown !== null &&
+                            rateLimitCountdown > 0
+                              ? `Wait ${rateLimitCountdown}s...`
+                              : `Ask about ${personName}...`
+                          }
                           placeholderTextColor={colors.text.tertiary}
-                          editable={true}
+                          editable={
+                            !isLoading &&
+                            (rateLimitCountdown === null ||
+                              rateLimitCountdown <= 0)
+                          }
                           onFocus={() =>
                             setTimeout(
                               () =>
@@ -737,16 +818,29 @@ export const PersonAIChatModal: React.FC<PersonAIChatModalProps> = ({
                               styles.sendButton,
                               {
                                 opacity:
-                                  isLoading || !inputText.trim() ? 0.5 : 1,
+                                  isLoading ||
+                                  !inputText.trim() ||
+                                  (rateLimitCountdown !== null &&
+                                    rateLimitCountdown > 0)
+                                    ? 0.5
+                                    : 1,
                               },
                             ]}
                             onPress={() => handleSend()}
-                            disabled={isLoading || !inputText.trim()}>
+                            disabled={
+                              isLoading ||
+                              !inputText.trim() ||
+                              (rateLimitCountdown !== null &&
+                                rateLimitCountdown > 0)
+                            }>
                             <Icon
                               name={'send'}
                               size={24}
                               color={
-                                isLoading || !inputText.trim()
+                                isLoading ||
+                                !inputText.trim() ||
+                                (rateLimitCountdown !== null &&
+                                  rateLimitCountdown > 0)
                                   ? colors.modal.active
                                   : colors.text.primary
                               }

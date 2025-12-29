@@ -111,21 +111,36 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
       try {
         console.log('=== Welcome screen: Starting checks ===');
 
-        // Check internet connectivity first
+        // Step 1: Check internet connectivity first
         const isOnline = await checkInternet();
         console.log('Internet check result:', isOnline);
         if (!isOnline) {
+          console.log('No internet - showing No Internet screen');
           setShowNoInternet(true);
           setIsDetecting(false);
           return;
         }
 
-        // Check TMDB DNS accessibility
-        console.log('Checking TMDB DNS...');
+        // Step 2: Internet is OK, now check TMDB DNS accessibility
+        console.log('Internet OK - Checking TMDB DNS...');
         const tmdbOk = await checkTMDB();
         console.log('TMDB check result:', tmdbOk);
+
         if (!tmdbOk) {
-          console.log('TMDB blocked - showing DNS modal');
+          // TMDB check failed - could be DNS or poor connection
+          // Do one more internet check to be sure
+          console.log('TMDB failed - double-checking internet...');
+          const isStillOnline = await checkInternet();
+
+          if (!isStillOnline) {
+            console.log('Internet lost - showing No Internet screen');
+            setShowNoInternet(true);
+            setIsDetecting(false);
+            return;
+          }
+
+          // Internet is OK but TMDB is blocked - DNS issue
+          console.log('Internet OK but TMDB blocked - showing DNS modal');
           setShowDNSModal(true);
           setIsDetecting(false);
           return;
@@ -498,12 +513,17 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
               setShowDNSModal(false);
               await proceedToRegionDetection();
             } else {
-              console.log('TMDB still blocked - staying on DNS screen');
-              // Still blocked, stay on DNS screen
-              setIsDetecting(false);
+              // Double-check internet to distinguish between DNS and connection issues
+              const isStillOnline = await checkInternet();
+              if (!isStillOnline) {
+                setIsDetecting(false);
+                setShowDNSModal(false);
+                setShowNoInternet(true);
+              } else {
+                setIsDetecting(false);
+              }
             }
           } catch (error) {
-            console.log('Error in DNS retry:', error);
             setIsDetecting(false);
           }
         }}

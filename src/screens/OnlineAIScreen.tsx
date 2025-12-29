@@ -17,7 +17,7 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
-import {cinemaChat} from '../services/gemini';
+import {cinemaChat} from '../services/groq';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import {modalStyles} from '../styles/styles';
 import LinearGradient from 'react-native-linear-gradient';
@@ -78,6 +78,12 @@ export const OnlineAIScreen: React.FC = () => {
   const {isTablet} = useResponsive();
   const [showMenu, setShowMenu] = useState(false);
   const [isRateLimitExceeded, setIsRateLimitExceeded] = useState(false);
+  const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(
+    null,
+  ); // seconds until can retry
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(
+    null,
+  ); // countdown timer
   const androidInset = useAndroidKeyboardInset(10);
 
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -93,55 +99,53 @@ export const OnlineAIScreen: React.FC = () => {
       all.findIndex(t => t.id === id),
     );
 
-  const setAndPersistMessages = async (msgs: Message[]) => {
-    const capped = cap20(msgs);
+  const setAndPersistMessages = async (newHistory: Message[]) => {
+    // Identify truly new messages by comparing with current state length
+    // This allows us to persist even when 'messages' is capped at 20
+    const diff = newHistory.length - messages.length;
 
-    // Get current count from Realm to avoid duplicates
-    const savedMessages = await ChatManager.getMessages(currentThreadId);
-    const savedCount = savedMessages.length;
+    if (diff > 0) {
+      const newMessagesToSave = newHistory.slice(-diff);
+      const savedMessages = await ChatManager.getMessages(currentThreadId);
+      const savedCount = savedMessages.length;
 
-    // Only save new messages
-    const newMessages = capped.slice(savedCount);
+      for (let i = 0; i < newMessagesToSave.length; i++) {
+        const msg = newMessagesToSave[i];
+        await ChatManager.addMessage(currentThreadId, msg.role, msg.content);
 
-    for (let i = 0; i < newMessages.length; i++) {
-      const msg = newMessages[i];
-      await ChatManager.addMessage(currentThreadId, msg.role, msg.content);
-
-      // Save recommendations if assistant message has them
-      if (
-        msg.role === 'assistant' &&
-        msg.tmdbResults &&
-        msg.tmdbResults.length > 0
-      ) {
-        const messageIndex = savedCount + i;
-        const recommendations = msg.tmdbResults
-          .filter(r => {
-            const valid = r.id && r.id !== 0 && r.type;
-            if (!valid) {
-            }
-            return valid;
-          })
-          .map(r => ({
-            id: r.id,
-            type: r.type || 'movie',
-            title: r.title || '',
-            name: r.title || '',
-            poster_path: r.poster_path,
-            vote_average: 0, // Don't use year as vote_average!
-            release_date: r.release_date || '',
-            first_air_date: r.first_air_date || '',
-            overview: r.overview || '',
-          }));
-        await ChatManager.saveRecommendations(
-          currentThreadId,
-          messageIndex,
-          recommendations,
-        );
+        // Save recommendations if assistant message has them
+        if (
+          msg.role === 'assistant' &&
+          msg.tmdbResults &&
+          msg.tmdbResults.length > 0
+        ) {
+          const messageIndex = savedCount + i;
+          const recommendations = msg.tmdbResults
+            .filter(r => r.id && r.id !== 0 && r.type)
+            .map(r => ({
+              id: r.id,
+              type: r.type || 'movie',
+              title: r.title || '',
+              name: r.title || '',
+              poster_path: r.poster_path,
+              vote_average: 0,
+              release_date: r.release_date || '',
+              first_air_date: r.first_air_date || '',
+              overview: r.overview || '',
+            }));
+          await ChatManager.saveRecommendations(
+            currentThreadId,
+            messageIndex,
+            recommendations,
+          );
+        }
       }
     }
 
-    // Update UI state
+    const capped = cap20(newHistory);
     setMessages(capped);
+
+    // Update threads state for the picker
     setThreads(prev => {
       const idx = findCurrentIndex(prev, currentThreadId);
       if (idx === -1) return prev;
@@ -158,21 +162,39 @@ export const OnlineAIScreen: React.FC = () => {
   const rotateAnim = useRef(new Animated.Value(0)).current;
   // Removed parallax scrollX; not needed with HorizontalList
 
+  // Scroll to bottom helper
+  const scrollToBottom = (animated = true) => {
+    if (!flatListRef.current) return;
+
+    // Multiple attempts with different timings to ensure layout is ready
+    const handleScroll = () => {
+      flatListRef.current?.scrollToEnd({animated});
+    };
+
+    // Immediate
+    handleScroll();
+
+    // Request animation frame for next tick
+    requestAnimationFrame(handleScroll);
+
+    // Backup with small delay
+    setTimeout(handleScroll, 150);
+  };
+
   // Scroll to bottom when messages change or animation updates
   useEffect(() => {
-    if (flatListRef.current && (messages.length > 0 || animating)) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({animated: true});
-      }, 100);
+    if (messages.length > 0 || animating) {
+      scrollToBottom(true);
     }
   }, [messages, animating, animatedContent]);
 
-  // When screen regains focus (coming back from details), scroll to the latest message
+  // When screen regains focus, scroll to the latest message
   useEffect(() => {
-    if (isFocused && flatListRef.current) {
+    if (isFocused && messages.length > 0) {
+      // Small delay to let the screen mount
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({animated: true});
-      }, 150);
+        scrollToBottom(false);
+      }, 50);
     }
   }, [isFocused]);
 
@@ -389,6 +411,27 @@ export const OnlineAIScreen: React.FC = () => {
     }
   }, [loading]);
 
+  // Countdown timer for rate limit
+  useEffect(() => {
+    if (rateLimitRetryAfter !== null && rateLimitRetryAfter > 0) {
+      setRateLimitCountdown(rateLimitRetryAfter);
+
+      const interval = setInterval(() => {
+        setRateLimitCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            clearInterval(interval);
+            setIsRateLimitExceeded(false);
+            setRateLimitRetryAfter(null);
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [rateLimitRetryAfter]);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
     const userMessage: Message = {role: 'user', content: input};
@@ -419,8 +462,8 @@ export const OnlineAIScreen: React.FC = () => {
     setAnimating(false);
     setAnimatedContent('');
     try {
-      const aiMessages = newMessages.map(({role, content}) => ({
-        role,
+      const aiMessages = newMessages.slice(-4).map(({role, content}) => ({
+        role: role as 'user' | 'assistant',
         content,
       }));
       const response = await cinemaChat(aiMessages);
@@ -672,6 +715,7 @@ export const OnlineAIScreen: React.FC = () => {
       }
       animate();
     } catch (e) {
+      console.error('[OnlineAIScreen] Chat error:', e);
       const errText = (e as any)?.message
         ? String((e as any).message)
         : String(e);
@@ -679,18 +723,40 @@ export const OnlineAIScreen: React.FC = () => {
       const is401or403 = /401|403/.test(errText);
       const is503 = /503/.test(errText);
       const noApiKey = /NO_API_KEY/i.test(errText);
+
+      // Extract retry-after from error if available
+      const retryAfter = (e as any)?.retryAfter;
+
       setIsRateLimitExceeded(is429);
+      if (is429 && retryAfter) {
+        setRateLimitRetryAfter(retryAfter);
+        console.warn(
+          `[OnlineAIScreen] Rate limit countdown started: ${retryAfter}s`,
+        );
+      }
 
       let friendly = 'Sorry, there was an error.';
       if (noApiKey) {
         friendly =
-          'AI key missing. Please open AI Settings and add your Gemini API key.';
+          'AI key missing. Please open AI Settings and add your Groq API key.';
       } else if (is401or403) {
         friendly =
           'Your AI API key seems invalid or unauthorized. Please update it in AI Settings.';
       } else if (is429) {
-        friendly =
-          'Rate limit exceeded. Please wait a bit or try a different API key in AI Settings.';
+        if (retryAfter) {
+          const minutes = Math.floor(retryAfter / 60);
+          const seconds = retryAfter % 60;
+          const timeStr =
+            minutes > 0
+              ? `${minutes} minute${
+                  minutes > 1 ? 's' : ''
+                } and ${seconds} second${seconds !== 1 ? 's' : ''}`
+              : `${seconds} second${seconds !== 1 ? 's' : ''}`;
+          friendly = `Rate limit exceeded. Please wait ${timeStr} before trying again. You can also try a different API key in AI Settings.`;
+        } else {
+          friendly =
+            'Rate limit exceeded. Please wait a moment or try a different API key in AI Settings.';
+        }
       } else if (is503) {
         friendly =
           'The AI service is temporarily unavailable (503). Please try again shortly.';
@@ -948,7 +1014,7 @@ export const OnlineAIScreen: React.FC = () => {
           activeOpacity={0.9}
           style={{
             position: 'absolute',
-            top: 50,
+            top: 30,
             left: 20,
             zIndex: 100,
             overflow: 'hidden',
@@ -956,11 +1022,12 @@ export const OnlineAIScreen: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: borderRadius.round,
-            height: 40,
-            width: 40,
+            height: 50,
+            width: 50,
             borderColor: colors.modal.border,
             borderWidth: 1,
-            backgroundColor: colors.modal.blurDark,
+            borderBottomWidth: 0,
+            backgroundColor: colors.modal.blur,
           }}
           onPress={() => {
             // Always navigate to MySpace screen instead of going back
@@ -971,44 +1038,31 @@ export const OnlineAIScreen: React.FC = () => {
         <TouchableOpacity
           style={{
             position: 'absolute',
-            top: 50,
+            top: 30,
             right: 20,
             display: 'flex',
+            flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 6,
             borderRadius: borderRadius.round,
-            height: 40,
-            width: 40,
+            height: 50,
+            paddingHorizontal: 12,
             borderColor: colors.modal.border,
             borderWidth: 1,
+            borderBottomWidth: 0,
             zIndex: 100,
             overflow: 'hidden',
-            backgroundColor: colors.modal.blurDark,
+            backgroundColor: colors.modal.blur,
           }}
           onPress={() => setShowMenu(true)}>
-          <Icon name="menu" size={20} color="white" />
+          <Icon name="chatbubble-ellipses-outline" size={20} color="white" />
+          <Text style={{color: 'white', fontSize: 12}}>Chats</Text>
         </TouchableOpacity>
 
-        <LinearGradient
-          colors={[
-            'rgb(209, 8, 112)',
-            'rgba(209, 8, 125, 0.72)',
-            'rgba(75, 8, 209, 0.54)',
-            'rgb(133, 7, 183)',
-          ]}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
-        />
         <View style={styles.container}>
           <LinearGradient
-            colors={['rgba(57, 0, 40, 0.7)', 'rgba(98, 0, 55, 0)']}
+            colors={['rgba(32, 0, 22, 0.97)', 'rgba(98, 0, 55, 0)']}
             style={{
               position: 'absolute',
               top: 0,
@@ -1016,14 +1070,14 @@ export const OnlineAIScreen: React.FC = () => {
               right: 0,
               height: 120,
               zIndex: 10,
-              marginHorizontal: 2,
             }}
           />
           <FlatList
             ref={flatListRef}
+            key={`chat-list-${currentThreadId}`} // Force re-mount on thread switch
             data={displayMessages}
             renderItem={renderItem}
-            keyExtractor={(_, idx) => idx.toString()}
+            keyExtractor={(_, idx) => `${currentThreadId}-${idx}`}
             contentContainerStyle={[
               styles.chat,
               {
@@ -1034,6 +1088,10 @@ export const OnlineAIScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
+            onContentSizeChange={() => {
+              // Always scroll on content size change for new messages/animations
+              scrollToBottom(true);
+            }}
             ListFooterComponent={
               loading ? (
                 <Animated.View
@@ -1068,101 +1126,6 @@ export const OnlineAIScreen: React.FC = () => {
                     Theater AI is thinking...
                   </Animated.Text>
                 </Animated.View>
-              ) : isRateLimitExceeded ? (
-                <View
-                  style={{
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginTop: -200,
-                    marginBottom: 200,
-                  }}>
-                  <View style={{height: 250}} />
-                  <Image
-                    source={require('../assets/theater.webp')}
-                    style={{width: 100, height: 100}}
-                  />
-                  <Text
-                    style={{
-                      color: colors.modal.activeBorder,
-                      ...typography.h3,
-                      fontSize: 18,
-                    }}>
-                    Theater AI
-                  </Text>
-
-                  {!isDefaultKey ? (
-                    <Text
-                      style={{
-                        color: colors.modal.active,
-                        ...typography.body2,
-                        fontSize: 14,
-                      }}>
-                      Your Gemini API key is rate limited. Please try again
-                      later.
-                    </Text>
-                  ) : (
-                    <View style={{marginTop: spacing.lg, alignItems: 'center'}}>
-                      <View
-                        style={{
-                          borderTopColor: colors.modal.blur,
-                          borderTopWidth: 1,
-                          paddingTop: spacing.md,
-                          width: 200,
-                        }}
-                      />
-                      <Text
-                        style={{
-                          color: colors.text.secondary,
-                          ...typography.body2,
-                          textAlign: 'center',
-                          marginHorizontal: spacing.lg,
-                        }}>
-                        You are using the default Gemini API key, it's rate
-                        limited. Add your own API key in AI Settings.
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() =>
-                          (navigation as any).navigate('AISettingsScreen')
-                        }
-                        activeOpacity={0.9}
-                        style={{
-                          marginTop: spacing.md,
-                          borderRadius: 24,
-                          overflow: 'hidden',
-                        }}>
-                        <LinearGradient
-                          colors={[colors.primary, colors.secondary]}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 1}}
-                          style={{
-                            paddingHorizontal: 16,
-                            paddingVertical: 10,
-                            borderRadius: 24,
-                          }}>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                            }}>
-                            <Icon
-                              name="settings-outline"
-                              size={18}
-                              color={colors.text.primary}
-                            />
-                            <Text
-                              style={{
-                                color: colors.text.primary,
-                                ...typography.button,
-                                marginLeft: 8,
-                              }}>
-                              Open AI Settings
-                            </Text>
-                          </View>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
               ) : null
             }
             ListEmptyComponent={
@@ -1175,8 +1138,13 @@ export const OnlineAIScreen: React.FC = () => {
                   marginTop: -100,
                 }}>
                 <Image
-                  source={require('../assets/theaterai.webp')}
-                  style={{width: 80, height: 50, marginBottom: spacing.md}}
+                  source={require('../assets/theater.webp')}
+                  style={{
+                    width: 120,
+                    height: 120,
+                    marginBottom: spacing.md,
+                    objectFit: 'contain',
+                  }}
                 />
                 <Text
                   style={{
@@ -1260,7 +1228,7 @@ export const OnlineAIScreen: React.FC = () => {
       </Animated.View>
       {/* Floating input bar (outside Animated.View to avoid transform shifting) */}
       <LinearGradient
-        colors={['transparent', 'rgb(31, 2, 53)']}
+        colors={['transparent', 'rgba(36, 1, 37, 1)']}
         style={{
           position: 'absolute',
           left: 0,
@@ -1286,7 +1254,7 @@ export const OnlineAIScreen: React.FC = () => {
             blurAmount={10}
             blurRadius={5}
             blurType="dark"
-            overlayColor={'rgba(0, 0, 0, 0.1)'}
+            overlayColor={colors.modal.blur}
             pointerEvents="none"
             style={{
               position: 'absolute',
@@ -1304,9 +1272,15 @@ export const OnlineAIScreen: React.FC = () => {
                 style={styles.input}
                 value={input}
                 onChangeText={setInput}
-                placeholder="Ask about movies, TV, actors..."
+                placeholder={
+                  rateLimitCountdown !== null && rateLimitCountdown > 0
+                    ? 'Rate limit active - please wait...'
+                    : 'Ask about movies, TV, actors...'
+                }
                 placeholderTextColor={colors.text.tertiary}
-                editable={true}
+                editable={
+                  rateLimitCountdown === null || rateLimitCountdown <= 0
+                }
                 onFocus={() =>
                   setTimeout(
                     () => flatListRef.current?.scrollToEnd({animated: true}),
@@ -1333,16 +1307,27 @@ export const OnlineAIScreen: React.FC = () => {
                   style={[
                     styles.sendButton,
                     {
-                      opacity: loading || !input.trim() ? 0.5 : 1,
+                      opacity:
+                        loading ||
+                        !input.trim() ||
+                        (rateLimitCountdown !== null && rateLimitCountdown > 0)
+                          ? 0.5
+                          : 1,
                     },
                   ]}
                   onPress={sendMessage}
-                  disabled={loading || !input.trim()}>
+                  disabled={
+                    loading ||
+                    !input.trim() ||
+                    (rateLimitCountdown !== null && rateLimitCountdown > 0)
+                  }>
                   <Icon
                     name={'send'}
                     size={24}
                     color={
-                      loading || !input.trim()
+                      loading ||
+                      !input.trim() ||
+                      (rateLimitCountdown !== null && rateLimitCountdown > 0)
                         ? colors.modal.active
                         : colors.text.primary
                     }
@@ -1352,6 +1337,47 @@ export const OnlineAIScreen: React.FC = () => {
             </View>
           </TouchableWithoutFeedback>
         </View>
+        {/* Rate limit countdown indicator */}
+        {rateLimitCountdown !== null && rateLimitCountdown > 0 && (
+          <Animated.View
+            style={{
+              marginTop: spacing.sm,
+              marginBottom: -spacing.sm,
+              marginHorizontal: spacing.sm,
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              backgroundColor: 'rgba(255, 100, 100, 0.15)',
+              borderRadius: borderRadius.md,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 100, 100, 0.3)',
+              opacity: pulseAnim,
+            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+              }}>
+              <Icon name="time-outline" size={16} color="#ff6464" />
+              <Text
+                style={{
+                  textAlign: 'center',
+                  ...typography.body2,
+                  fontSize: 12,
+                  color: '#ff6464',
+                  fontWeight: '600',
+                }}>
+                Rate limit active. Retry in{' '}
+                {Math.floor(rateLimitCountdown / 60) > 0
+                  ? `${Math.floor(rateLimitCountdown / 60)}:${String(
+                      rateLimitCountdown % 60,
+                    ).padStart(2, '0')}`
+                  : `${rateLimitCountdown}s`}
+              </Text>
+            </View>
+          </Animated.View>
+        )}
         <View
           style={{
             marginVertical: spacing.md,
@@ -1580,7 +1606,6 @@ const styles = StyleSheet.create({
     // margin: 5,
     backgroundColor: 'rgb(18, 0, 22)',
     elevation: 12,
-    marginHorizontal: 2,
     overflow: 'visible',
   },
   chat: {
@@ -1618,8 +1643,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.sm,
+    borderEndColor: colors.modal.blur,
     borderRadius: 50,
     borderWidth: 1,
+    borderBottomWidth: 0,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {

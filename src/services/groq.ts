@@ -1,193 +1,35 @@
 import {AISettingsManager} from '../store/aiSettings';
 import {cache, CACHE_KEYS} from '../utils/cache';
 import {searchMovies, searchTVShows} from './tmdb';
-import {
-  getMovie,
-  getTVShow,
-  cacheMovieAI,
-  cacheTVShowAI,
-} from '../database/contentCache';
-
-import {AI_CONSTANTS} from '../config/aiConstants';
+import {getMovie, getTVShow} from '../database/contentCache';
 
 // Default fallback values
-const DEFAULT_MODEL = AI_CONSTANTS.DEFAULT_MODEL;
+const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // Fast, latest data
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 // Note: Do NOT hardcode API keys. Users must provide their own key via settings.
 
 // Dynamic function to get current settings
-const getGeminiConfig = async () => {
+const getGroqConfig = async () => {
   const settings = await AISettingsManager.getSettings();
 
   try {
     return {
       model: settings.model || DEFAULT_MODEL,
       apiKey: settings.apiKey,
-      apiUrl: `https://generativelanguage.googleapis.com/v1beta/models/${
-        settings.model || DEFAULT_MODEL
-      }:generateContent`,
+      apiUrl: GROQ_API_URL,
     };
   } catch (error) {
     return {
       model: DEFAULT_MODEL,
       apiKey: settings.apiKey,
-      apiUrl: `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`,
+      apiUrl: GROQ_API_URL,
     };
   }
 };
 
-interface GeminiMessage {
+interface GroqMessage {
   role: 'user' | 'model';
   parts: Array<{text: string}>;
-}
-
-// Fetch critic ratings (IMDb and Rotten Tomatoes) via AI with caching
-// Note: For movies, IMDB should be scraped first. This is fallback only.
-export async function getCriticRatings({
-  title,
-  year,
-  type,
-  contentId,
-  skipImdb = false, // Set to true if IMDB was already scraped successfully
-}: {
-  title: string;
-  year?: string;
-  type: 'movie' | 'tv';
-  contentId?: number;
-  skipImdb?: boolean;
-}): Promise<{
-  imdb?: number | null;
-  rotten_tomatoes?: number | null;
-  imdb_votes?: number | null;
-  source?: string;
-} | null> {
-  // Check Realm cache first if contentId provided
-  if (contentId) {
-    const cached =
-      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
-    if (cached?.ai_ratings_cached_at) {
-      // Check if ratings are still valid (6 months)
-      const age = Date.now() - (cached.ai_ratings_cached_at as Date).getTime();
-      if (age < 180 * 24 * 60 * 60 * 1000) {
-        // If we're skipping IMDB (it was scraped) but don't have RT, re-fetch
-        const hasRottenTomatoes = cached.ai_rotten_tomatoes != null;
-
-        if (skipImdb && !hasRottenTomatoes) {
-          console.log('[getCriticRatings] Cache has no RT, refetching...');
-          // Don't return cache, continue to fetch RT below
-        } else {
-          return {
-            imdb: cached.ai_imdb_rating as number | null,
-            rotten_tomatoes: cached.ai_rotten_tomatoes as number | null,
-            imdb_votes: cached.ai_imdb_votes as number | null,
-            source: 'cached',
-          };
-        }
-      }
-    }
-  }
-
-  const yearSuffix = year ? ` (${year})` : '';
-
-  // If skipImdb is true (scraping succeeded), only fetch Rotten Tomatoes
-  const prompt = skipImdb
-    ? `You are a movie database expert. Provide the current Rotten Tomatoes Tomatometer rating (critic score, not audience score) for the ${type} "${title}${yearSuffix}".
-
-Return ONLY a JSON object in this exact format, with no additional text:
-{"rotten_tomatoes": <number from 0-100, or null if not available>}
-
-Example valid responses:
-{"rotten_tomatoes": 85}
-{"rotten_tomatoes": null}
-
-Your response:`
-    : `You are a movie database expert. Provide the latest critic ratings for the ${type} "${title}${yearSuffix}".
-
-Return ONLY a JSON object in this exact format, with no additional text:
-{"imdb": <number from 0-10, or null>, "rotten_tomatoes": <number from 0-100, or null>, "imdb_votes": <integer, or null>}
-
-Example valid response:
-{"imdb": 7.2, "rotten_tomatoes": 85, "imdb_votes": 125000}
-
-Your response:`;
-
-  try {
-    const response = await callGemini([{role: 'user', content: prompt}]);
-
-    console.log('[getCriticRatings] AI raw response:', response);
-
-    let parsed: any = null;
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      } else {
-        parsed = JSON.parse(response);
-      }
-      console.log('[getCriticRatings] Parsed JSON:', parsed);
-    } catch (e) {
-      console.log('[getCriticRatings] JSON parse error:', e);
-      parsed = null;
-    }
-
-    const normalized =
-      parsed && typeof parsed === 'object'
-        ? {
-            imdb: skipImdb
-              ? undefined // Don't overwrite scraped IMDB rating
-              : typeof parsed.imdb === 'number'
-              ? parsed.imdb
-              : parsed.imdb && !isNaN(Number(parsed.imdb))
-              ? Number(parsed.imdb)
-              : null,
-            rotten_tomatoes:
-              typeof parsed.rotten_tomatoes === 'number'
-                ? parsed.rotten_tomatoes
-                : parsed.rotten_tomatoes &&
-                  !isNaN(Number(parsed.rotten_tomatoes))
-                ? Number(parsed.rotten_tomatoes)
-                : null,
-            imdb_votes: skipImdb
-              ? undefined // Don't overwrite scraped IMDB votes
-              : typeof parsed.imdb_votes === 'number'
-              ? parsed.imdb_votes
-              : parsed.imdb_votes && !isNaN(Number(parsed.imdb_votes))
-              ? Number(parsed.imdb_votes)
-              : null,
-            source: 'ai',
-          }
-        : null;
-
-    console.log('[getCriticRatings] Normalized result:', normalized);
-
-    // Cache in Realm if contentId provided
-    if (contentId && normalized) {
-      const {getRealm} = await import('../database/realm');
-      const realm = getRealm();
-      realm.write(() => {
-        const content =
-          type === 'movie'
-            ? realm.objectForPrimaryKey('Movie', contentId)
-            : realm.objectForPrimaryKey('TVShow', contentId);
-
-        if (content) {
-          // Only update IMDB if not skipped (not already scraped)
-          if (!skipImdb && normalized.imdb !== undefined) {
-            content.ai_imdb_rating = normalized.imdb;
-          }
-          if (!skipImdb && normalized.imdb_votes !== undefined) {
-            content.ai_imdb_votes = normalized.imdb_votes;
-          }
-          // Always update Rotten Tomatoes
-          content.ai_rotten_tomatoes = normalized.rotten_tomatoes;
-          content.ai_ratings_cached_at = new Date();
-        }
-      });
-    }
-
-    return normalized;
-  } catch (error) {
-    return null;
-  }
 }
 
 interface OpenAIMessage {
@@ -195,112 +37,117 @@ interface OpenAIMessage {
   content: string;
 }
 
-// Convert OpenAI-style messages to Gemini format
-function convertMessagesToGemini(messages: OpenAIMessage[]): {
-  systemInstruction?: {parts: Array<{text: string}>};
-  contents: GeminiMessage[];
-} {
-  const systemMessages = messages.filter(msg => msg.role === 'system');
-  const conversationMessages = messages.filter(msg => msg.role !== 'system');
-
-  // Combine system messages
-  const systemInstruction =
-    systemMessages.length > 0
-      ? {
-          parts: [
-            {
-              text: systemMessages.map(msg => msg.content).join('\n\n'),
-            },
-          ],
-        }
-      : undefined;
-
-  // Convert conversation messages
-  const contents: GeminiMessage[] = conversationMessages.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{text: msg.content}],
-  }));
-
-  return {systemInstruction, contents};
-}
-
-async function callGemini(messages: OpenAIMessage[]): Promise<string> {
-  const config = await getGeminiConfig();
-  const {systemInstruction, contents} = convertMessagesToGemini(messages);
+async function callGroq(
+  messages: OpenAIMessage[],
+  modelOverride?: string,
+): Promise<string> {
+  const config = await getGroqConfig();
+  const selectedModel = modelOverride || config.model;
 
   if (
     !config.apiKey ||
     typeof config.apiKey !== 'string' ||
     config.apiKey.trim().length === 0
   ) {
-    const err = new Error(
-      'NO_API_KEY: Please set your Gemini API key in AI Settings',
-    );
-    // Log once for debugging
-    throw err;
+    throw new Error('NO_API_KEY: Please set your Groq API key in AI Settings');
   }
 
+  // Groq Compound API request body (official SDK format)
   const requestBody: any = {
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-      topK: 40,
-      topP: 0.95,
+    model: selectedModel,
+    messages,
+    compound_custom: {
+      tools: {
+        enabled_tools: ['web_search', 'code_interpreter', 'visit_website'],
+      },
     },
-    safetySettings: [
-      {
-        category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-    ],
+    temperature: 1,
+    top_p: 1,
   };
 
-  if (systemInstruction) {
-    requestBody.systemInstruction = systemInstruction;
+  // Add Compound-specific settings if using compound model
+  // Handle both "compound" and "groq/compound" model names
+  if (
+    selectedModel === 'groq/compound' ||
+    selectedModel === 'compound' ||
+    selectedModel?.includes('compound') ||
+    selectedModel === 'groq/compound-mini'
+  ) {
+    const isMini = selectedModel.includes('mini');
+    requestBody.compound_custom = {
+      tools: {
+        enabled_tools: [
+          'web_search', // Real-time web search for ratings, facts
+          'code_interpreter', // Data analysis
+          'visit_website', // Visit specific URLs (IMDB, RT, etc)
+        ],
+      },
+    };
+    // Ensure model is set correctly
+    requestBody.model = isMini ? 'groq/compound-mini' : 'groq/compound';
   }
 
-  // Simple retry with exponential backoff for transient 5xx errors
+  // Retry logic with exponential backoff
   const maxRetries = 4;
   let attempt = 0;
   let lastError: any = null;
 
   while (attempt <= maxRetries) {
     try {
-      const response = await fetch(`${config.apiUrl}?key=${config.apiKey}`, {
+      console.log('Groq request: attempt', attempt, requestBody);
+      const response = await fetch(config.apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.apiKey}`,
         },
         body: JSON.stringify(requestBody),
       });
 
+      console.log('Groq response: attempt', attempt, response);
+
       if (!response.ok) {
         const bodyText = await response.text().catch(() => '');
+
+        // Extract rate limit information from headers
+        let retryAfter: number | null = null;
+        if (response.status === 429) {
+          const retryAfterHeader = response.headers.get('retry-after');
+          const rateLimitReset = response.headers.get(
+            'x-ratelimit-reset-requests',
+          );
+
+          if (retryAfterHeader) {
+            retryAfter = parseInt(retryAfterHeader, 10);
+          } else if (rateLimitReset) {
+            // Calculate seconds until reset
+            const resetTime = new Date(rateLimitReset).getTime();
+            const now = Date.now();
+            retryAfter = Math.ceil((resetTime - now) / 1000);
+          }
+        }
+
         const enriched = new Error(
           `HTTP ${response.status}: ${bodyText || response.statusText}`,
-        );
-        // Retry only on 5xx
+        ) as any;
+
+        // Attach retry-after info to error for 429 responses
+        if (response.status === 429) {
+          console.error('[Groq] Rate limit hit (429)');
+          if (retryAfter) {
+            enriched.retryAfter = retryAfter;
+            console.warn(`[Groq] Retry suggested after ${retryAfter} seconds`);
+          }
+        }
+
+        // Retry on 5xx errors
         if (
           response.status >= 500 &&
           response.status < 600 &&
           attempt < maxRetries
         ) {
           attempt += 1;
-          const base = 600 * Math.pow(2, attempt - 1);
-          const jitter = Math.floor(Math.random() * 250);
-          const delay = base + jitter;
+          const delay = 600 * Math.pow(2, attempt - 1) + Math.random() * 250;
           await new Promise(res => setTimeout(res, delay));
           continue;
         }
@@ -309,28 +156,26 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
 
       const data = await response.json();
 
-      // Extract the generated text from Gemini response
-      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      // Extract text from OpenAI/Groq response format
+      const generatedText = data.choices?.[0]?.message?.content;
 
       if (!generatedText) {
-        throw new Error('NO_CONTENT: Gemini returned no generated text');
+        throw new Error('NO_CONTENT: Groq returned no generated text');
       }
 
       return generatedText;
     } catch (error) {
       lastError = error;
-      // If fetch/network error, retry up to maxRetries
-      const errObj: any = error as any;
+      const errObj: any = error;
       const message = String(errObj?.message || errObj);
       const shouldRetry =
         /Network request failed|fetch failed|ECONNRESET|ETIMEDOUT/i.test(
           message,
         ) && attempt < maxRetries;
+
       if (shouldRetry) {
         attempt += 1;
-        const base = 600 * Math.pow(2, attempt - 1);
-        const jitter = Math.floor(Math.random() * 250);
-        const delay = base + jitter;
+        const delay = 600 * Math.pow(2, attempt - 1) + Math.random() * 250;
         await new Promise(res => setTimeout(res, delay));
         continue;
       }
@@ -338,8 +183,7 @@ async function callGemini(messages: OpenAIMessage[]): Promise<string> {
     }
   }
 
-  // If we exhaust retries, throw the last error
-  throw lastError || new Error('Unknown error calling Gemini');
+  throw lastError || new Error('Unknown error calling Groq');
 }
 
 // Optimization: Get ALL AI content in 1 call (Ratings, Trivia, Tags, Similar)
@@ -351,6 +195,7 @@ export async function getContentAnalysis({
   type,
   contentId,
   skipImdb = false,
+  releaseDate,
 }: {
   title: string;
   year?: string;
@@ -359,6 +204,7 @@ export async function getContentAnalysis({
   type: 'movie' | 'tv';
   contentId?: number;
   skipImdb?: boolean;
+  releaseDate?: string;
 }): Promise<{
   ratings?: {
     imdb?: number | null;
@@ -472,43 +318,82 @@ export async function getContentAnalysis({
   // 2. Construct Master Prompt
   const system = {
     role: 'system' as const,
-    content: `You are Theater AI, an expert film/TV analyst. 
-    Analyze the ${type} "${title}${yearSuffix}" based on its story/metadata.
+    content: `Expert analyst. Analyze ${type} "${title}${yearSuffix}".
+    Return SINGLE JSON:
+    1. "ratings": {"imdb": 0.0-10.0, "rotten_tomatoes": 0-100, "imdb_votes": int}
+    2. "trivia": ["5 rare facts"]
+    3. "tags": {"thematicTags": [{"tag": "str", "description": "str", "confidence": 0-1}], "emotionalTags": [{"tag": "str", "description": "str", "confidence": 0-1}]}
+    4. "similar": [{"title": "str", "year": "YYYY"}] (5 narrative-based)
     
-    Return a SINGLE JSON object with these 4 sections:
-    
-    1. "ratings": {
-       "imdb": number (0.0-10.0, or null),
-       "rotten_tomatoes": number (0-100, or null),
-       "imdb_votes": number (integer, or null)
-    }
-    
-    2. "trivia": [
-       "5 interesting/rare facts about production, cast, or lore"
-       (return array of 5 strings)
-    ]
-    
-    3. "tags": {
-       "thematicTags": [{"tag": "2-4 words", "description": "short explanation", "confidence": 0.0-1.0}],
-       "emotionalTags": [{"tag": "2-4 words", "description": "short explanation", "confidence": 0.0-1.0}]
-       (3-5 tags for each category)
-    }
-    
-    4. "similar": [
-       {"title": "Title", "year": "YYYY"}
-    ]
-    (5 recommendations based on STORY/NARRATIVE similarity, not just genre. JSON array of objects)
-
-    STRICT JSON ONLY. No markdown, no explanations.`,
+    If data is unknown, return null or empty array for that field. DO NOT explain lack of info or NO placeholders.
+    JSON ONLY. No talk.`,
   };
 
   const user = {
     role: 'user' as const,
-    content: `Analyze "${title}${yearSuffix}"\nOverview: ${truncatedOverview}\nGenres: ${genres}`,
+    content: `Analyze "${title}${yearSuffix}"`,
   };
 
+  // 2.5 Determine Model Strategy
+  let modelsToTry: Array<string | undefined> = [undefined]; // Start with App Model (undefined uses config.model)
+
+  if (releaseDate) {
+    const release = new Date(releaseDate);
+    const now = new Date();
+    const diffDays =
+      (now.getTime() - release.getTime()) / (1000 * 60 * 60 * 24);
+
+    // If released within 60 days (or in the future), use Compound strategy
+    if (diffDays <= 60) {
+      console.log(
+        `[AI Strategy] Fresh content detected (${diffDays.toFixed(
+          0,
+        )} days old). Using Compound strategy.`,
+      );
+      modelsToTry = ['groq/compound-mini', 'groq/compound', undefined];
+    }
+  }
+
   try {
-    const response = await callGemini([system, user]);
+    let response = '';
+    let success = false;
+    let lastError: any = null;
+
+    for (const modelCandidate of modelsToTry) {
+      try {
+        const isCompound = modelCandidate?.includes('compound');
+        const finalSystem = isCompound
+          ? {
+              ...system,
+              content:
+                system.content +
+                ' No research tables, preamble, or notes. Start { and end }.',
+            }
+          : system;
+
+        response = await callGroq([finalSystem, user], modelCandidate);
+        success = true;
+        break;
+      } catch (error: any) {
+        lastError = error;
+        // If it's a rate limit (429) and we have more models to try, move to the next
+        if (
+          error?.message?.includes('429') &&
+          modelsToTry.indexOf(modelCandidate) < modelsToTry.length - 1
+        ) {
+          console.warn(
+            `[AI Strategy] Rate limited on ${
+              modelCandidate || 'App Model'
+            }. Falling back...`,
+          );
+          continue;
+        }
+        throw error; // Re-throw if not a rate limit or no more fallbacks
+      }
+    }
+
+    if (!success) throw lastError;
+    console.log('Groq response:', response);
 
     // 3. Parse Response
     let parsed: any = null;
@@ -521,27 +406,49 @@ export async function getContentAnalysis({
 
     if (!parsed) return null;
 
-    // 4. Normalize Data
+    // Helper to parse ratings that might be strings or mis-scaled
+    const parseRating = (val: any, isImdb = false): number | null => {
+      if (val === undefined || val === null) return null;
+      let num = 0;
+      if (typeof val === 'number') {
+        num = val;
+      } else if (typeof val === 'string') {
+        const cleaned = val.replace(/[^0-9.]/g, '');
+        num = parseFloat(cleaned);
+      } else {
+        return null;
+      }
+
+      if (isNaN(num)) return null;
+
+      // Special case: if IMDb rating > 10, AI likely returned it as a percentage
+      if (isImdb && num > 10) {
+        return parseFloat((num / 10).toFixed(1));
+      }
+
+      return num;
+    };
+
     const result = {
-      ratings: {
-        imdb: skipImdb
-          ? undefined
-          : typeof parsed.ratings?.imdb === 'number'
-          ? parsed.ratings.imdb
+      ratings:
+        parsed.ratings && Object.keys(parsed.ratings).length > 0
+          ? {
+              imdb: skipImdb
+                ? undefined
+                : parseRating(parsed.ratings?.imdb, true),
+              rotten_tomatoes: parseRating(
+                parsed.ratings?.rotten_tomatoes || parsed.ratings?.rt,
+              ),
+              imdb_votes: skipImdb
+                ? undefined
+                : parseRating(parsed.ratings?.imdb_votes),
+              source: 'ai',
+            }
           : null,
-        rotten_tomatoes:
-          typeof parsed.ratings?.rotten_tomatoes === 'number'
-            ? parsed.ratings.rotten_tomatoes
-            : null,
-        imdb_votes: skipImdb
-          ? undefined
-          : typeof parsed.ratings?.imdb_votes === 'number'
-          ? parsed.ratings.imdb_votes
-          : null,
-        source: 'ai',
-      },
       trivia:
-        parsed.trivia && Array.isArray(parsed.trivia)
+        parsed.trivia &&
+        Array.isArray(parsed.trivia) &&
+        parsed.trivia.length > 0
           ? parsed.trivia.map((t: any) => {
               if (typeof t === 'string') {
                 return {
@@ -556,16 +463,38 @@ export async function getContentAnalysis({
               }
               return t;
             })
-          : [],
-      tags: parsed.tags
-        ? {
-            thematicTags: parsed.tags.thematicTags || [],
-            // Handle both emotionalTags and emotionalTones field names
-            emotionalTags:
-              parsed.tags.emotionalTags || parsed.tags.emotionalTones || [],
-          }
-        : undefined,
-      similar: Array.isArray(parsed.similar) ? parsed.similar : [],
+          : null,
+      tags:
+        parsed.tags &&
+        (Array.isArray(parsed.tags.thematicTags) ||
+          Array.isArray(
+            parsed.tags.emotionalTags || parsed.tags.emotionalTones,
+          ))
+          ? {
+              thematicTags: (Array.isArray(parsed.tags.thematicTags)
+                ? parsed.tags.thematicTags
+                : []
+              ).map((t: any) =>
+                typeof t === 'string'
+                  ? {tag: t, description: '', confidence: 0.8}
+                  : t,
+              ),
+              emotionalTags: (Array.isArray(
+                parsed.tags.emotionalTags || parsed.tags.emotionalTones,
+              )
+                ? parsed.tags.emotionalTags || parsed.tags.emotionalTones
+                : []
+              ).map((t: any) =>
+                typeof t === 'string'
+                  ? {tag: t, description: '', confidence: 0.8}
+                  : t,
+              ),
+            }
+          : null,
+      similar:
+        Array.isArray(parsed.similar) && parsed.similar.length > 0
+          ? parsed.similar
+          : null,
     };
 
     // 5. Cache in Realm
@@ -580,14 +509,31 @@ export async function getContentAnalysis({
 
         if (content) {
           // Update Ratings
-          if (!skipImdb && result.ratings.imdb)
-            content.ai_imdb_rating = result.ratings.imdb;
-          if (!skipImdb && result.ratings.imdb_votes)
-            content.ai_imdb_votes = result.ratings.imdb_votes;
-          if (result.ratings.rotten_tomatoes)
-            content.ai_rotten_tomatoes = result.ratings.rotten_tomatoes;
-          if (result.ratings.imdb || result.ratings.rotten_tomatoes)
-            content.ai_ratings_cached_at = new Date();
+          if (result.ratings) {
+            if (
+              !skipImdb &&
+              result.ratings.imdb !== undefined &&
+              result.ratings.imdb !== null
+            )
+              content.ai_imdb_rating = result.ratings.imdb;
+            if (
+              !skipImdb &&
+              result.ratings.imdb_votes !== undefined &&
+              result.ratings.imdb_votes !== null
+            )
+              content.ai_imdb_votes = result.ratings.imdb_votes;
+            if (
+              result.ratings.rotten_tomatoes !== undefined &&
+              result.ratings.rotten_tomatoes !== null
+            )
+              content.ai_rotten_tomatoes = result.ratings.rotten_tomatoes;
+
+            if (
+              result.ratings.imdb !== null ||
+              result.ratings.rotten_tomatoes !== null
+            )
+              content.ai_ratings_cached_at = new Date();
+          }
 
           // Update Trivia
           if (parsed.trivia && Array.isArray(parsed.trivia)) {
@@ -653,22 +599,20 @@ export async function getSimilarByStory({
 export async function cinemaChat(
   messages: {role: 'user' | 'assistant' | 'system'; content: string}[],
 ): Promise<{aiResponse: string; arr: any[]}> {
-  // No caching: always compute fresh response for detail screen chats
-
   const system = {
     role: 'system' as const,
     content: `You are an expert cinema assistant called Theater AI. 
       Only answer questions related to movies, TV, actors, directors, film history, and cinema. 
       Politely refuse unrelated questions. 
-      Whenever you suggest any movies/TV shows, include an array only at the last line of the message response containing exact title, year, exact type ("movie" or "tv"), and original_language (ISO 639-1 like "en", "fr").
+      IMPORTANT: Whenever you suggest any movies/TV shows, include an array only at the last line of the message response containing exact title, year, exact type ("movie" or "tv"), and original_language (ISO 639-1 like "en", "fr"). Should contain all the movies/TV shows suggested in the response.
       The array should be the last line of the WHOLE RESPONSE. Don't include multiple arrays.
       JSON Format: [{"title": "Title1", "year": "2024", "type": "movie", "original_language": "en"}, {"title": "Title2", "year": "2025", "type": "tv", "original_language": "ja"}].
       `,
   };
 
-  const geminiMessages = [system, ...messages];
+  const GroqMessages = [system, ...messages];
   try {
-    const response = await callGemini(geminiMessages);
+    const response = await callGroq(GroqMessages);
 
     let arr = [];
 
@@ -683,102 +627,6 @@ export async function cinemaChat(
     const aiResponse = response.replace(/\[.*?\]/s, '');
 
     return {aiResponse, arr};
-  } catch (error) {
-    throw error;
-  }
-}
-
-// For Movie/TV Trivia & Facts
-export async function getMovieTrivia({
-  title,
-  year,
-  type,
-  contentId,
-}: {
-  title: string;
-  year?: string;
-  type: 'movie' | 'tv';
-  contentId?: number;
-}) {
-  // Check Realm cache first
-  if (contentId) {
-    const cached =
-      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
-    if (cached?.ai_trivia) {
-      try {
-        const parsed = JSON.parse(cached.ai_trivia);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch (e) {}
-    }
-  }
-
-  const yearSuffix = year ? ` (${year})` : '';
-  const prompt = `Provide 5 interesting pieces of trivia about the ${type} "${title}${yearSuffix}". Format your response as a JSON array of strings. Only return the JSON array, no other text or markdown formatting. If no trivia available ust return empty array, nothing more`;
-
-  try {
-    const response = await callGemini([
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ]);
-
-    let triviaItems: string[] = [];
-
-    // First try to parse the response as JSON
-    try {
-      // Try to extract JSON array if it's wrapped in markdown or other text
-      const jsonMatch = response.match(/\[([\s\S]*?)\]/);
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[0];
-        const parsed = JSON.parse(jsonStr);
-        if (Array.isArray(parsed)) {
-          triviaItems = parsed.filter((item: any) => typeof item === 'string');
-        }
-      } else {
-        // If no array found, try to parse the whole response
-        const parsed = JSON.parse(response);
-        if (Array.isArray(parsed)) {
-          triviaItems = parsed.filter((item: any) => typeof item === 'string');
-        } else if (typeof parsed === 'string') {
-          triviaItems = [parsed];
-        }
-      }
-    } catch (e) {
-      // If all else fails, split by newlines and clean up
-      triviaItems = response
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0 && !line.match(/^[\[\]{}]/)); // Remove any JSON artifacts
-    }
-
-    // Ensure we have at least one valid trivia item
-    if (triviaItems.length === 0) {
-      triviaItems = [
-        `No trivia available for ${title}${yearSuffix}. Check back later!`,
-      ];
-    }
-
-    // Format as TriviaFact array
-    const triviaFacts = triviaItems.map(fact => ({
-      fact,
-      category: ['Production', 'Cast', 'Behind the Scenes', 'Fun Fact'][
-        Math.floor(Math.random() * 4)
-      ] as 'Production' | 'Cast' | 'Behind the Scenes' | 'Fun Fact',
-    }));
-
-    // Cache in Realm if contentId provided
-    if (contentId) {
-      if (type === 'movie') {
-        cacheMovieAI(contentId, {trivia: triviaItems});
-      } else {
-        cacheTVShowAI(contentId, {trivia: triviaItems});
-      }
-    }
-
-    return triviaFacts;
   } catch (error) {
     throw error;
   }
@@ -881,7 +729,7 @@ export async function getPersonalizedRecommendation(
   };
 
   try {
-    const result = await callGemini([system, user]);
+    const result = await callGroq([system, user]);
 
     // Try to extract JSON from the response
     const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -944,8 +792,9 @@ export async function getPersonalizedRecommendations(
     title?: string;
     name?: string;
     type: 'movie' | 'tv';
-    genre_ids?: number[];
-    vote_average?: number;
+    release_date?: string;
+    first_air_date?: string;
+    original_language?: string;
   }>,
 ): Promise<Array<{title: string; year: string; type: 'movie' | 'tv'}> | null> {
   if (!historyItems || historyItems.length === 0) {
@@ -971,21 +820,27 @@ export async function getPersonalizedRecommendations(
   }
 
   // Prepare history summary for AI - limit to recent 10 items
+  // Include: Title, Release Date, Original Language (more relevant than rating/genre)
   const historySummary = historyItems
     .slice(0, 10)
-    .map(
-      item =>
-        `- "${item.title || item.name}" (${item.type}, rating: ${
-          item.vote_average || 'N/A'
-        })`,
-    )
+    .map(item => {
+      const title = item.title || item.name;
+      const date =
+        item.type === 'movie' ? item.release_date : item.first_air_date;
+      const year = date ? new Date(date).getFullYear() : 'N/A';
+      const language = item.original_language
+        ? item.original_language.toUpperCase()
+        : 'N/A';
+
+      return `- "${title}" (${item.type}, ${year}, ${language})`;
+    })
     .join('\n');
 
   const system = {
     role: 'system' as const,
     content: `You are Theater AI, an expert movie and TV show recommender. 
 Based on the user's watch history, recommend 8 diverse movies or TV shows they would love.
-Consider their viewing patterns, genres, and preferences.
+Consider their viewing patterns, release years, and language preferences to understand their taste.
 Return ONLY a JSON array with title, year, and type. No explanations.
 Format: [{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2", "year": "2023", "type": "tv"}]`,
   };
@@ -996,7 +851,7 @@ Format: [{"title": "Title1", "year": "2024", "type": "movie"}, {"title": "Title2
   };
 
   try {
-    const result = await callGemini([system, user]);
+    const result = await callGroq([system, user]);
 
     // Parse JSON array from response
     let parsedArray: any[] = [];
@@ -1211,7 +1066,7 @@ Query: "family friendly action movies on Netflix, no horror"
   };
 
   try {
-    const result = await callGemini([system, user]);
+    const result = await callGroq([system, user]);
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -1374,7 +1229,7 @@ Return ONLY a JSON object with these exact fields:
   };
 
   try {
-    const result = await callGemini([system, user]);
+    const result = await callGroq([system, user]);
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -1470,7 +1325,7 @@ Return ONLY a JSON object with these exact fields:
   };
 
   try {
-    const result = await callGemini([system, user]);
+    const result = await callGroq([system, user]);
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -1479,89 +1334,6 @@ Return ONLY a JSON object with these exact fields:
         recommendation: parsed.recommendation || '',
         reasoning: parsed.reasoning || '',
       };
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
-
-// Generate thematic and emotional tags for a single content item
-export async function generateTagsForContent(
-  title: string,
-  overview: string,
-  genres: string,
-  type: 'movie' | 'tv',
-  contentId?: number,
-): Promise<{
-  thematicTags: Array<{tag: string; description: string; confidence: number}>;
-  emotionalTags: Array<{tag: string; description: string; confidence: number}>;
-} | null> {
-  // Check Realm cache first if contentId provided
-  if (contentId) {
-    const cached =
-      type === 'movie' ? getMovie(contentId) : getTVShow(contentId);
-    if (cached?.ai_tags) {
-      try {
-        const parsed = JSON.parse(cached.ai_tags);
-        if (parsed && parsed.thematicTags && parsed.emotionalTags) {
-          return parsed;
-        }
-      } catch (e) {}
-    }
-  }
-
-  const system = {
-    role: 'system' as const,
-    content: `You are Theater AI's content analyzer. Analyze a movie/TV show and identify:
-
-1. THEMATIC TAGS: Story themes, narrative patterns, character archetypes (e.g., "Revenge & Redemption", "Found Family", "Time Travel Paradoxes")
-2. EMOTIONAL TAGS: Emotional tones, moods, atmosphere (e.g., "Heartwarming & Uplifting", "Tense & Suspenseful", "Melancholic")
-
-Return ONLY a JSON object with 3-5 tags of each type:
-{
-  "thematicTags": [
-    {"tag": "Short tag (2-4 words)", "description": "Brief explanation", "confidence": 0.0-1.0}
-  ],
-  "emotionalTags": [
-    {"tag": "Short tag (2-4 words)", "description": "Brief explanation", "confidence": 0.0-1.0}
-  ]
-}
-
-Focus on the most prominent and distinctive tags. Confidence should reflect how strongly the tag applies.`,
-  };
-
-  const user = {
-    role: 'user' as const,
-    content: `Analyze this ${type}:
-
-Title: ${title}
-Genres: ${genres}
-Overview: ${overview}
-
-Identify the key thematic and emotional tags.`,
-  };
-
-  try {
-    const result = await callGemini([system, user]);
-    const jsonMatch = result.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      const tags = {
-        thematicTags: parsed.thematicTags || [],
-        emotionalTags: parsed.emotionalTags || [],
-      };
-
-      // Cache in Realm if contentId provided
-      if (contentId) {
-        if (type === 'movie') {
-          cacheMovieAI(contentId, {tags});
-        } else {
-          cacheTVShowAI(contentId, {tags});
-        }
-      }
-
-      return tags;
     }
     return null;
   } catch (error) {
@@ -1611,7 +1383,7 @@ Confidence scoring:
   };
 
   try {
-    const result = await callGemini([system, user]);
+    const result = await callGroq([system, user]);
     const jsonMatch = result.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -1679,7 +1451,7 @@ Confidence scoring:
   };
 
   try {
-    const result = await callGemini([system, user]);
+    const result = await callGroq([system, user]);
     const jsonMatch = result.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -1688,100 +1460,6 @@ Confidence scoring:
     return null;
   } catch (error) {
     throw error; // Re-throw to let UI handle it
-  }
-}
-
-// Generate Thematic Genres based on user's watchlist and history
-export async function generateThematicGenres(
-  watchlistItems: Array<{
-    title?: string;
-    name?: string;
-    overview?: string;
-    genre_ids?: number[];
-    type: 'movie' | 'tv';
-  }>,
-  historyItems: Array<{
-    title?: string;
-    name?: string;
-    overview?: string;
-    genre_ids?: number[];
-    type: 'movie' | 'tv';
-  }>,
-): Promise<{
-  thematicTags: Array<{
-    tag: string;
-    description: string;
-    confidence: number;
-  }>;
-} | null> {
-  const allItems = [...watchlistItems, ...historyItems];
-
-  if (allItems.length < 3) {
-    return null;
-  }
-
-  // Create summary of content
-  const contentSummary = allItems
-    .slice(0, 50) // Limit to 50 items to avoid token limits
-    .map(
-      item =>
-        `"${item.title || item.name}" (${item.type}) - ${
-          item.overview?.slice(0, 100) || 'No overview'
-        }`,
-    )
-    .join('\n');
-
-  const system = {
-    role: 'system' as const,
-    content: `You are Theater AI's thematic genre analyzer. Based on a user's watching patterns, identify deep thematic preferences beyond standard genres.
-
-Analyze the story themes, narrative patterns, character archetypes, emotional tones, and storytelling styles they prefer.
-
-Return ONLY a JSON object with 5-8 thematic tags:
-{
-  "thematicTags": [
-    {
-      "tag": "Short descriptive tag (2-4 words)",
-      "description": "Brief explanation of this theme",
-      "confidence": 0.0-1.0 (how strongly this theme appears in their content)
-    }
-  ]
-}
-
-Examples of good thematic tags:
-- "Underdog Triumphs"
-- "Mind-Bending Mysteries"
-- "Found Family Bonds"
-- "Moral Ambiguity"
-- "Time Travel Paradoxes"
-- "Revenge & Redemption"
-- "Coming of Age"
-- "Dystopian Futures"
-- "Heist & Strategy"
-- "Supernatural Romance"
-
-Focus on narrative themes, not standard genres like "Action" or "Drama".`,
-  };
-
-  const user = {
-    role: 'user' as const,
-    content: `Analyze these ${allItems.length} movies/shows and identify thematic patterns:\n\n${contentSummary}`,
-  };
-
-  try {
-    const result = await callGemini([system, user]);
-    const jsonMatch = result.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        thematicTags: (parsed.thematicTags || [])
-          .filter((tag: any) => tag.confidence >= 0.5) // Only high-confidence tags
-          .slice(0, 8), // Max 8 tags
-      };
-    }
-    return null;
-  } catch (error) {
-    return null;
   }
 }
 
@@ -1858,7 +1536,7 @@ Examples:
 - "shows like Breaking Bad" → Better Call Saul, confidence: 0.9
 - "feel good animated movies" → Toy Story, confidence: 0.75`;
 
-    const response = await callGemini([{role: 'user', content: prompt}]);
+    const response = await callGroq([{role: 'user', content: prompt}]);
 
     // Parse AI response
     const jsonMatch = response.match(/\{[\s\S]*\}/);

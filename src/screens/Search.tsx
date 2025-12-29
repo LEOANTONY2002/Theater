@@ -45,7 +45,7 @@ import {HistoryManager} from '../store/history';
 import {RecentSearchItemsManager} from '../store/recentSearchItems';
 import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
-import {aiSearch} from '../services/gemini';
+import {aiSearch} from '../services/groq';
 import {getImageUrl} from '../services/tmdb';
 
 const MAX_RECENT_ITEMS = 10;

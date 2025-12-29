@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {searchByEmotionalTone} from '../services/gemini';
+import {searchByEmotionalTone} from '../services/groq';
 import {searchMovies, searchTVShows, getLanguage} from '../services/tmdb';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {Movie} from '../types/movie';

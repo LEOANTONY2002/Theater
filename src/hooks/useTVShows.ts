@@ -9,12 +9,13 @@ import {
   getTrendingTVShows,
   getSeasonDetails,
   getTop10TVShowsTodayByRegion,
+  getAiringTodayTVShows,
   fetchContentFromAI,
 } from '../services/tmdbWithCache';
 import {TVShow, TVShowDetails, TVShowsResponse} from '../types/tvshow';
 import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
-import {getSimilarByStory} from '../services/gemini';
+import {getSimilarByStory} from '../services/groq';
 import {Genre} from '../types/movie';
 import {batchCacheTVShows, cacheTVShowDetails} from '../database/contentCache';
 import {filterTMDBResponse} from '../utils/adultContentFilter';
@@ -46,6 +47,29 @@ export const useTVShowsList = (type: 'popular' | 'top_rated' | 'latest') => {
       return undefined;
     },
     initialPageParam: 1,
+  });
+};
+
+export const useAiringTodayTVShows = () => {
+  return useInfiniteQuery({
+    queryKey: ['tvshows', 'airing_today'],
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getAiringTodayTVShows(pageParam as number);
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'tv');
+        batchCacheTVShows(result.results);
+      }
+      return result;
+    },
+    getNextPageParam: (lastPage: TVShowsResponse) => {
+      if (lastPage.page < lastPage.total_pages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
   });
 };
 
@@ -119,7 +143,7 @@ export const useDiscoverTVShows = (params: FilterParams) => {
   });
 };
 
-export const useSimilarTVShows = (tvId: number) => {
+export const useSimilarTVShows = (tvId: number, enabled: boolean = true) => {
   return useInfiniteQuery({
     queryKey: ['tv', tvId, 'similar'],
     queryFn: async ({pageParam = 1}) => {
@@ -135,6 +159,7 @@ export const useSimilarTVShows = (tvId: number) => {
     initialPageParam: 1,
     gcTime: TMDB_DETAILS_GC,
     staleTime: TMDB_DETAILS_STALE,
+    enabled,
   });
 };
 

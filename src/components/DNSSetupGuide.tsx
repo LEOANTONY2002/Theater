@@ -44,6 +44,10 @@ export const DNSSetupGuide: React.FC<DNSSetupGuideProps> = ({
 }) => {
   const {isTablet} = useResponsive();
 
+  const handlePress = () => {
+    onTryAgain();
+  };
+
   if (!visible) {
     return null;
   }
@@ -167,7 +171,7 @@ export const DNSSetupGuide: React.FC<DNSSetupGuideProps> = ({
         <View style={styles.buttonContainer}>
           <Text style={styles.noteText}>DNS setup complete?</Text>
           <TouchableOpacity
-            onPress={onTryAgain}
+            onPress={handlePress}
             disabled={!!isRetrying}
             activeOpacity={0.85}
             style={{width: '100%'}}>

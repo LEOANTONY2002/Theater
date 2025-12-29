@@ -21,6 +21,7 @@ interface TVShowProductionInfoProps {
   networks?: Network[];
   productionCompanies?: ProductionCompany[];
   certification?: string;
+  firstAirDate?: string;
 }
 
 export const TVShowProductionInfo: React.FC<TVShowProductionInfoProps> = ({
@@ -28,12 +29,27 @@ export const TVShowProductionInfo: React.FC<TVShowProductionInfoProps> = ({
   networks,
   productionCompanies,
   certification,
+  firstAirDate,
 }) => {
+  const formatFirstAirDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   const hasAnyData =
     status ||
     (networks && networks.length > 0) ||
     (productionCompanies && productionCompanies.length > 0) ||
-    certification;
+    certification ||
+    firstAirDate;
 
   if (!hasAnyData) return null;
 
@@ -118,6 +134,14 @@ export const TVShowProductionInfo: React.FC<TVShowProductionInfoProps> = ({
               </View>
             ))}
           </ScrollView>
+        </View>
+      )}
+
+      {/* First Air Date */}
+      {firstAirDate && (
+        <View style={styles.infoBlock}>
+          <Text style={styles.label}>First Air Date</Text>
+          <Text style={styles.value}>{formatFirstAirDate(firstAirDate)}</Text>
         </View>
       )}
     </View>

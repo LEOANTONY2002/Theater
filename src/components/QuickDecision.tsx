@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {compareContent} from '../services/gemini';
+import {compareContent} from '../services/groq';
 import LinearGradient from 'react-native-linear-gradient';
 import {MaybeBlurView} from './MaybeBlurView';
 import FastImage from 'react-native-fast-image';

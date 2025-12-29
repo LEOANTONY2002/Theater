@@ -1,5 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
-import {getContentAnalysis} from '../services/gemini';
+import {getContentAnalysis} from '../services/groq';
 import {useAIEnabled} from './useAIEnabled';
 
 export const useContentAnalysis = ({
@@ -9,6 +9,7 @@ export const useContentAnalysis = ({
   genres,
   type,
   contentId,
+  releaseDate,
   enabled = true,
 }: {
   title: string;
@@ -17,6 +18,7 @@ export const useContentAnalysis = ({
   genres: string;
   type: 'movie' | 'tv';
   contentId?: number;
+  releaseDate?: string;
   enabled?: boolean;
 }) => {
   const {isAIEnabled} = useAIEnabled();
@@ -50,6 +52,7 @@ export const useContentAnalysis = ({
         type,
         contentId,
         skipImdb: false, // Use AI as backup/parallel source
+        releaseDate,
       });
     },
     enabled: enabled && !!title && !!overview && !!contentId,

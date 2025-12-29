@@ -90,8 +90,8 @@ export const typography = {
   h1: {
     fontSize: 30,
     letterSpacing: 0.3,
-    fontFamily: 'Inter_18pt-Regular',
-    fontWeight: fw('700', 'normal'),
+    fontFamily: 'Inter_18pt-Black',
+    fontWeight: fw('900', 'black'),
   },
   h2: {
     fontSize: 18,

@@ -35,6 +35,7 @@ import {OttTabbedSection} from '../components/OttTabbedSection';
 import {TrendingMoviesSection} from '../components/TrendingMoviesSection';
 import {MyLanguageMoviesInOTTsSection} from '../components/MyLanguageMoviesInOTTsSection';
 import {EmotionalTones} from '../components/EmotionalTones';
+import {TodayMovieReleases} from '../components/TodayMovieReleases';
 
 interface MoviesScreenProps {
   onScroll?: any;
@@ -431,6 +432,12 @@ export const MoviesScreen = React.memo(
         onItemPress: handleGenrePress,
       });
 
+      // Today Releases section
+      sectionsList.push({
+        id: 'todayReleases',
+        type: 'todayReleases',
+      });
+
       // Emotional Tones section
       sectionsList.push({
         id: 'emotionalTones',
@@ -765,6 +772,8 @@ export const MoviesScreen = React.memo(
             );
           case 'emotionalTones':
             return <EmotionalTones contentType="movie" />;
+          case 'todayReleases':
+            return <TodayMovieReleases onItemPress={handleMoviePress} />;
           case 'trendingMovies':
             return <TrendingMoviesSection />;
           case 'ottTabbedSection':

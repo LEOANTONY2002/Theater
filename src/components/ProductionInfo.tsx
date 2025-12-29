@@ -12,6 +12,7 @@ interface ProductionInfoProps {
   budget?: number;
   revenue?: number;
   certification?: string;
+  releaseDate?: string;
 }
 
 export const ProductionInfo: React.FC<ProductionInfoProps> = ({
@@ -20,6 +21,7 @@ export const ProductionInfo: React.FC<ProductionInfoProps> = ({
   budget,
   revenue,
   certification,
+  releaseDate,
 }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -30,12 +32,26 @@ export const ProductionInfo: React.FC<ProductionInfoProps> = ({
     }).format(amount);
   };
 
+  const formatReleaseDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   const hasAnyData =
     (productionCompanies && productionCompanies.length > 0) ||
     (spokenLanguages && spokenLanguages.length > 0) ||
     (budget && budget > 0) ||
     (revenue && revenue > 0) ||
-    certification;
+    certification ||
+    releaseDate;
 
   if (!hasAnyData) return null;
 
@@ -115,6 +131,14 @@ export const ProductionInfo: React.FC<ProductionInfoProps> = ({
               </Text>
             ))}
           </View>
+        </View>
+      )}
+
+      {/* Release Date */}
+      {releaseDate && (
+        <View style={styles.infoBlock}>
+          <Text style={styles.label}>Release Date</Text>
+          <Text style={styles.value}>{formatReleaseDate(releaseDate)}</Text>
         </View>
       )}
     </View>

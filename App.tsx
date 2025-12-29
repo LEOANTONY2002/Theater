@@ -125,28 +125,48 @@ export default function App() {
   LogBox.ignoreAllLogs();
 
   const handleTryAgain = async () => {
-    if (retrying) return;
+    if (retrying) {
+      return;
+    }
     setRetrying(true);
+
     try {
       const ok = await checkInternet();
       setIsOnline(ok);
-      if (ok) {
-        DevSettings.reload();
+
+      if (!ok) {
+        setShowDNSModal(false);
+        return;
       }
+      const tmdbOk = await checkTMDB();
+
+      if (tmdbOk) {
+        setShowDNSModal(false);
+      } else {
+        const isStillOnline = await checkInternet();
+
+        if (!isStillOnline) {
+          setIsOnline(false);
+          setShowDNSModal(false);
+        } else {
+          console.log(
+            '[handleTryAgain] TMDB still blocked - staying on DNS screen',
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[handleTryAgain] Error:', error);
     } finally {
+      console.log('[handleTryAgain] Done, setting retrying to false');
       setRetrying(false);
     }
   };
 
-  // 1. Immediate Startup Checks (Internet & TMDB)
-  // MUST RUN NO MATTER WHAT
   useEffect(() => {
     const runStartupChecks = async () => {
       console.log('[App] 🚀 Running Update Startup Checks...');
 
-      // Check Internet
       let ok = await checkInternet();
-      // Retry logic for cold starts
       if (!ok) {
         await new Promise(resolve => setTimeout(resolve, 500));
         ok = await checkInternet();
@@ -154,14 +174,27 @@ export default function App() {
       setIsOnline(ok);
       console.log('[App] 🌐 Internet Status:', ok);
 
-      // Check TMDB Immediately - logic updated to run even if internet check is ambiguous
-      // If internet is strictly down, TMDB will fail too, which is fine
+      if (!ok) {
+        console.log('[App] No internet - skipping TMDB check');
+        setShowDNSModal(false); // Clear DNS modal if internet is off
+        return;
+      }
       console.log('[App] 🎬 Checking TMDB availability...');
       const tmdbOk = await checkTMDB();
       console.log('[App] 🎬 TMDB Status:', tmdbOk);
 
-      // If TMDB fails, ALWAYS show DNS modal as requested
       if (!tmdbOk) {
+        console.log('[App] TMDB failed - double-checking internet...');
+        const isStillOnline = await checkInternet();
+
+        if (!isStillOnline) {
+          console.log('[App] Internet lost - not showing DNS modal');
+          setIsOnline(false);
+          setShowDNSModal(false); // Clear DNS modal if internet is lost
+          return;
+        }
+
+        console.log('[App] Internet OK but TMDB blocked - showing DNS modal');
         setShowDNSModal(true);
       }
     };
@@ -198,12 +231,29 @@ export default function App() {
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: string) => {
       if (nextAppState === 'active') {
+        // Check internet first
         const ok = await checkInternet();
         setIsOnline(ok);
 
-        // Check DNS when app becomes active again
-        const tmdbOk = await checkTMDB();
-        if (!tmdbOk) setShowDNSModal(true);
+        // Only check TMDB if internet is OK
+        if (ok) {
+          const tmdbOk = await checkTMDB();
+          if (!tmdbOk) {
+            // Double-check internet to be sure
+            const isStillOnline = await checkInternet();
+            if (isStillOnline) {
+              // Internet OK but TMDB blocked - DNS issue
+              setShowDNSModal(true);
+            } else {
+              // Internet lost
+              setIsOnline(false);
+              setShowDNSModal(false); // Clear DNS modal if internet is lost
+            }
+          }
+        } else {
+          // No internet - clear DNS modal
+          setShowDNSModal(false);
+        }
       }
     };
     const subscription = AppState.addEventListener(

@@ -9,12 +9,13 @@ import {
   getTrendingMovies,
   getTop10MoviesTodayByRegion,
   discoverMovies,
+  getTodayReleasedMovies,
   fetchContentFromAI,
 } from '../services/tmdbWithCache';
 import {Movie, MovieDetails, MoviesResponse} from '../types/movie';
 import {FilterParams} from '../types/filters';
 import {SettingsManager} from '../store/settings';
-import {getSimilarByStory} from '../services/gemini';
+import {getSimilarByStory} from '../services/groq';
 import {Genre} from '../types/movie';
 import {batchCacheMovies, cacheMovieDetails} from '../database/contentCache';
 import {filterTMDBResponse} from '../utils/adultContentFilter';
@@ -42,6 +43,25 @@ export const useMoviesList = (
     queryFn: async ({pageParam = 1}) => {
       const result = await getMovies(type, pageParam as number);
       // Filter adult content and cache movies in Realm
+      if (result?.results) {
+        result.results = filterTMDBResponse(result.results, 'movie');
+        batchCacheMovies(result.results);
+      }
+      return result;
+    },
+    getNextPageParam: (lastPage: MoviesResponse) =>
+      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+    gcTime: TMDB_LIST_GC,
+    staleTime: TMDB_LIST_STALE,
+  });
+};
+
+export const useTodayReleasedMovies = () => {
+  return useInfiniteQuery({
+    queryKey: ['movies', 'today_released'],
+    queryFn: async ({pageParam = 1}) => {
+      const result = await getTodayReleasedMovies(pageParam as number);
       if (result?.results) {
         result.results = filterTMDBResponse(result.results, 'movie');
         batchCacheMovies(result.results);
@@ -97,7 +117,7 @@ export const useMovieSearch = (query: string, filters: FilterParams = {}) => {
   });
 };
 
-export const useSimilarMovies = (movieId: number) => {
+export const useSimilarMovies = (movieId: number, enabled: boolean = true) => {
   return useInfiniteQuery({
     queryKey: ['movie', movieId, 'similar'],
     queryFn: async ({pageParam = 1}) => {
@@ -113,6 +133,7 @@ export const useSimilarMovies = (movieId: number) => {
     initialPageParam: 1,
     gcTime: TMDB_DETAILS_GC,
     staleTime: TMDB_DETAILS_STALE,
+    enabled,
   });
 };
 

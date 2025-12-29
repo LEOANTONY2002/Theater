@@ -198,6 +198,25 @@ export const getMovies = async (
   return filterTagalogContent(result);
 };
 
+export const getTodayReleasedMovies = async (page = 1) => {
+  const now = new Date();
+  const today = formatDate(now);
+  const region = await getRegionParam();
+
+  const response = await tmdbApi.get('/discover/movie', {
+    params: {
+      page,
+      'primary_release_date.gte': today,
+      'primary_release_date.lte': today,
+      region,
+      include_adult: false,
+      sort_by: 'popularity.desc',
+    },
+  });
+
+  return response.data;
+};
+
 export const getTVShows = async (
   type: 'latest' | 'popular' | 'top_rated',
   page = 1,
@@ -300,6 +319,23 @@ export const getTVShows = async (
   }
 
   return result;
+};
+
+export const getAiringTodayTVShows = async (page = 1) => {
+  const with_original_language = await getLanguageParam();
+  const today = new Date().toISOString().split('T')[0];
+  const response = await tmdbApi.get('/discover/tv', {
+    params: {
+      page,
+      'air_date.gte': today,
+      'air_date.lte': today,
+      with_original_language,
+      include_adult: false,
+      sort_by: 'popularity.desc',
+      'vote_count.gte': 2,
+    },
+  });
+  return response.data;
 };
 
 // Helper function to process genre operator
@@ -1357,21 +1393,23 @@ export const getTVShowReviews = async (tvId: number, page = 1) => {
 
 export const checkTMDB = async (): Promise<boolean> => {
   try {
-    // Check API reachability instead of website
-    // If we can reach the API (even if key is invalid), DNS is fine
-    await tmdbApi.get('/configuration', {
-      timeout: 5000,
+    // Use Promise.race for reliable timeout with axios
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('TMDB check timeout')), 3000),
+    );
+
+    const checkPromise = tmdbApi.get('/configuration', {
       headers: {
         'Cache-Control': 'no-cache',
         Pragma: 'no-cache',
       },
     });
 
+    await Promise.race([checkPromise, timeoutPromise]);
     console.log('TMDB API Check SUCCESS');
     return true;
   } catch (error: any) {
     // If we got a response (even 4xx/5xx), it means we reached the server
-    // So DNS/Connection is effectively working
     if (error.response) {
       console.log(
         'TMDB API Check Reachable (Response received):',

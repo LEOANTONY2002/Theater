@@ -23,96 +23,95 @@ import {useQueryClient} from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {AI_CONSTANTS} from '../config/aiConstants';
 
-const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
-const DEFAULT_API_KEY = '';
+const DEFAULT_MODEL = AI_CONSTANTS.DEFAULT_MODEL;
+const DEFAULT_API_KEY = 'AIzaSyA_up-9FqMhzaUxhSj3wEry5qOELtTva_8';
 
-interface GroqModel {
+interface GeminiModel {
   id: string;
   name: string;
   description: string;
   displayName?: string;
+  supportedGenerationMethods?: string[];
 }
 
-// Fallback models - Groq's main models
-const FALLBACK_MODELS: GroqModel[] = [
-  {
-    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
-    name: 'Llama 4 Scout 17B',
-    description: 'Latest data & fast - RECOMMENDED',
-  },
-  {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B',
-    description: 'Newest & fastest',
-  },
-  {
-    id: 'llama-3.1-70b-versatile',
-    name: 'Llama 3.1 70B',
-    description: 'Fast and versatile',
-  },
-  {
-    id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B',
-    description: 'Ultra-fast responses',
-  },
-  {
-    id: 'mixtral-8x7b-32768',
-    name: 'Mixtral 8x7B',
-    description: 'Large context window',
-  },
-  {
-    id: 'gemma2-9b-it',
-    name: 'Gemma 2 9B',
-    description: 'Efficient and capable',
-  },
-];
+// Fallback models in case API fetch fails
+const FALLBACK_MODELS: GeminiModel[] = AI_CONSTANTS.MODELS;
 
-// Function to fetch available Groq models from the API
-const fetchGroqModels = async (apiKey: string): Promise<GroqModel[]> => {
+// Function to fetch available Gemini models from the API
+const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
   try {
     if (!apiKey || apiKey.trim() === '') {
       return FALLBACK_MODELS;
     }
 
-    const response = await fetch('https://api.groq.com/openai/v1/models', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       return FALLBACK_MODELS;
     }
 
     const data = await response.json();
-    let apiModels: GroqModel[] = [];
+    let apiModels: GeminiModel[] = [];
 
-    if (data.data && Array.isArray(data.data)) {
-      apiModels = data.data
-        .filter((model: any) => model.id && !model.id.includes('whisper'))
+    if (data.models && Array.isArray(data.models)) {
+      apiModels = data.models
+        .filter(
+          (model: any) =>
+            model.name &&
+            model.name.includes('gemini') &&
+            model.supportedGenerationMethods &&
+            model.supportedGenerationMethods.includes('generateContent'),
+        )
         .map((model: any) => ({
-          id: model.id,
-          name: model.id
-            .split('-')
-            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' '),
-          description: 'Groq AI model',
+          id: model.name.replace('models/', ''),
+          name: model.displayName || model.name.replace('models/', ''),
+          description:
+            model.description || 'Gemini AI model for text generation',
+          displayName: model.displayName,
+          supportedGenerationMethods: model.supportedGenerationMethods,
         }));
     }
 
-    // Merge with fallback models
+    // Merge strategy: Start with FALLBACK_MODELS (our curated list)
+    // Then add any unique models from API that aren't in our curated list
     const combinedModels = [...FALLBACK_MODELS];
     const existingIds = new Set(combinedModels.map(m => m.id));
 
     apiModels.forEach(model => {
+      // If we don't have this model in our curated list, add it
+      // Note: We deliberately prioritize our local definitions for descriptions
       if (!existingIds.has(model.id)) {
         combinedModels.push(model);
       }
     });
 
-    return combinedModels;
+    return combinedModels.sort((a: GeminiModel, b: GeminiModel) => {
+      // Sort by version (newer first)
+      const getVersion = (id: string) => {
+        if (id.includes('2.5')) return 3;
+        if (id.includes('2.0')) return 2;
+        if (id.includes('1.5')) return 1;
+        return 0;
+      };
+
+      const verA = getVersion(a.id);
+      const verB = getVersion(b.id);
+
+      if (verA !== verB) return verB - verA; // Descending version
+
+      // If same version, prioritize "Pro" > "Flash" > "Flash-Lite" ?
+      // Actually usually Flash is default.
+      // Let's just default name sort for stability within version
+      return a.name.localeCompare(b.name);
+    });
   } catch (error) {
     return FALLBACK_MODELS;
   }
@@ -123,7 +122,7 @@ const AISettingsScreen: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [availableModels, setAvailableModels] =
-    useState<GroqModel[]>(FALLBACK_MODELS);
+    useState<GeminiModel[]>(FALLBACK_MODELS);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [isApiKeyCopied, setIsApiKeyCopied] = useState(false);
@@ -187,7 +186,7 @@ const AISettingsScreen: React.FC = () => {
   const loadAvailableModels = async (currentApiKey: string) => {
     setIsLoadingModels(true);
     try {
-      const models = await fetchGroqModels(currentApiKey);
+      const models = await fetchGeminiModels(currentApiKey);
       setAvailableModels(models);
     } catch (error) {
       setAvailableModels(FALLBACK_MODELS);
@@ -207,27 +206,28 @@ const AISettingsScreen: React.FC = () => {
   const validateApiKey = async (key: string): Promise<boolean> => {
     try {
       // Use the currently selected model for validation
-      const modelToTest =
-        selectedModel || 'meta-llama/llama-4-scout-17b-16e-instruct';
+      const modelToTest = selectedModel || 'gemini-2.0-flash';
 
-      // Make a test call to the Groq API to validate the key
+      // Make a test call to the Gemini API to validate the key
       const response = await fetch(
-        'https://api.groq.com/openai/v1/chat/completions',
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelToTest}:generateContent`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`,
+            'x-goog-api-key': key,
           },
           body: JSON.stringify({
-            model: modelToTest,
-            messages: [
+            contents: [
               {
                 role: 'user',
-                content: 'Test',
+                parts: [
+                  {
+                    text: 'Test connection',
+                  },
+                ],
               },
             ],
-            max_tokens: 5,
           }),
         },
       );
@@ -247,17 +247,12 @@ const AISettingsScreen: React.FC = () => {
           errorMsg.includes('api key not valid') ||
           errorMsg.includes('invalid api key') ||
           errorMsg.includes('api_key_invalid') ||
-          errorMsg.includes('unauthorized') ||
-          response.status === 401
+          response.status === 400
         ) {
           return false;
         }
         // Quota exceeded is actually a VALID key, just no quota
-        if (
-          errorMsg.includes('quota') ||
-          errorMsg.includes('rate limit') ||
-          response.status === 429
-        ) {
+        if (errorMsg.includes('quota') || response.status === 429) {
           return true;
         }
       }
@@ -422,7 +417,7 @@ const AISettingsScreen: React.FC = () => {
           <Text style={styles.sectionDescription}>
             {apiKey
               ? 'Your API key is saved securely'
-              : 'Add your Groq API key to enable AI features'}
+              : 'Add your Google Gemini API key to enable AI features'}
           </Text>
 
           {showApiKeyInput ? (
@@ -432,7 +427,7 @@ const AISettingsScreen: React.FC = () => {
                   style={[styles.input, {paddingRight: 40}]}
                   value={apiKey || ''}
                   onChangeText={setApiKey}
-                  placeholder="Enter your Groq API key..."
+                  placeholder="Enter your Gemini API key..."
                   placeholderTextColor={colors.text.tertiary}
                   secureTextEntry={apiKey === DEFAULT_API_KEY}
                   multiline={false}
@@ -454,10 +449,12 @@ const AISettingsScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
-                onPress={() => Linking.openURL('https://console.groq.com/keys')}
+                onPress={() =>
+                  Linking.openURL('https://aistudio.google.com/app/apikey')
+                }
                 activeOpacity={0.8}>
                 <Text style={styles.inputHint}>
-                  Get your API key from Groq Console
+                  Get your API key from Google AI Studio
                 </Text>
                 <Text
                   style={{
@@ -468,7 +465,7 @@ const AISettingsScreen: React.FC = () => {
                     textDecorationStyle: 'solid',
                     fontFamily: 'Inter_18pt-Regular',
                   }}>
-                  https://console.groq.com/keys
+                  https://aistudio.google.com/app/apikey
                 </Text>
               </TouchableOpacity>
             </View>
@@ -496,7 +493,7 @@ const AISettingsScreen: React.FC = () => {
               <View style={styles.sectionTitleContainer}>
                 <Text
                   style={[styles.sectionTitle, {marginBottom: -spacing.sm}]}>
-                  Groq Model
+                  Gemini Model
                 </Text>
                 <TouchableOpacity
                   style={styles.refreshButton}
@@ -610,7 +607,8 @@ const AISettingsScreen: React.FC = () => {
             • Your API key is like a password. Do not share it with anyone.
             {'\n'}• You are responsible for any usage and associated costs with
             your key.
-            {'\n'}• By using your own key, you agree to Groq's terms of service.
+            {'\n'}• By using your own key, you agree to Google's Generative AI
+            terms of service.
           </Text>
           <TouchableOpacity
             style={[

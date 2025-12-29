@@ -83,7 +83,6 @@ export const MovieTrivia: React.FC<MovieTriviaProps> = ({
       borderRadius: borderRadius.lg,
       padding: spacing.md,
       position: 'relative',
-      height: 270,
       marginBottom: spacing.lg,
       overflow: 'visible',
       zIndex: 0,

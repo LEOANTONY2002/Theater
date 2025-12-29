@@ -31,6 +31,8 @@ import {CinemaInsightsScreen} from '../screens/CinemaInsightsScreen';
 import {NotificationSettings} from '../screens/NotificationSettings';
 import {MyCollectionsScreen} from '../screens/MyCollections';
 import {MyCalendarScreen} from '../screens/MyCalendar';
+import {SimilarMoviesScreen} from '../screens/SimilarMovies';
+import {SimilarTVShowsScreen} from '../screens/SimilarTVShows';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -123,6 +125,16 @@ export const HomeStackNavigator = () => (
         contentStyle: {backgroundColor: '#000000'},
       }}
     />
+    <HomeStack.Screen
+      name="SimilarMovies"
+      component={SimilarMoviesScreen}
+      options={slideFromRightOptions}
+    />
+    <HomeStack.Screen
+      name="SimilarTVShows"
+      component={SimilarTVShowsScreen}
+      options={slideFromRightOptions}
+    />
   </HomeStack.Navigator>
 );
 
@@ -167,6 +179,16 @@ export const SearchStackNavigator = () => (
         presentation: 'fullScreenModal',
         contentStyle: {backgroundColor: '#000000'},
       }}
+    />
+    <SearchStack.Screen
+      name="SimilarMovies"
+      component={SimilarMoviesScreen}
+      options={slideFromRightOptions}
+    />
+    <SearchStack.Screen
+      name="SimilarTVShows"
+      component={SimilarTVShowsScreen}
+      options={slideFromRightOptions}
     />
   </SearchStack.Navigator>
 );
@@ -223,6 +245,16 @@ export const MoviesAndSeriesStackNavigator = () => (
         contentStyle: {backgroundColor: '#000000'},
       }}
     />
+    <MoviesAndSeriesStack.Screen
+      name="SimilarMovies"
+      component={SimilarMoviesScreen}
+      options={slideFromRightOptions}
+    />
+    <MoviesAndSeriesStack.Screen
+      name="SimilarTVShows"
+      component={SimilarTVShowsScreen}
+      options={slideFromRightOptions}
+    />
   </MoviesAndSeriesStack.Navigator>
 );
 
@@ -272,6 +304,16 @@ export const CurationStackNavigator = () => (
         presentation: 'fullScreenModal',
         contentStyle: {backgroundColor: '#000000'},
       }}
+    />
+    <CurationStack.Screen
+      name="SimilarMovies"
+      component={SimilarMoviesScreen}
+      options={slideFromRightOptions}
+    />
+    <CurationStack.Screen
+      name="SimilarTVShows"
+      component={SimilarTVShowsScreen}
+      options={slideFromRightOptions}
     />
   </CurationStack.Navigator>
 );
@@ -339,6 +381,16 @@ export const MySpaceStackNavigator = () => (
       options={{
         animation: 'fade',
       }}
+    />
+    <MySpaceStack.Screen
+      name="SimilarMovies"
+      component={SimilarMoviesScreen}
+      options={slideFromRightOptions}
+    />
+    <MySpaceStack.Screen
+      name="SimilarTVShows"
+      component={SimilarTVShowsScreen}
+      options={slideFromRightOptions}
     />
   </MySpaceStack.Navigator>
 );

@@ -34,6 +34,7 @@ import {OttTabbedSection} from '../components/OttTabbedSection';
 import {TrendingTVShowsSection} from '../components/TrendingTVShowsSection';
 import {MyLanguageTVShowsInOTTsSection} from '../components/MyLanguageTVShowsInOTTsSection';
 import {EmotionalTones} from '../components/EmotionalTones';
+import {AiringTodayTVReleases} from '../components/AiringTodayTVReleases';
 
 interface TVShowsScreenProps {
   onScroll?: any;
@@ -365,6 +366,12 @@ export const TVShowsScreen = React.memo(
         data: genres,
         isLoading: isLoadingGenres,
         onItemPress: handleGenrePress,
+      });
+
+      // Airing Today section
+      sectionsList.push({
+        id: 'airingToday',
+        type: 'airingToday',
       });
 
       // Emotional Tones section
@@ -731,6 +738,8 @@ export const TVShowsScreen = React.memo(
                 contentType={item.contentType}
               />
             );
+          case 'airingToday':
+            return <AiringTodayTVReleases onItemPress={handleShowPress} />;
           case 'myLanguageTVShowsInOTTsSection':
             return <MyLanguageTVShowsInOTTsSection />;
 
@@ -752,6 +761,8 @@ export const TVShowsScreen = React.memo(
             return 580; // closer to actual banner height to avoid relayout
           case 'genres':
             return 140;
+          case 'airingToday':
+            return 360;
           case 'emotionalTones':
             return 180;
           case 'trendingTVShows':

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {analyzeWatchlistPatterns} from '../services/gemini';
+import {analyzeWatchlistPatterns} from '../services/groq';
 import LinearGradient from 'react-native-linear-gradient';
 import {useResponsive} from '../hooks/useResponsive';
 import {searchMovies, searchTVShows} from '../services/tmdb';

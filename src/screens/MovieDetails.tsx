@@ -171,6 +171,10 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     rotten_tomatoes?: number | null;
     imdb_votes?: number | null;
   } | null>(null);
+  const [scrapedRatings, setScrapedRatings] = useState<{
+    imdb?: number | null;
+    imdb_votes?: number | null;
+  } | null>(null);
 
   // Poster share state
   const [showPosterModal, setShowPosterModal] = useState(false);
@@ -402,6 +406,8 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       genres: genresArray,
       type: 'movie',
       contentId: movie.id,
+      releaseDate:
+        (movie as any).release_date || (movieDetails as any)?.release_date,
       enabled: !!(movieDetails && isAIEnabled),
     },
   );
@@ -695,45 +701,71 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     }
   }, [movieDetails, isLoadingDetails]);
 
-  // Parallel ratings loading: Cache → Scraper + Analysis Hook
+  // 1. Initialize from Realm Cache immediately
   useEffect(() => {
-    const loadRatings = async () => {
-      if (!movieDetails) return;
-      if (loadingRatingsRef.current === movie.id && !analysisData) return;
+    if (movie.id) {
+      const {getMovie} = require('../database/contentCache');
+      const cached = getMovie(movie.id);
+      if (cached?.ai_ratings_cached_at) {
+        setAiRatings({
+          imdb: cached.ai_imdb_rating,
+          rotten_tomatoes: cached.ai_rotten_tomatoes,
+          imdb_votes: cached.ai_imdb_votes,
+        });
+      }
+    }
+  }, [movie.id]);
+
+  // 2. TMDB Scraper: Aggressive priority for IMDB
+  useEffect(() => {
+    const runScraper = async () => {
+      if (!movieDetails?.imdb_id) return;
+      if (loadingRatingsRef.current === movie.id) return;
       loadingRatingsRef.current = movie.id;
 
-      let scrapedRating: any = null;
-      const imdbId = movieDetails?.imdb_id;
-
-      // Launch scraping if IMDB ID exists
-      if (imdbId) {
-        try {
-          const {getIMDBRating} = await import('../services/scrap');
-          scrapedRating = await getIMDBRating(imdbId, movie.id);
-        } catch (e) {
-          console.warn('[Movie Ratings] Scraping error:', e);
+      try {
+        const {getIMDBRating} = await import('../services/scrap');
+        const result = await getIMDBRating(movieDetails.imdb_id, movie.id);
+        if (result?.rating) {
+          setScrapedRatings({
+            imdb: parseFloat(result.rating),
+            imdb_votes: parseVoteCountString(result.voteCount),
+          });
         }
+      } catch (e) {
+        console.warn('[Movie Ratings] Scraping error:', e);
       }
-
-      // Merge current results: scraped IMDB ALWAYS takes precedence
-      const currentRatings = {
-        imdb: scrapedRating?.rating
-          ? parseFloat(scrapedRating.rating)
-          : analysisData?.ratings?.imdb ?? aiRatings?.imdb ?? null,
-        rotten_tomatoes:
-          analysisData?.ratings?.rotten_tomatoes ??
-          aiRatings?.rotten_tomatoes ??
-          null,
-        imdb_votes: scrapedRating?.voteCount
-          ? parseVoteCountString(scrapedRating.voteCount)
-          : analysisData?.ratings?.imdb_votes ?? aiRatings?.imdb_votes ?? null,
-      };
-
-      setAiRatings(currentRatings);
     };
 
-    loadRatings();
-  }, [movie.id, movieDetails, analysisData]);
+    runScraper();
+  }, [movie.id, movieDetails?.imdb_id]);
+
+  // 3. Merge Logic: Prioritize Scraper > AI > Cache
+  useEffect(() => {
+    if (!analysisData && !scrapedRatings) return;
+
+    setAiRatings(prev => {
+      const current = prev || {};
+      return {
+        // IMDB: Scraper takes absolute priority. AI only if current is empty.
+        imdb:
+          scrapedRatings?.imdb ??
+          current.imdb ??
+          analysisData?.ratings?.imdb ??
+          null,
+        imdb_votes:
+          scrapedRatings?.imdb_votes ??
+          current.imdb_votes ??
+          analysisData?.ratings?.imdb_votes ??
+          null,
+        // Rotten Tomatoes: AI is the source.
+        rotten_tomatoes:
+          analysisData?.ratings?.rotten_tomatoes ??
+          current.rotten_tomatoes ??
+          null,
+      };
+    });
+  }, [analysisData, scrapedRatings]);
 
   // Helper to parse vote count strings (e.g., "1.2M" -> 1200000)
   const parseVoteCountString = (voteCountText: string): number | null => {
@@ -752,9 +784,50 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     }
   };
 
-  const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
-    movie.id,
-  );
+  // Check if AI Analysis resulted in useful data (not placeholders)
+  const isAnalysisUseful = useMemo(() => {
+    if (!analysisData) return false;
+
+    // 1. Check for "Unknown/Neutral" tags with low confidence
+    const thematicTags = analysisData.tags?.thematicTags;
+    if (thematicTags && thematicTags.length > 0) {
+      if (
+        thematicTags[0].tag === 'unknown' ||
+        thematicTags[0].confidence === 0
+      ) {
+        return false;
+      }
+    }
+
+    // 2. Check trivia for generic "not released/no information" phrases
+    const trivia = analysisData.trivia;
+    if (trivia && trivia.length > 0) {
+      const firstFact =
+        typeof trivia[0] === 'string' ? trivia[0] : trivia[0].fact;
+      if (
+        firstFact?.toLowerCase().includes('not been released yet') ||
+        firstFact?.toLowerCase().includes('limited information available') ||
+        firstFact?.toLowerCase().includes('upcoming or announced project')
+      ) {
+        return false;
+      }
+    }
+
+    // 3. If everything is null or empty, it's not useful
+    if (
+      (!trivia || trivia.length === 0) &&
+      (!analysisData.tags ||
+        (analysisData.tags.thematicTags?.length === 0 &&
+          analysisData.tags.emotionalTags?.length === 0))
+    ) {
+      return false;
+    }
+
+    return true;
+  }, [analysisData]);
+
+  const showAiSections = isAIEnabled && isAnalysisUseful;
+
   const {
     data: reviews,
     fetchNextPage: fetchNextReviews,
@@ -808,6 +881,22 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       movieDetails?.genres,
       analysisData?.similar,
     );
+
+  // Determine if we should show AI similar content
+  const hasAISimilarData =
+    !isLoadingAiSimilar &&
+    resolvedAiSimilarMovies &&
+    resolvedAiSimilarMovies.length > 0;
+
+  // CRITICAL: Never call TMDB similar API if AI is enabled and analysis is useful
+  // Don't wait for AI to load - disable it from the start
+  const shouldCallTMDBSimilar = !isAIEnabled || !isAnalysisUseful;
+
+  // Only fetch TMDB similar movies when AI is completely disabled
+  const {data: similarMovies, isLoading: isLoadingSimilar} = useSimilarMovies(
+    movie.id,
+    shouldCallTMDBSimilar,
+  );
 
   const handleWatchlistPress = useCallback(async () => {
     if (isInWatchlist && watchlistContainingItem) {
@@ -1411,6 +1500,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           (movie as any).overview || (movieDetails as any)?.overview || ''
         }
         movieGenres={movieDetails?.genres?.map((g: any) => g.name) || []}
+        contentId={movie.id}
       />
       {/* Floating AI chat button */}
       <LinearGradient
@@ -1583,9 +1673,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           {type: 'content', id: 'content'},
           {type: 'castCrew', id: 'castCrew'},
           {type: 'mediaTabs', id: 'mediaTabs'},
-          {type: 'providers', id: 'providers'},
-          {type: 'trivia', id: 'trivia'},
           {type: 'collection', id: 'collection'},
+          {type: 'providers', id: 'providers'},
+          ...(isAIEnabled
+            ? [
+                {type: 'trivia', id: 'trivia'},
+                {type: 'tags', id: 'tags'},
+                {type: 'aiSimilar', id: 'aiSimilar'},
+              ]
+            : []),
           {type: 'similar', id: 'similar'},
           {type: 'productionInfo', id: 'productionInfo'},
           {type: 'reviews', id: 'reviews'},
@@ -1744,15 +1840,16 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             new Date().toISOString(),
                         ).getFullYear()}
                       </Text>
-                      {movieDetails?.runtime && (
-                        <>
-                          <Text style={styles.infoDot}>•</Text>
-                          <Text style={styles.info}>
-                            {Math.floor(movieDetails.runtime / 60)}h{' '}
-                            {movieDetails.runtime % 60}m
-                          </Text>
-                        </>
-                      )}
+                      {movieDetails?.runtime != null &&
+                        movieDetails.runtime > 0 && (
+                          <>
+                            <Text style={styles.infoDot}>•</Text>
+                            <Text style={styles.info}>
+                              {Math.floor(movieDetails.runtime / 60)}h{' '}
+                              {movieDetails.runtime % 60}m
+                            </Text>
+                          </>
+                        )}
                       {movieDetails?.original_language && (
                         <>
                           <Text style={styles.infoDot}>•</Text>
@@ -1761,23 +1858,24 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           </Text>
                         </>
                       )}
-                      {movieDetails?.vote_average && (
-                        <>
-                          <Text style={styles.infoDot}>•</Text>
-                          <View
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: spacing.xs,
-                            }}>
-                            <Icon name="star" size={12} color="#ffffff70" />
-                            <Text style={styles.info}>
-                              {movieDetails.vote_average.toFixed(1)}
-                            </Text>
-                          </View>
-                        </>
-                      )}
+                      {movieDetails?.vote_average != null &&
+                        movieDetails.vote_average > 0 && (
+                          <>
+                            <Text style={styles.infoDot}>•</Text>
+                            <View
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: spacing.xs,
+                              }}>
+                              <Icon name="star" size={12} color="#ffffff70" />
+                              <Text style={styles.info}>
+                                {movieDetails.vote_average.toFixed(1)}
+                              </Text>
+                            </View>
+                          </>
+                        )}
                     </View>
                   </View>
                   <View
@@ -2085,28 +2183,37 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             resizeMode: 'contain',
                           }}
                         />
-                        {aiRatings?.imdb && (
-                          <>
-                            <Text
-                              style={{
-                                ...typography.body1,
-                                color: colors.text.primary,
-                                fontWeight: 'bold',
-                                marginLeft: spacing.sm,
-                              }}>
-                              {aiRatings.imdb.toFixed(1)}
-                            </Text>
-                            {aiRatings.imdb_votes && (
+                        {isAnalysisLoading && !aiRatings?.imdb ? (
+                          <View style={{marginLeft: spacing.xs}}>
+                            <GradientSpinner
+                              color={colors.modal.activeBorder}
+                              size={10}
+                            />
+                          </View>
+                        ) : (
+                          !!aiRatings?.imdb && (
+                            <>
                               <Text
                                 style={{
                                   ...typography.body1,
-                                  color: colors.text.muted,
-                                  marginLeft: spacing.xs,
+                                  color: colors.text.primary,
+                                  fontWeight: 'bold',
+                                  marginLeft: spacing.sm,
                                 }}>
-                                ({formatVoteCount(aiRatings.imdb_votes)})
+                                {aiRatings.imdb.toFixed(1)}
                               </Text>
-                            )}
-                          </>
+                              {!!aiRatings.imdb_votes && (
+                                <Text
+                                  style={{
+                                    ...typography.body1,
+                                    color: colors.text.muted,
+                                    marginLeft: spacing.xs,
+                                  }}>
+                                  ({formatVoteCount(aiRatings.imdb_votes)})
+                                </Text>
+                              )}
+                            </>
+                          )
                         )}
                       </TouchableOpacity>
 
@@ -2135,15 +2242,25 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                               marginVertical: 2,
                             }}
                           />
-                          {aiRatings?.rotten_tomatoes != null && (
-                            <Text
-                              style={{
-                                ...typography.body1,
-                                color: colors.text.primary,
-                                fontWeight: '600',
-                              }}>
-                              {aiRatings.rotten_tomatoes}%
-                            </Text>
+                          {isAnalysisLoading && !aiRatings?.rotten_tomatoes ? (
+                            <View style={{marginLeft: spacing.xs}}>
+                              <GradientSpinner
+                                color={colors.modal.activeBorder}
+                                size={10}
+                              />
+                            </View>
+                          ) : (
+                            !!aiRatings?.rotten_tomatoes && (
+                              <Text
+                                style={{
+                                  ...typography.body1,
+                                  color: colors.text.primary,
+                                  fontWeight: '600',
+                                  marginLeft: spacing.xs,
+                                }}>
+                                {aiRatings.rotten_tomatoes}%
+                              </Text>
+                            )
                           )}
                         </TouchableOpacity>
                       )}
@@ -2230,6 +2347,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       (r: any) => r.iso_3166_1 === 'US',
                     )?.release_dates?.[0]?.certification
                   }
+                  releaseDate={movieDetails?.release_date}
                 />
               );
             case 'mediaTabs':
@@ -2240,7 +2358,25 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                 />
               );
             case 'trivia':
-              return (
+              if (isAnalysisLoading) {
+                return (
+                  <View
+                    style={{
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: spacing.xl,
+                      paddingVertical: 100,
+                      gap: spacing.sm,
+                    }}>
+                    <GradientSpinner size={20} />
+                    <Text
+                      style={{...typography.body2, color: colors.text.muted}}>
+                      Theater AI is curating...
+                    </Text>
+                  </View>
+                );
+              }
+              return isAnalysisUseful ? (
                 <View style={{paddingHorizontal: spacing.md}}>
                   <MovieTrivia
                     title={displayTitle}
@@ -2251,7 +2387,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                     loading={isAnalysisLoading}
                   />
                 </View>
-              );
+              ) : null;
             case 'providers':
               return watchProviders ? (
                 <WatchProviders
@@ -2261,61 +2397,71 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   type="movie"
                 />
               ) : null;
-            case 'similar':
-              return (
+            case 'tags':
+              return isAnalysisUseful ? (
+                <ContentTagsDisplay
+                  thematicTags={contentTags?.thematicTags}
+                  emotionalTags={contentTags?.emotionalTags}
+                  isLoading={isGeneratingTags || isAnalysisLoading}
+                />
+              ) : null;
+            case 'aiSimilar':
+              return isAnalysisUseful ? (
                 <>
-                  {isAIEnabled && (
-                    <>
-                      {/* Content Tags Section */}
-                      <ContentTagsDisplay
-                        thematicTags={contentTags?.thematicTags}
-                        emotionalTags={contentTags?.emotionalTags}
-                        isLoading={isGeneratingTags}
-                      />
-
-                      {isLoadingAiSimilar ? (
-                        <View style={{minHeight: 200}}>
-                          <Text
-                            style={{
-                              ...typography.body2,
-                              color: colors.modal.activeBorder,
-                              marginTop: spacing.md,
-                              textAlign: 'center',
-                            }}>
-                            Theater AI is curating similar movies...
-                          </Text>
-                        </View>
-                      ) : resolvedAiSimilarMovies &&
-                        resolvedAiSimilarMovies.length > 0 ? (
-                        <View style={{marginTop: spacing.md}}>
-                          <HorizontalList
-                            title="More Like This"
-                            prefix="Theater AI"
-                            data={resolvedAiSimilarMovies}
-                            onItemPress={handleItemPress}
-                            onSeeAllPress={() =>
-                              navigation.push('SimilarMovies', {
-                                movieId: movie.id,
-                                title: movie.title,
-                              })
-                            }
-                          />
-                        </View>
-                      ) : null}
-                    </>
-                  )}
-                  {similarMoviesData.length > 0 ? (
+                  {isLoadingAiSimilar ? (
+                    <View style={{minHeight: 200}}>
+                      <Text
+                        style={{
+                          ...typography.body2,
+                          color: colors.modal.activeBorder,
+                          marginTop: spacing.md,
+                          textAlign: 'center',
+                        }}>
+                        Theater AI is curating similar movies...
+                      </Text>
+                    </View>
+                  ) : resolvedAiSimilarMovies &&
+                    resolvedAiSimilarMovies.length > 0 ? (
                     <View style={{marginTop: spacing.md}}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: spacing.md,
+                          marginLeft: spacing.md,
+                          marginBottom: -spacing.md,
+                        }}>
+                        <Icon name="sparkles" size={20} color={colors.accent} />
+                        <Text
+                          style={{
+                            ...typography.h3,
+                            color: colors.text.primary,
+                          }}>
+                          More Like This
+                        </Text>
+                      </View>
                       <HorizontalList
-                        title="Similar movies"
-                        data={similarMoviesData}
+                        title=""
+                        data={resolvedAiSimilarMovies}
                         onItemPress={handleItemPress}
                         isSeeAll={false}
                       />
                     </View>
                   ) : null}
                 </>
-              );
+              ) : null;
+            case 'similar':
+              // Only show TMDB similar if AI similar is not available
+              return !hasAISimilarData && similarMoviesData.length > 0 ? (
+                <View style={{marginTop: spacing.md}}>
+                  <HorizontalList
+                    title="Similar movies"
+                    data={similarMoviesData}
+                    onItemPress={handleItemPress}
+                    isSeeAll={false}
+                  />
+                </View>
+              ) : null;
 
             case 'reviews':
               return (

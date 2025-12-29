@@ -14,6 +14,10 @@ interface Props {
 export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
   const {isTablet} = useResponsive();
 
+  const handlePress = () => {
+    onRetry();
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -71,6 +75,7 @@ export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
         <Image source={require('../assets/offline.png')} style={styles.image} />
         <View style={{position: 'relative'}}>
           <LinearGradient
+            pointerEvents="none"
             style={{
               position: 'absolute',
               bottom: spacing.md,
@@ -87,7 +92,7 @@ export const NoInternet: React.FC<Props> = ({onRetry, isRetrying}) => {
           You're offline. Check your connection and try again.
         </Text>
         <TouchableOpacity
-          onPress={onRetry}
+          onPress={handlePress}
           disabled={!!isRetrying}
           activeOpacity={0.85}
           style={styles.buttonWrap}>

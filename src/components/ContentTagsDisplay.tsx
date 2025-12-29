@@ -33,26 +33,6 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
   isLoading = false,
   onTagPress,
 }) => {
-  if (isLoading) {
-    return (
-      <View
-        style={[
-          styles.container,
-          {
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-        ]}>
-        <GradientSpinner colors={[colors.primary, colors.secondary]} />
-        <View style={styles.loadingContainer}>
-          <Ionicon name="sparkles" size={20} color={colors.text.muted} />
-          <Text style={styles.loadingText}>Analyzing themes...</Text>
-        </View>
-      </View>
-    );
-  }
-
   if (thematicTags.length === 0 && emotionalTags.length === 0) {
     return null;
   }
@@ -62,9 +42,6 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
     category: 'thematic' | 'emotional',
     index: number,
   ) => {
-    // Determine colors logic kept for reference but not used in styles directly here
-    // const gradientColors = ...
-
     return (
       <TouchableOpacity
         key={`${category}-${index}`}
@@ -87,10 +64,10 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View>
       {/* Thematic Tags Section */}
       {thematicTags.length > 0 && (
-        <View style={styles.section}>
+        <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Thematic Genres</Text>
             <Text style={styles.sectionSubtitle}>
@@ -110,7 +87,7 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
 
       {/* Emotional Tags Section */}
       {emotionalTags.length > 0 && (
-        <View style={styles.section}>
+        <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Emotional Tones</Text>
             <Text style={styles.sectionSubtitle}>Moods &amp; atmosphere</Text>
@@ -130,10 +107,6 @@ export const ContentTagsDisplay: React.FC<ContentTagsDisplayProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: spacing.md,
-    minHeight: 400,
-  },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -144,9 +117,6 @@ const styles = StyleSheet.create({
   loadingText: {
     ...typography.body2,
     color: colors.text.muted,
-  },
-  section: {
-    marginBottom: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'column',

@@ -103,6 +103,7 @@ import {useContentAnalysis} from '../hooks/useContentAnalysis';
 import {ScheduleWatchModal} from '../components/ScheduleWatchModal';
 import {FeedbackModal} from '../components/FeedbackModal';
 import {BlurPreference} from '../store/blurPreference';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 type TVShowDetailsScreenNavigationProp = NativeStackNavigationProp<
   MySpaceStackParamList &
@@ -173,6 +174,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       genres: genresArray,
       type: 'tv',
       contentId: show.id,
+      releaseDate:
+        (show as any).first_air_date || (showDetails as any)?.first_air_date,
       enabled: !!(showDetails && isAIEnabled),
     },
   );
@@ -563,41 +566,95 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     showDetails?.number_of_seasons ?? showDetails?.seasons?.length ?? undefined;
   const episodesCount = showDetails?.number_of_episodes ?? undefined;
 
+  // 1. Initialize from Realm Cache immediately
+  useEffect(() => {
+    if (show.id) {
+      const {getTVShow} = require('../database/contentCache');
+      const cached = getTVShow(show.id);
+      if (cached?.ai_ratings_cached_at) {
+        setAiRatings({
+          imdb: cached.ai_imdb_rating,
+          rotten_tomatoes: cached.ai_rotten_tomatoes,
+          imdb_votes: cached.ai_imdb_votes,
+        });
+        setIsLoadingAiImdb(false); // Cache found, stop loading immediately
+      }
+    }
+  }, [show.id]);
+
   useEffect(() => {
     addToHistory();
   }, []);
 
-  // Load AI critic ratings for TV show (Merged from cache/analysis)
+  // 2. AI Analysis updates
   useEffect(() => {
-    const loadRatings = async () => {
-      setIsLoadingAiImdb(true);
-      if (loadingRatingsRef.current === show.id && !analysisData) return;
-      loadingRatingsRef.current = show.id;
+    if (!isAnalysisLoading) {
+      setIsLoadingAiImdb(false); // Analysis finished (win or lose), stop loading
+    }
 
-      // Note: For TV shows, we typically don't scrape IMDB directly in the same way as movies OR we might?
-      // Current code didn't scrape IMDB for TV shows, only called getCriticRatings.
-      // So we strictly rely on analysisData here.
+    const ratings = analysisData?.ratings;
+    if (!ratings) return;
 
-      const currentRatings = {
-        imdb: analysisData?.ratings?.imdb ?? aiRatings?.imdb ?? null,
+    setAiRatings(prev => {
+      const current = prev || {};
+      return {
+        imdb: ratings.imdb ?? current.imdb ?? null,
         rotten_tomatoes:
-          analysisData?.ratings?.rotten_tomatoes ??
-          aiRatings?.rotten_tomatoes ??
-          null,
-        imdb_votes:
-          analysisData?.ratings?.imdb_votes ?? aiRatings?.imdb_votes ?? null,
+          ratings.rotten_tomatoes ?? current.rotten_tomatoes ?? null,
+        imdb_votes: ratings.imdb_votes ?? current.imdb_votes ?? null,
       };
+    });
+  }, [analysisData, isAnalysisLoading]);
 
-      if (analysisData?.ratings) {
-        setAiRatings(currentRatings);
-      } else {
-        // Try cache? Logic already in hook, but if we want to show stale cache immediately?
-        // Hook handles it.
+  // Check if AI Analysis resulted in useful data (not placeholders)
+  const isAnalysisUseful = useMemo(() => {
+    if (!analysisData) return false;
+
+    // 1. Check if ratings are null (new prompt returns null for unknown)
+    if (analysisData.ratings === null) {
+      // If we don't even have ratings, it's likely a completely unknown project
+      // But we check other fields too.
+    }
+
+    // 2. Check for "Unknown/Neutral" tags with low confidence
+    const thematicTags = analysisData.tags?.thematicTags;
+    if (thematicTags && thematicTags.length > 0) {
+      if (
+        thematicTags[0].tag === 'unknown' ||
+        thematicTags[0].confidence === 0
+      ) {
+        return false;
       }
-      setIsLoadingAiImdb(false);
-    };
-    loadRatings();
-  }, [show.id, show.name, showDetails, analysisData]);
+    }
+
+    // 3. Check trivia for generic "not released/no information" phrases
+    const trivia = analysisData.trivia;
+    if (trivia && trivia.length > 0) {
+      const firstFact =
+        typeof trivia[0] === 'string' ? trivia[0] : trivia[0].fact;
+      if (
+        firstFact?.toLowerCase().includes('not been released yet') ||
+        firstFact?.toLowerCase().includes('limited information available') ||
+        firstFact?.toLowerCase().includes('upcoming or announced project')
+      ) {
+        return false;
+      }
+    }
+
+    // 4. If trivia is null or empty, and tags are null or empty, it's not useful
+    if (
+      (!trivia || trivia.length === 0) &&
+      (!analysisData.tags ||
+        (analysisData.tags.thematicTags?.length === 0 &&
+          analysisData.tags.emotionalTags?.length === 0))
+    ) {
+      return false;
+    }
+
+    return true;
+  }, [analysisData]);
+
+  const showAiSections = isAIEnabled && isAnalysisUseful;
 
   // Check connectivity and cache status for this specific TV show
   useEffect(() => {
@@ -670,13 +727,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const contentFadeAnim = useRef(new Animated.Value(0)).current;
   const castFadeAnim = useRef(new Animated.Value(0)).current;
   const similarFadeAnim = useRef(new Animated.Value(0)).current;
-
-  const {
-    data: similarShows,
-    fetchNextPage: fetchNextSimilar,
-    hasNextPage: hasNextSimilar,
-    isFetchingNextPage: isFetchingSimilar,
-  } = useSimilarTVShows(show.id);
 
   const {
     data: reviews,
@@ -961,10 +1011,45 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     }
   }, [showDetails, selectedSeason]);
 
-  // Use memoized AI similar TV shows hook
-  // AI Similar shows hook removed to save rate limit
-  const aiSimilarShows: any[] = [];
-  const isLoadingAiSimilar = false;
+  // AI Similar TV shows resolution (re-enabled with Groq's better rate limits)
+  const {data: resolvedAiSimilarShows, isLoading: isLoadingAiSimilar} =
+    useAISimilarTVShows(
+      show.id,
+      show.name,
+      show.overview,
+      showDetails?.genres,
+      analysisData?.similar,
+    );
+
+  // Determine if we should show AI similar content
+  const hasAISimilarData =
+    !isLoadingAiSimilar &&
+    resolvedAiSimilarShows &&
+    resolvedAiSimilarShows.length > 0;
+
+  // CRITICAL: Never call TMDB similar API if AI is enabled and analysis is useful
+  // Don't wait for AI to load - disable it from the start
+  const shouldCallTMDBSimilar = !isAIEnabled || !isAnalysisUseful;
+
+  // Only fetch TMDB similar TV shows when AI is completely disabled
+  const {
+    data: similarShows,
+    fetchNextPage: fetchNextSimilar,
+    hasNextPage: hasNextSimilar,
+    isFetchingNextPage: isFetchingSimilar,
+  } = useSimilarTVShows(show.id, shouldCallTMDBSimilar);
+
+  // Process similar shows data
+  const similarShowsData = useMemo(() => {
+    return (
+      similarShows?.pages?.flatMap(page =>
+        page.results.map((show: TVShow) => ({
+          ...show,
+          type: 'tv' as const,
+        })),
+      ) || []
+    );
+  }, [similarShows]);
 
   const trailer = showDetails?.videos?.results?.find(
     (video: Video) => video.type === 'Trailer' && video.site === 'YouTube',
@@ -1021,7 +1106,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
             {episode.name}
           </Text>
           <View style={styles.episodeInfo}>
-            {episode?.episode_number && (
+            {episode?.episode_number != null && (
               <Text style={styles.info}>
                 S{episode.season_number} E{episode.episode_number}
               </Text>
@@ -1034,13 +1119,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 year: 'numeric',
               })}
             </Text>
-            {episode?.runtime && (
+            {episode?.runtime != null && episode.runtime > 0 && (
               <>
                 <Text style={styles.infoDot}>•</Text>
                 <Text style={styles.info}>{episode.runtime} min</Text>
               </>
             )}
-            {episode?.vote_average && (
+            {episode?.vote_average != null && episode.vote_average > 0 && (
               <>
                 <Text style={styles.infoDot}>•</Text>
                 <View
@@ -1482,15 +1567,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     );
   }
 
-  const similarShowsData =
-    showDetails?.genres &&
-    Array.isArray(showDetails.genres) &&
-    showDetails.genres.some((genre: Genre) => genre.id === 10749)
-      ? []
-      : similarShows?.pages?.flatMap(page =>
-          page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
-        ) || [];
-
   // const recommendedShowsData =
   //   recommendedShows?.pages.flatMap(page =>
   //     page.results.map((show: TVShow) => ({...show, type: 'tv' as const})),
@@ -1656,12 +1732,17 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           {type: 'header', id: 'header'},
           {type: 'content', id: 'content'},
           {type: 'tvMetaInfo', id: 'tvMetaInfo'},
-          ...(isAIEnabled ? [{type: 'trivia', id: 'trivia'}] : []),
           {type: 'castCrew', id: 'castCrew'},
           {type: 'mediaTabs', id: 'mediaTabs'},
           {type: 'providers', id: 'providers'},
           {type: 'seasons', id: 'seasons'},
-          ...(isAIEnabled ? [{type: 'aiSimilar', id: 'aiSimilar'}] : []),
+          ...(isAIEnabled
+            ? [
+                {type: 'trivia', id: 'trivia'},
+                {type: 'tags', id: 'tags'},
+                {type: 'aiSimilar', id: 'aiSimilar'},
+              ]
+            : []),
           {type: 'similar', id: 'similar'},
           {type: 'productionInfo', id: 'productionInfo'},
           {type: 'reviews', id: 'reviews'},
@@ -1842,16 +1923,16 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       </Text>
                     )}
                     {showDetails?.first_air_date &&
-                      showDetails?.number_of_seasons && (
+                      showDetails?.number_of_seasons != null && (
                         <Text style={styles.infoDot}>•</Text>
                       )}
-                    {showDetails?.number_of_seasons && (
+                    {showDetails?.number_of_seasons != null && (
                       <Text style={styles.info}>
                         {showDetails.number_of_seasons} Season
                         {showDetails.number_of_seasons !== 1 ? 's' : ''}
                       </Text>
                     )}
-                    {showDetails?.number_of_episodes && (
+                    {showDetails?.number_of_episodes != null && (
                       <>
                         <Text style={styles.infoDot}>•</Text>
                         <Text style={styles.info}>
@@ -1867,23 +1948,24 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         </Text>
                       </>
                     )}
-                    {showDetails?.vote_average && (
-                      <>
-                        <Text style={styles.infoDot}>•</Text>
-                        <View
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: spacing.xs,
-                          }}>
-                          <Ionicons name="star" size={12} color="#ffffff70" />
-                          <Text style={styles.info}>
-                            {showDetails.vote_average.toFixed(1)}
-                          </Text>
-                        </View>
-                      </>
-                    )}
+                    {showDetails?.vote_average != null &&
+                      showDetails.vote_average > 0 && (
+                        <>
+                          <Text style={styles.infoDot}>•</Text>
+                          <View
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: spacing.xs,
+                            }}>
+                            <Ionicons name="star" size={12} color="#ffffff70" />
+                            <Text style={styles.info}>
+                              {showDetails.vote_average.toFixed(1)}
+                            </Text>
+                          </View>
+                        </>
+                      )}
                   </View>
                   <View
                     style={
@@ -2200,28 +2282,37 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             resizeMode: 'contain',
                           }}
                         />
-                        {aiRatings?.imdb != null && (
-                          <>
-                            <Text
-                              style={{
-                                ...typography.body1,
-                                color: colors.text.primary,
-                                fontWeight: 'bold',
-                                marginLeft: spacing.sm,
-                              }}>
-                              {aiRatings.imdb}
-                            </Text>
-                            {aiRatings.imdb_votes != null && (
+                        {isAnalysisLoading && !aiRatings?.imdb ? (
+                          <View style={{marginLeft: spacing.xs}}>
+                            <GradientSpinner
+                              color={colors.modal.activeBorder}
+                              size={10}
+                            />
+                          </View>
+                        ) : (
+                          !!aiRatings?.imdb && (
+                            <>
                               <Text
                                 style={{
                                   ...typography.body1,
-                                  color: colors.text.muted,
-                                  marginLeft: spacing.xs,
+                                  color: colors.text.primary,
+                                  fontWeight: 'bold',
+                                  marginLeft: spacing.sm,
                                 }}>
-                                ({formatCompact(aiRatings.imdb_votes)})
+                                {aiRatings.imdb.toFixed(1)}
                               </Text>
-                            )}
-                          </>
+                              {!!aiRatings.imdb_votes && (
+                                <Text
+                                  style={{
+                                    ...typography.body1,
+                                    color: colors.text.muted,
+                                    marginLeft: spacing.xs,
+                                  }}>
+                                  ({formatCompact(aiRatings.imdb_votes)})
+                                </Text>
+                              )}
+                            </>
+                          )
                         )}
                       </TouchableOpacity>
                       {/* Always show RT logo */}
@@ -2249,15 +2340,24 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             marginVertical: 2,
                           }}
                         />
-                        {aiRatings?.rotten_tomatoes != null && (
-                          <Text
-                            style={{
-                              ...typography.body1,
-                              color: colors.text.primary,
-                              fontWeight: '600',
-                            }}>
-                            {aiRatings.rotten_tomatoes}%
-                          </Text>
+                        {isAnalysisLoading && !aiRatings?.rotten_tomatoes ? (
+                          <View style={{marginLeft: spacing.xs}}>
+                            <GradientSpinner
+                              color={colors.modal.activeBorder}
+                              size={10}
+                            />
+                          </View>
+                        ) : (
+                          !!aiRatings?.rotten_tomatoes && (
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.primary,
+                                fontWeight: '600',
+                              }}>
+                              {aiRatings?.rotten_tomatoes}%
+                            </Text>
+                          )
                         )}
                       </TouchableOpacity>
                     </View>
@@ -2297,28 +2397,47 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                 />
               );
             case 'trivia':
-              return (
-                <View style={{paddingHorizontal: spacing.md}}>
-                  <MovieTrivia
-                    title={show.name}
-                    year={
-                      (show as any).first_air_date ||
-                      (showDetails as any)?.first_air_date
-                        ? new Date(
-                            (show as any).first_air_date ||
-                              (showDetails as any)?.first_air_date,
-                          )
-                            .getFullYear()
-                            .toString()
-                        : undefined
-                    }
-                    type="tv"
-                    contentId={show.id}
-                    trivia={analysisData?.trivia}
-                    loading={isAnalysisLoading}
-                  />
-                </View>
-              );
+              if (isAnalysisLoading) {
+                return (
+                  <View
+                    style={{
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: spacing.xl,
+                      paddingVertical: 100,
+                      gap: spacing.sm,
+                    }}>
+                    <GradientSpinner size={20} />
+                    <Text
+                      style={{...typography.body2, color: colors.text.muted}}>
+                      Theater AI is curating...
+                    </Text>
+                  </View>
+                );
+              } else {
+                return (
+                  <View style={{paddingHorizontal: spacing.md}}>
+                    <MovieTrivia
+                      title={show.name}
+                      year={
+                        (show as any).first_air_date ||
+                        (showDetails as any)?.first_air_date
+                          ? new Date(
+                              (show as any).first_air_date ||
+                                (showDetails as any)?.first_air_date,
+                            )
+                              .getFullYear()
+                              .toString()
+                          : undefined
+                      }
+                      type="tv"
+                      contentId={show.id}
+                      trivia={analysisData?.trivia}
+                      loading={isAnalysisLoading}
+                    />
+                  </View>
+                );
+              }
             case 'castCrew':
               // Deduplicate crew by person ID and combine roles
               const crewMap = new Map();
@@ -2591,16 +2710,18 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   </Modal>
                 </View>
               ) : null;
-            case 'aiSimilar':
-              return showDetails ? (
-                <>
-                  {/* Content Tags Section */}
-                  <ContentTagsDisplay
-                    thematicTags={contentTags?.thematicTags}
-                    emotionalTags={contentTags?.emotionalTags}
-                    isLoading={isGeneratingTags}
-                  />
 
+            case 'tags':
+              return isAnalysisUseful ? (
+                <ContentTagsDisplay
+                  thematicTags={contentTags?.thematicTags}
+                  emotionalTags={contentTags?.emotionalTags}
+                  isLoading={isGeneratingTags || isAnalysisLoading}
+                />
+              ) : null;
+            case 'aiSimilar':
+              return showDetails && isAIEnabled && isAnalysisUseful ? (
+                <>
                   {isLoadingAiSimilar ? (
                     <View
                       style={[
@@ -2623,23 +2744,40 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         Theater AI is curating similar shows...
                       </Text>
                     </View>
-                  ) : aiSimilarShows && aiSimilarShows.length > 0 ? (
-                    <HorizontalList
-                      title="More Like This"
-                      data={aiSimilarShows.map((s: TVShow) => ({
-                        ...s,
-                        type: 'tv',
-                      }))}
-                      onItemPress={item =>
-                        navigation.push('TVShowDetails', {show: item as TVShow})
-                      }
-                      onSeeAllPress={() =>
-                        navigation.push('SimilarTVShows', {
-                          tvId: show.id,
-                          title: show.name,
-                        })
-                      }
-                    />
+                  ) : resolvedAiSimilarShows &&
+                    resolvedAiSimilarShows.length > 0 ? (
+                    <View>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: spacing.md,
+                          marginLeft: spacing.md,
+                          marginBottom: -spacing.md,
+                        }}>
+                        <Icon name="sparkles" size={20} color={colors.accent} />
+                        <Text
+                          style={{
+                            ...typography.h3,
+                            color: colors.text.primary,
+                          }}>
+                          More Like This
+                        </Text>
+                      </View>
+                      <HorizontalList
+                        title=""
+                        data={resolvedAiSimilarShows.map((s: TVShow) => ({
+                          ...s,
+                          type: 'tv',
+                        }))}
+                        onItemPress={item =>
+                          navigation.push('TVShowDetails', {
+                            show: item as TVShow,
+                          })
+                        }
+                        isSeeAll={false}
+                      />
+                    </View>
                   ) : null}
                 </>
               ) : null;
@@ -2654,10 +2792,12 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                       (r: any) => r.iso_3166_1 === 'US',
                     )?.rating
                   }
+                  firstAirDate={showDetails?.first_air_date}
                 />
               );
             case 'similar':
-              return similarShowsData.length > 0 ? (
+              // Only show TMDB similar if AI similar is not available
+              return !hasAISimilarData && similarShowsData.length > 0 ? (
                 <Animated.View
                   style={{
                     opacity: similarFadeAnim,
@@ -2728,6 +2868,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         movieOverview={show.overview}
         movieGenres={(showDetails?.genres || []).map((g: any) => g.name)}
         contentType="tv"
+        contentId={show.id}
       />
 
       <IMDBModal

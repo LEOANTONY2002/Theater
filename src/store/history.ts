@@ -15,6 +15,7 @@ export const HistoryManager = {
       vote_average: item.vote_average,
       release_date: item.release_date,
       first_air_date: item.first_air_date,
+      original_language: item.original_language,
       genre_ids: [], // Not stored in HistoryItem
       type: item.type,
       viewedAt: item.viewedAt,

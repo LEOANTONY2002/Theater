@@ -27,20 +27,21 @@ import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
 import {AI_CONSTANTS} from '../config/aiConstants';
 
-const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const DEFAULT_MODEL = AI_CONSTANTS.DEFAULT_MODEL;
 
-interface GroqModel {
+interface GeminiModel {
   id: string;
   name: string;
   description: string;
   displayName?: string;
+  supportedGenerationMethods?: string[];
 }
 
 const instructions = [
   {
     id: '1',
     image: require('../assets/AI1.png'),
-    text: 'Go to Groq Console',
+    text: 'Go to Google AI Studio',
     hasButton: true,
   },
   {
@@ -53,87 +54,102 @@ const instructions = [
     image: require('../assets/AI3.png'),
     text: 'Type a name for your API key',
   },
+  // {
+  //   id: '4',
+  //   image: require('../assets/AI4.png'),
+  //   text: 'Select a project or create new',
+  // },
+  // {
+  //   id: '5',
+  //   image: require('../assets/AI5.png'),
+  //   text: 'Copy the API key',
+  // },
+  // {
+  //   id: '6',
+  //   image: require('../assets/AI6.png'),
+  //   text: 'Paste the API key here',
+  // },
+  // {
+  //   id: '7',
+  //   image: require('../assets/AI7.png'),
+  //   text: 'Save and continue',
+  // },
 ];
 
-const FALLBACK_MODELS: GroqModel[] = [
-  {
-    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
-    name: 'Llama 4 Scout 17B',
-    description: 'Latest data & fast - RECOMMENDED',
-  },
-  {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B',
-    description: 'Newest & fastest',
-  },
-  {
-    id: 'llama-3.1-70b-versatile',
-    name: 'Llama 3.1 70B',
-    description: 'Fast and versatile',
-  },
-  {
-    id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B',
-    description: 'Ultra-fast responses',
-  },
-  {
-    id: 'mixtral-8x7b-32768',
-    name: 'Mixtral 8x7B',
-    description: 'Large context window',
-  },
-  {
-    id: 'gemma2-9b-it',
-    name: 'Gemma 2 9B',
-    description: 'Efficient and capable',
-  },
-];
+const FALLBACK_MODELS: GeminiModel[] = AI_CONSTANTS.MODELS;
 
-// Function to fetch available Groq models from the API
-const fetchGroqModels = async (apiKey: string): Promise<GroqModel[]> => {
+// Function to fetch available Gemini models from the API
+const fetchGeminiModels = async (apiKey: string): Promise<GeminiModel[]> => {
   try {
     if (!apiKey || apiKey.trim() === '') {
       return FALLBACK_MODELS;
     }
 
-    const response = await fetch('https://api.groq.com/openai/v1/models', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       return FALLBACK_MODELS;
     }
 
     const data = await response.json();
-    let apiModels: GroqModel[] = [];
+    let apiModels: GeminiModel[] = [];
 
-    if (data.data && Array.isArray(data.data)) {
-      apiModels = data.data
-        .filter((model: any) => model.id && !model.id.includes('whisper'))
+    if (data.models && Array.isArray(data.models)) {
+      apiModels = data.models
+        .filter(
+          (model: any) =>
+            model.name &&
+            model.name.includes('gemini') &&
+            model.supportedGenerationMethods &&
+            model.supportedGenerationMethods.includes('generateContent'),
+        )
         .map((model: any) => ({
-          id: model.id,
-          name: model.id
-            .split('-')
-            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' '),
-          description: 'Groq AI model',
+          id: model.name.replace('models/', ''),
+          name: model.displayName || model.name.replace('models/', ''),
+          description:
+            model.description || 'Gemini AI model for text generation',
+          displayName: model.displayName,
+          supportedGenerationMethods: model.supportedGenerationMethods,
         }));
     }
 
-    // Merge with fallback models
+    // Merge strategy: Start with FALLBACK_MODELS (our curated list)
+    // Then add any unique models from API that aren't in our curated list
     const combinedModels = [...FALLBACK_MODELS];
     const existingIds = new Set(combinedModels.map(m => m.id));
 
     apiModels.forEach(model => {
+      // If we don't have this model in our curated list, add it
       if (!existingIds.has(model.id)) {
         combinedModels.push(model);
       }
     });
 
-    return combinedModels;
+    return combinedModels.sort((a: GeminiModel, b: GeminiModel) => {
+      // Sort by version (newer first)
+      const getVersion = (id: string) => {
+        if (id.includes('2.5')) return 3;
+        if (id.includes('2.0')) return 2;
+        if (id.includes('1.5')) return 1;
+        return 0;
+      };
+
+      const verA = getVersion(a.id);
+      const verB = getVersion(b.id);
+
+      if (verA !== verB) return verB - verA; // Descending version
+
+      // If same version, default name sort
+      return a.name.localeCompare(b.name);
+    });
   } catch (error) {
     return FALLBACK_MODELS;
   }
@@ -146,7 +162,7 @@ const OnboardingAISettings: React.FC<{
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [apiKey, setApiKey] = useState('');
   const [availableModels, setAvailableModels] =
-    useState<GroqModel[]>(FALLBACK_MODELS);
+    useState<GeminiModel[]>(FALLBACK_MODELS);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [showApiKeyInput, setShowApiKeyInput] = useState(true);
   const [isApiKeyCopied, setIsApiKeyCopied] = useState(false);
@@ -263,7 +279,7 @@ const OnboardingAISettings: React.FC<{
   const loadAvailableModels = async (currentApiKey: string) => {
     setIsLoadingModels(true);
     try {
-      const models = await fetchGroqModels(currentApiKey);
+      const models = await fetchGeminiModels(currentApiKey);
       setAvailableModels(models);
     } catch (error) {
       setAvailableModels(FALLBACK_MODELS);
@@ -281,30 +297,60 @@ const OnboardingAISettings: React.FC<{
         return false;
       }
 
-      // Make a test call to the Groq API to validate the key
+      // Make a test call to the Gemini API to validate the key
       const response = await fetch(
-        'https://api.groq.com/openai/v1/chat/completions',
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`,
+            'x-goog-api-key': key,
           },
           body: JSON.stringify({
-            model: 'llama-3.1-70b-versatile',
-            messages: [
+            contents: [
               {
                 role: 'user',
-                content: 'Test',
+                parts: [
+                  {
+                    text: 'Test connection',
+                  },
+                ],
               },
             ],
-            max_tokens: 5,
           }),
         },
       );
 
-      if (response.status >= 200 && response.status < 300) return true;
-      if (response.status === 401 || response.status === 403) return false;
+      if (response.status === 200) return true;
+      if (response.status === 400) return false;
+      if (response.status === 503) {
+        // Make a test call to the Gemini API to validate the key
+        const retryResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': key,
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [
+                    {
+                      text: 'Test connection',
+                    },
+                  ],
+                },
+              ],
+            }),
+          },
+        );
+
+        if (retryResponse.status === 200) return true;
+        if (retryResponse.status === 400) return false;
+      }
 
       const errorData = await response.json();
       return false;
@@ -647,7 +693,7 @@ const OnboardingAISettings: React.FC<{
                 marginTop: spacing.md,
               },
             ]}>
-            <Text style={styles.sectionTitle}>Groq API Key</Text>
+            <Text style={styles.sectionTitle}>Gemini API Key</Text>
 
             {/* Search-style input container */}
             <View style={styles.searchContainer}>
@@ -655,7 +701,7 @@ const OnboardingAISettings: React.FC<{
                 style={styles.searchInput}
                 value={apiKey}
                 onChangeText={setApiKey}
-                placeholder="Enter your Groq API key..."
+                placeholder="Enter your Gemini API key..."
                 placeholderTextColor={colors.text.tertiary}
                 multiline={false}
                 autoCapitalize="none"
@@ -705,7 +751,9 @@ const OnboardingAISettings: React.FC<{
                   {item.hasButton && (
                     <TouchableOpacity
                       onPress={() =>
-                        Linking.openURL('https://console.groq.com/keys')
+                        Linking.openURL(
+                          'https://aistudio.google.com/app/apikey',
+                        )
                       }
                       activeOpacity={0.9}
                       style={{

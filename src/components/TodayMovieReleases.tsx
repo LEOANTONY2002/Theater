@@ -1,8 +1,7 @@
 import React from 'react';
-import {View, Text, StyleSheet, Image, useWindowDimensions} from 'react-native';
-import {colors, spacing, typography, borderRadius} from '../styles/theme';
-import {useQuery} from '@tanstack/react-query';
-import {discoverMovies} from '../services/tmdb';
+import {View, Text, StyleSheet, useWindowDimensions} from 'react-native';
+import {colors, spacing, typography} from '../styles/theme';
+import {useTodayReleasedMovies} from '../hooks/useMovies';
 import {Movie} from '../types/movie';
 import {ContentItem} from './MovieList';
 import {useNavigation} from '@react-navigation/native';
@@ -14,7 +13,7 @@ import Carousel from 'react-native-reanimated-carousel';
 import {Pressable} from 'react-native';
 import FastImage from 'react-native-fast-image';
 
-interface CurrentMonthReleasesProps {
+interface TodayMovieReleasesProps {
   onItemPress?: (item: ContentItem) => void;
 }
 
@@ -27,17 +26,24 @@ interface ReleaseItemProps {
 
 const ReleaseItem = React.memo(
   ({item, onPress, width, height}: ReleaseItemProps) => {
-    const releaseDate = React.useMemo(
-      () => new Date(item.release_date),
-      [item.release_date],
-    );
+    const dateInfo = React.useMemo(() => {
+      if (!item.release_date) return null;
+      const date = new Date(item.release_date);
+      const day = date.getDate();
+      const month = date
+        .toLocaleDateString('en-US', {month: 'short'})
+        .toUpperCase();
+      return {day, month};
+    }, [item.release_date]);
 
     return (
       <Pressable onPress={() => onPress(item)} style={styles.itemContainer}>
         <View style={[styles.card, {width, height}]}>
           <FastImage
             source={{
-              uri: `https://image.tmdb.org/t/p/w780${item.backdrop_path}`,
+              uri: `https://image.tmdb.org/t/p/w780${
+                item.backdrop_path || item.poster_path
+              }`,
               priority: FastImage.priority.normal,
             }}
             style={styles.poster}
@@ -56,14 +62,11 @@ const ReleaseItem = React.memo(
           />
 
           <View style={styles.contentOverlay}>
-            <View style={styles.dayContainer}>
-              <Text style={styles.dayText}>{releaseDate.getDate()}</Text>
-            </View>
-
             <View style={styles.infoContainer}>
               <Text style={styles.movieTitle} numberOfLines={1}>
                 {item.title}
               </Text>
+
               <Text style={styles.overview} numberOfLines={2}>
                 {item.overview}
               </Text>
@@ -79,7 +82,7 @@ const ReleaseItem = React.memo(
     prev.height === next.height,
 );
 
-export const CurrentMonthReleases: React.FC<CurrentMonthReleasesProps> = ({
+export const TodayMovieReleases: React.FC<TodayMovieReleasesProps> = ({
   onItemPress,
 }) => {
   const navigation =
@@ -87,33 +90,13 @@ export const CurrentMonthReleases: React.FC<CurrentMonthReleasesProps> = ({
   const {isTablet} = useResponsive();
   const {width: SCREEN_WIDTH} = useWindowDimensions();
 
-  const queryParams = React.useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-
-    return {
-      'primary_release_date.gte': firstDay.toISOString().split('T')[0],
-      'primary_release_date.lte': lastDay.toISOString().split('T')[0],
-    };
-  }, []);
-
-  const {data: moviesData, isLoading} = useQuery({
-    queryKey: ['currentMonthReleases'],
-    queryFn: () =>
-      discoverMovies({
-        ...queryParams,
-        sort_by: 'primary_release_date.desc',
-        'vote_count.gte': 10,
-      }),
-    staleTime: 1000 * 60 * 30,
-  });
+  const {data, isLoading} = useTodayReleasedMovies();
 
   const movies = React.useMemo(
-    () => moviesData?.results?.slice(0, 10) || [],
-    [moviesData],
+    () =>
+      data?.pages?.[0]?.results?.filter((m: Movie) => m.title && m.overview) ||
+      [],
+    [data],
   );
 
   const CARD_DIMENSIONS = React.useMemo(
@@ -135,22 +118,37 @@ export const CurrentMonthReleases: React.FC<CurrentMonthReleasesProps> = ({
     [onItemPress, navigation],
   );
 
-  const currentMonth = React.useMemo(
-    () => new Date().toLocaleDateString('en-US', {month: 'long'}),
-    [],
-  );
-
   if (isLoading || movies.length === 0) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{currentMonth} Releases</Text>
+      <Text style={styles.title}>Today's Release</Text>
+      <View style={styles.dateLargeContainer}>
+        <Text style={styles.dayLargeText}>{new Date().getDate()}</Text>
+      </View>
+      <LinearGradient
+        colors={[
+          'transparent',
+          'rgba(0,0,0,0.1)',
+          'rgba(0,0,0,0.8)',
+          'rgba(0,0,0,0.95)',
+        ]}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={{
+          position: 'absolute',
+          top: -25,
+          right: 10,
+          width: 100,
+          height: 70,
+          zIndex: 1,
+        }}
+      />
 
       <View style={{height: CARD_DIMENSIONS.height, width: SCREEN_WIDTH}}>
         <Carousel
-          loop={false}
           width={SCREEN_WIDTH}
           height={CARD_DIMENSIONS.height}
           data={movies}
@@ -184,6 +182,7 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.text.primary,
     paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
   },
   itemContainer: {
     flex: 1,
@@ -218,64 +217,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
-  dayContainer: {
-    marginRight: 16,
-    justifyContent: 'flex-end',
-    marginBottom: 4,
-  },
-  dayText: {
-    ...typography.h1,
-    fontSize: 56,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    includeFontPadding: false,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: {width: 0, height: 2},
-    textShadowRadius: 4,
-  },
   infoContainer: {
     flex: 1,
     justifyContent: 'flex-end',
   },
+  dateLargeContainer: {
+    marginRight: 16,
+    justifyContent: 'flex-end',
+    marginBottom: 4,
+    alignItems: 'center',
+    position: 'absolute',
+    top: -25,
+    right: 0,
+  },
+  dayLargeText: {
+    ...typography.h1,
+    fontSize: 70,
+    fontWeight: '900',
+    fontFamily: 'Inter_18pt-Black',
+    color: colors.text.primary,
+    includeFontPadding: false,
+  },
+  monthLargeText: {
+    ...typography.h1,
+    fontSize: 48,
+    fontWeight: '900',
+    color: colors.text.primary,
+    includeFontPadding: false,
+    marginTop: -10,
+  },
   movieTitle: {
     ...typography.h2,
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
+    marginBottom: 2,
+    lineHeight: 26,
+  },
+  releaseNameText: {
+    ...typography.body2,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '700',
     marginBottom: 6,
-    lineHeight: 22,
   },
   overview: {
     ...typography.body2,
-    fontSize: 12,
-    color: colors.text.secondary,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 10,
-    lineHeight: 16,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  ratingText: {
-    ...typography.body2,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  releaseFullDate: {
-    ...typography.caption,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
-    fontWeight: '500',
+    lineHeight: 18,
   },
 });

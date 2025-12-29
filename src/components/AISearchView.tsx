@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {aiSearch} from '../services/gemini';
+import {aiSearch} from '../services/groq';
 import {ContentItem} from './MovieList';
 import FastImage from 'react-native-fast-image';
 import {getImageUrl} from '../services/tmdb';

@@ -40,7 +40,7 @@ export const CollectionBanner: React.FC<CollectionBannerProps> = ({
 
   const styles = StyleSheet.create({
     container: {
-      marginVertical: spacing.lg,
+      marginBottom: 50,
       marginHorizontal: spacing.md,
       borderRadius: borderRadius.lg,
       overflow: 'hidden',

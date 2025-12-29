@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {colors, spacing, typography} from '../styles/theme';
 import {HorizontalList} from './HorizontalList';
 import {ContentItem} from './MovieList';
-import {getPersonalizedRecommendation} from '../services/gemini';
+import {getPersonalizedRecommendation} from '../services/groq';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 

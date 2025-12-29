@@ -69,7 +69,6 @@ const MovieCardComponent: React.FC<MovieCardProps> = ({
               ? getImageUrl(item.poster_path, isTablet ? 'w500' : 'w342')
               : 'https://via.placeholder.com/300x450',
             priority: FastImage.priority.normal,
-            // Use immutable to keep posters cached across visits regardless of headers
             cache: FastImage.cacheControl.immutable,
           }}
           style={[
@@ -77,6 +76,7 @@ const MovieCardComponent: React.FC<MovieCardProps> = ({
             size === 'large' && baseStyles.posterLarge,
           ]}
           resizeMode={FastImage.resizeMode.cover}
+          fallback
         />
       </View>
     </TouchableOpacity>
