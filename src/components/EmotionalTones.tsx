@@ -88,6 +88,18 @@ export const EmotionalTones: React.FC<EmotionalTonesProps> = ({
                     style={StyleSheet.absoluteFill}
                   />
                   <LinearGradient
+                    colors={['rgb(10, 0, 18)', 'transparent']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <LinearGradient
+                    colors={['transparent', 'rgb(10, 0, 18)']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 0, y: 1}}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <LinearGradient
                     colors={['transparent', 'rgb(10, 0, 18)']}
                     start={{x: 0, y: 0}}
                     end={{x: 0, y: 1}}

@@ -2917,6 +2917,9 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         movieGenres={(showDetails?.genres || []).map((g: any) => g.name)}
         contentType="tv"
         contentId={show.id}
+        releaseDate={
+          showDetails?.first_air_date || (show as any).first_air_date
+        }
       />
 
       <IMDBModal

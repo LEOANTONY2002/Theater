@@ -18,6 +18,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import {BlurView} from '@react-native-community/blur';
 import {BlurPreference} from '../store/blurPreference';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {openNetworkSettings} from '../utils/settings';
 
 const shimmerColors = [
   'rgba(10, 10, 18, 0.62)',
@@ -194,7 +195,11 @@ export const DNSSetupGuide: React.FC<DNSSetupGuideProps> = ({
       paddingBottom: spacing.xl,
     },
     buttonContainer: {
+      flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
+      flex: 1,
+      gap: spacing.md,
     },
     noteText: {
       fontSize: isTablet ? 13 : 11,
@@ -205,9 +210,7 @@ export const DNSSetupGuide: React.FC<DNSSetupGuideProps> = ({
       lineHeight: isTablet ? 18 : 16,
     },
     button: {
-      width: 150,
-      alignSelf: 'center',
-      height: isTablet ? 60 : 52,
+      height: isTablet ? 60 : 50,
       paddingHorizontal: spacing.lg,
       borderRadius: borderRadius.round,
       alignItems: 'center',
@@ -291,23 +294,45 @@ export const DNSSetupGuide: React.FC<DNSSetupGuideProps> = ({
 
       <View style={styles.buttonWrap}>
         <View style={styles.buttonContainer}>
-          <Text style={styles.noteText}>DNS setup complete?</Text>
+          <TouchableOpacity
+            style={[
+              styles.button,
+              {
+                backgroundColor: colors.modal.blur,
+                borderWidth: 1,
+                borderBottomWidth: 0,
+                borderColor: colors.modal.content,
+              },
+            ]}
+            onPress={openNetworkSettings}
+            activeOpacity={0.8}>
+            <Text style={[styles.buttonText, {color: colors.text.primary}]}>
+              Open Settings
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={handlePress}
             disabled={!!isRetrying}
-            activeOpacity={0.85}
-            style={{width: '100%'}}>
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.button}>
-              {isRetrying ? (
+            activeOpacity={0.85}>
+            {isRetrying ? (
+              <View
+                style={{
+                  width: 120,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
                 <GradientSpinner color={colors.text.primary} size={24} />
-              ) : (
+              </View>
+            ) : (
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={[styles.button, {width: 120}]}>
                 <Text style={styles.buttonText}>Try Now</Text>
-              )}
-            </LinearGradient>
+              </LinearGradient>
+            )}
           </TouchableOpacity>
         </View>
       </View>

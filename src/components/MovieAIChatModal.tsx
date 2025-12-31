@@ -49,6 +49,7 @@ type MovieAIChatModalProps = {
   contentType?: 'movie' | 'tv';
   contentId: string | number;
   onSelectContent?: (content: ContentItem) => void;
+  releaseDate?: string;
 };
 
 const DEFAULT_MOVIE_QUESTIONS = [
@@ -87,6 +88,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
   contentType = 'movie',
   contentId,
   onSelectContent,
+  releaseDate,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -270,7 +272,7 @@ export const MovieAIChatModal: React.FC<MovieAIChatModalProps> = ({
         ];
 
         // Call the AI service with the conversation messages
-        const {aiResponse, arr} = await cinemaChat(chatMessages);
+        const {aiResponse, arr} = await cinemaChat(chatMessages, releaseDate);
 
         // Add AI response
         const aiMessage: Message = {

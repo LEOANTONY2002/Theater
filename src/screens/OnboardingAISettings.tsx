@@ -34,6 +34,7 @@ interface GroqModel {
   id: string;
   name: string;
   description: string;
+  created?: number;
   displayName?: string;
 }
 
@@ -61,26 +62,31 @@ const FALLBACK_MODELS: GroqModel[] = [
     id: AI_CONFIG.DEFAULT_MODEL,
     name: 'Llama 4 Scout 17B',
     description: 'Latest data & fast - RECOMMENDED',
+    created: AI_CONFIG.DEFAULT_MODEL_CREATED,
   },
   {
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3 70B',
     description: 'Newest & fastest',
+    created: 1733443200, // Dec 6 2024
   },
   {
     id: 'llama-3.1-8b-instant',
     name: 'Llama 3.1 8B',
     description: 'Ultra-fast responses',
+    created: 1721692800, // Jul 23 2024
   },
   {
     id: 'mixtral-8x7b-32768',
     name: 'Mixtral 8x7B',
     description: 'Large context window',
+    created: 1702252800, // Dec 11 2023
   },
   {
     id: 'gemma2-9b-it',
     name: 'Gemma 2 9B',
     description: 'Efficient and capable',
+    created: 1719446400, // Jun 27 2024
   },
 ];
 
@@ -116,6 +122,7 @@ const fetchGroqModels = async (apiKey: string): Promise<GroqModel[]> => {
             .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
             .join(' '),
           description: 'Groq AI model',
+          created: model.created,
         }));
     }
 
@@ -374,8 +381,14 @@ const OnboardingAISettings: React.FC<{
       console.log('[OnboardingAI] Saving settings to store...', {
         model: selectedModel,
       });
+
+      const selectedModelObj = availableModels.find(
+        m => m.id === selectedModel,
+      );
+
       await AISettingsManager.saveSettings({
         model: selectedModel,
+        modelCreated: selectedModelObj?.created || null,
         apiKey: trimmedApiKey,
       });
 

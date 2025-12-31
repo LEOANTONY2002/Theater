@@ -65,6 +65,7 @@ async function callGroq(
     },
     temperature: 1,
     top_p: 1,
+    max_tokens: 4096,
   };
 
   // Add Compound-specific settings if using compound model
@@ -320,7 +321,7 @@ export async function getContentAnalysis({
   // 2. Construct Master Prompt
   const system = {
     role: 'system' as const,
-    content: `Expert analyst. Analyze ${type} "${title}${yearSuffix}".
+    content: `You are an expert cinema assistant called Theater AI. Analyze the following movie:
     Return SINGLE JSON:
     1. "ratings": {"imdb": 0.0-10.0, "rotten_tomatoes": 0-100, "imdb_votes": int}
     2. "trivia": ["5 rare facts"]
@@ -333,26 +334,57 @@ export async function getContentAnalysis({
 
   const user = {
     role: 'user' as const,
-    content: `Analyze "${title}${yearSuffix}"`,
+    content: `Title: ${title}\nYear: ${year}\nOverview: ${overview.substring(
+      0,
+      50,
+    )}...`,
   };
 
   // 2.5 Determine Model Strategy
   let modelsToTry: Array<string | undefined> = [undefined]; // Start with App Model (undefined uses config.model)
 
   if (releaseDate) {
-    const release = new Date(releaseDate);
-    const now = new Date();
-    const diffDays =
-      (now.getTime() - release.getTime()) / (1000 * 60 * 60 * 24);
+    try {
+      const settings = await AISettingsManager.getSettings();
+      const selectedModel = settings.model || DEFAULT_MODEL;
+      const modelCreated = settings.modelCreated;
 
-    // If released within 60 days (or in the future), use Compound strategy
-    if (diffDays <= 60) {
-      console.log(
-        `[AI Strategy] Fresh content detected (${diffDays.toFixed(
-          0,
-        )} days old). Using Compound strategy.`,
-      );
-      modelsToTry = ['groq/compound-mini', 'groq/compound', undefined];
+      // Only check freshness if the model is NOT already query-capable (compound)
+      if (
+        !selectedModel.includes('compound') &&
+        !selectedModel.includes('search')
+      ) {
+        if (modelCreated) {
+          const contentTime = new Date(releaseDate).getTime();
+          const modelTime = modelCreated * 1000;
+
+          if (contentTime > modelTime) {
+            console.log(
+              `[AI Strategy] Content (${releaseDate}) is newer than Model (${new Date(
+                modelTime,
+              ).toISOString()}). Using Compound.`,
+            );
+            modelsToTry = ['groq/compound-mini', 'groq/compound', undefined];
+          }
+        } else {
+          // Fallback: If no model date known, use 60-day rule
+          const release = new Date(releaseDate);
+          const now = new Date();
+          const diffDays =
+            (now.getTime() - release.getTime()) / (1000 * 60 * 60 * 24);
+
+          if (diffDays <= 60) {
+            console.log(
+              `[AI Strategy] Fresh content detected (${diffDays.toFixed(
+                0,
+              )} days old). Using Compound strategy (Fallback).`,
+            );
+            modelsToTry = ['groq/compound-mini', 'groq/compound', undefined];
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[AI Strategy] Error checking model settings:', e);
     }
   }
 
@@ -363,34 +395,61 @@ export async function getContentAnalysis({
 
     for (const modelCandidate of modelsToTry) {
       try {
-        const isCompound = modelCandidate?.includes('compound');
-        const finalSystem = isCompound
-          ? {
-              ...system,
-              content:
-                system.content +
-                ' No research tables, preamble, or notes. Start { and end }.',
-            }
-          : system;
+        if (modelCandidate?.includes('compound')) {
+          system.content =
+            system.content +
+            '\n\n' +
+            'IMPORTANT: Search the internet for current data';
+        }
+        response = await callGroq([system, user], modelCandidate);
 
-        response = await callGroq([finalSystem, user], modelCandidate);
+        // LAZINESS CHECK: If Compound model returns empty data, treat as failure
+        if (modelCandidate?.includes('compound')) {
+          const match = response.match(/\{[\s\S]*\}/);
+          if (match) {
+            try {
+              const p = JSON.parse(match[0]);
+              // If ratings are missing AND trivia is empty, the model failed to research
+              const hasRatings =
+                p.ratings &&
+                (p.ratings.imdb || p.ratings.rotten_tomatoes || p.ratings.rt);
+              const hasTrivia =
+                p.trivia && Array.isArray(p.trivia) && p.trivia.length > 0;
+
+              if (!hasRatings && !hasTrivia) {
+                // Check if it's truly empty or just missing data
+                // If everything is null, it's lazy.
+                throw new Error('COMPOUND_LAZY_RESPONSE');
+              }
+            } catch (jsonErr) {
+              // If JSON invalid, let it flow to main parser or treat as error?
+              // Let's treat invalid JSON as error here to force fallback
+              throw new Error('INVALID_JSON_RESPONSE');
+            }
+          }
+        }
+
         success = true;
         break;
       } catch (error: any) {
         lastError = error;
-        // If it's a rate limit (429) and we have more models to try, move to the next
+        const isLazy = error.message === 'COMPOUND_LAZY_RESPONSE';
+        const isInvalid = error.message === 'INVALID_JSON_RESPONSE';
+        const isRateLimit = error?.message?.includes('429');
+
+        // If rate limit, lazy, or invalid JSON, and we have fallbacks...
         if (
-          error?.message?.includes('429') &&
+          (isRateLimit || isLazy || isInvalid) &&
           modelsToTry.indexOf(modelCandidate) < modelsToTry.length - 1
         ) {
           console.warn(
-            `[AI Strategy] Rate limited on ${
-              modelCandidate || 'App Model'
+            `[AI Strategy] Issue on ${modelCandidate || 'App Model'}: ${
+              error.message
             }. Falling back...`,
           );
           continue;
         }
-        throw error; // Re-throw if not a rate limit or no more fallbacks
+        throw error; // Re-throw if not recoverable
       }
     }
 
@@ -600,6 +659,7 @@ export async function getSimilarByStory({
 // For Online AI Chat (cinema only)
 export async function cinemaChat(
   messages: {role: 'user' | 'assistant' | 'system'; content: string}[],
+  releaseDate?: string,
 ): Promise<{aiResponse: string; arr: any[]}> {
   const system = {
     role: 'system' as const,
@@ -613,8 +673,68 @@ export async function cinemaChat(
   };
 
   const GroqMessages = [system, ...messages];
+
+  // Determine Model Strategy based on freshness
+  let modelsToTry: Array<string | undefined> = [undefined]; // Default
+  if (releaseDate) {
+    try {
+      const settings = await AISettingsManager.getSettings();
+      const selectedModel = settings.model || DEFAULT_MODEL;
+      const modelCreated = settings.modelCreated;
+
+      // Only check freshness if the model is NOT already query-capable (compound)
+      if (
+        !selectedModel.includes('compound') &&
+        !selectedModel.includes('search')
+      ) {
+        // If we know the model's creation date, compares it with content release
+        if (modelCreated) {
+          const contentTime = new Date(releaseDate).getTime();
+          const modelTime = modelCreated * 1000;
+
+          if (contentTime > modelTime) {
+            console.log(
+              `[CinemaChat] Content (${releaseDate}) is newer than Model (${new Date(
+                modelTime,
+              ).toISOString()}). Using Compound.`,
+            );
+            modelsToTry = ['groq/compound-mini', 'groq/compound', undefined];
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore errors, default to standard model
+    }
+  }
+
   try {
-    const response = await callGroq(GroqMessages);
+    let response = '';
+    let success = false;
+    let lastError: any = null;
+
+    for (const modelCandidate of modelsToTry) {
+      try {
+        response = await callGroq(GroqMessages, modelCandidate);
+        success = true;
+        break;
+      } catch (error: any) {
+        lastError = error;
+        if (
+          error?.message?.includes('429') &&
+          modelsToTry.indexOf(modelCandidate) < modelsToTry.length - 1
+        ) {
+          console.warn(
+            `[CinemaChat] Rate limited on ${
+              modelCandidate || 'App Model'
+            }. Falling back...`,
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    if (!success) throw lastError;
 
     let arr = [];
 

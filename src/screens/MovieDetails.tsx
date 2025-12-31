@@ -2606,6 +2606,22 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         setCurrentServer={setCurrentServer}
       />
 
+      <MovieAIChatModal
+        visible={isAIChatModalOpen}
+        onClose={() => setIsAIChatModalOpen(false)}
+        movieTitle={displayTitle}
+        movieYear={
+          movie.release_date
+            ? new Date(movie.release_date).getFullYear()
+            : new Date().getFullYear()
+        }
+        movieOverview={movie.overview || movieDetails?.overview || ''}
+        movieGenres={movieDetails?.genres?.map((g: any) => g.name) || []}
+        contentType="movie"
+        contentId={movie.id}
+        releaseDate={movie.release_date || movieDetails?.release_date}
+      />
+
       <IMDBModal
         visible={showIMDBModal}
         onClose={() => setShowIMDBModal(false)}
