@@ -1,5 +1,7 @@
 import {RealmSettingsManager} from '../database/managers';
 
+import {AI_CONFIG} from '../config/aiConfig';
+
 const AI_MODEL_KEY = 'ai_model';
 const AI_API_KEY_KEY = 'ai_api_key';
 const AI_IS_DEFAULT_KEY = 'ai_is_default';
@@ -17,10 +19,8 @@ export interface AISettingsInput {
   isDefault?: boolean;
 }
 
-import {AI_CONSTANTS} from '../config/aiConstants';
-
 const DEFAULT_SETTINGS: AISettings = {
-  model: AI_CONSTANTS.DEFAULT_MODEL,
+  model: AI_CONFIG.DEFAULT_MODEL,
   apiKey: null,
   isDefault: true,
 };

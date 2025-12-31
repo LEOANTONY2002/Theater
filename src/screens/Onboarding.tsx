@@ -88,7 +88,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         const region = regions.find(r => r.iso_3166_1 === regionCode);
         if (region) {
           await SettingsManager.setRegion(region);
-          setCurrentStep('ai');
+          setCurrentStep('language');
           animateTransition();
           return;
         }
@@ -191,7 +191,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
 
     try {
       await SettingsManager.setRegion(selectedRegion);
-      setCurrentStep('ai');
+      setCurrentStep('language');
       animateTransition();
     } catch (err) {
       setError('Failed to save region. Please try again.');
@@ -627,11 +627,15 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         return (
           <OnboardingAISettings
             onDone={() => {
-              setCurrentStep('language');
-              animateTransition();
+              OnboardingManager.setIsOnboarded(true);
+              onDone();
             }}
             onSkip={() => {
-              setCurrentStep('language');
+              OnboardingManager.setIsOnboarded(true);
+              onDone();
+            }}
+            onBack={() => {
+              setCurrentStep('otts');
               animateTransition();
             }}
           />
@@ -649,7 +653,8 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
               animateTransition();
             }}
             onBack={() => {
-              setCurrentStep('ai');
+              setShowRegionSelect(true);
+              setCurrentStep('region');
               animateTransition();
             }}
           />
@@ -659,12 +664,12 @@ const Onboarding: React.FC<OnboardingProps> = ({onDone}) => {
         return (
           <OnboardingOTTs
             onDone={() => {
-              OnboardingManager.setIsOnboarded(true);
-              onDone();
+              setCurrentStep('ai');
+              animateTransition();
             }}
             onSkip={() => {
-              OnboardingManager.setIsOnboarded(true);
-              onDone();
+              setCurrentStep('ai');
+              animateTransition();
             }}
             onBack={() => {
               setCurrentStep('language');

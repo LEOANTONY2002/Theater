@@ -21,9 +21,9 @@ import {GradientSpinner} from '../components/GradientSpinner';
 import {FlatList} from 'react-native';
 import {useQueryClient} from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {AI_CONSTANTS} from '../config/aiConstants';
+import {AI_CONFIG} from '../config/aiConfig';
 
-const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const DEFAULT_MODEL = AI_CONFIG.DEFAULT_MODEL;
 const DEFAULT_API_KEY = '';
 
 interface GroqModel {
@@ -36,7 +36,7 @@ interface GroqModel {
 // Fallback models - Groq's main models
 const FALLBACK_MODELS: GroqModel[] = [
   {
-    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    id: AI_CONFIG.DEFAULT_MODEL,
     name: 'Llama 4 Scout 17B',
     description: 'Latest data & fast - RECOMMENDED',
   },
@@ -44,11 +44,6 @@ const FALLBACK_MODELS: GroqModel[] = [
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3 70B',
     description: 'Newest & fastest',
-  },
-  {
-    id: 'llama-3.1-70b-versatile',
-    name: 'Llama 3.1 70B',
-    description: 'Fast and versatile',
   },
   {
     id: 'llama-3.1-8b-instant',
@@ -207,8 +202,7 @@ const AISettingsScreen: React.FC = () => {
   const validateApiKey = async (key: string): Promise<boolean> => {
     try {
       // Use the currently selected model for validation
-      const modelToTest =
-        selectedModel || 'meta-llama/llama-4-scout-17b-16e-instruct';
+      const modelToTest = selectedModel || AI_CONFIG.DEFAULT_MODEL;
 
       // Make a test call to the Groq API to validate the key
       const response = await fetch(

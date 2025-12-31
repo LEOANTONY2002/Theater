@@ -30,7 +30,15 @@ import {
 import FastImage from 'react-native-fast-image';
 import {useResponsive} from '../hooks/useResponsive';
 
-export const FiltersScreen = () => {
+interface FiltersScreenProps {
+  onScroll?: any;
+  scrollEventThrottle?: number;
+}
+
+export const FiltersScreen: React.FC<FiltersScreenProps> = ({
+  onScroll,
+  scrollEventThrottle,
+}) => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const [bannerContent, setBannerContent] = useState<ContentItem[]>([]);
@@ -219,7 +227,7 @@ export const FiltersScreen = () => {
       backgroundColor: colors.background.primary,
     },
     contentContainer: {
-      paddingBottom: spacing.xxl * 2,
+      paddingBottom: 120, // Space for footer
     },
     bannerContainer: {
       marginBottom: spacing.lg,
@@ -411,17 +419,17 @@ export const FiltersScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={savedFilters}
-        renderItem={renderFilterRow}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={renderBanner}
-        ListEmptyComponent={renderEmpty}
-        ListFooterComponent={renderFooter}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      />
-    </View>
+    <FlatList
+      style={{flex: 1, backgroundColor: colors.background.primary}}
+      data={savedFilters}
+      renderItem={renderFilterRow}
+      keyExtractor={keyExtractor}
+      ListHeaderComponent={renderBanner}
+      ListEmptyComponent={renderEmpty}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.contentContainer}
+      onScroll={onScroll}
+      scrollEventThrottle={scrollEventThrottle}
+    />
   );
 };

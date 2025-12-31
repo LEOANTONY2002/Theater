@@ -82,7 +82,7 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
       const posterPath = item.poster_path;
       const imagePath = backdropPath || posterPath;
       if (imagePath) {
-        const uri = getImageUrl(imagePath, 'original');
+        const uri = getImageUrl(imagePath, isTablet ? 'original' : 'w780');
         FastImage.preload([
           {
             uri,
@@ -100,7 +100,7 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
           const posterPath = item.poster_path;
           const imagePath = backdropPath || posterPath;
           if (imagePath) {
-            const uri = getImageUrl(imagePath, 'original');
+            const uri = getImageUrl(imagePath, isTablet ? 'original' : 'w780');
             FastImage.preload([
               {
                 uri,
@@ -219,12 +219,10 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
     },
     content: {
       position: 'absolute',
-      bottom: isTablet ? spacing.lg : spacing.md,
-      left: isTablet ? spacing.lg : spacing.md,
-      right: isTablet ? spacing.lg : spacing.md,
-      paddingVertical: isTablet ? spacing.lg : spacing.md,
-      paddingLeft: isTablet ? spacing.lg : spacing.md,
-      paddingRight: spacing.lg,
+      bottom: isTablet ? spacing.lg : spacing.sm,
+      left: isTablet ? spacing.lg : spacing.sm,
+      right: isTablet ? spacing.lg : spacing.sm,
+      padding: isTablet ? spacing.lg : spacing.md,
       alignItems: 'flex-start',
       justifyContent: 'center',
       backgroundColor: colors.modal.blurDark,
@@ -333,7 +331,7 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
       const overview = (item as any)?.overview;
 
       const imagePath = backdropPath || posterPath;
-      const imageUrl = imagePath ? getImageUrl(imagePath, 'original') : null;
+      const imageUrl = imagePath ? getImageUrl(imagePath, 'w780') : null;
 
       // Enhanced parallax: background image translates horizontally on swipe
       const backdropParallaxX = scrollX.interpolate({
@@ -493,21 +491,14 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
         keyExtractor={(item, index) => `${(item as any).id}-${index}`}
         horizontal
         showsHorizontalScrollIndicator={false}
-        decelerationRate={0.998}
+        decelerationRate={0.92}
         contentContainerStyle={{
-          paddingLeft: spacing.lg,
-          paddingRight: spacing.lg,
+          paddingLeft: spacing.md,
+          paddingRight: spacing.md,
         }}
         onScroll={onScroll}
         onMomentumScrollEnd={onMomentumScrollEnd}
         scrollEventThrottle={16}
-      />
-
-      <WatchlistModal
-        visible={showWatchlistModal}
-        onClose={() => setShowWatchlistModal(false)}
-        item={currentItem}
-        itemType={itemType}
       />
     </View>
   );

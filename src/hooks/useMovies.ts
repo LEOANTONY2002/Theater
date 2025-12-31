@@ -38,8 +38,14 @@ export const useMoviesList = (
     | 'latest_by_region'
     | 'upcoming_by_region',
 ) => {
+  // Add today's date to cache key for upcoming to invalidate daily
+  const today =
+    type === 'upcoming_by_region' || type === 'upcoming'
+      ? new Date().toISOString().split('T')[0]
+      : undefined;
+
   return useInfiniteQuery({
-    queryKey: ['movies', type],
+    queryKey: today ? ['movies', type, today] : ['movies', type],
     queryFn: async ({pageParam = 1}) => {
       const result = await getMovies(type, pageParam as number);
       // Filter adult content and cache movies in Realm

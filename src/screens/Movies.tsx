@@ -84,14 +84,6 @@ export const MoviesScreen = React.memo(
       isFetchingNextPage: isFetchingNowPlaying,
     } = useMoviesList('now_playing');
 
-    // Upcoming Movies
-    const {
-      data: upcomingMovies,
-      fetchNextPage: fetchNextUpcoming,
-      hasNextPage: hasNextUpcoming,
-      isFetchingNextPage: isFetchingUpcoming,
-    } = useMoviesList('upcoming');
-
     // Genre IDs
     const kidsGenreId = 16;
     const familyGenreId = 10751;
@@ -294,10 +286,7 @@ export const MoviesScreen = React.memo(
       () => getMoviesFromData(nowPlayingMovies),
       [nowPlayingMovies],
     );
-    const upcomingMoviesFlat = useMemo(
-      () => getMoviesFromData(upcomingMovies),
-      [upcomingMovies],
-    );
+
     const kidsMoviesFlat = useMemo(
       () => getMoviesFromData(kidsMovies).filter((movie: any) => !movie.adult),
       [kidsMovies],
@@ -326,7 +315,6 @@ export const MoviesScreen = React.memo(
           ...popularMoviesFlat,
           ...topRatedMoviesFlat,
           ...nowPlayingMoviesFlat,
-          ...upcomingMoviesFlat,
         ].filter(Boolean) as Movie[]
       ).filter(m => !!m?.backdrop_path);
       const seen = new Set<number>();
@@ -343,7 +331,6 @@ export const MoviesScreen = React.memo(
       popularMoviesFlat,
       topRatedMoviesFlat,
       nowPlayingMoviesFlat,
-      upcomingMoviesFlat,
     ]);
 
     // 2. Move onSeeAllPress handlers outside useMemo for stable references
@@ -363,10 +350,7 @@ export const MoviesScreen = React.memo(
       () => handleSeeAllPress('Now Playing', 'now_playing'),
       [handleSeeAllPress],
     );
-    const onSeeAllUpcoming = useCallback(
-      () => handleSeeAllPress('Upcoming Movies', 'upcoming'),
-      [handleSeeAllPress],
-    );
+
     const onSeeAllKids = useCallback(
       () =>
         navigateWithLimit('Category', {
@@ -522,25 +506,6 @@ export const MoviesScreen = React.memo(
       } else if (isFetchingNowPlaying) {
         sectionsList.push({
           id: 'nowPlayingSkeleton',
-          type: 'horizontalListSkeleton',
-        });
-      }
-
-      // Upcoming Movies section
-      if (upcomingMoviesFlat.length) {
-        sectionsList.push({
-          id: 'upcomingMovies',
-          type: 'horizontalList',
-          title: 'Upcoming Movies',
-          data: upcomingMoviesFlat,
-          onItemPress: handleMoviePress,
-          onEndReached: hasNextUpcoming ? fetchNextUpcoming : undefined,
-          isLoading: isFetchingUpcoming,
-          onSeeAllPress: onSeeAllUpcoming,
-        });
-      } else if (isFetchingUpcoming) {
-        sectionsList.push({
-          id: 'upcomingMoviesSkeleton',
           type: 'horizontalListSkeleton',
         });
       }

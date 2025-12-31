@@ -134,15 +134,57 @@ class NotificationService {
   }
 
   /**
-   * Check if notification permissions are granted
+   * Check STRICTLY the System/OS permission status
    */
-  async checkPermission(): Promise<boolean> {
+  async checkSystemPermission(): Promise<boolean> {
     try {
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        return await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+      }
       const authStatus = await messaging().hasPermission();
       return (
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL
       );
+    } catch (error) {
+      console.error('Error checking system permission:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user has opted in to notifications (app-level)
+   */
+  async isOptedIn(): Promise<boolean> {
+    const topics = await this.getSubscribedTopics();
+    return topics.length > 0;
+  }
+
+  /**
+   * Check if notification permissions are granted (System + App Level)
+   */
+  async checkPermission(): Promise<boolean> {
+    try {
+      // 1. Check System Permission
+      let systemGranted = false;
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        systemGranted = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+      } else {
+        const authStatus = await messaging().hasPermission();
+        systemGranted =
+          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      }
+
+      if (!systemGranted) return false;
+
+      // 2. Check App Level Preference (Opt-in)
+      // If user turned off "Allow Notifications" in app settings, we treat it as no permission
+      return await this.isOptedIn();
     } catch (error) {
       console.error('Error checking notification permission:', error);
       return false;
@@ -556,15 +598,31 @@ class NotificationService {
    * Initialize subscriptions on app launch, respecting user preferences
    */
   async initializeSubscriptions(region?: string) {
-    const topics = await this.getSubscribedTopics();
+    const hasSystemPermission = await this.checkSystemPermission();
+    let topics = await this.getSubscribedTopics();
 
-    // Subscribe to stored topics
+    // Auto-subscribe if system permission is enabled but no topics subscribed
+    if (hasSystemPermission && topics.length === 0) {
+      console.log(
+        'Auto-subscribing to defaults due to enabled system permission',
+      );
+      await this.subscribeToTopic('all');
+      await this.subscribeToTopic('trending');
+      if (region) {
+        await this.subscribeToTopic(region);
+      }
+      // Refresh topics list after auto-subscription
+      topics = await this.getSubscribedTopics();
+    }
+
+    // Standard Sync: Subscribe to stored topics
     for (const topic of topics) {
       await messaging().subscribeToTopic(topic);
     }
 
-    // Handle region: Only subscribe if "all" (General Updates) is enabled
-    if (region && topics.includes('all')) {
+    // Handle region: Subscribe if "trending" is enabled
+    // We treat region-specific updates as part of the "Trending" category now
+    if (region && topics.includes('trending')) {
       await messaging().subscribeToTopic(region);
       console.log(`✅ Subscribed to region topic: ${region}`);
     }
@@ -631,6 +689,40 @@ class NotificationService {
     } catch (error) {
       console.error('Error cancelling notification:', error);
     }
+  }
+
+  /**
+   * Schedule a notification (generic)
+   */
+  async scheduleNotification(
+    title: string,
+    body: string,
+    delayMs: number = 0,
+    data: any = {},
+  ) {
+    const date = new Date(Date.now() + delayMs);
+    const trigger: any = {
+      type: 0,
+      timestamp: date.getTime(),
+    };
+
+    await notifee.createTriggerNotification(
+      {
+        title,
+        body,
+        data,
+        android: {
+          channelId: 'la_theater_v13',
+          importance: AndroidImportance.HIGH,
+          smallIcon: 'ic_notification',
+          color: '#FFFFFF',
+          pressAction: {
+            id: 'default',
+          },
+        },
+      },
+      trigger,
+    );
   }
 }
 

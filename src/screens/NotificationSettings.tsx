@@ -10,6 +10,7 @@ import {
   Image,
   useWindowDimensions,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import {notificationService} from '../services/NotificationService';
 import {navigate} from '../services/NavigationService';
@@ -19,7 +20,7 @@ import {useNavigation} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
-import {detectRegion} from '../services/regionDetection';
+import {SettingsManager} from '../store/settings';
 import {NotificationSettingsModal} from '../components/NotificationSettingsModal';
 
 interface NotificationHistoryItem {
@@ -48,6 +49,11 @@ export const NotificationSettings: React.FC = () => {
 
   const loadData = async () => {
     try {
+      // Sync subscriptions on load to auto-fix invalid states
+      const settingsRegion = await SettingsManager.getRegion();
+      const region = settingsRegion?.iso_3166_1;
+      await notificationService.initializeSubscriptions(region);
+
       const perm = await notificationService.checkPermission();
       const subscribedTopics = await notificationService.getSubscribedTopics();
       const hasAnySubscription = subscribedTopics.length > 0;
@@ -139,18 +145,10 @@ export const NotificationSettings: React.FC = () => {
     setIsEnabling(true);
     try {
       const enabled = await notificationService.requestUserPermission();
-      // Don't set state immediately. Wait for subscriptions to complete.
       if (enabled) {
-        // Subscribe to topics if enabled
-        await notificationService.subscribeToTopic('all');
-        await notificationService.subscribeToTopic('trending');
-        const region = await detectRegion();
-        if (region) {
-          await notificationService.subscribeToTopic(region);
-        }
-        // loadData will check for 'all' subscription and update hasPermission state
         await loadData();
       }
+      Linking.openSettings();
     } finally {
       setIsEnabling(false);
     }

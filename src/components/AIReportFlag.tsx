@@ -16,9 +16,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
 import {AISettingsManager} from '../store/aiSettings';
 
-// TODO: Replace with your reporting inbox
-import {AI_CONSTANTS} from '../config/aiConstants';
-
 const REPORT_EMAIL = 'la.curations@gmail.com';
 
 export type AIReportFlagProps = {
@@ -58,10 +55,8 @@ export const AIReportFlag: React.FC<AIReportFlagProps> = ({
       (async () => {
         try {
           const settings = await AISettingsManager.getSettings();
-          setModel(settings.model || AI_CONSTANTS.DEFAULT_MODEL);
-        } catch (e) {
-          setModel(AI_CONSTANTS.DEFAULT_MODEL);
-        }
+          setModel(settings.model);
+        } catch (e) {}
       })();
     }
   }, [modelHint]);

@@ -16,7 +16,10 @@ const IPINFO_ENDPOINT = 'https://ipinfo.io/json';
  */
 const getRegionFromIpApi = async (): Promise<string | null> => {
   try {
-    const response = await fetch(IPAPI_ENDPOINT);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+    const response = await fetch(IPAPI_ENDPOINT, {signal: controller.signal});
+    clearTimeout(timeoutId);
     const data: IpApiResponse = await response.json();
     return data.countryCode || null;
   } catch (error) {
@@ -29,7 +32,10 @@ const getRegionFromIpApi = async (): Promise<string | null> => {
  */
 const getRegionFromIpInfo = async (): Promise<string | null> => {
   try {
-    const response = await fetch(IPINFO_ENDPOINT);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+    const response = await fetch(IPINFO_ENDPOINT, {signal: controller.signal});
+    clearTimeout(timeoutId);
     const data: IpInfoResponse = await response.json();
     return data.country || null;
   } catch (error) {

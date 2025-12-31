@@ -9,4 +9,5 @@ export const tmdbApi = axios.create({
     api_key: TMDB_API_KEY,
     include_adult: false,
   },
+  timeout: 15000,
 });

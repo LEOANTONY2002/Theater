@@ -81,7 +81,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const FeaturedBannerHomePoster: React.FC<FeaturedBannerHomePosterProps> =
   React.memo(({item, type}) => {
-    const {width} = useWindowDimensions();
+    const {width, height} = useWindowDimensions();
     const [loading, setLoading] = useState(true);
     const [showWatchlistModal, setShowWatchlistModal] = useState(false);
     const {data: isInAnyWatchlist = false} = useIsItemInAnyWatchlist(item.id);
@@ -131,7 +131,7 @@ export const FeaturedBannerHomePoster: React.FC<FeaturedBannerHomePosterProps> =
       },
       cardContainer: {
         width: isTablet ? 400 : width * 0.7,
-        height: isTablet ? 650 : 500,
+        height: isTablet ? 650 : height * 0.6,
         backgroundColor: 'rgba(3, 0, 17, 0.99)',
         alignSelf: 'center',
         borderRadius: 50,

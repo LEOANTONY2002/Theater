@@ -59,18 +59,22 @@ export const getMovies = async (
   const with_original_language = await getLanguageParam();
   const region = await getRegionParam();
 
+  const isGlobalCat =
+    type === 'latest' || type === 'popular' || type === 'top_rated';
+  const isRegionalCat =
+    type === 'latest_by_region' || type === 'upcoming_by_region';
+
   const params: any = {
     page,
     sort_by: 'release_date.desc',
     'vote_average.gte': 4,
     include_adult: false,
     'vote_count.gte': 10,
-    with_original_language,
     without_genres: '99,10755',
   };
 
-  // Only apply language filter if we have languages set and it's not too restrictive
-  if (with_original_language) {
+  // 1. Language Filter: ONLY apply if it's NOT a global or regional cat
+  if (with_original_language && !isGlobalCat && !isRegionalCat) {
     params.with_original_language = with_original_language;
   }
 
@@ -94,7 +98,7 @@ export const getMovies = async (
 
     if (type === 'latest') {
       const response = await tmdbApi.get('/discover/movie', {
-        params: {...requestParams, with_original_language},
+        params: requestParams,
       });
 
       return response.data;
@@ -102,38 +106,55 @@ export const getMovies = async (
 
     if (type === 'latest_by_region') {
       const response = await tmdbApi.get('/movie/now_playing', {
-        params: {...requestParams, with_original_language, region},
+        params: {...requestParams},
       });
 
       return response.data;
     }
 
     if (type === 'upcoming') {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowDate = formatDate(tomorrow);
+
       const response = await tmdbApi.get('/discover/movie', {
         params: {
           page,
           include_adult: false,
           'release_date.lte': future,
-          'release_date.gte': today,
+          'primary_release_date.gte': tomorrowDate, // Start from tomorrow
           with_release_type: '2|3',
-          sort_by: 'popularity.desc',
+          'vote_count.gte': 1,
+          sort_by: 'primary_release_date.asc', // Sort by release date ascending
         },
       });
       return response.data;
     }
 
     if (type === 'upcoming_by_region') {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowDate = formatDate(tomorrow);
+
+      console.log(
+        '[upcoming_by_region] Searching from:',
+        tomorrowDate,
+        'to:',
+        future,
+      );
+
       const response = await tmdbApi.get('/discover/movie', {
         params: {
           page,
           include_adult: false,
           'release_date.lte': future,
-          'release_date.gte': today,
+          'release_date.gte': tomorrowDate, // Start from tomorrow
           with_release_type: '2|3',
-          sort_by: 'popularity.desc',
+          sort_by: 'release_date.asc', // Sort by release date ascending for upcoming
           region,
         },
       });
+
       return response.data;
     }
 
@@ -179,6 +200,11 @@ export const getMovies = async (
   // Step 1: Try with language filter + rating filter
   let result = await makeRequest(true, true);
 
+  // For global cats, we don't need retry logic for language as it's already omitted
+  if (isGlobalCat || isRegionalCat) {
+    return filterTagalogContent(result);
+  }
+
   // Step 2: If no results, try without rating filter but keep language filter
   if (
     (!result.results || result.results.length === 0) &&
@@ -203,12 +229,14 @@ export const getTodayReleasedMovies = async (page = 1) => {
   const today = formatDate(now);
   const region = await getRegionParam();
 
+  // Use release_date with region + with_release_type for regional theatrical releases
   const response = await tmdbApi.get('/discover/movie', {
     params: {
       page,
-      'primary_release_date.gte': today,
-      'primary_release_date.lte': today,
-      region,
+      'release_date.gte': today,
+      'release_date.lte': today,
+      region, // Region-specific filtering
+      with_release_type: '2|3', // Theatrical releases only (2=Theatrical, 3=Theatrical Limited)
       include_adult: false,
       sort_by: 'popularity.desc',
     },
@@ -224,7 +252,9 @@ export const getTVShows = async (
   const today = new Date().toISOString().split('T')[0];
   const start = new Date('2000-01-01').toISOString().split('T')[0];
   const with_original_language = await getLanguageParam();
-  const region = await getRegionParam();
+
+  const isGlobalCat =
+    type === 'latest' || type === 'popular' || type === 'top_rated';
 
   const params: any = {
     page,
@@ -238,8 +268,8 @@ export const getTVShows = async (
     include_adult: false,
   };
 
-  // Only apply language filter if we have languages set and it's not too restrictive
-  if (with_original_language) {
+  // Only apply language filter if we have languages set and it's not a global cat
+  if (with_original_language && !isGlobalCat) {
     params.with_original_language = with_original_language;
   }
 
@@ -302,6 +332,11 @@ export const getTVShows = async (
   // Step 1: Try with language filter + rating filter
   let result = await makeRequest(true, true);
 
+  // For global cats, skip language retry logic
+  if (isGlobalCat) {
+    return result;
+  }
+
   // Step 2: If no results, try without rating filter but keep language filter
   if (
     (!result.results || result.results.length === 0) &&
@@ -322,14 +357,12 @@ export const getTVShows = async (
 };
 
 export const getAiringTodayTVShows = async (page = 1) => {
-  const with_original_language = await getLanguageParam();
   const today = new Date().toISOString().split('T')[0];
   const response = await tmdbApi.get('/discover/tv', {
     params: {
       page,
       'air_date.gte': today,
       'air_date.lte': today,
-      with_original_language,
       include_adult: false,
       sort_by: 'popularity.desc',
       'vote_count.gte': 2,
@@ -679,7 +712,15 @@ export const getGenres = async (type: 'movie' | 'tv' = 'movie') => {
 
 export const getImageUrl = (
   path: string,
-  size: 'w154' | 'w185' | 'w300' | 'w342' | 'w500' | 'original' = 'w185',
+  size:
+    | 'w154'
+    | 'w185'
+    | 'w300'
+    | 'w342'
+    | 'w500'
+    | 'w780'
+    | 'w1280'
+    | 'original' = 'w300',
 ) => {
   return `https://image.tmdb.org/t/p/${size}${path}`;
 };
@@ -703,11 +744,9 @@ export const getOptimizedImageUrl = (
 };
 
 export const getSimilarMovies = async (movieId: number, page = 1) => {
-  const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/movie/${movieId}/similar`, {
     params: {
       page,
-      with_original_language,
       with_genres: (await getMovieDetails(movieId)).genres
         .map((g: any) => g.id)
         .join(','),
@@ -719,11 +758,9 @@ export const getSimilarMovies = async (movieId: number, page = 1) => {
 };
 
 export const getMovieRecommendations = async (movieId: number, page = 1) => {
-  const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/discover/movie`, {
     params: {
       page,
-      with_original_language,
       with_genres: (await getMovieDetails(movieId)).genres
         .map((g: any) => g.id)
         .join(','),
@@ -736,11 +773,9 @@ export const getMovieRecommendations = async (movieId: number, page = 1) => {
 };
 
 export const getSimilarTVShows = async (tvId: number, page = 1) => {
-  const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/tv/${tvId}/similar`, {
     params: {
       page,
-      with_original_language,
       with_genres: (await getTVShowDetails(tvId)).genres
         .map((g: any) => g.id)
         .join(','),
@@ -752,11 +787,9 @@ export const getSimilarTVShows = async (tvId: number, page = 1) => {
 };
 
 export const getTVShowRecommendations = async (tvId: number, page = 1) => {
-  const with_original_language = await getLanguageParam();
   const response = await tmdbApi.get(`/discover/tv`, {
     params: {
       page,
-      with_original_language,
       with_genres: (await getTVShowDetails(tvId)).genres
         .map((g: any) => g.id)
         .join(','),
@@ -1106,14 +1139,12 @@ export const getContentByGenre = async (
     throw error;
   }
 
-  const with_original_language = await getLanguageParam();
   const endpoint = contentType === 'movie' ? '/discover/movie' : '/discover/tv';
 
   // Base params that always apply
   const params: any = {
     page,
     with_genres: genreId.toString(),
-    with_original_language,
     sort_by: sortBy,
     'vote_average.gte': 7,
     'vote_count.gte': 100,
@@ -1121,12 +1152,6 @@ export const getContentByGenre = async (
     with_adult: false,
     include_adult: false,
   };
-
-  // Only apply language filter if we have saved languages
-  if (with_original_language) {
-    // Make language an optional filter to get more results
-    params.with_original_language = with_original_language;
-  }
 
   // Add TV-specific filters
   if (
@@ -1393,19 +1418,13 @@ export const getTVShowReviews = async (tvId: number, page = 1) => {
 
 export const checkTMDB = async (): Promise<boolean> => {
   try {
-    // Use Promise.race for reliable timeout with axios
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('TMDB check timeout')), 3000),
-    );
-
-    const checkPromise = tmdbApi.get('/configuration', {
+    await tmdbApi.get('/configuration', {
+      timeout: 10000,
       headers: {
         'Cache-Control': 'no-cache',
         Pragma: 'no-cache',
       },
     });
-
-    await Promise.race([checkPromise, timeoutPromise]);
     console.log('TMDB API Check SUCCESS');
     return true;
   } catch (error: any) {

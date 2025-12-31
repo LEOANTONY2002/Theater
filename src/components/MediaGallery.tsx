@@ -1,4 +1,4 @@
-import React, {useState, useMemo} from 'react';
+import React, {useState, useMemo, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   Modal,
   useWindowDimensions,
   Image,
+  Animated,
   ScrollView,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -19,6 +21,62 @@ import {ImageData} from '../types/movie';
 import {MaybeBlurView} from './MaybeBlurView';
 import {BlurPreference} from '../store/blurPreference';
 import {BlurView} from '@react-native-community/blur';
+import {useResponsive} from '../hooks/useResponsive';
+
+const shimmerColors = [
+  'rgba(10, 10, 18, 0.62)',
+  'rgba(8, 8, 19, 0.45)',
+  'rgb(0, 0, 1)',
+];
+
+const AnimatedShimmer = ({
+  width,
+  height,
+  radius = 8,
+}: {
+  width: number;
+  height: number;
+  radius?: number;
+}) => {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      }),
+    ).start();
+  }, [shimmerAnim]);
+
+  const shimmerTranslate = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-width, width * 2],
+  });
+
+  return (
+    <View
+      style={{
+        width,
+        height,
+        backgroundColor: shimmerColors[0],
+        borderRadius: radius,
+        overflow: 'hidden',
+      }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: width * 0.4,
+          height: '100%',
+          borderRadius: radius,
+          backgroundColor: shimmerColors[1],
+          transform: [{translateX: shimmerTranslate}],
+        }}
+      />
+    </View>
+  );
+};
 
 interface MediaGalleryProps {
   images?: {
@@ -39,6 +97,52 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
   const {width, height} = useWindowDimensions();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
+  const {isTablet} = useResponsive();
+
+  const [scaleAnim] = useState(new Animated.Value(0));
+  const [imageLoading, setImageLoading] = useState(false);
+  const [showImage, setShowImage] = useState(false);
+  const [imageOpacity] = useState(new Animated.Value(0));
+  const [showLoader, setShowLoader] = useState(false);
+
+  const handleOpenImage = (item: ImageData) => {
+    // Mobile: use w500 for instant loading (same as grid)
+    // Tablet: use w1280 for higher quality when expanded
+    const fullViewSize = isTablet ? 'w1280' : 'w500';
+    setImageLoading(true);
+    setShowImage(false);
+    setSelectedImage({
+      url: getImageUrl(item.file_path, fullViewSize),
+      aspectRatio:
+        item.aspect_ratio || (selectedType === 'posters' ? 2 / 3 : 16 / 9),
+    });
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+    setTimeout(() => {
+      setShowLoader(true);
+      setShowImage(true);
+      Animated.timing(imageOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }, 50);
+  };
+
+  const handleCloseImage = () => {
+    setShowImage(false);
+    setShowLoader(false);
+    imageOpacity.setValue(0);
+    Animated.timing(scaleAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setSelectedImage(null));
+  };
 
   const imageData = useMemo(() => {
     if (!images) return [];
@@ -62,20 +166,13 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
 
   const renderImageItem = ({item}: {item: ImageData}) => {
     const isLogo = selectedType === 'logos';
-    const imageUrl = getImageUrl(item.file_path, 'w300');
+    const imageUrl = getImageUrl(item.file_path, isTablet ? 'w780' : 'w500');
     const aspectRatio = item.aspect_ratio;
 
     return (
       <TouchableOpacity
         style={[styles.imageItem, isLogo && styles.logoItem]}
-        onPress={() =>
-          setSelectedImage({
-            url: getImageUrl(item.file_path, 'original'),
-            aspectRatio:
-              item.aspect_ratio ||
-              (selectedType === 'posters' ? 2 / 3 : 16 / 9),
-          })
-        }
+        onPress={() => handleOpenImage(item)}
         activeOpacity={0.8}>
         <FastImage
           source={{uri: imageUrl}}
@@ -84,6 +181,20 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
             {
               aspectRatio:
                 aspectRatio || (selectedType === 'posters' ? 2 / 3 : 16 / 9),
+              width:
+                selectedType === 'posters' && isTablet
+                  ? 300
+                  : selectedType === 'posters' && !isTablet
+                  ? 200
+                  : selectedType === 'backdrops' && isTablet
+                  ? 500
+                  : selectedType === 'backdrops' && !isTablet
+                  ? 320
+                  : selectedType === 'logos' && isTablet
+                  ? 500
+                  : selectedType === 'logos' && !isTablet
+                  ? 200
+                  : 200,
             },
             isLogo && styles.logoImage,
           ]}
@@ -138,63 +249,117 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({images}) => {
       {/* Full Screen Image Modal */}
       <Modal
         visible={selectedImage !== null}
-        backdropColor={colors.modal.blurDark}
+        transparent={true}
+        animationType="none"
         statusBarTranslucent
-        onRequestClose={() => setSelectedImage(null)}
-        animationType="fade">
-        <View style={styles.modalContainer}>
-          {!isSolid && (
-            <BlurView
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-              style={{
-                flex: 1,
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-          )}
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() =>
-                selectedImage && Linking.openURL(selectedImage.url)
-              }
-              activeOpacity={0.8}>
-              <Icon name="open-outline" size={28} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setSelectedImage(null)}
-              activeOpacity={0.8}>
-              <Icon name="close" size={30} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <MaybeBlurView
-            body
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            {selectedImage && (
-              <FastImage
-                source={{uri: selectedImage.url}}
-                style={{
-                  width: width - 64,
-                  aspectRatio: selectedImage.aspectRatio,
-                  maxHeight: height * 0.8,
-                  margin: spacing.md,
-                  borderRadius: borderRadius.lg,
-                }}
-                resizeMode="contain"
+        onRequestClose={handleCloseImage}>
+        <TouchableOpacity
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPress={handleCloseImage}>
+          <Animated.View
+            style={[
+              styles.modalBlur,
+              {
+                opacity: scaleAnim,
+              },
+            ]}>
+            {!isSolid && (
+              <BlurView
+                blurType="dark"
+                blurAmount={15}
+                style={StyleSheet.absoluteFill}
               />
             )}
-          </MaybeBlurView>
-        </View>
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {backgroundColor: isSolid ? 'black' : 'rgba(0,0,0,0.4)'},
+              ]}
+            />
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                opacity: scaleAnim,
+                transform: [
+                  {
+                    scale: scaleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() =>
+                  selectedImage && Linking.openURL(selectedImage.url)
+                }
+                activeOpacity={0.8}>
+                <Icon name="open-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleCloseImage}
+                activeOpacity={0.8}>
+                <Icon name="close" size={26} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedImage && (
+              <View
+                style={{
+                  width: width - spacing.xl * 2,
+                  height: Math.min(
+                    (width - spacing.xl * 2) / selectedImage.aspectRatio,
+                    height * 0.8,
+                  ),
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                {showLoader && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <ActivityIndicator
+                      size="large"
+                      color={colors.modal.active}
+                    />
+                  </View>
+                )}
+                {showImage && (
+                  <Animated.View
+                    style={{
+                      opacity: imageOpacity,
+                      zIndex: 1,
+                    }}>
+                    <FastImage
+                      source={{uri: selectedImage.url}}
+                      style={{
+                        width: width - spacing.xl * 2,
+                        aspectRatio: selectedImage.aspectRatio,
+                        maxHeight: height * 0.8,
+                        borderRadius: borderRadius.lg,
+                      }}
+                      resizeMode="contain"
+                      onLoadEnd={() => setShowLoader(false)}
+                    />
+                  </Animated.View>
+                )}
+              </View>
+            )}
+          </Animated.View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -239,13 +404,12 @@ const styles = StyleSheet.create({
   imageItem: {
     borderRadius: borderRadius.md,
     overflow: 'hidden',
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tertiary,
   },
   logoItem: {
     backgroundColor: colors.modal.blur,
   },
   image: {
-    width: 200,
     borderRadius: borderRadius.md,
   },
   logoImage: {
@@ -255,15 +419,16 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  modalContent: {
     width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBlur: {
+    ...StyleSheet.absoluteFillObject,
   },
   modalButtons: {
     flexDirection: 'row',

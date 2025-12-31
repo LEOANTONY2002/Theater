@@ -23,7 +23,15 @@ import {QuickDecision} from '../components/QuickDecision';
 import {useAIEnabled} from '../hooks/useAIEnabled';
 import {Image} from 'react-native';
 
-export const WatchlistsTabScreen: React.FC = () => {
+interface WatchlistsTabScreenProps {
+  onScroll?: any;
+  scrollEventThrottle?: number;
+}
+
+export const WatchlistsTabScreen: React.FC<WatchlistsTabScreenProps> = ({
+  onScroll,
+  scrollEventThrottle,
+}) => {
   const {data: watchlists = [], isLoading} = useWatchlists();
   const navigation = useNavigation();
   const {navigateWithLimit} = useNavigationState();
@@ -145,6 +153,7 @@ export const WatchlistsTabScreen: React.FC = () => {
             genre_ids: item.genre_ids,
             popularity: item.popularity,
             original_language: item.original_language,
+            vote_count: item.vote_count || 0,
             type: 'movie' as const,
           };
         } else {
@@ -267,6 +276,8 @@ export const WatchlistsTabScreen: React.FC = () => {
         ListEmptyComponent={renderEmpty}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
       />
 
       {/* Quick Decision Modal */}

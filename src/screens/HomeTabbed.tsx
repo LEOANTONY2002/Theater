@@ -25,6 +25,12 @@ type TabType = 'all' | 'movies' | 'tv';
 
 export const HomeTabbedScreen = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  // Track which tabs have been loaded to prevent mounting all heavy screens at once
+  const [loadedTabs, setLoadedTabs] = useState({
+    all: true,
+    movies: false,
+    tv: false,
+  });
   const [, setVersion] = React.useState(0);
 
   // Separate scroll values for each tab
@@ -192,6 +198,13 @@ export const HomeTabbedScreen = React.memo(() => {
     }
   };
 
+  const handleTabPress = (tab: TabType) => {
+    setActiveTab(tab);
+    if (!loadedTabs[tab]) {
+      setLoadedTabs(prev => ({...prev, [tab]: true}));
+    }
+  };
+
   const renderTabButton = (tab: TabType, label: string) => {
     const isActive = activeTab === tab;
     const iconSize = isTablet ? 24 : 24;
@@ -201,7 +214,7 @@ export const HomeTabbedScreen = React.memo(() => {
       <TouchableOpacity
         key={tab}
         style={[styles.tabButton, isActive && styles.activeTabButton]}
-        onPress={() => setActiveTab(tab)}>
+        onPress={() => handleTabPress(tab)}>
         <View
           style={{
             paddingVertical: isTablet ? 14 : 12,
@@ -249,7 +262,7 @@ export const HomeTabbedScreen = React.memo(() => {
   );
 
   return (
-    <>
+    <View style={{flex: 1, backgroundColor: colors.background.primary}}>
       <LinearGradient
         colors={[colors.background.primary, 'transparent', 'transparent']}
         style={{
@@ -277,11 +290,18 @@ export const HomeTabbedScreen = React.memo(() => {
       </View>
       <View
         style={{display: activeTab === 'movies' ? 'flex' : 'none', flex: 1}}>
-        <MoviesScreen onScroll={handleScrollMovies} scrollEventThrottle={16} />
+        {loadedTabs.movies && (
+          <MoviesScreen
+            onScroll={handleScrollMovies}
+            scrollEventThrottle={16}
+          />
+        )}
       </View>
       <View style={{display: activeTab === 'tv' ? 'flex' : 'none', flex: 1}}>
-        <TVShowsScreen onScroll={handleScrollTV} scrollEventThrottle={16} />
+        {loadedTabs.tv && (
+          <TVShowsScreen onScroll={handleScrollTV} scrollEventThrottle={16} />
+        )}
       </View>
-    </>
+    </View>
   );
 });

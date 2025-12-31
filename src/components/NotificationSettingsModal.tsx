@@ -8,7 +8,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Alert,
+  Linking,
 } from 'react-native';
+import {PermissionModal} from './PermissionModal';
 import {MaybeBlurView} from './MaybeBlurView';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -16,7 +19,7 @@ import {notificationService} from '../services/NotificationService';
 import {useResponsive} from '../hooks/useResponsive';
 import {BlurPreference} from '../store/blurPreference';
 import {BlurView} from '@react-native-community/blur';
-import {detectRegion} from '../services/regionDetection';
+import {SettingsManager} from '../store/settings';
 
 interface NotificationSettingsModalProps {
   visible: boolean;
@@ -29,13 +32,19 @@ export const NotificationSettingsModal: React.FC<
 > = ({visible, onClose, onUpdate}) => {
   const [subscribedTopics, setSubscribedTopics] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasSystemPermission, setHasSystemPermission] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const {isTablet} = useResponsive();
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
 
-  // State to track if global notifications are enabled (derived from 'all' topic basically)
-  // Check if we have ANY topics subscribed.
-  const isGlobalEnabled = subscribedTopics.length > 0;
+  // Master switch is ON only if:
+  // 1. We have system permission
+  // 2. We have at least one topic subscribed (OR we consider 'no topics' as off)
+  // Actually, usually "Allow Notifications" means the capability is there.
+  // But to align with "turning off master", we check if subscribedTopics > 0 too?
+  // User wants: If hardware off -> master off.
+  const isMasterSwitchOn = hasSystemPermission && subscribedTopics.length > 0;
 
   useEffect(() => {
     if (visible) {
@@ -46,8 +55,12 @@ export const NotificationSettingsModal: React.FC<
   const loadSubscriptions = async () => {
     setIsLoading(true);
     try {
-      const topics = await notificationService.getSubscribedTopics();
+      const [topics, sysPerm] = await Promise.all([
+        notificationService.getSubscribedTopics(),
+        notificationService.checkSystemPermission(),
+      ]);
       setSubscribedTopics(topics);
+      setHasSystemPermission(sysPerm);
     } catch (e) {
       console.error(e);
     } finally {
@@ -64,23 +77,22 @@ export const NotificationSettingsModal: React.FC<
     setSubscribedTopics(newTopics);
 
     let success = false;
+    const settingsRegion = await SettingsManager.getRegion();
+    const region = settingsRegion?.iso_3166_1;
+
     if (isSubscribed) {
+      // Unsubscribing
       success = await notificationService.unsubscribeFromTopic(topic);
-      // If unsubscribing from 'all', also unsubscribe from region
-      if (topic === 'all') {
-        const region = await detectRegion();
-        if (region) {
-          await notificationService.unsubscribeFromTopic(region);
-        }
+      // If unsubscribing from 'trending', also unsubscribe from region
+      if (topic === 'trending' && region) {
+        await notificationService.unsubscribeFromTopic(region);
       }
     } else {
+      // Subscribing
       success = await notificationService.subscribeToTopic(topic);
-      // If subscribing to 'all', also subscribe to region
-      if (topic === 'all') {
-        const region = await detectRegion();
-        if (region) {
-          await notificationService.subscribeToTopic(region);
-        }
+      // If subscribing to 'trending', also subscribe to region
+      if (topic === 'trending' && region) {
+        await notificationService.subscribeToTopic(region);
       }
     }
 
@@ -95,18 +107,45 @@ export const NotificationSettingsModal: React.FC<
 
   const toggleAll = async (value: boolean) => {
     setIsLoading(true);
+
     if (value) {
-      await notificationService.subscribeToTopic('all');
+      // User wants to turn ON
+      // 1. Check System Permission first
+      const hasPerm = await notificationService.checkSystemPermission();
+      if (!hasPerm) {
+        // Request it
+        const granted = await notificationService.requestUserPermission();
+        if (!granted) {
+          // Denied -> Show Modal
+          setShowPermissionModal(true);
+          setIsLoading(false);
+          return;
+        }
+        setHasSystemPermission(true);
+      }
+
+      // 2. Subscribe to defaults
+      const settingsRegion = await SettingsManager.getRegion();
+      const region = settingsRegion?.iso_3166_1;
       await notificationService.subscribeToTopic('trending');
-      const region = await detectRegion();
+      await notificationService.subscribeToTopic('all');
       if (region) {
         await notificationService.subscribeToTopic(region);
       }
     } else {
+      // User wants to turn OFF
+      // Unsubscribe everything (App Mute)
+      const settingsRegion = await SettingsManager.getRegion();
+      const region = settingsRegion?.iso_3166_1;
       for (const topic of subscribedTopics) {
         await notificationService.unsubscribeFromTopic(topic);
       }
+      if (region) {
+        await notificationService.unsubscribeFromTopic(region);
+      }
+      // Note: We cannot programmatically revoke system permission
     }
+
     await loadSubscriptions();
     onUpdate();
     setIsLoading(false);
@@ -187,7 +226,7 @@ export const NotificationSettingsModal: React.FC<
                   </Text>
                 </View>
                 <Switch
-                  value={isGlobalEnabled}
+                  value={isMasterSwitchOn}
                   onValueChange={toggleAll}
                   trackColor={{
                     false: colors.background.tertiarySolid,
@@ -202,28 +241,34 @@ export const NotificationSettingsModal: React.FC<
 
               <Text style={styles.sectionHeader}>Topics</Text>
 
-              {/* Trending */}
               <View style={styles.row}>
                 <View style={{flex: 1, paddingRight: spacing.md}}>
-                  <Text style={styles.rowTitle}>Trending Now</Text>
+                  <Text style={styles.rowTitle}>Weekly Trending</Text>
                   <Text style={styles.rowSubtitle}>
-                    Get updates on what's popular
+                    Get weekly updates on popular content in your region
                   </Text>
                 </View>
                 <Switch
                   value={subscribedTopics.includes('trending')}
+                  disabled={!isMasterSwitchOn}
                   onValueChange={() => toggleTopic('trending')}
                   trackColor={{
                     false: colors.background.tertiarySolid,
-                    true: colors.accent,
+                    true: isMasterSwitchOn
+                      ? colors.accent
+                      : colors.background.tertiarySolid,
                   }}
-                  thumbColor={colors.text.primary}
+                  thumbColor={
+                    isMasterSwitchOn
+                      ? colors.text.primary
+                      : colors.text.secondary
+                  }
                   ios_backgroundColor={colors.background.tertiarySolid}
                 />
               </View>
 
-              {/* General Updates */}
-              <View style={styles.row}>
+              {/* General Updates (Commented out for now) */}
+              {/* <View style={styles.row}>
                 <View style={{flex: 1, paddingRight: spacing.md}}>
                   <Text style={styles.rowTitle}>General Updates</Text>
                   <Text style={styles.rowSubtitle}>
@@ -240,10 +285,25 @@ export const NotificationSettingsModal: React.FC<
                   thumbColor={colors.text.primary}
                   ios_backgroundColor={colors.background.tertiarySolid}
                 />
-              </View>
+              </View> */}
             </ScrollView>
           )}
         </MaybeBlurView>
+        <PermissionModal
+          visible={showPermissionModal}
+          onClose={() => setShowPermissionModal(false)}
+          onRequestPermission={() =>
+            notificationService.requestUserPermission()
+          }
+          onContinue={() => {
+            // No custom action for "Proceed", settings is the only way for global fix
+            // But if they clicked Continue, we just close.
+            // Or we could re-check permission?
+            // For now just close.
+            setShowPermissionModal(false);
+          }}
+          showSkipOption={false}
+        />
       </View>
     </Modal>
   );

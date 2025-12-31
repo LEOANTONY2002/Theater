@@ -49,8 +49,14 @@ const OnboardingLanguage: React.FC<{
 
   const handleSave = async () => {
     try {
-      await SettingsManager.setMyLanguage(selectedLanguage);
-      await queryClient.invalidateQueries({queryKey: ['my_language']});
+      if (selectedLanguage) {
+        await SettingsManager.setMyLanguage(selectedLanguage);
+        await SettingsManager.setContentLanguages([selectedLanguage]);
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: ['my_language']}),
+        queryClient.invalidateQueries({queryKey: ['selectedLanguages']}),
+      ]);
       onDone();
     } catch (error) {}
   };

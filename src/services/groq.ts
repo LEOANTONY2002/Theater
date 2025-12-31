@@ -2,10 +2,12 @@ import {AISettingsManager} from '../store/aiSettings';
 import {cache, CACHE_KEYS} from '../utils/cache';
 import {searchMovies, searchTVShows} from './tmdb';
 import {getMovie, getTVShow} from '../database/contentCache';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {AI_CONFIG} from '../config/aiConfig';
 
 // Default fallback values
-const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // Fast, latest data
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const DEFAULT_MODEL = AI_CONFIG.DEFAULT_MODEL; // Fast, latest data
+const GROQ_API_URL = AI_CONFIG.GROQ_API_URL;
 // Note: Do NOT hardcode API keys. Users must provide their own key via settings.
 
 // Dynamic function to get current settings
@@ -643,17 +645,31 @@ export async function getPersonalizedRecommendation(
   }>,
 ): Promise<any> {
   // Create a cache key based on mood answers and recent feedback
-  const cacheKey = `mood:${JSON.stringify(moodAnswers)}:history:${
-    feedbackHistory.length > 0 ? feedbackHistory[0].contentId : 'none'
-  }`;
+  // Include latest 10 feedback items to ensure cache invalidation on feedback changes
+  const feedbackKey =
+    feedbackHistory.length > 0
+      ? feedbackHistory
+          .slice(0, 10)
+          .map(f => `${f.contentId}_${f.liked ? 'L' : 'D'}`)
+          .join(',')
+      : 'none';
 
-  // Try to get from cache first (shorter TTL since preferences might change)
-  const cachedResponse = await cache.get(
-    CACHE_KEYS.AI_RECOMMENDATION,
-    cacheKey,
-  );
-  if (cachedResponse) {
-    return cachedResponse;
+  const cacheKey = `@mynextwatch_rec:${JSON.stringify(
+    moodAnswers,
+  )}:${feedbackKey}`;
+
+  // Try to get from AsyncStorage first (persists across app restarts)
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      console.log(
+        '[MyNextWatch] Returning cached recommendation from AsyncStorage',
+      );
+      return parsed;
+    }
+  } catch (error) {
+    console.warn('[MyNextWatch] Failed to read cache:', error);
   }
 
   const likedContent = feedbackHistory.filter(f => f.liked === true);
@@ -664,11 +680,11 @@ export async function getPersonalizedRecommendation(
     content: `You are Theater AI, a personalized movie/TV recommendation engine. 
       Based on user's current mood/preferences and their feedback history, recommend ONE single movie or TV show that perfectly matches their current state of mind.
       
-      Analyze their mood responses deeply to understand what they're truly looking for - not just genres, but emotional tone, pacing, themes, and viewing experience.
+      Analyze their mood responses deeply to understand what they're truly looking for - not just genres, but emotional tone, pacing, themes.
       
       Return ONLY a JSON object with these exact fields:
-      {"title": "Movie/Show Title", "year": "2024", "type": "movie" or "tv", "description": "A detailed, engaging explanation of why this content perfectly matches their current mood and preferences. Include key themes, emotional tone, pacing, and what makes it compelling for their current state of mind. Make it 2-3 sentences long."}
-      
+      {"title": "Movie/Show Title", "year": "2024", "type": "movie" or "tv", "original_language": "en", "description": "A detailed, engaging explanation of why this content perfectly matches their current mood and preferences. Include key themes, emotional tone, pacing, and what makes it compelling for their current state of mind. Make it 2-3 sentences long."}
+            
       Do not include any explanation or extra text. Just return the JSON object.`,
   };
 
@@ -701,20 +717,18 @@ export async function getPersonalizedRecommendation(
 
   if (likedContent.length > 0) {
     userPrompt += `Content I previously enjoyed:\n${likedContent
+      .slice(0, 10)
       .map(c => `- ${c.title}`)
       .join('\n')}\n\n`;
   }
 
   if (dislikedContent.length > 0) {
     userPrompt += `Content I didn't enjoy:\n${dislikedContent
+      .slice(0, 10)
       .map(c => `- ${c.title}`)
       .join('\n')}\n\n`;
   }
 
-  userPrompt +=
-    'Based on my current mood and viewing history, recommend ONE movie or TV show that would be perfect for me right now. ';
-  userPrompt +=
-    'Align the suggestion\'s tone with my selected story preference and overall mood (avoid contradictions, e.g., do not suggest dark & gritty for a lighthearted/"laughs" mood). ';
   if (desiredType) {
     userPrompt += `STRICT: Recommend only a ${
       desiredType === 'movie' ? 'movie' : 'TV series'
@@ -729,30 +743,102 @@ export async function getPersonalizedRecommendation(
   };
 
   try {
+    console.log('[MyNextWatch] Calling Groq for recommendation...');
     const result = await callGroq([system, user]);
+    console.log(
+      '[MyNextWatch] Groq response received:',
+      result.substring(0, 200),
+    );
 
     // Try to extract JSON from the response
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const aiRecommendation = JSON.parse(jsonMatch[0]);
+      console.log('[MyNextWatch] AI Recommendation:', aiRecommendation);
 
       // Now search TMDB for the actual content data
       let tmdbData = null;
       if (aiRecommendation.type === 'movie') {
-        const data = await searchMovies(aiRecommendation.title, 1, {
+        console.log(
+          '[MyNextWatch] Searching TMDB for movie:',
+          aiRecommendation.title,
+          aiRecommendation.year,
+          aiRecommendation.original_language,
+        );
+        // Try with year first
+        let data = await searchMovies(aiRecommendation.title, 1, {
           year: aiRecommendation.year,
         } as any);
-        tmdbData =
-          data?.results && data.results.length > 0 ? data.results[0] : null;
+
+        // Fallback: search without year if no results
+        if (!data?.results || data.results.length === 0) {
+          console.log(
+            '[MyNextWatch] No results with year, retrying without year...',
+          );
+          data = await searchMovies(aiRecommendation.title, 1);
+        }
+
+        // Filter by language if available
+        let candidates = data?.results || [];
+        if (aiRecommendation.original_language && candidates.length > 0) {
+          const langFiltered = candidates.filter(
+            (c: any) =>
+              c?.original_language === aiRecommendation.original_language,
+          );
+          if (langFiltered.length > 0) {
+            candidates = langFiltered;
+            console.log(
+              '[MyNextWatch] Filtered by language:',
+              aiRecommendation.original_language,
+            );
+          }
+        }
+
+        tmdbData = candidates.length > 0 ? candidates[0] : null;
       } else if (aiRecommendation.type === 'tv') {
-        const data = await searchTVShows(aiRecommendation.title, 1, {
+        console.log(
+          '[MyNextWatch] Searching TMDB for TV show:',
+          aiRecommendation.title,
+          aiRecommendation.year,
+          aiRecommendation.original_language,
+        );
+        // Try with year first
+        let data = await searchTVShows(aiRecommendation.title, 1, {
           first_air_date_year: aiRecommendation.year,
         } as any);
-        tmdbData =
-          data?.results && data.results.length > 0 ? data.results[0] : null;
+
+        // Fallback: search without year if no results
+        if (!data?.results || data.results.length === 0) {
+          console.log(
+            '[MyNextWatch] No results with year, retrying without year...',
+          );
+          data = await searchTVShows(aiRecommendation.title, 1);
+        }
+
+        // Filter by language if available
+        let candidates = data?.results || [];
+        if (aiRecommendation.original_language && candidates.length > 0) {
+          const langFiltered = candidates.filter(
+            (c: any) =>
+              c?.original_language === aiRecommendation.original_language,
+          );
+          if (langFiltered.length > 0) {
+            candidates = langFiltered;
+            console.log(
+              '[MyNextWatch] Filtered by language:',
+              aiRecommendation.original_language,
+            );
+          }
+        }
+
+        tmdbData = candidates.length > 0 ? candidates[0] : null;
       }
 
       if (tmdbData) {
+        console.log(
+          '[MyNextWatch] TMDB data found:',
+          tmdbData.title || tmdbData.name,
+        );
         const result = {
           id: tmdbData.id,
           title: tmdbData.title,
@@ -767,20 +853,28 @@ export async function getPersonalizedRecommendation(
           media_type: aiRecommendation.type,
         };
 
-        // Cache the result (1 hour TTL)
-        await cache.set(
-          CACHE_KEYS.AI_RECOMMENDATION,
-          cacheKey,
-          result,
-          1000 * 60 * 60,
-        );
+        // Cache the result in AsyncStorage (persists across app restarts)
+        try {
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(result));
+          console.log('[MyNextWatch] Cached recommendation to AsyncStorage');
+        } catch (error) {
+          console.warn('[MyNextWatch] Failed to cache recommendation:', error);
+        }
 
         return result;
+      } else {
+        console.warn(
+          '[MyNextWatch] TMDB data not found for:',
+          aiRecommendation.title,
+        );
       }
+    } else {
+      console.warn('[MyNextWatch] No JSON match in Groq response');
     }
 
     return null;
   } catch (error) {
+    console.error('[MyNextWatch] Error getting recommendation:', error);
     return null;
   }
 }

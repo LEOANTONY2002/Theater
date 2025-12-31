@@ -88,7 +88,7 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disablePersistence, languages]);
+  }, [disablePersistence, languages, initialSelectedIso]);
 
   const toggleLanguage = async (language: Language) => {
     const isSelected = selectedLanguages.some(
@@ -244,6 +244,32 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
               </TouchableOpacity>
             )}
           </View>
+          {selectedLanguages.length > 0 && (
+            <View style={{marginBottom: spacing.md}}>
+              <Text style={[styles.description, {marginBottom: spacing.sm}]}>
+                Selected
+              </Text>
+              {selectedLanguages.map(item => (
+                <TouchableOpacity
+                  key={`selected-header-${item.iso_639_1}`}
+                  style={[styles.languageItem, styles.selectedItem]}
+                  activeOpacity={0.9}
+                  onPress={() => toggleLanguage(item)}>
+                  <View style={styles.languageInfo}>
+                    <Text style={styles.languageName}>{item.english_name}</Text>
+                    {item.name ? (
+                      <Text style={styles.nativeName}>({item.name})</Text>
+                    ) : null}
+                  </View>
+                  <Icon
+                    name="checkmark"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
           <Text style={styles.description}>
             {searchQuery
               ? `${filteredLanguages.length} results`

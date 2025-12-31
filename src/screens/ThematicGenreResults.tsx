@@ -263,11 +263,7 @@ export const ThematicGenreResultsScreen: React.FC = () => {
     <GestureHandlerRootView style={{flex: 1}}>
       <View style={{flex: 1, backgroundColor: colors.background.primary}}>
         <LinearGradient
-          colors={[
-            colors.background.primary,
-            colors.background.primary,
-            'transparent',
-          ]}
+          colors={[colors.background.primary, 'transparent']}
           style={{
             position: 'absolute',
             left: 0,

@@ -10,6 +10,7 @@ import {
   Image,
   useWindowDimensions,
   Linking,
+  Animated,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -40,6 +41,28 @@ export const VideosGallery: React.FC<VideosGalleryProps> = ({
   const themeMode = BlurPreference.getMode();
   const isSolid = themeMode === 'normal';
   const {isTablet} = useResponsive();
+
+  const [scaleAnim] = useState(new Animated.Value(0));
+
+  const handleOpenVideo = (video: Video) => {
+    setSelectedVideo(video);
+    setIsVideoLoading(true);
+    onVideoPress?.(video.key);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+  };
+
+  const handleCloseVideo = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setSelectedVideo(null));
+  };
 
   const categorizedVideos = useMemo(() => {
     if (!videos?.results) return {};
@@ -91,11 +114,7 @@ export const VideosGallery: React.FC<VideosGalleryProps> = ({
     <TouchableOpacity
       key={video.id}
       style={styles.videoItem}
-      onPress={() => {
-        setSelectedVideo(video);
-        setIsVideoLoading(true);
-        onVideoPress?.(video.key);
-      }}
+      onPress={() => handleOpenVideo(video)}
       activeOpacity={0.8}>
       <View style={styles.thumbnailContainer}>
         <FastImage
@@ -169,52 +188,71 @@ export const VideosGallery: React.FC<VideosGalleryProps> = ({
       {/* Full Screen Video Modal */}
       <Modal
         visible={selectedVideo !== null}
-        backdropColor={colors.modal.blurDark}
+        transparent={true}
+        animationType="none"
         statusBarTranslucent
-        onRequestClose={() => setSelectedVideo(null)}
-        animationType="fade">
-        <View style={styles.modalContainer}>
-          {!isSolid && (
-            <BlurView
-              blurType="dark"
-              blurAmount={10}
-              overlayColor={colors.modal.blurDark}
-              style={{
-                flex: 1,
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
+        onRequestClose={handleCloseVideo}>
+        <TouchableOpacity
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPress={handleCloseVideo}>
+          <Animated.View
+            style={[
+              styles.modalBlur,
+              {
+                opacity: scaleAnim,
+              },
+            ]}>
+            {!isSolid && (
+              <BlurView
+                blurType="dark"
+                blurAmount={15}
+                style={StyleSheet.absoluteFill}
+              />
+            )}
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {backgroundColor: isSolid ? 'black' : 'rgba(0,0,0,0.4)'},
+              ]}
             />
-          )}
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() =>
-                selectedVideo &&
-                Linking.openURL(
-                  `https://www.youtube.com/watch?v=${selectedVideo.key}`,
-                )
-              }
-              activeOpacity={0.8}>
-              <Icon name="logo-youtube" size={28} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setSelectedVideo(null)}
-              activeOpacity={0.8}>
-              <Icon name="close" size={30} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          </Animated.View>
 
-          <MaybeBlurView
-            body
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                opacity: scaleAnim,
+                transform: [
+                  {
+                    scale: scaleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() =>
+                  selectedVideo &&
+                  Linking.openURL(
+                    `https://www.youtube.com/watch?v=${selectedVideo.key}`,
+                  )
+                }
+                activeOpacity={0.8}>
+                <Icon name="logo-youtube" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleCloseVideo}
+                activeOpacity={0.8}>
+                <Icon name="close" size={26} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
             {selectedVideo && (
               <View style={styles.fullVideoContainer}>
                 {isVideoLoading && (
@@ -223,8 +261,8 @@ export const VideosGallery: React.FC<VideosGalleryProps> = ({
                   </View>
                 )}
                 <YoutubePlayer
-                  width={width - 64}
-                  height={((width - 64) * 9) / 16}
+                  width={width - spacing.xl * 2}
+                  height={((width - spacing.xl * 2) * 9) / 16}
                   videoId={selectedVideo.key}
                   play={true}
                   onReady={() => setIsVideoLoading(false)}
@@ -234,8 +272,8 @@ export const VideosGallery: React.FC<VideosGalleryProps> = ({
                 />
               </View>
             )}
-          </MaybeBlurView>
-        </View>
+          </Animated.View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -311,9 +349,16 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalContent: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBlur: {
+    ...StyleSheet.absoluteFillObject,
   },
   modalButtons: {
     flexDirection: 'row',

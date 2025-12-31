@@ -121,7 +121,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.modal.blur,
+    borderColor: colors.modal.header,
+    borderWidth: 1,
+    borderBottomWidth: 0,
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: borderRadius.round,

@@ -126,7 +126,7 @@ const OnboardingOTTs: React.FC<{
           {isLoadingProviders ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.text.primary} />
-              <Text style={styles.loadingText}>Loading platforms...</Text>
+              <Text style={styles.loadingText}>Loading OTTs...</Text>
             </View>
           ) : availableProviders?.length ? (
             <ScrollView
@@ -135,7 +135,6 @@ const OnboardingOTTs: React.FC<{
               contentContainerStyle={{
                 paddingTop: 20,
                 paddingBottom: 60,
-                paddingHorizontal: spacing.sm,
               }}>
               <View style={modalStyles.allProvidersGrid}>
                 {availableProviders.map((p: any, index: number) => (
@@ -216,7 +215,7 @@ const OnboardingOTTs: React.FC<{
                 width: 150,
               },
             ]}>
-            <Text style={styles.continueButtonText}>Enter Theater</Text>
+            <Text style={styles.continueButtonText}>Next</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -311,22 +310,21 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   providerCard: {
-    borderRadius: 16,
-    margin: 3,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   providerLogo: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
+    width: 55,
+    height: 55,
+    borderRadius: 12,
   },
   checkmark: {
     position: 'absolute',
     top: 4,
     right: 4,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 2,
   },
   actionButtons: {

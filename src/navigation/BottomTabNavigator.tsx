@@ -190,25 +190,23 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="HomeTab"
           component={HomeStackNavigator}
-          listeners={({navigation}) => ({
-            tabPress: e => {
-              // prevent the default behavior (which would activate the tab first)
-              e.preventDefault();
-
-              // Navigate to the tab and explicitly target its initial screen.
-              // This causes the nested navigator to be at the root BEFORE the tab is shown.
-              navigation.dispatch(
-                CommonActions.navigate({
-                  name: 'HomeTab',
-                  params: {screen: 'HomeScreen'}, // initial screen name in HomeStackNavigator
-                }),
-              );
-            },
-          })}
+          // listeners={({navigation}) => ({
+          //   tabPress: e => {
+          //     e.preventDefault();
+          //     navigation.dispatch(
+          //       CommonActions.navigate({
+          //         name: 'HomeTab',
+          //         params: {screen: 'HomeScreen'},
+          //       }),
+          //     );
+          //   },
+          // })}
           options={({route}: any) => {
             const routeName =
               getFocusedRouteNameFromRoute(route) ?? 'HomeScreen';
-            const shouldHide = routeName === 'CinemaScreen';
+            const shouldHide =
+              routeName === 'CinemaScreen' ||
+              routeName === 'ThematicGenreResults';
 
             return {
               title: 'Home',
@@ -229,7 +227,7 @@ export const BottomTabNavigator = () => {
                     borderTopWidth: 0,
                     paddingTop: isTablet ? spacing.md : spacing.sm,
                     position: 'absolute',
-                    bottom: isTablet ? 30 : 16,
+                    bottom: isTablet ? 30 : 24,
                     shadowOpacity: 0,
                     marginHorizontal:
                       isTablet && orientation === 'portrait'
@@ -250,21 +248,17 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="Search"
           component={SearchStackNavigator}
-          listeners={({navigation}) => ({
-            tabPress: e => {
-              // prevent the default behavior (which would activate the tab first)
-              e.preventDefault();
-
-              // Navigate to the tab and explicitly target its initial screen.
-              // This causes the nested navigator to be at the root BEFORE the tab is shown.
-              navigation.dispatch(
-                CommonActions.navigate({
-                  name: 'Search',
-                  params: {screen: 'SearchScreen'}, // initial screen name in SearchStackNavigator
-                }),
-              );
-            },
-          })}
+          // listeners={({navigation}) => ({
+          //   tabPress: e => {
+          //     e.preventDefault();
+          //     navigation.dispatch(
+          //       CommonActions.navigate({
+          //         name: 'Search',
+          //         params: {screen: 'SearchScreen'},
+          //       }),
+          //     );
+          //   },
+          // })}
           options={({route}: any) => {
             const routeName =
               getFocusedRouteNameFromRoute(route) ?? 'SearchScreen';
@@ -288,7 +282,7 @@ export const BottomTabNavigator = () => {
                     borderTopWidth: 0,
                     paddingTop: isTablet ? spacing.md : spacing.sm,
                     position: 'absolute',
-                    bottom: isTablet ? 30 : 16,
+                    bottom: isTablet ? 30 : 24,
                     shadowOpacity: 0,
                     marginHorizontal:
                       isTablet && orientation === 'portrait'
@@ -310,20 +304,17 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="Curation"
           component={CurationStackNavigator}
-          listeners={({navigation}) => ({
-            tabPress: e => {
-              // prevent the default behavior (which would activate the tab first)
-              e.preventDefault();
-              // Navigate to the tab and explicitly target its initial screen.
-              // This causes the nested navigator to be at the root BEFORE the tab is shown.
-              navigation.dispatch(
-                CommonActions.navigate({
-                  name: 'Curation',
-                  params: {screen: 'CurationScreen'}, // initial screen name in FiltersStackNavigator
-                }),
-              );
-            },
-          })}
+          // listeners={({navigation}) => ({
+          //   tabPress: e => {
+          //     e.preventDefault();
+          //     navigation.dispatch(
+          //       CommonActions.navigate({
+          //         name: 'Curation',
+          //         params: {screen: 'CurationScreen'},
+          //       }),
+          //     );
+          //   },
+          // })}
           options={({route}: any) => {
             const routeName =
               getFocusedRouteNameFromRoute(route) ?? 'CurationScreen';
@@ -347,7 +338,7 @@ export const BottomTabNavigator = () => {
                     borderTopWidth: 0,
                     paddingTop: isTablet ? spacing.md : spacing.sm,
                     position: 'absolute',
-                    bottom: isTablet ? 30 : 16,
+                    bottom: isTablet ? 30 : 24,
                     shadowOpacity: 0,
                     marginHorizontal:
                       isTablet && orientation === 'portrait'
@@ -368,20 +359,17 @@ export const BottomTabNavigator = () => {
         <Tab.Screen
           name="MySpace"
           component={MySpaceStackNavigator}
-          listeners={({navigation}) => ({
-            tabPress: e => {
-              // prevent the default behavior (which would activate the tab first)
-              e.preventDefault();
-              // Navigate to the tab and explicitly target its initial screen.
-              // This causes the nested navigator to be at the root BEFORE the tab is shown.
-              navigation.dispatch(
-                CommonActions.navigate({
-                  name: 'MySpace',
-                  params: {screen: 'MySpaceScreen'}, // initial screen name in MySpaceStackNavigator
-                }),
-              );
-            },
-          })}
+          // listeners={({navigation}) => ({
+          //   tabPress: e => {
+          //     e.preventDefault();
+          //     navigation.dispatch(
+          //       CommonActions.navigate({
+          //         name: 'MySpace',
+          //         params: {screen: 'MySpaceScreen'},
+          //       }),
+          //     );
+          //   },
+          // })}
           options={({route}: any) => {
             const routeName =
               getFocusedRouteNameFromRoute(route) ?? 'MySpaceScreen';
@@ -414,7 +402,7 @@ export const BottomTabNavigator = () => {
                     borderTopWidth: 0,
                     paddingTop: isTablet ? spacing.md : spacing.sm,
                     position: 'absolute',
-                    bottom: isTablet ? 30 : 16,
+                    bottom: isTablet ? 30 : 24,
                     shadowOpacity: 0,
                     marginHorizontal:
                       isTablet && orientation === 'portrait'

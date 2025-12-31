@@ -61,28 +61,6 @@ export const CategoryScreen = () => {
   // animation on every frame, which can cause jank.
 
   // Interpolated styles for the animated title container (use scrollY)
-  const animatedHeaderStyle = {
-    marginHorizontal: scrollY.interpolate({
-      inputRange: [0, 40],
-      outputRange: [0, spacing.lg],
-      extrapolate: 'clamp',
-    }),
-    marginTop: scrollY.interpolate({
-      inputRange: [0, 40],
-      outputRange: [40, 60],
-      extrapolate: 'clamp',
-    }),
-    marginBottom: scrollY.interpolate({
-      inputRange: [0, 40],
-      outputRange: [spacing.md, spacing.lg],
-      extrapolate: 'clamp',
-    }),
-    borderRadius: scrollY.interpolate({
-      inputRange: [0, 40],
-      outputRange: [16, 24],
-      extrapolate: 'clamp',
-    }),
-  };
 
   // Ensure system back/gesture also returns to Search when opened from Search
   useEffect(() => {
@@ -257,18 +235,14 @@ export const CategoryScreen = () => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: spacing.xl,
-      overflow: 'hidden',
+      paddingTop: 30,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.lg,
       position: 'absolute',
       top: 0,
+      left: 0,
+      right: 0,
       zIndex: 2,
-      borderRadius: borderRadius.round,
-      marginHorizontal:
-        isTablet && orientation === 'portrait'
-          ? '18%'
-          : isTablet && orientation === 'landscape'
-          ? '27%'
-          : 24,
     },
     titleContainer: {
       flexDirection: 'row',
@@ -296,11 +270,11 @@ export const CategoryScreen = () => {
       marginRight: spacing.sm,
     },
     title: {
-      ...typography.h2,
+      ...typography.h3,
       color: colors.text.primary,
       flex: 1,
       textAlign: 'center',
-      marginLeft: -50,
+      marginLeft: -spacing.md,
       zIndex: 2,
     },
     contentContainer: {
@@ -392,21 +366,26 @@ export const CategoryScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             style={{
-              display: 'flex',
-              gap: 20,
-              flexDirection: 'row',
               alignItems: 'center',
-              paddingHorizontal: spacing.md,
-              width: '100%',
-              height: 60,
+              justifyContent: 'center',
+              backgroundColor: colors.modal.blur,
+              borderWidth: 1,
+              borderBottomWidth: 0,
+              borderColor: colors.modal.content,
+              borderRadius: borderRadius.round,
+              padding: spacing.sm,
             }}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Icon name="chevron-back" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
-            <Text style={styles.title}>{title}</Text>
-          </View>
+            <Icon
+              name="chevron-back-outline"
+              size={24}
+              color={colors.text.primary}
+            />
+          </TouchableOpacity>
+          <Text style={styles.title}>{title}</Text>
+          <View style={{width: 24}} />
         </View>
         <View style={{position: 'absolute', top: 100, left: 0, right: 0}}>
           <GridListSkeleton />
@@ -424,63 +403,39 @@ export const CategoryScreen = () => {
           left: 0,
           right: 0,
           top: 0,
-          height: 200,
+          height: 100,
           zIndex: 1,
           pointerEvents: 'none',
         }}
       />
       <View style={styles.header}>
-        {isSolid ? (
-          <LinearGradient
-            colors={['transparent', colors.background.primary]}
-            style={{
-              position: 'absolute',
-              left: -50,
-              right: 0,
-              bottom: -20,
-              height: 100,
-              zIndex: 1,
-              width: '150%',
-              transform: [{rotate: '-5deg'}],
-              pointerEvents: 'none',
-            }}
-          />
-        ) : null}
-        <View
+        <TouchableOpacity
+          onPress={() => {
+            if (fromSearch) {
+              (navigation as any).navigate('Main', {screen: 'Search'});
+            } else {
+              navigation.goBack();
+            }
+          }}
           style={{
-            display: 'flex',
-            gap: 20,
-            flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: spacing.md,
-            width: '100%',
-            height: 60,
-            borderRadius: borderRadius.round,
+            justifyContent: 'center',
+            backgroundColor: colors.modal.blur,
+            borderWidth: 1,
+            borderBottomWidth: 0,
             borderColor: colors.modal.content,
-            borderWidth: isSolid ? 1 : 0,
-            backgroundColor: isSolid
-              ? colors.background.primary
-              : 'rgba(122, 122, 122, 0.31)',
-          }}>
-          <TouchableOpacity
-            onPress={() => {
-              if (fromSearch) {
-                (navigation as any).navigate('Main', {screen: 'Search'});
-              } else {
-                navigation.goBack();
-              }
-            }}
-            style={{
-              width: 30,
-              height: 30,
-              zIndex: 3,
-              display: 'flex',
-              alignItems: 'center',
-            }}>
-            <Icon name="chevron-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.title}>{title}</Text>
-        </View>
+            borderRadius: borderRadius.round,
+            padding: spacing.sm,
+          }}
+          activeOpacity={0.9}>
+          <Icon
+            name="chevron-back-outline"
+            size={24}
+            color={colors.text.primary}
+          />
+        </TouchableOpacity>
+        <Text style={styles.title}>{title}</Text>
+        <View style={{width: 24}} />
       </View>
       <View style={styles.contentContainer}>
         <FlatList

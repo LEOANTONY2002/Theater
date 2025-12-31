@@ -22,6 +22,7 @@ export interface WatchlistItem {
   poster_path: string;
   backdrop_path: string;
   vote_average: number;
+  vote_count: number;
   release_date?: string;
   first_air_date?: string;
   genre_ids: number[];
@@ -179,6 +180,7 @@ class WatchlistManager {
             poster_path: content.poster_path as string,
             backdrop_path: content.backdrop_path as string,
             vote_average: content.vote_average as number,
+            vote_count: (content.vote_count as number) || 0,
             release_date: content.release_date as string | undefined,
             first_air_date: content.first_air_date as string | undefined,
             genre_ids: content.genre_ids
@@ -205,6 +207,7 @@ class WatchlistManager {
           poster_path: '',
           backdrop_path: '',
           vote_average: 0,
+          vote_count: 0,
           genre_ids: [],
           popularity: 0,
           original_language: '',

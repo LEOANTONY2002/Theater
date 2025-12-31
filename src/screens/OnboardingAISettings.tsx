@@ -13,6 +13,7 @@ import {
   ScrollView,
   FlatList,
   Image,
+  Animated,
 } from 'react-native';
 import {colors, spacing, borderRadius, typography} from '../styles/theme';
 import LinearGradient from 'react-native-linear-gradient';
@@ -25,9 +26,9 @@ import {useQueryClient} from '@tanstack/react-query';
 import {useResponsive} from '../hooks/useResponsive';
 import {checkInternet} from '../services/connectivity';
 import {NoInternet} from './NoInternet';
-import {AI_CONSTANTS} from '../config/aiConstants';
+import {AI_CONFIG} from '../config/aiConfig';
 
-const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const DEFAULT_MODEL = AI_CONFIG.DEFAULT_MODEL;
 
 interface GroqModel {
   id: string;
@@ -40,24 +41,24 @@ const instructions = [
   {
     id: '1',
     image: require('../assets/AI1.png'),
-    text: 'Go to Groq Console',
+    text: 'Go to Groq Console and Click "Create API key"',
     hasButton: true,
   },
   {
     id: '2',
     image: require('../assets/AI2.png'),
-    text: 'Click on "Create API key"',
+    text: 'Type a name for your API key',
   },
   {
     id: '3',
     image: require('../assets/AI3.png'),
-    text: 'Type a name for your API key',
+    text: 'Click "Copy" and paste it above',
   },
 ];
 
 const FALLBACK_MODELS: GroqModel[] = [
   {
-    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    id: AI_CONFIG.DEFAULT_MODEL,
     name: 'Llama 4 Scout 17B',
     description: 'Latest data & fast - RECOMMENDED',
   },
@@ -65,11 +66,6 @@ const FALLBACK_MODELS: GroqModel[] = [
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3 70B',
     description: 'Newest & fastest',
-  },
-  {
-    id: 'llama-3.1-70b-versatile',
-    name: 'Llama 3.1 70B',
-    description: 'Fast and versatile',
   },
   {
     id: 'llama-3.1-8b-instant',
@@ -142,7 +138,8 @@ const fetchGroqModels = async (apiKey: string): Promise<GroqModel[]> => {
 const OnboardingAISettings: React.FC<{
   onDone: () => void;
   onSkip: () => void;
-}> = ({onDone, onSkip}) => {
+  onBack: () => void;
+}> = ({onDone, onSkip, onBack}) => {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [apiKey, setApiKey] = useState('');
   const [availableModels, setAvailableModels] =
@@ -164,6 +161,11 @@ const OnboardingAISettings: React.FC<{
   // Network connectivity state
   const [showNoInternet, setShowNoInternet] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+
+  // Image expansion state
+  const [expandedImage, setExpandedImage] = useState<any>(null);
+  const [expandedScale] = useState(new Animated.Value(0));
+
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
   const width = useWindowDimensions().width;
@@ -232,6 +234,7 @@ const OnboardingAISettings: React.FC<{
 
   const loadSettings = async () => {
     try {
+      console.log('[OnboardingAI] Loading settings...');
       const settings = await AISettingsManager.getSettings();
 
       if (settings) {
@@ -253,6 +256,7 @@ const OnboardingAISettings: React.FC<{
         });
       }
     } catch (error) {
+      console.error('[OnboardingAI] Error loading settings:', error);
       setInitialSettings({
         apiKey: '',
         model: DEFAULT_MODEL,
@@ -274,14 +278,32 @@ const OnboardingAISettings: React.FC<{
 
   const validateApiKey = async (key: string): Promise<boolean> => {
     try {
+      console.log('[OnboardingAI] Validating API key...');
       // First check internet connectivity
       const isOnline = await checkInternet();
       if (!isOnline) {
+        console.warn('[OnboardingAI] No internet during validation');
         setShowNoInternet(true);
         return false;
       }
 
       // Make a test call to the Groq API to validate the key
+      const payload = {
+        model: AI_CONFIG.DEFAULT_MODEL,
+        messages: [
+          {
+            role: 'user',
+            content: 'Test connection',
+          },
+        ],
+        max_tokens: 5,
+      };
+
+      console.log(
+        '[OnboardingAI] Sending validation request to Groq...',
+        payload,
+      );
+
       const response = await fetch(
         'https://api.groq.com/openai/v1/chat/completions',
         {
@@ -290,25 +312,28 @@ const OnboardingAISettings: React.FC<{
             'Content-Type': 'application/json',
             Authorization: `Bearer ${key}`,
           },
-          body: JSON.stringify({
-            model: 'llama-3.1-70b-versatile',
-            messages: [
-              {
-                role: 'user',
-                content: 'Test',
-              },
-            ],
-            max_tokens: 5,
-          }),
+          body: JSON.stringify(payload),
         },
       );
+
+      console.log('[OnboardingAI] Groq validation status:', response.status);
 
       if (response.status >= 200 && response.status < 300) return true;
       if (response.status === 401 || response.status === 403) return false;
 
-      const errorData = await response.json();
+      try {
+        const errorData = await response.json();
+        console.error(
+          '[OnboardingAI] Groq validation error payload:',
+          errorData,
+        );
+      } catch (e) {
+        console.error('[OnboardingAI] Could not parse error response');
+      }
+
       return false;
     } catch (error) {
+      console.error('[OnboardingAI] Network error during validation:', error);
       // Check if it's a network error
       const isOnline = await checkInternet();
       if (!isOnline) {
@@ -319,22 +344,25 @@ const OnboardingAISettings: React.FC<{
   };
 
   const saveSettings = async () => {
+    console.log('[OnboardingAI] saveSettings triggered');
     const trimmedApiKey = apiKey.trim();
+
+    // Validate if key changed or first time
     if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
       setIsValidating(true);
       try {
         const isValid = await validateApiKey(trimmedApiKey);
         if (!isValid) {
           showAlert(
-            'Server Not Reachable',
-            'Please check your API key or try again.',
+            'Authentication Failed',
+            'Your API key is invalid or not reachable. Please check it and try again.',
           );
           setIsValidating(false);
           return;
         }
       } catch (error) {
         showAlert(
-          'Error',
+          'Connection Error',
           'Failed to validate API key. Please check your connection and try again.',
         );
         setIsValidating(false);
@@ -343,6 +371,9 @@ const OnboardingAISettings: React.FC<{
     }
 
     try {
+      console.log('[OnboardingAI] Saving settings to store...', {
+        model: selectedModel,
+      });
       await AISettingsManager.saveSettings({
         model: selectedModel,
         apiKey: trimmedApiKey,
@@ -358,9 +389,14 @@ const OnboardingAISettings: React.FC<{
 
       setShowApiKeyInput(false);
       Keyboard.dismiss();
-      showAlert('Success', 'AI settings saved successfully!');
+      console.log('[OnboardingAI] Success! Moving to next step.');
+      showAlert(
+        'Welcome to Theater!',
+        'Your AI setup is complete. Enjoy the show!',
+      );
       onDone();
     } catch (error) {
+      console.error('[OnboardingAI] Save error:', error);
       showAlert('Error', 'Failed to save settings. Please try again.');
     } finally {
       setIsValidating(false);
@@ -376,6 +412,24 @@ const OnboardingAISettings: React.FC<{
         setTimeout(() => setIsApiKeyCopied(false), 2000);
       }
     } catch (error) {}
+  };
+
+  const handleExpandImage = (image: any) => {
+    setExpandedImage(image);
+    Animated.spring(expandedScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+  };
+
+  const handleCloseExpanded = () => {
+    Animated.timing(expandedScale, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setExpandedImage(null));
   };
 
   const toggleApiKeyInput = () => {
@@ -626,8 +680,14 @@ const OnboardingAISettings: React.FC<{
         contentContainerStyle={{flexGrow: 1}}
         showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backButton}
+            activeOpacity={0.7}>
+            <Icon name="chevron-back" size={20} color={colors.text.primary} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>AI Assistant Setup</Text>
-          <View />
+          <View style={{width: 36}} />
         </View>
 
         <View
@@ -660,6 +720,7 @@ const OnboardingAISettings: React.FC<{
                 multiline={false}
                 autoCapitalize="none"
                 autoCorrect={false}
+                secureTextEntry={true}
               />
               <TouchableOpacity
                 style={styles.pasteButton}
@@ -696,11 +757,15 @@ const OnboardingAISettings: React.FC<{
               contentContainerStyle={styles.instructionsContainer}
               renderItem={({item}) => (
                 <View style={dynamicStyles.instructionCard}>
-                  <Image
-                    source={item.image}
-                    style={dynamicStyles.instructionImage}
-                    resizeMode="contain"
-                  />
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => handleExpandImage(item.image)}>
+                    <Image
+                      source={item.image}
+                      style={dynamicStyles.instructionImage}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
                   <Text style={dynamicStyles.instructionText}>{item.text}</Text>
                   {item.hasButton && (
                     <TouchableOpacity
@@ -756,7 +821,7 @@ const OnboardingAISettings: React.FC<{
             marginHorizontal: spacing.md,
             fontFamily: 'Inter_18pt-Regular',
           }}>
-          By using your own key, you agree to Google's Generative AI terms of
+          By using your own key, you agree to Groq's Generative AI terms of
           service.
         </Text>
         {isValidating ? (
@@ -802,13 +867,74 @@ const OnboardingAISettings: React.FC<{
                     fontWeight: 'bold',
                     fontFamily: 'Inter_18pt-Regular',
                   }}>
-                  Next
+                  Enter Theater
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
       </View>
+
+      {/* Full Width Image Expansion Modal */}
+      <Modal
+        visible={!!expandedImage}
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleCloseExpanded}>
+        <TouchableOpacity
+          style={styles.expandedOverlay}
+          activeOpacity={1}
+          onPress={handleCloseExpanded}>
+          <Animated.View
+            style={[
+              styles.expandedBlurContainer,
+              {
+                opacity: expandedScale,
+                backgroundColor: isSolid ? 'black' : 'rgba(0,0,0,0.4)',
+              },
+            ]}>
+            {!isSolid && (
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="dark"
+                blurAmount={15}
+              />
+            )}
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.expandedContent,
+              {
+                opacity: expandedScale,
+                transform: [
+                  {
+                    scale: expandedScale.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            <Image
+              source={expandedImage}
+              style={{
+                width: width - spacing.xl * 2,
+                height: (width - spacing.xl * 2) * 2,
+                maxHeight: '85%',
+                borderRadius: borderRadius.lg,
+              }}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.closeExpandedButton}
+              onPress={handleCloseExpanded}>
+              <Icon name="close" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -832,8 +958,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingTop: 60,
+    width: '100%',
+    paddingHorizontal: spacing.lg,
+  },
+  backButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.modal.blur,
+    borderRadius: borderRadius.round,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.modal.content,
   },
   headerTitle: {
     ...typography.h2,
@@ -1143,6 +1280,35 @@ const styles = StyleSheet.create({
     ...typography.button,
     fontWeight: '600',
     color: colors.text.primary,
+  },
+  // Image expansion styles
+  expandedOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandedBlurContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  expandedContent: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeExpandedButton: {
+    position: 'absolute',
+    top: -40,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.modal.blur,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.modal.content,
   },
 });
 

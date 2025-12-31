@@ -187,18 +187,14 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: spacing.xl,
-      overflow: 'hidden',
+      paddingTop: 30,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.lg,
       position: 'absolute',
       top: 0,
+      left: 0,
+      right: 0,
       zIndex: 2,
-      borderRadius: borderRadius.round,
-      marginHorizontal:
-        isTablet && orientation === 'portrait'
-          ? '18%'
-          : isTablet && orientation === 'landscape'
-          ? '27%'
-          : 24,
     },
     titleContainer: {
       flexDirection: 'row',
@@ -215,11 +211,11 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
       marginRight: spacing.sm,
     },
     title: {
-      ...typography.h2,
+      ...typography.h3,
       color: colors.text.primary,
       flex: 1,
       textAlign: 'center',
-      marginLeft: -50,
+      marginLeft: -spacing.md,
     },
     listContent: {
       paddingVertical: 120,
@@ -440,51 +436,27 @@ export const GenreScreen: React.FC<GenreScreenProps> = ({route}) => {
         }}
       />
       <View style={styles.header}>
-        {isSolid ? (
-          <LinearGradient
-            colors={['transparent', colors.background.primary]}
-            style={{
-              position: 'absolute',
-              left: -50,
-              right: 0,
-              bottom: -20,
-              height: 100,
-              zIndex: 1,
-              width: '150%',
-              transform: [{rotate: '-5deg'}],
-              pointerEvents: 'none',
-            }}
-          />
-        ) : null}
-        <View
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={{
-            gap: 20,
-            display: 'flex',
-            flexDirection: 'row',
             alignItems: 'center',
-            width: '100%',
-            paddingHorizontal: spacing.md,
-            height: 60,
-            borderRadius: 16,
-            backgroundColor: isSolid
-              ? colors.background.primary
-              : 'rgba(122, 122, 122, 0.31)',
+            justifyContent: 'center',
+            backgroundColor: colors.modal.blur,
+            borderWidth: 1,
+            borderBottomWidth: 0,
             borderColor: colors.modal.content,
-            borderWidth: 0,
-          }}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{
-              width: 30,
-              height: 30,
-              zIndex: 3,
-              display: 'flex',
-              alignItems: 'center',
-            }}>
-            <Icon name="chevron-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.title}>{genreName}</Text>
-        </View>
+            borderRadius: borderRadius.round,
+            padding: spacing.sm,
+          }}
+          activeOpacity={0.9}>
+          <Icon
+            name="chevron-back-outline"
+            size={24}
+            color={colors.text.primary}
+          />
+        </TouchableOpacity>
+        <Text style={styles.title}>{genreName}</Text>
+        <View style={{width: 24}} />
       </View>
       <View style={styles.contentContainer}>{renderContent}</View>
       {(isInitialLoading || isNavigating) && (

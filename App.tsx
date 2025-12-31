@@ -30,7 +30,7 @@ import {colors} from './src/styles/theme';
 import {notificationService} from './src/services/NotificationService';
 import {BlurPreference} from './src/store/blurPreference';
 import {initializeRealm} from './src/database/realm';
-import {detectRegion} from './src/services/regionDetection';
+import {SettingsManager} from './src/store/settings';
 
 export default function App() {
   const [themeReady, setThemeReady] = useState(false);
@@ -55,9 +55,10 @@ export default function App() {
   // Subscribe to Region Topic
   useEffect(() => {
     if (dbReady) {
-      detectRegion().then(region => {
+      SettingsManager.getRegion().then(settingsRegion => {
+        const region = settingsRegion?.iso_3166_1;
         // Initialize subscriptions respecting user preferences
-        notificationService.initializeSubscriptions(region || undefined);
+        notificationService.initializeSubscriptions(region);
       });
     }
   }, [dbReady]);

@@ -16,6 +16,7 @@ import {
   FlatList,
   Linking,
 } from 'react-native';
+import {PermissionModal} from '../components/PermissionModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {notificationService} from '../services/NotificationService';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -151,6 +152,10 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   );
   const [isPosterLoading, setIsPosterLoading] = useState(true);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    (() => Promise<void>) | null
+  >(null);
   const {
     data: showDetails,
     isLoading,
@@ -249,7 +254,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     checkCalendar();
   }, [show.id, isScheduleModalVisible]);
 
-  const handleToggleCalendar = async () => {
+  const proceedToggleCalendar = async () => {
     try {
       const stored = await AsyncStorage.getItem('calendar_items');
       let items = stored ? JSON.parse(stored) : [];
@@ -310,6 +315,21 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     }
   };
 
+  const handleToggleCalendar = async () => {
+    try {
+      // Check notification permission
+      const hasPermission = await notificationService.checkPermission();
+      if (!isInCalendar && !hasPermission) {
+        setPendingAction(() => proceedToggleCalendar);
+        setShowPermissionModal(true);
+        return;
+      }
+      await proceedToggleCalendar();
+    } catch (error) {
+      console.error('Error checking permission', error);
+    }
+  };
+
   const handleScheduleWatch = async (
     date: Date,
     type?: 'release' | 'custom',
@@ -346,6 +366,17 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       return;
     }
 
+    // Check notification permission
+    const hasPermission = await notificationService.checkPermission();
+    if (!hasPermission) {
+      setPendingAction(() => async () => await proceedScheduleWatch(date));
+      setShowPermissionModal(true);
+      return;
+    }
+    await proceedScheduleWatch(date);
+  };
+
+  const proceedScheduleWatch = async (date: Date) => {
     try {
       const stored = await AsyncStorage.getItem('calendar_items');
       let items = stored ? JSON.parse(stored) : [];
@@ -481,6 +512,25 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   // Poster share state
   const [showPosterModal, setShowPosterModal] = useState(false);
+  const [posterScaleAnim] = useState(new Animated.Value(0));
+
+  const handleShowPoster = () => {
+    setShowPosterModal(true);
+    Animated.spring(posterScaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+  };
+
+  const handleClosePoster = () => {
+    Animated.timing(posterScaleAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setShowPosterModal(false));
+  };
   const [posterLoading, setPosterLoading] = useState(false);
   const [posterUri, setPosterUri] = useState<string | null>(null);
   const [isSharingPoster, setIsSharingPoster] = useState(false);
@@ -800,7 +850,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
 
   const handleOpenPoster = useCallback(async () => {
     try {
-      setIsSharingPoster(true);
+      setPosterLoading(true);
       const uri = await requestPosterCapture(
         {
           watchlistName: show.name,
@@ -808,7 +858,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
           isFilter: false,
           showQR: false,
           details: posterDetails,
-          streamingIcon,
+          streamingIcon: streamingIcon,
           languages: posterLanguages,
           seasons: seasonsCount,
           episodes: episodesCount,
@@ -817,48 +867,13 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       );
 
       if (uri) {
-        // Share directly to Instagram Stories
-        await ShareLib.shareSingle({
-          social: Social.InstagramStories,
-          appId: '1234567890', // Dummy appId for Instagram Stories
-          backgroundImage: uri,
-          backgroundBottomColor: '#000000',
-          backgroundTopColor: '#000000',
-        });
+        setPosterUri(uri);
+        handleShowPoster();
       }
     } catch (e) {
-      console.warn('Instagram Stories share failed', e);
-      // Fallback: Try to open Instagram app directly
-      try {
-        const instagramURL = 'instagram://story-camera';
-        const canOpen = await Linking.canOpenURL(instagramURL);
-        if (canOpen) {
-          await Linking.openURL(instagramURL);
-        } else {
-          // If Instagram not installed, use general share
-          const uri = await requestPosterCapture(
-            {
-              watchlistName: show.name,
-              items: posterItems as any,
-              isFilter: false,
-              showQR: false,
-              details: posterDetails,
-              streamingIcon,
-              languages: posterLanguages,
-              seasons: seasonsCount,
-              episodes: episodesCount,
-            },
-            'tmpfile',
-          );
-          if (uri) {
-            await ShareLib.open({url: uri, type: 'image/png'});
-          }
-        }
-      } catch (fallbackError) {
-        console.warn('Fallback share failed', fallbackError);
-      }
+      console.warn('Poster capture failed', e);
     } finally {
-      setIsSharingPoster(false);
+      setPosterLoading(false);
     }
   }, [
     show.name,
@@ -1548,6 +1563,19 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       fontWeight: '500',
       fontFamily: 'Inter_18pt-Regular',
     },
+    posterModalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    posterModalContent: {
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    posterModalBlur: {
+      ...StyleSheet.absoluteFillObject,
+    },
   });
 
   // When not focused (another screen is on top), hide content but keep mounted to preserve scroll position
@@ -1625,106 +1653,117 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       <Modal
         visible={showPosterModal}
         statusBarTranslucent
-        navigationBarTranslucent
-        animationType="fade"
-        backdropColor={colors.modal.blurDark}
-        onRequestClose={() => setShowPosterModal(false)}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: spacing.md,
-          }}>
-          <View
-            style={{
-              width: '92%',
-              borderRadius: borderRadius.lg,
-              overflow: 'hidden',
-              alignItems: 'center',
-              padding: spacing.md,
-            }}>
-            {posterLoading ? (
-              <View style={{padding: spacing.xl, alignItems: 'center'}}>
-                <ActivityIndicator size="large" color={colors.text.primary} />
-                <Text
-                  style={{
-                    marginTop: spacing.sm,
-                    color: colors.text.secondary,
-                    fontFamily: 'Inter_18pt-Regular',
-                  }}>
-                  Creating poster...
-                </Text>
-              </View>
-            ) : posterUri ? (
-              <>
-                <Image
-                  source={{uri: posterUri}}
-                  style={{
-                    width: 270,
-                    height: 480,
-                    borderRadius: borderRadius.md,
-                    backgroundColor: '#000',
-                  }}
-                  resizeMode="cover"
-                />
-                <View
-                  style={{
-                    marginTop: spacing.md,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.lg,
-                  }}>
-                  <TouchableOpacity
-                    onPress={handleSharePoster}
-                    style={{alignItems: 'center'}}>
-                    <Ionicons
-                      name="share-social-outline"
-                      size={22}
-                      color={colors.text.primary}
-                    />
-                    <Text
-                      style={{
-                        color: colors.text.secondary,
-                        marginTop: 4,
-                        fontFamily: 'Inter_18pt-Regular',
-                      }}>
-                      Share
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setShowPosterModal(false)}
-                    style={{alignItems: 'center'}}>
-                    <Ionicons
-                      name="close-circle-outline"
-                      size={22}
-                      color={colors.text.primary}
-                    />
-                    <Text
-                      style={{
-                        color: colors.text.secondary,
-                        marginTop: 4,
-                        fontFamily: 'Inter_18pt-Regular',
-                      }}>
-                      Close
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : (
-              <View style={{padding: spacing.lg}}>
-                <Text
-                  style={{
-                    color: colors.text.secondary,
-                    fontFamily: 'Inter_18pt-Regular',
-                  }}>
-                  Failed to create poster.
-                </Text>
-              </View>
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleClosePoster}>
+        <TouchableOpacity
+          style={styles.posterModalContainer}
+          activeOpacity={1}
+          onPress={handleClosePoster}>
+          <Animated.View
+            style={[
+              styles.posterModalBlur,
+              {
+                opacity: posterScaleAnim,
+              },
+            ]}>
+            {!isSolid && (
+              <BlurView
+                blurType="dark"
+                blurAmount={15}
+                style={StyleSheet.absoluteFill}
+              />
             )}
-          </View>
-        </View>
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {backgroundColor: isSolid ? 'black' : 'rgba(0,0,0,0.4)'},
+              ]}
+            />
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.posterModalContent,
+              {
+                opacity: posterScaleAnim,
+                transform: [
+                  {
+                    scale: posterScaleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            <View
+              style={{
+                width: '92%',
+                borderRadius: borderRadius.lg,
+                overflow: 'hidden',
+                alignItems: 'center',
+                padding: spacing.md,
+              }}>
+              {posterUri && (
+                <>
+                  <Image
+                    source={{uri: posterUri}}
+                    style={{
+                      width: 270,
+                      height: 480,
+                      borderRadius: borderRadius.md,
+                      backgroundColor: '#000',
+                    }}
+                    resizeMode="cover"
+                  />
+                  <View
+                    style={{
+                      marginTop: spacing.md,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.lg,
+                    }}>
+                    <TouchableOpacity
+                      onPress={handleSharePoster}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="share-social-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Share
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleClosePoster}
+                      style={{alignItems: 'center'}}>
+                      <Ionicons
+                        name="close-circle-outline"
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.text.secondary,
+                          marginTop: 4,
+                          fontFamily: 'Inter_18pt-Regular',
+                        }}>
+                        Close
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </Animated.View>
+        </TouchableOpacity>
       </Modal>
       <FlatList
         ref={flatListRef}
@@ -1851,7 +1890,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                                 (show as any).poster_path ||
                                 (showDetails as any)?.poster_path ||
                                 '',
-                              'original',
+                              'w780',
                             ),
                           }}
                           style={styles.backdrop}
@@ -2847,6 +2886,15 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
         onClose={() => setShowWatchlistModal(false)}
         item={show}
         itemType="tv"
+      />
+
+      <PermissionModal
+        visible={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        onRequestPermission={() => notificationService.requestUserPermission()}
+        onContinue={async () => {
+          if (pendingAction) await pendingAction();
+        }}
       />
 
       <ServerModal

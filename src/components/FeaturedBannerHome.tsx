@@ -29,12 +29,12 @@ const MAX_FILTERS = 5;
 export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
   ({items = []}) => {
     const {isTablet} = useResponsive();
-    const {width: windowWidth} = useWindowDimensions();
+    const {width: windowWidth, height} = useWindowDimensions();
     const progressValue = useSharedValue(0);
 
     // Dynamic dimensions for tablet vs phone
     const cardWidth = isTablet ? 380 : CARD_WIDTH;
-    const cardHeight = isTablet ? 650 : CARD_HEIGHT;
+    const cardHeight = isTablet ? 650 : height * 0.6;
     const cardOverlap = isTablet ? cardWidth * 0.42 : CARD_OVERLAP;
 
     const animatedTitleStyles = Array.from({length: MAX_FILTERS}, (_, idx) =>
@@ -79,7 +79,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
         alignItems: 'center',
         justifyContent: 'center',
         width: windowWidth,
-        paddingTop: isTablet ? 200 : 160,
+        paddingTop: isTablet ? 200 : height * 0.08 + 80,
         paddingBottom: isTablet ? 100 : 50,
       },
       gradient: {
@@ -92,7 +92,7 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
       },
       titleContainer: {
         position: 'absolute',
-        top: 80,
+        top: isTablet ? 80 : height * 0.08,
         left: 0,
         right: 0,
         bottom: 0,
@@ -116,14 +116,14 @@ export const FeaturedBannerHome: React.FC<FeaturedBannerHomeProps> = memo(
         justifyContent: 'center',
       },
       card: {
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
         borderRadius: borderRadius.lg || 18,
         shadowColor: '#000',
         shadowOffset: {width: 0, height: 4},
         shadowOpacity: 0.18,
         shadowRadius: 8,
         elevation: 40,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
       },
     });
 

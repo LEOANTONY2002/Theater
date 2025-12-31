@@ -44,7 +44,15 @@ const GENRE_MAP: {[key: number]: string} = {
   37: 'Western',
 };
 
-export const MyCollectionsTab = () => {
+interface MyCollectionsTabProps {
+  onScroll?: any;
+  scrollEventThrottle?: number;
+}
+
+export const MyCollectionsTab: React.FC<MyCollectionsTabProps> = ({
+  onScroll,
+  scrollEventThrottle,
+}) => {
   const navigation = useNavigation<NavigationProp>();
   const [collections, setCollections] = useState<SavedCollection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -352,6 +360,8 @@ export const MyCollectionsTab = () => {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
         ListHeaderComponent={
           <View
             style={{
