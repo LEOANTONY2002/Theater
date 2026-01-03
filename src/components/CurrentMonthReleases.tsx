@@ -159,7 +159,7 @@ export const CurrentMonthReleases: React.FC<CurrentMonthReleasesProps> = ({
   const CARD_DIMENSIONS = React.useMemo(
     () => ({
       width: isTablet ? SCREEN_WIDTH * 0.95 : SCREEN_WIDTH,
-      height: isTablet ? 450 : 250,
+      height: isTablet ? 450 : 270,
     }),
     [isTablet, SCREEN_WIDTH],
   );

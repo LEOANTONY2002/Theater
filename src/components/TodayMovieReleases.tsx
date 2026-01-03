@@ -102,7 +102,7 @@ export const TodayMovieReleases: React.FC<TodayMovieReleasesProps> = ({
   const CARD_DIMENSIONS = React.useMemo(
     () => ({
       width: isTablet ? SCREEN_WIDTH * 0.95 : SCREEN_WIDTH,
-      height: isTablet ? 380 : 250,
+      height: isTablet ? 380 : 270,
     }),
     [isTablet, SCREEN_WIDTH],
   );
@@ -155,7 +155,7 @@ export const TodayMovieReleases: React.FC<TodayMovieReleasesProps> = ({
           mode="parallax"
           modeConfig={{
             parallaxScrollingScale: 0.8,
-            parallaxScrollingOffset: isTablet ? 100 : 120,
+            parallaxScrollingOffset: isTablet ? 300 : 150,
           }}
           windowSize={3}
           scrollAnimationDuration={500}

@@ -867,11 +867,44 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       );
 
       if (uri) {
-        setPosterUri(uri);
-        handleShowPoster();
+        // Share directly to Instagram Stories
+        await ShareLib.shareSingle({
+          social: Social.InstagramStories,
+          appId: '1234567890', // Dummy appId for Instagram Stories
+          backgroundImage: uri,
+          backgroundBottomColor: '#000000',
+          backgroundTopColor: '#000000',
+        });
       }
     } catch (e) {
-      console.warn('Poster capture failed', e);
+      console.warn('Instagram Stories share failed', e);
+      // Fallback: Try to open Instagram app directly
+      try {
+        const instagramURL = 'instagram://story-camera';
+        const canOpen = await Linking.canOpenURL(instagramURL);
+        if (canOpen) {
+          await Linking.openURL(instagramURL);
+        } else {
+          // If Instagram not installed, use general share
+          const uri = await requestPosterCapture(
+            {
+              watchlistName: show.name || showDetails?.name,
+              items: posterItems as any,
+              isFilter: false,
+              showQR: false,
+              details: posterDetails,
+              streamingIcon: streamingIcon,
+              languages: posterLanguages,
+            },
+            'tmpfile',
+          );
+          if (uri) {
+            await ShareLib.open({url: uri, type: 'image/png'});
+          }
+        }
+      } catch (fallbackError) {
+        console.warn('Fallback share failed', fallbackError);
+      }
     } finally {
       setPosterLoading(false);
     }
@@ -2119,9 +2152,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             onPress={handleWatchlistPress}
                             disabled={removeFromWatchlistMutation.isPending}>
                             <Ionicons
-                              name={
-                                isInAnyWatchlist ? 'checkmark-circle' : 'add'
-                              }
+                              name={isInAnyWatchlist ? 'checkmark' : 'add'}
                               size={18}
                               color={
                                 isInAnyWatchlist ? colors.text.primary : '#fff'
@@ -2216,7 +2247,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           onPress={handleWatchlistPress}
                           disabled={removeFromWatchlistMutation.isPending}>
                           <Ionicons
-                            name={isInAnyWatchlist ? 'checkmark-circle' : 'add'}
+                            name={isInAnyWatchlist ? 'checkmark' : 'add'}
                             size={18}
                             color={
                               isInAnyWatchlist ? colors.text.primary : '#fff'

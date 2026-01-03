@@ -63,17 +63,16 @@ const styles = StyleSheet.create({
 const TabIcon = ({
   focused,
   color,
-  size,
   ActiveIcon,
   InactiveIcon,
 }: {
   focused: boolean;
   color: string;
-  size?: number;
   ActiveIcon: any;
   InactiveIcon: any;
 }) => {
   const Icon = focused ? ActiveIcon : InactiveIcon;
+  const {isTablet} = useResponsive();
   return (
     <View style={styles.iconContainer}>
       <View
@@ -81,9 +80,10 @@ const TabIcon = ({
           styles.iconWrapper,
           {
             opacity: focused ? 1 : 0.7,
+            marginBottom: isTablet ? 3 : 0,
           },
         ]}>
-        <Icon size={size || 24} color={color} />
+        <Icon size={isTablet ? 24 : 20} color={color} />
       </View>
     </View>
   );

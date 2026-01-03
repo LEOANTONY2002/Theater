@@ -31,6 +31,7 @@ import {notificationService} from './src/services/NotificationService';
 import {BlurPreference} from './src/store/blurPreference';
 import {initializeRealm} from './src/database/realm';
 import {SettingsManager} from './src/store/settings';
+import {useAppUpdate} from './src/hooks/useAppUpdate';
 
 export default function App() {
   const [themeReady, setThemeReady] = useState(false);
@@ -41,6 +42,9 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [showDNSModal, setShowDNSModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
+
+  // Check for In-App Updates (Android)
+  useAppUpdate();
 
   // Initialize Notifications
   useEffect(() => {

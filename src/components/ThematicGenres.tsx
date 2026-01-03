@@ -72,25 +72,13 @@ export const ThematicGenres: React.FC = () => {
                   }}>
                   <Image
                     source={{uri: getImageUrl(item.poster_path, 'w185')}}
-                    style={{width: '100%', height: '100%', opacity: 0.6}}
+                    style={{width: '100%', height: '100%', opacity: 0.1}}
                     resizeMode="cover"
                   />
                   <LinearGradient
                     colors={['rgb(10, 0, 18)', 'transparent']}
                     start={{x: 0, y: 0}}
                     end={{x: 1, y: 0}}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <LinearGradient
-                    colors={['rgb(10, 0, 18)', 'transparent']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <LinearGradient
-                    colors={['transparent', 'rgb(10, 0, 18)']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 0, y: 1}}
                     style={StyleSheet.absoluteFill}
                   />
                   <LinearGradient

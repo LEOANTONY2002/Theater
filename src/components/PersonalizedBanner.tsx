@@ -491,7 +491,7 @@ export const PersonalizedBanner: React.FC<PersonalizedBannerProps> = ({
         keyExtractor={(item, index) => `${(item as any).id}-${index}`}
         horizontal
         showsHorizontalScrollIndicator={false}
-        decelerationRate={0.92}
+        decelerationRate={0.96}
         contentContainerStyle={{
           paddingLeft: spacing.md,
           paddingRight: spacing.md,

@@ -833,7 +833,7 @@ export const MySpaceScreen = React.memo(() => {
           <Text
             style={{
               color: colors.text.primary,
-              ...typography.h3,
+              ...typography.h2,
             }}>
             My Space
           </Text>
@@ -847,13 +847,16 @@ export const MySpaceScreen = React.memo(() => {
                 borderWidth: 1,
                 borderBottomWidth: 0,
                 borderColor: colors.modal.content,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
               }}
               activeOpacity={0.7}>
-              <Ionicons
-                name="calendar-outline"
-                size={isTablet ? 20 : 15}
-                color={colors.text.primary}
+              <Image
+                source={require('../assets/calendar.png')}
+                style={{width: isTablet ? 20 : 15, height: isTablet ? 20 : 15}}
               />
+              <Text style={styles.tileTitle}>My Calendar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -868,10 +871,9 @@ export const MySpaceScreen = React.memo(() => {
                 position: 'relative',
               }}
               activeOpacity={0.7}>
-              <Ionicons
-                name="notifications-outline"
-                size={isTablet ? 20 : 15}
-                color={colors.text.primary}
+              <Image
+                source={require('../assets/notification.png')}
+                style={{width: isTablet ? 20 : 15, height: isTablet ? 20 : 15}}
               />
               {hasUnread && (
                 <View

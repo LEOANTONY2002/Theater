@@ -42,7 +42,7 @@ export const AiringTodayTVReleases: React.FC<AiringTodayTVReleasesProps> = ({
   const CARD_DIMENSIONS = React.useMemo(
     () => ({
       width: SCREEN_WIDTH,
-      height: isTablet ? 380 : 250,
+      height: isTablet ? 380 : 270,
     }),
     [isTablet, SCREEN_WIDTH],
   );
@@ -300,7 +300,7 @@ export const AiringTodayTVReleases: React.FC<AiringTodayTVReleasesProps> = ({
           mode="parallax"
           modeConfig={{
             parallaxScrollingScale: 0.8,
-            parallaxScrollingOffset: isTablet ? 100 : 150,
+            parallaxScrollingOffset: isTablet ? 300 : 150,
           }}
           snapEnabled={false}
           windowSize={3}
