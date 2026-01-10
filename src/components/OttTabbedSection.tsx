@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Image,
 } from 'react-native';
 import {useRegion} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
@@ -27,6 +28,7 @@ import {buildOTTFilters} from '../services/tmdbWithCache';
 interface OttProvider {
   id: number;
   provider_name: string;
+  logo_path?: string;
 }
 
 interface Props {
@@ -171,6 +173,15 @@ export const OttTabbedSection: React.FC<Props> = ({
       onLongPress={
         isPersonalized ? () => handleRemoveOTT(provider) : undefined
       }>
+      {provider?.logo_path && (
+        <Image
+          source={{
+            uri: `https://image.tmdb.org/t/p/w45${provider.logo_path}`,
+          }}
+          style={styles.tabLogo}
+          resizeMode="cover"
+        />
+      )}
       <Text
         style={[
           styles.tabText,
@@ -268,17 +279,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   tabButton: {
-    padding: spacing.sm,
-    borderRadius: borderRadius.sm,
+    padding: spacing.xs,
+    paddingRight: spacing.sm,
+    borderRadius: borderRadius.md,
     marginHorizontal: spacing.xs,
     alignItems: 'center',
     backgroundColor: colors.modal.blur,
     borderWidth: 1,
     borderColor: colors.modal.content,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  tabLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: borderRadius.sm,
   },
   activeTabButton: {
     backgroundColor: colors.modal.border,
     borderWidth: 1,
+    borderBottomWidth: 0,
+    borderTopWidth: 0,
     borderColor: colors.modal.active,
   },
   tabText: {

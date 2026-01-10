@@ -5,12 +5,14 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Image,
 } from 'react-native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {
   useTVByLanguageAndOTTs,
   useMyLanguage,
   useMyOTTs,
+  useAvailableProviders,
 } from '../hooks/usePersonalization';
 import {useRegion} from '../hooks/useApp';
 import {HorizontalList} from './HorizontalList';
@@ -21,6 +23,7 @@ import {colors, spacing, borderRadius, typography} from '../styles/theme';
 interface OttProvider {
   id: number;
   provider_name: string;
+  logo_path?: string;
 }
 
 export const MyLanguageTVShowsInOTTsSection: React.FC = () => {
@@ -29,9 +32,13 @@ export const MyLanguageTVShowsInOTTsSection: React.FC = () => {
   const {data: myOTTs = []} = useMyOTTs();
   const {data: region} = useRegion();
 
+  const {data: availableProviders = []} = useAvailableProviders(
+    region?.iso_3166_1,
+  );
+
   // Fallback OTTs (same as other OTT sections in the app)
-  const defaultOTTs = useMemo(
-    () =>
+  const defaultOTTs = useMemo(() => {
+    const ids =
       region?.iso_3166_1 === 'IN'
         ? [
             {id: 8, provider_name: 'Netflix'},
@@ -42,9 +49,18 @@ export const MyLanguageTVShowsInOTTsSection: React.FC = () => {
             {id: 8, provider_name: 'Netflix'},
             {id: 10, provider_name: 'Amazon Video'},
             {id: 337, provider_name: 'Disney+'},
-          ],
-    [region?.iso_3166_1],
-  );
+          ];
+
+    return ids.map(ott => {
+      const matchingProvider = availableProviders.find(
+        (p: any) => p.provider_id === ott.id,
+      );
+      return {
+        ...ott,
+        logo_path: matchingProvider?.logo_path || undefined,
+      };
+    });
+  }, [region?.iso_3166_1, availableProviders]);
 
   const providers = myOTTs && myOTTs.length ? myOTTs : defaultOTTs;
   const [activeProviderId, setActiveProviderId] = useState<number>(
@@ -98,6 +114,15 @@ export const MyLanguageTVShowsInOTTsSection: React.FC = () => {
         activeProviderId === provider.id && styles.activeTabButton,
       ]}
       onPress={() => setActiveProviderId(provider.id)}>
+      {provider?.logo_path && (
+        <Image
+          source={{
+            uri: `https://image.tmdb.org/t/p/w45${provider.logo_path}`,
+          }}
+          style={styles.tabLogo}
+          resizeMode="cover"
+        />
+      )}
       <Text
         style={[
           styles.tabText,
@@ -170,17 +195,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   tabButton: {
-    padding: spacing.sm,
-    borderRadius: borderRadius.sm,
+    padding: spacing.xs,
+    paddingRight: spacing.md,
+    borderRadius: borderRadius.md,
     marginHorizontal: spacing.xs,
     alignItems: 'center',
     backgroundColor: colors.modal.blur,
     borderWidth: 1,
     borderColor: colors.modal.content,
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  tabLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: borderRadius.sm,
   },
   activeTabButton: {
     backgroundColor: colors.modal.border,
     borderWidth: 1,
+    borderBottomWidth: 0,
+    borderTopWidth: 0,
     borderColor: colors.modal.active,
   },
   tabText: {

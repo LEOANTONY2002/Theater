@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MySpaceStackParamList} from '../types/navigation';
@@ -82,7 +83,23 @@ export const MySpaceScreen = React.memo(() => {
   const [localOTTs, setLocalOTTs] = useState<any[]>([]);
   const [cinemaDNA, setCinemaDNA] = useState<CinemaDNA | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
+  const [upcomingEvent, setUpcomingEvent] = useState<any | null>(null);
   const {width, height} = useWindowDimensions();
+  const today = new Date();
+
+  const currentWeek = useMemo(() => {
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    return Array.from({length: 7}).map((_, i) => {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      return {
+        name: d.toLocaleDateString('en-US', {weekday: 'short'}),
+        num: d.getDate(),
+        isToday: d.toDateString() === today.toDateString(),
+      };
+    });
+  }, []);
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -173,11 +190,44 @@ export const MySpaceScreen = React.memo(() => {
   useEffect(() => {
     loadMoodAnswers();
     loadCinemaDNA();
+    loadUpcomingEvent();
   }, []);
 
   const loadCinemaDNA = async () => {
     const dna = await getCinemaDNA();
     setCinemaDNA(dna);
+  };
+
+  const loadUpcomingEvent = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('calendar_items');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        const upcoming = parsed
+          .map((item: any) => ({
+            ...item,
+            eventDate: new Date(item.date || item.releaseDate),
+          }))
+          .filter((item: any) => item.eventDate >= now)
+          .sort(
+            (a: any, b: any) => a.eventDate.getTime() - b.eventDate.getTime(),
+          );
+
+        if (upcoming.length > 0) {
+          setUpcomingEvent(upcoming[0]);
+        } else {
+          setUpcomingEvent(null);
+        }
+      } else {
+        setUpcomingEvent(null);
+      }
+    } catch (error) {
+      console.error('Error loading upcoming event:', error);
+      setUpcomingEvent(null);
+    }
   };
 
   // Initialize and subscribe to blur preference changes
@@ -208,6 +258,7 @@ export const MySpaceScreen = React.memo(() => {
       queryClient.invalidateQueries({queryKey: ['savedCollections']});
       loadMoodAnswers(); // Refresh mood answers when screen comes into focus
       loadCinemaDNA(); // Refresh cinema DNA when screen comes into focus
+      loadUpcomingEvent(); // Refresh upcoming calendar event
       checkUnread(); // Check for unread notifications
     });
 
@@ -570,6 +621,7 @@ export const MySpaceScreen = React.memo(() => {
       fontFamily: 'Inter_18pt-Regular',
       fontWeight: '400',
       fontSize: isTablet ? 14 : 12,
+      textAlign: 'center',
     },
     chipsRow: {
       flexDirection: 'row',
@@ -822,7 +874,6 @@ export const MySpaceScreen = React.memo(() => {
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
       <View style={{padding: spacing.md}}>
-        {/* Header */}
         <View
           style={{
             flexDirection: 'row',
@@ -837,28 +888,109 @@ export const MySpaceScreen = React.memo(() => {
             }}>
             My Space
           </Text>
-          <View style={{flexDirection: 'row', gap: spacing.sm}}>
-            <TouchableOpacity
-              onPress={() => navigateWithLimit('MyCalendarScreen')}
-              style={{
-                padding: isTablet ? 14 : 12,
-                borderRadius: borderRadius.round,
-                backgroundColor: colors.modal.blur,
-                borderWidth: 1,
-                borderBottomWidth: 0,
-                borderColor: colors.modal.content,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.sm,
-              }}
-              activeOpacity={0.7}>
-              <Image
-                source={require('../assets/calendar.png')}
-                style={{width: isTablet ? 20 : 15, height: isTablet ? 20 : 15}}
-              />
-              <Text style={styles.tileTitle}>My Calendar</Text>
-            </TouchableOpacity>
-
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+            }}>
+            {cinemaDNA && (
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => navigateWithLimit('CinemaInsightsScreen')}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: forceBlurAll
+                    ? colors.background.tertiaryGlass
+                    : colors.background.tertiarySolid,
+                  borderRadius: 50,
+                  paddingVertical: spacing.xs,
+                  paddingLeft: isTablet ? spacing.lg : spacing.md,
+                  paddingRight: spacing.xs,
+                  gap: spacing.sm,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: forceBlurAll
+                    ? colors.modal.content
+                    : colors.background.border,
+                  width: width * 0.32,
+                  minWidth: isTablet ? 160 : 120,
+                  height: 50,
+                  marginBottom: 0,
+                  overflow: 'hidden',
+                }}>
+                <Image
+                  source={require('../assets/dna.png')}
+                  style={styles.icon}
+                />
+                <Text
+                  style={[
+                    styles.tileTitle,
+                    {
+                      zIndex: 1,
+                      fontSize: isTablet ? 14 : 10,
+                    },
+                  ]}>
+                  Cinema DNA
+                </Text>
+                {/* Profile Image with Gradient */}
+                <View
+                  style={{
+                    width: isTablet ? 80 : 60,
+                    borderTopRightRadius: 50,
+                    borderBottomRightRadius: 50,
+                    overflow: 'hidden',
+                    backgroundColor: colors.background.secondary,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}>
+                  <>
+                    {cinemaDNA.topPerson.profile_path ? (
+                      <Image
+                        source={{
+                          uri: `https://image.tmdb.org/t/p/w185${cinemaDNA.topPerson.profile_path}`,
+                        }}
+                        style={{width: '100%', height: '100%'}}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Icon
+                        name="user-secret"
+                        size={isTablet ? 40 : 30}
+                        color={colors.text.primary}
+                        style={{
+                          marginRight: isTablet ? 0 : -spacing.md,
+                        }}
+                      />
+                    )}
+                    <LinearGradient
+                      colors={[
+                        forceBlurAll
+                          ? colors.background.tertiaryGlass
+                          : colors.background.tertiarySolid,
+                        'transparent',
+                      ]}
+                      useAngle
+                      angle={90}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: -50,
+                        bottom: 0,
+                        zIndex: 1,
+                      }}
+                    />
+                  </>
+                </View>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => navigateWithLimit('NotificationSettings')}
               style={{
@@ -866,21 +998,24 @@ export const MySpaceScreen = React.memo(() => {
                 borderRadius: borderRadius.round,
                 backgroundColor: colors.modal.blur,
                 borderWidth: 1,
-                borderBottomWidth: 0,
                 borderColor: colors.modal.content,
                 position: 'relative',
+                height: 44, // Same height as DNA for alignment
+                width: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               activeOpacity={0.7}>
               <Image
                 source={require('../assets/notification.png')}
-                style={{width: isTablet ? 20 : 15, height: isTablet ? 20 : 15}}
+                style={{width: 20, height: 20}}
               />
               {hasUnread && (
                 <View
                   style={{
                     position: 'absolute',
-                    top: isTablet ? 10 : 6,
-                    right: isTablet ? 10 : 6,
+                    top: 8,
+                    right: 8,
                     width: 8,
                     height: 8,
                     borderRadius: 4,
@@ -891,6 +1026,153 @@ export const MySpaceScreen = React.memo(() => {
             </TouchableOpacity>
           </View>
         </View>
+        {/* My Diary - Full Width */}
+        <TouchableOpacity
+          style={[
+            styles.tile,
+            {
+              minHeight: isTablet ? 130 : 90,
+              marginBottom: isTablet ? spacing.md : spacing.sm,
+            },
+          ]}
+          activeOpacity={0.9}
+          onPress={() => navigateWithLimit('MyDiaryScreen')}>
+          <View
+            style={[
+              styles.tileHeaderRow,
+              {
+                marginBottom: 0,
+                paddingBottom: 0,
+              },
+            ]}>
+            <Image
+              source={require('../assets/mydiary.png')}
+              style={{width: isTablet ? 20 : 16, height: isTablet ? 20 : 16}}
+            />
+            <Text style={styles.tileTitle}>My Diary</Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: isTablet ? spacing.md : spacing.sm,
+            }}>
+            <Text
+              style={{
+                color: colors.text.primary,
+                ...typography.h3,
+                fontWeight: 'bold',
+                opacity: 0.8,
+              }}>
+              {today.toLocaleDateString('en-US', {month: 'short'})}
+            </Text>
+            <View
+              style={{
+                width: 1,
+                height: 25,
+                backgroundColor: colors.text.muted,
+                marginHorizontal: spacing.sm,
+                opacity: 0.5,
+              }}
+            />
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  position: 'relative',
+                }}>
+                {currentWeek.map((d: any, i: number) => (
+                  <View
+                    key={i}
+                    style={{
+                      alignItems: 'center',
+                      width: (width - spacing.md * 4 - 60) / 7,
+                      borderWidth: d.isToday ? 1 : 0,
+                      borderColor: colors.text.muted,
+                      borderRadius: isTablet ? 25 : 14,
+                      paddingVertical: isTablet ? 16 : 8,
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: isTablet ? 14 : 10,
+                        color: colors.text.muted,
+                        opacity: 0.6,
+                        marginBottom: 4,
+                      }}>
+                      {d.name}
+                    </Text>
+                    <View
+                      style={{
+                        width: 'auto',
+                        height: 'auto',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      <Text
+                        style={{
+                          color: d.isToday
+                            ? colors.text.secondary
+                            : colors.text.muted,
+                          ...typography.h3,
+                          fontWeight: 'bold',
+                          fontSize: isTablet ? 24 : 14,
+                        }}>
+                        {d.num}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+                <LinearGradient
+                  colors={[
+                    forceBlurAll
+                      ? colors.background.tertiaryGlass
+                      : colors.background.tertiarySolid,
+                    'transparent',
+                    'transparent',
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: isTablet ? 0 : -10,
+                    bottom: 0,
+                    width: 150,
+                    zIndex: 1,
+                  }}
+                />
+                <LinearGradient
+                  colors={[
+                    'transparent',
+                    'transparent',
+                    forceBlurAll
+                      ? colors.background.tertiaryGlass
+                      : colors.background.tertiarySolid,
+                  ]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: -20,
+                    bottom: 0,
+                    width: 150,
+                    zIndex: 1,
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {/* Two-column layout */}
         <View
           style={{
@@ -1126,121 +1408,173 @@ export const MySpaceScreen = React.memo(() => {
 
           {/* Right Column */}
           <View style={{flex: 0.9, gap: isTablet ? spacing.md : spacing.sm}}>
-            {/* Cinema DNA Badge */}
-            {cinemaDNA && (
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => navigateWithLimit('CinemaInsightsScreen')}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: forceBlurAll
-                    ? colors.background.tertiaryGlass
-                    : colors.background.tertiarySolid,
-                  borderRadius: 50,
-                  paddingVertical: spacing.xs,
-                  paddingLeft: isTablet ? spacing.lg : spacing.md,
-                  paddingRight: spacing.xs,
-                  gap: spacing.sm,
-                  borderTopWidth: 1,
-                  borderLeftWidth: 1,
-                  borderRightWidth: 1,
-                  borderColor: forceBlurAll
-                    ? colors.modal.content
-                    : colors.background.border,
-                  width: width * 0.32,
-                  minWidth: isTablet ? 200 : 80,
-                  height: isTablet ? 80 : 50,
-                  marginBottom: 0,
-                }}>
+            {/* My Calendar */}
+            <TouchableOpacity
+              style={[
+                styles.tile,
+                {minHeight: isTablet ? 210 : 140, overflow: 'hidden'},
+              ]}
+              activeOpacity={0.9}
+              onPress={() => navigateWithLimit('MyCalendarScreen')}>
+              <View
+                style={[
+                  styles.tileHeaderRow,
+                  {
+                    flexDirection: isTablet ? 'row' : 'column',
+                    gap: isTablet ? spacing.sm : spacing.xs,
+                  },
+                ]}>
                 <Image
-                  source={require('../assets/dna.png')}
-                  style={styles.icon}
-                />
-                <Text
-                  style={[
-                    styles.tileTitle,
-                    {
-                      zIndex: 1,
-                      fontSize: isTablet ? 14 : 10,
-                    },
-                  ]}>
-                  Cinema DNA
-                </Text>
-                {/* Profile Image with Gradient */}
-                <View
+                  source={require('../assets/calendar.png')}
                   style={{
-                    width: isTablet ? 80 : 60,
-                    borderTopRightRadius: 50,
-                    borderBottomRightRadius: 50,
-                    overflow: 'hidden',
-                    backgroundColor: colors.background.secondary,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                  }}>
-                  <>
-                    {cinemaDNA.topPerson.profile_path ? (
-                      <Image
-                        source={{
-                          uri: `https://image.tmdb.org/t/p/w185${cinemaDNA.topPerson.profile_path}`,
-                        }}
-                        style={{width: '100%', height: '100%'}}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Icon
-                        name="user-secret"
-                        size={isTablet ? 40 : 30}
-                        color={colors.text.primary}
+                    width: isTablet ? 20 : 16,
+                    height: isTablet ? 20 : 16,
+                  }}
+                />
+                <Text style={styles.tileTitle}>My Calendar</Text>
+              </View>
+
+              <View style={{marginTop: spacing.sm, flex: 1}}>
+                {upcomingEvent ? (
+                  <View style={{flex: 1, flexDirection: 'row'}}>
+                    <View
+                      style={{
+                        flex: 1,
+                        zIndex: 2,
+                        paddingRight: spacing.sm,
+                        alignItems: 'center',
+                        marginTop: spacing.xs,
+                      }}>
+                      <Text
+                        numberOfLines={1}
                         style={{
-                          marginRight: isTablet ? 0 : -spacing.md,
-                        }}
-                      />
+                          color: colors.text.primary,
+                          marginHorizontal: 2,
+                          textAlign: 'center',
+                          ...typography.body2,
+                          fontWeight: '700',
+                          lineHeight: 20,
+                        }}>
+                        {upcomingEvent.title}
+                      </Text>
+                      <Text
+                        style={{
+                          ...typography.body2,
+                          color: colors.text.secondary,
+                          fontSize: 10,
+                          marginTop: 4,
+                          fontWeight: '500',
+                        }}>
+                        {upcomingEvent.eventDate.toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          weekday: 'short',
+                        })}
+                      </Text>
+                    </View>
+
+                    {upcomingEvent.posterPath && (
+                      <View
+                        style={{
+                          width: '120%',
+                          height: '120%',
+                          backgroundColor: colors.background.secondary,
+                          position: 'absolute',
+                          top: 0,
+                          left: -10,
+                          right: 0,
+                          bottom: 0,
+                          zIndex: 1,
+                          borderRadius: isTablet
+                            ? borderRadius.lg
+                            : borderRadius.md,
+                          overflow: 'hidden',
+                        }}>
+                        <Image
+                          source={{
+                            uri: `https://image.tmdb.org/t/p/w342${upcomingEvent?.posterPath}`,
+                          }}
+                          style={{width: '100%', height: '100%'}}
+                          resizeMode="cover"
+                        />
+                        <LinearGradient
+                          colors={[
+                            forceBlurAll
+                              ? colors.background.tertiaryGlass
+                              : colors.background.tertiarySolid,
+                            'transparent',
+                          ]}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                          }}
+                        />
+                        <LinearGradient
+                          colors={[
+                            forceBlurAll
+                              ? colors.background.tertiaryGlass
+                              : colors.background.tertiarySolid,
+                            'transparent',
+                          ]}
+                          useAngle={true}
+                          angle={90}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            opacity: 0.85,
+                          }}
+                        />
+                        <LinearGradient
+                          colors={[
+                            forceBlurAll
+                              ? colors.background.tertiaryGlass
+                              : colors.background.tertiarySolid,
+                            'transparent',
+                          ]}
+                          useAngle={true}
+                          angle={-90}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            opacity: 0.85,
+                          }}
+                        />
+                      </View>
                     )}
-                    <LinearGradient
-                      colors={[
-                        forceBlurAll
-                          ? colors.background.tertiaryGlass
-                          : colors.background.tertiarySolid,
-                        'transparent',
-                      ]}
-                      useAngle
-                      angle={90}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: -50,
-                        bottom: 0,
-                      }}
-                    />
-                    <LinearGradient
-                      colors={[
-                        forceBlurAll
-                          ? colors.background.tertiaryGlass
-                          : colors.background.tertiarySolid,
-                        'transparent',
-                      ]}
-                      useAngle
-                      angle={90}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: -50,
-                        bottom: 0,
-                      }}
-                    />
-                  </>
-                </View>
-              </TouchableOpacity>
-            )}
+                  </View>
+                ) : (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      opacity: 0.5,
+                    }}>
+                    <Text
+                      style={{color: colors.text.muted, ...typography.caption}}>
+                      No schedule
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+
             {/* Theme - tall */}
-            <View style={[styles.tile, styles.themeTall]}>
+            <View
+              style={[
+                styles.tile,
+                styles.themeTall,
+                {minHeight: isTablet ? 240 : 150},
+              ]}>
               <View style={styles.tileHeaderColumn}>
                 <Image
                   source={require('../assets/theme.png')}
@@ -1310,7 +1644,7 @@ export const MySpaceScreen = React.memo(() => {
               </View>
             </View>
 
-            {/* Ask Theater AI - tall */}
+            {/* Ask Theater AI - Now more square */}
             <View
               style={{
                 position: 'relative',
@@ -1321,11 +1655,17 @@ export const MySpaceScreen = React.memo(() => {
                 colors={['rgb(122, 9, 88)', 'rgb(99, 14, 133)']}
                 start={{x: 0, y: 0}}
                 end={{x: 1, y: 0}}
-                style={[styles.aiBorder, styles.aiTall]}
+                style={[
+                  styles.aiBorder,
+                  {borderRadius: isTablet ? 40 : borderRadius.xl},
+                ]}
               />
               <TouchableOpacity
                 activeOpacity={0.9}
-                style={[styles.aiTile, styles.aiTall]}
+                style={[
+                  styles.aiTile,
+                  {borderRadius: isTablet ? 40 : borderRadius.xl, flex: 1},
+                ]}
                 onPress={() => {
                   if (isAIEnabled) {
                     navigateWithLimit('OnlineAIScreen');
@@ -1472,9 +1812,21 @@ export const MySpaceScreen = React.memo(() => {
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => navigateWithLimit('AboutLegalScreen')}
-            style={[styles.tile, {paddingVertical: spacing.md, minHeight: 60}]}
+            style={[
+              styles.tile,
+              {
+                paddingVertical: spacing.md,
+                minHeight: 60,
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+            ]}
             testID="aboutLegalButton">
-            <View style={styles.tileHeaderRow}>
+            <View
+              style={[
+                styles.tileHeaderRow,
+                {margin: 0, justifyContent: 'center'},
+              ]}>
               <Image
                 source={require('../assets/theaterai.webp')}
                 style={styles.icon}
@@ -1485,9 +1837,7 @@ export const MySpaceScreen = React.memo(() => {
             </View>
           </TouchableOpacity>
         </View>
-        <View
-          style={{height: isTablet && orientation === 'landscape' ? 400 : 200}}
-        />
+        <View style={{height: 150}} />
       </View>
 
       {/* My Language Modal - single select using LanguageSettings in local mode */}
@@ -1568,9 +1918,11 @@ export const MySpaceScreen = React.memo(() => {
                 singleSelect
                 disablePersistence
                 initialSelectedIso={
-                  myLanguage?.iso_639_1 ? [myLanguage.iso_639_1] : []
+                  (myLanguage?.iso_639_1
+                    ? [myLanguage.iso_639_1!]
+                    : []) as any[]
                 }
-                onChangeSelected={langs => {
+                onChangeSelected={(langs: any[]) => {
                   SettingsManager.setMyLanguage(langs?.[0] || null);
                   setShowMyLanguageModal(false);
                 }}

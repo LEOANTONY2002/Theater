@@ -362,7 +362,7 @@ export const CurrentMonthReleases: React.FC<CurrentMonthReleasesProps> = ({
       <View style={{height: CARD_DIMENSIONS.height, width: SCREEN_WIDTH}}>
         <Carousel
           ref={carouselRef}
-          loop={true}
+          loop={movies?.length > 3 ? true : false}
           width={SCREEN_WIDTH}
           height={CARD_DIMENSIONS.height}
           data={movies}

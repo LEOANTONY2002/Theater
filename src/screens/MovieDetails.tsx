@@ -57,6 +57,7 @@ import {
   BannerSkeleton,
   IMDBSkeleton,
 } from '../components/LoadingSkeleton';
+import {DiaryButton} from '../components/DiaryButton';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
 import {WatchProvidersButton} from '../components/WatchProvidersButton';
@@ -100,6 +101,8 @@ import {IMDBModal} from '../components/IMDBModal';
 import {useContentAnalysis} from '../hooks/useContentAnalysis';
 import {ScheduleWatchModal} from '../components/ScheduleWatchModal';
 import {FeedbackModal} from '../components/FeedbackModal';
+import {CalendarMark as CalendarBold} from '@solar-icons/react-native/dist/icons/time/Bold/CalendarMark.mjs';
+import {CalendarAdd as CalendarLinear} from '@solar-icons/react-native/dist/icons/time/Linear/CalendarAdd.mjs';
 
 type MovieDetailsScreenNavigationProp = NativeStackNavigationProp<
   MySpaceStackParamList &
@@ -186,6 +189,27 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [showPosterModal, setShowPosterModal] = useState(false);
   const [posterLoading, setPosterLoading] = useState(false);
   const [posterScaleAnim] = useState(new Animated.Value(0));
+
+  // Format large numbers to compact form (e.g., 1.5K, 2.3M)
+  const formatCompact = (value?: number | null): string => {
+    if (value == null || isNaN(Number(value))) return '0';
+    const n = Number(value);
+    if (n < 1000) return `${n}`;
+    const units = [
+      {v: 1e9, s: 'B'},
+      {v: 1e6, s: 'M'},
+      {v: 1e3, s: 'K'},
+    ];
+    for (const u of units) {
+      if (n >= u.v) {
+        const num = n / u.v;
+        const str =
+          num % 1 === 0 ? `${num.toFixed(0)}${u.s}` : `${num.toFixed(1)}${u.s}`;
+        return str;
+      }
+    }
+    return `${n}`;
+  };
 
   const handleShowPoster = () => {
     setShowPosterModal(true);
@@ -1245,7 +1269,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     infoContainer: {
       flexDirection: 'column',
       gap: 8,
-      marginBottom: 12,
       marginTop: 4,
       alignItems: 'center',
     },
@@ -1930,254 +1953,173 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                           </Text>
                         </>
                       )}
-                      {movieDetails?.vote_average != null &&
-                        movieDetails.vote_average > 0 && (
-                          <>
-                            <Text style={styles.infoDot}>•</Text>
-                            <View
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: spacing.xs,
-                              }}>
-                              <Icon name="star" size={12} color="#ffffff70" />
-                              <Text style={styles.info}>
-                                {movieDetails.vote_average.toFixed(1)}
-                              </Text>
-                            </View>
-                          </>
-                        )}
                     </View>
                   </View>
                   <View
-                    style={
-                      hasOTT || isFuture
-                        ? styles.buttonContainerColumn
-                        : styles.buttonRow
-                    }>
-                    {hasOTT || isFuture ? (
-                      <>
-                        <View style={styles.buttonRowTop}>
-                          <GradientButton
-                            title="Watch Trailer"
-                            isIcon={true}
-                            onPress={() => {
-                              // setIsPlaying(true);
-                              navigation.navigate('CinemaScreen', {
-                                id: movie.id.toString(),
-                                type: 'movie',
-                                title: displayTitle,
-                              });
-                            }}
-                            style={{
-                              ...styles.watchButton,
-                              opacity: isPlaying ? 0.3 : 1,
-                            }}
-                            textStyle={styles.watchButtonText}
-                          />
-                          <WatchProvidersButton
-                            providers={watchProviders}
-                            contentId={movie.id}
-                            title={displayTitle}
-                            type="movie"
-                          />
-                        </View>
-                        <View style={styles.buttonRowBottom}>
-                          {isFuture && (
-                            <TouchableOpacity
-                              style={{
-                                paddingHorizontal: spacing.md,
-                                paddingVertical: 12,
-                                borderRadius: borderRadius.round,
-                                backgroundColor: colors.modal.blur,
-                                borderColor: colors.modal.content,
-                                borderWidth: 1,
-                                borderBottomWidth: 0,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 6,
-                              }}
-                              onPress={handleToggleCalendar}
-                              activeOpacity={0.7}>
-                              <Icon
-                                name={
-                                  isInCalendar
-                                    ? 'notifications'
-                                    : 'notifications-outline'
-                                }
-                                size={18}
-                                color={isInCalendar ? colors.accent : '#fff'}
-                              />
-                              <View>
-                                <Text
-                                  style={{
-                                    ...typography.body1,
-                                    color: colors.text.secondary,
-                                    fontSize: 9,
-                                  }}>
-                                  {isInCalendar ? 'Releasing On' : 'Remind Me'}
-                                </Text>
-                                <Text
-                                  style={{
-                                    ...typography.body1,
-                                    color: colors.text.primary,
-                                    fontSize: 11,
-                                  }}>
-                                  {(() => {
-                                    const dateStr =
-                                      (movie as any).release_date ||
-                                      (movieDetails as any)?.release_date;
-                                    if (!dateStr) return '';
-                                    return new Date(dateStr).toLocaleDateString(
-                                      undefined,
-                                      {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                      },
-                                    );
-                                  })()}
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          )}
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={() => {
-                              setScheduleModalVisible(true);
-                            }}
-                            activeOpacity={0.7}>
-                            <Icon
-                              name={
-                                scheduledWatchDate
-                                  ? 'calendar'
-                                  : 'calendar-outline'
-                              }
-                              size={18}
-                              color={colors.text.primary}
-                            />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={handleWatchlistPress}
-                            disabled={removeFromWatchlistMutation.isPending}>
-                            <Icon
-                              name={isInWatchlist ? 'checkmark' : 'add'}
-                              size={18}
-                              color={
-                                isInWatchlist ? colors.text.primary : '#fff'
-                              }
-                            />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={handleOpenPoster}
-                            disabled={isSharingPoster}
-                            activeOpacity={0.9}>
-                            {isSharingPoster ? (
-                              <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                              <Icon
-                                name="logo-instagram"
-                                size={20}
-                                color="#fff"
-                              />
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <GradientButton
-                          title="Watch Trailer"
-                          isIcon={isTablet ? true : false}
-                          onPress={() => {
-                            // setIsPlaying(true);
-                            navigation.navigate('CinemaScreen', {
-                              id: movie.id.toString(),
-                              type: 'movie',
-                              title: displayTitle,
-                            });
-                          }}
-                          style={{
-                            ...styles.watchButton,
-                            paddingHorizontal: isTablet
-                              ? spacing.xl
-                              : spacing.md,
-                            opacity: isPlaying ? 0.3 : 1,
-                          }}
-                          textStyle={{
-                            ...typography.body1,
-                            fontWeight: 'bold',
-                            fontSize: isTablet ? 14 : 11,
-                          }}
-                        />
-                        <WatchProvidersButton
-                          providers={watchProviders}
-                          contentId={movie.id}
-                          title={displayTitle}
-                          type="movie"
-                        />
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: spacing.md,
+                    }}>
+                    <Image
+                      source={require('../assets/tmdb.png')}
+                      style={{
+                        width: 50,
+                        height: 20,
+                        resizeMode: 'contain',
+                      }}
+                    />
+
+                    <Text
+                      style={{
+                        ...typography.body1,
+                        color: colors.text.primary,
+                        fontWeight: 'bold',
+                        marginLeft: spacing.sm,
+                      }}>
+                      {movieDetails?.vote_average.toFixed(1)}
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.body1,
+                        color: colors.text.muted,
+                        marginLeft: spacing.xs,
+                      }}>
+                      ({formatCompact(movieDetails?.vote_count)})
+                    </Text>
+                  </View>
+                  <View style={styles.buttonContainerColumn}>
+                    <View style={styles.buttonRowTop}>
+                      <GradientButton
+                        title="Watch Trailer"
+                        isIcon={true}
+                        onPress={() => {
+                          // setIsPlaying(true);
+                          navigation.navigate('CinemaScreen', {
+                            id: movie.id.toString(),
+                            type: 'movie',
+                            title: displayTitle,
+                          });
+                        }}
+                        style={{
+                          ...styles.watchButton,
+                          opacity: isPlaying ? 0.3 : 1,
+                        }}
+                        textStyle={styles.watchButtonText}
+                      />
+                      <WatchProvidersButton
+                        providers={watchProviders}
+                        contentId={movie.id}
+                        title={displayTitle}
+                        type="movie"
+                      />
+                    </View>
+                    <View style={styles.buttonRowBottom}>
+                      {isFuture && (
                         <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={() => {
-                            setScheduleModalVisible(true);
+                          style={{
+                            paddingHorizontal: spacing.md,
+                            paddingVertical: 12,
+                            borderRadius: borderRadius.round,
+                            backgroundColor: colors.modal.blur,
+                            borderColor: colors.modal.content,
+                            borderWidth: 1,
+                            borderBottomWidth: 0,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 6,
                           }}
+                          onPress={handleToggleCalendar}
                           activeOpacity={0.7}>
                           <Icon
                             name={
-                              scheduledWatchDate
-                                ? 'calendar'
-                                : 'calendar-outline'
+                              isInCalendar
+                                ? 'notifications'
+                                : 'notifications-outline'
                             }
+                            size={18}
+                            color={isInCalendar ? colors.accent : '#fff'}
+                          />
+                          <View>
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.secondary,
+                                fontSize: 9,
+                              }}>
+                              {isInCalendar ? 'Releasing On' : 'Remind Me'}
+                            </Text>
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.primary,
+                                fontSize: 11,
+                              }}>
+                              {(() => {
+                                const dateStr =
+                                  (movie as any).release_date ||
+                                  (movieDetails as any)?.release_date;
+                                if (!dateStr) return '';
+                                return new Date(dateStr).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  },
+                                );
+                              })()}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleWatchlistPress}
+                        disabled={removeFromWatchlistMutation.isPending}>
+                        <Icon
+                          name={isInWatchlist ? 'checkmark' : 'add'}
+                          size={18}
+                          color={isInWatchlist ? colors.text.primary : '#fff'}
+                        />
+                      </TouchableOpacity>
+                      <DiaryButton
+                        contentId={movie.id}
+                        type="movie"
+                        title={displayTitle}
+                        posterPath={movie.poster_path}
+                        backdropPath={movie.backdrop_path}
+                        style={styles.addButton}
+                        showLabel={false}
+                      />
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => {
+                          setScheduleModalVisible(true);
+                        }}
+                        activeOpacity={0.7}>
+                        {scheduledWatchDate ? (
+                          <CalendarBold size={18} color={colors.text.primary} />
+                        ) : (
+                          <CalendarLinear
                             size={18}
                             color={colors.text.primary}
                           />
-                        </TouchableOpacity>
-                        {isFuture && (
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={handleToggleCalendar}
-                            activeOpacity={0.7}>
-                            <Icon
-                              name={
-                                isInCalendar
-                                  ? 'notifications'
-                                  : 'notifications-outline'
-                              }
-                              size={18}
-                              color={isInCalendar ? colors.accent : '#fff'}
-                            />
-                          </TouchableOpacity>
                         )}
-                        <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={handleWatchlistPress}
-                          disabled={removeFromWatchlistMutation.isPending}>
-                          <Icon
-                            name={isInWatchlist ? 'checkmark' : 'add'}
-                            size={18}
-                            color={isInWatchlist ? colors.text.primary : '#fff'}
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={handleOpenPoster}
-                          disabled={isSharingPoster}
-                          activeOpacity={0.9}>
-                          {isSharingPoster ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) : (
-                            <Icon
-                              name="logo-instagram"
-                              size={20}
-                              color="#fff"
-                            />
-                          )}
-                        </TouchableOpacity>
-                      </>
-                    )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleOpenPoster}
+                        disabled={isSharingPoster}
+                        activeOpacity={0.9}>
+                        {isSharingPoster ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Icon name="logo-instagram" size={20} color="#fff" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   <View style={styles.genreContainer}>
                     {movieDetails?.genres
@@ -2253,6 +2195,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                             width: 50,
                             height: 20,
                             resizeMode: 'contain',
+                            opacity: 0.6,
                           }}
                         />
                         {isAnalysisLoading && !aiRatings?.imdb ? (
@@ -2312,6 +2255,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                               height: 20,
                               resizeMode: 'contain',
                               marginVertical: 2,
+                              opacity: 0.6,
                             }}
                           />
                           {isAnalysisLoading && !aiRatings?.rotten_tomatoes ? (

@@ -717,6 +717,70 @@ export class SavedCollection extends Realm.Object<SavedCollection> {
 }
 
 // ============================================================================
+// DIARY / TRACKING TABLES
+// ============================================================================
+
+export class DiaryEntry extends Realm.Object<DiaryEntry> {
+  _id!: number; // TMDB ID
+  type!: string; // 'movie' | 'tv'
+  title!: string;
+  poster_path?: string;
+  backdrop_path?: string;
+
+  // Progress Data
+  progress!: number; // 0-100%
+  status!: string; // 'watching', 'completed', 'dropped', 'plan_to_watch'
+
+  // TV Specifics (The "Up To" Logic)
+  last_season!: number; // e.g. 4
+  last_episode!: number; // e.g. 2
+  total_seasons!: number; // From TMDB (e.g. 5)
+  total_episodes!: number; // From TMDB (e.g. 60)
+  tv_status?: string; // "Returning Series", "Ended", etc.
+
+  // Notes (JSON Blobs)
+  note?: string; // Overall / Main Note
+  season_notes?: string; // JSON: {"1": "Great start", "2": "Boring"}
+  episode_notes?: string; // JSON: {"s1e1": "Pilot was awesome"}
+
+  // User Rating
+  rating?: number; // 0-10 personal rating
+  mood?: string; // Emoji or short string representing mood
+
+  // Dates
+  started_at!: Date;
+  last_updated_at!: Date;
+  finished_at?: Date;
+
+  static schema: Realm.ObjectSchema = {
+    name: 'DiaryEntry',
+    primaryKey: '_id',
+    properties: {
+      _id: 'int',
+      type: 'string',
+      title: 'string',
+      poster_path: 'string?',
+      backdrop_path: 'string?',
+      progress: 'double',
+      status: 'string',
+      last_season: 'int',
+      last_episode: 'int',
+      total_seasons: 'int',
+      total_episodes: 'int',
+      tv_status: 'string?',
+      note: 'string?',
+      season_notes: 'string?',
+      episode_notes: 'string?',
+      rating: 'double?',
+      mood: 'string?',
+      started_at: 'date',
+      last_updated_at: 'date',
+      finished_at: 'date?',
+    },
+  };
+}
+
+// ============================================================================
 // SCHEMA EXPORT
 // ============================================================================
 
@@ -741,4 +805,5 @@ export const schemas = [
   UserPreferences,
   AIPersonalizationCache,
   SavedCollection,
+  DiaryEntry,
 ];

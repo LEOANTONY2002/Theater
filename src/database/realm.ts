@@ -1,7 +1,7 @@
 import Realm from 'realm';
 import {schemas} from './schema';
 
-export const SCHEMA_VERSION = 21; // Incremented for ThematicTag enhancements
+export const SCHEMA_VERSION = 23; // Incremented for DiaryEntry mood field
 
 let realmInstance: Realm | null = null;
 

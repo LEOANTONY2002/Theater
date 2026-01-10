@@ -381,6 +381,7 @@ export const BottomTabNavigator = () => {
               routeName === 'WatchlistsScreen' ||
               routeName === 'MyFiltersScreen' ||
               routeName === 'NotificationSettings' ||
+              routeName === 'MyDiaryScreen' ||
               routeName === 'CinemaScreen';
 
             return {

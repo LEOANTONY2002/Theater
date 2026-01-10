@@ -41,7 +41,7 @@ export const WatchlistsTabScreen: React.FC<WatchlistsTabScreenProps> = ({
     ContentItem[]
   >([]);
   const {isAIEnabled} = useAIEnabled();
-  const {width} = useWindowDimensions();
+  const {width, height} = useWindowDimensions();
 
   const handleItemPress = useCallback(
     (item: ContentItem) => {
@@ -91,16 +91,13 @@ export const WatchlistsTabScreen: React.FC<WatchlistsTabScreenProps> = ({
       backgroundColor: colors.background.primary,
     },
     contentContainer: {
-      paddingBottom: spacing.xxl * 2,
       paddingTop: isTablet ? 120 : 100,
+      paddingBottom: spacing.xxl * 2,
     },
     emptyContainer: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
+      height: height,
       alignItems: 'center',
-      paddingHorizontal: spacing.md,
-      paddingVertical: orientation === 'landscape' ? '20%' : '50%',
+      justifyContent: 'center',
     },
     emptyTitle: {
       ...typography.h3,
@@ -275,7 +272,9 @@ export const WatchlistsTabScreen: React.FC<WatchlistsTabScreenProps> = ({
         ListHeaderComponent={<AllWatchlistsAnalyzer />}
         ListEmptyComponent={renderEmpty}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={
+          watchlists?.length > 0 ? styles.contentContainer : {}
+        }
         onScroll={onScroll}
         scrollEventThrottle={scrollEventThrottle}
       />

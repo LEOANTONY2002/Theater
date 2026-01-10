@@ -293,6 +293,7 @@ export type MySpaceStackParamList = {
   CinemaInsightsScreen: undefined;
   NotificationSettings: undefined;
   MyCalendarScreen: undefined;
+  MyDiaryScreen: undefined;
   CinemaScreen: {
     id: string;
     type: 'movie' | 'tv';

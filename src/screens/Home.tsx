@@ -46,6 +46,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {SettingsManager} from '../store/settings';
 import {useResponsive} from '../hooks/useResponsive';
 import {MyNextWatch} from '../components/MyNextWatch';
+import {DiaryContinueWatchingRow} from '../components/DiaryContinueWatchingRow';
 import {CurrentMonthReleases} from '../components/CurrentMonthReleases';
 import {MoodQuestionnaire} from '../components/MoodQuestionnaire';
 import {
@@ -588,6 +589,12 @@ export const HomeScreen = React.memo(
         }
       }
 
+      // Diary Continue Watching section
+      sectionsList.push({
+        id: 'diaryContinueWatching',
+        type: 'diaryContinueWatching',
+      });
+
       // Current Month Releases section
       sectionsList.push({
         id: 'currentMonthReleases',
@@ -979,6 +986,9 @@ export const HomeScreen = React.memo(
                 refreshSignal={item.refreshSignal}
               />
             );
+
+          case 'diaryContinueWatching':
+            return <DiaryContinueWatchingRow onRefresh={refetchPersonalized} />;
 
           case 'currentMonthReleases':
             return <CurrentMonthReleases onItemPress={handleItemPress} />;

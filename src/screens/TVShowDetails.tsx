@@ -72,6 +72,8 @@ import {
   BannerSkeleton,
   IMDBSkeleton,
 } from '../components/LoadingSkeleton';
+import {DiaryButton} from '../components/DiaryButton';
+import {EpisodeActionButtons} from '../components/EpisodeActionButtons';
 import {BlurView} from '@react-native-community/blur';
 import {useWatchProviders} from '../hooks/useWatchProviders';
 import {WatchProviders} from '../components/WatchProviders';
@@ -105,6 +107,8 @@ import {ScheduleWatchModal} from '../components/ScheduleWatchModal';
 import {FeedbackModal} from '../components/FeedbackModal';
 import {BlurPreference} from '../store/blurPreference';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {CalendarMark as CalendarBold} from '@solar-icons/react-native/dist/icons/time/Bold/CalendarMark.mjs';
+import {CalendarAdd as CalendarLinear} from '@solar-icons/react-native/dist/icons/time/Linear/CalendarAdd.mjs';
 
 type TVShowDetailsScreenNavigationProp = NativeStackNavigationProp<
   MySpaceStackParamList &
@@ -1134,67 +1138,86 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     [navigateWithLimit],
   );
 
-  const renderEpisodeItem = useCallback(
-    ({item: episode}: {item: Episode}) => (
-      <TouchableOpacity
-        key={episode.episode_number}
-        style={styles.episodeCard}
-        activeOpacity={0.9}
-        onPress={() => setEpisode(episode.episode_number)}>
-        <Image
-          source={{
-            uri: episode.still_path
-              ? getImageUrl(episode.still_path, 'w500')
-              : 'https://via.placeholder.com/200x112',
-          }}
-          style={styles.episodeImage}
-        />
-        <View style={styles.episodeContent}>
-          <Text style={styles.episodeTitle} numberOfLines={1}>
+  const renderEpisodeItem = ({item: episode}: {item: Episode}) => (
+    <TouchableOpacity
+      key={episode.episode_number}
+      style={styles.episodeCard}
+      activeOpacity={0.9}
+      onPress={() => setEpisode(episode.episode_number)}>
+      <Image
+        source={{
+          uri: episode.still_path
+            ? getImageUrl(episode.still_path, 'w500')
+            : 'https://via.placeholder.com/200x112',
+        }}
+        style={styles.episodeImage}
+      />
+      <View style={styles.episodeContent}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}>
+          <Text style={[styles.episodeTitle, {flex: 1}]} numberOfLines={1}>
             {episode.name}
           </Text>
-          <View style={styles.episodeInfo}>
-            {episode?.episode_number != null && (
-              <Text style={styles.info}>
-                S{episode.season_number} E{episode.episode_number}
-              </Text>
-            )}
-            <Text style={styles.infoDot}>•</Text>
-            <Text style={styles.info}>
-              {new Date(episode.air_date).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </Text>
-            {episode?.runtime != null && episode.runtime > 0 && (
-              <>
-                <Text style={styles.infoDot}>•</Text>
-                <Text style={styles.info}>{episode.runtime} min</Text>
-              </>
-            )}
-            {episode?.vote_average != null && episode.vote_average > 0 && (
-              <>
-                <Text style={styles.infoDot}>•</Text>
-                <View
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                  }}>
-                  <Ionicons name="star" size={12} color="#ffffff70" />
-                  <Text style={styles.info}>
-                    {episode.vote_average.toFixed(1)}
-                  </Text>
-                </View>
-              </>
-            )}
+          {/* Action Buttons */}
+          <View style={{marginLeft: 8}}>
+            <EpisodeActionButtons
+              showId={show.id}
+              showTitle={show.name}
+              seasonNumber={episode.season_number}
+              episodeNumber={episode.episode_number}
+              episodeTitle={episode.name}
+              posterPath={show.poster_path}
+              backdropPath={show.backdrop_path}
+              totalSeasons={showDetails?.number_of_seasons}
+              seasonData={showDetails?.seasons}
+            />
           </View>
         </View>
-      </TouchableOpacity>
-    ),
-    [],
+
+        <View style={styles.episodeInfo}>
+          {episode?.episode_number != null && (
+            <Text style={styles.info}>
+              S{episode.season_number} E{episode.episode_number}
+            </Text>
+          )}
+          <Text style={styles.infoDot}>•</Text>
+          <Text style={styles.info}>
+            {new Date(episode.air_date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </Text>
+          {episode?.runtime != null && episode.runtime > 0 && (
+            <>
+              <Text style={styles.infoDot}>•</Text>
+              <Text style={styles.info}>{episode.runtime} min</Text>
+            </>
+          )}
+          {episode?.vote_average != null && episode.vote_average > 0 && (
+            <>
+              <Text style={styles.infoDot}>•</Text>
+              <View
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                }}>
+                <Ionicons name="star" size={12} color="#ffffff70" />
+                <Text style={styles.info}>
+                  {episode.vote_average.toFixed(1)}
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 
   const styles = StyleSheet.create({
@@ -1307,7 +1330,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
       gap: spacing.xs,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: spacing.md,
     },
     infoWrapper: {
       flexDirection: 'row',
@@ -2020,257 +2042,179 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         </Text>
                       </>
                     )}
-                    {showDetails?.vote_average != null &&
-                      showDetails.vote_average > 0 && (
-                        <>
-                          <Text style={styles.infoDot}>•</Text>
-                          <View
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: spacing.xs,
-                            }}>
-                            <Ionicons name="star" size={12} color="#ffffff70" />
-                            <Text style={styles.info}>
-                              {showDetails.vote_average.toFixed(1)}
-                            </Text>
-                          </View>
-                        </>
-                      )}
                   </View>
                   <View
-                    style={
-                      hasOTT || isFuture
-                        ? styles.buttonContainerColumn
-                        : styles.buttonRow
-                    }>
-                    {hasOTT || isFuture ? (
-                      <>
-                        <View style={styles.buttonRowTop}>
-                          <GradientButton
-                            title="Watch Trailer"
-                            isIcon={true}
-                            onPress={() => {
-                              // setIsPlaying(true);
-                              navigation.navigate('CinemaScreen', {
-                                id: show.id.toString(),
-                                type: 'tv',
-                                title: show.name,
-                                season,
-                                episode,
-                              });
-                            }}
-                            style={{
-                              ...styles.watchButton,
-                              opacity: isPlaying ? 0.3 : 1,
-                            }}
-                            textStyle={styles.watchButtonText}
-                          />
-                          <WatchProvidersButton
-                            providers={watchProviders}
-                            contentId={show.id}
-                            title={show.name}
-                            type="tv"
-                          />
-                        </View>
-                        <View style={styles.buttonRowBottom}>
-                          {isFuture && (
-                            <TouchableOpacity
-                              style={{
-                                paddingHorizontal: spacing.md,
-                                paddingVertical: 12,
-                                borderRadius: borderRadius.round,
-                                backgroundColor: colors.modal.blur,
-                                borderColor: colors.modal.content,
-                                borderWidth: 1,
-                                borderBottomWidth: 0,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 6,
-                              }}
-                              onPress={handleToggleCalendar}
-                              activeOpacity={0.7}>
-                              <Ionicons
-                                name={
-                                  isInCalendar
-                                    ? 'notifications'
-                                    : 'notifications-outline'
-                                }
-                                size={18}
-                                color={isInCalendar ? colors.accent : '#fff'}
-                              />
-                              <View>
-                                <Text
-                                  style={{
-                                    ...typography.body1,
-                                    color: colors.text.secondary,
-                                    fontSize: 9,
-                                  }}>
-                                  {isInCalendar ? 'Airing On' : 'Remind Me'}
-                                </Text>
-                                <Text
-                                  style={{
-                                    ...typography.body1,
-                                    color: colors.text.primary,
-                                    fontSize: 11,
-                                  }}>
-                                  {(() => {
-                                    const dateStr = nextEpisode?.air_date;
-                                    if (!dateStr) return '';
-                                    return new Date(dateStr).toLocaleDateString(
-                                      undefined,
-                                      {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                      },
-                                    );
-                                  })()}
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          )}
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={() => {
-                              setScheduleModalVisible(true);
-                            }}
-                            activeOpacity={0.7}>
-                            <Ionicons
-                              name={
-                                scheduledWatchDate
-                                  ? 'calendar'
-                                  : 'calendar-outline'
-                              }
-                              size={18}
-                              color={colors.text.primary}
-                            />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={handleWatchlistPress}
-                            disabled={removeFromWatchlistMutation.isPending}>
-                            <Ionicons
-                              name={isInAnyWatchlist ? 'checkmark' : 'add'}
-                              size={18}
-                              color={
-                                isInAnyWatchlist ? colors.text.primary : '#fff'
-                              }
-                            />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={handleOpenPoster}
-                            disabled={isSharingPoster}
-                            activeOpacity={0.9}>
-                            {isSharingPoster ? (
-                              <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                              <Ionicons
-                                name="logo-instagram"
-                                size={20}
-                                color="#fff"
-                              />
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <GradientButton
-                          title="Watch Trailer"
-                          isIcon={isTablet ? true : false}
-                          onPress={() => {
-                            // setIsPlaying(true);
-                            navigation.navigate('CinemaScreen', {
-                              id: show.id.toString(),
-                              type: 'tv',
-                              title: show.name,
-                              season,
-                              episode,
-                            });
-                          }}
-                          style={{
-                            ...styles.watchButton,
-                            paddingHorizontal: isTablet
-                              ? spacing.xl
-                              : spacing.md,
-                            opacity: isPlaying ? 0.3 : 1,
-                          }}
-                          textStyle={{
-                            ...typography.body1,
-                            fontWeight: 'bold',
-                            fontSize: isTablet ? 14 : 11,
-                          }}
-                        />
-                        <WatchProvidersButton
-                          providers={watchProviders}
-                          contentId={show.id}
-                          title={show.name}
-                          type="tv"
-                        />
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: spacing.md,
+                    }}>
+                    <Image
+                      source={require('../assets/tmdb.png')}
+                      style={{
+                        width: 50,
+                        height: 20,
+                        resizeMode: 'contain',
+                      }}
+                    />
+
+                    <Text
+                      style={{
+                        ...typography.body1,
+                        color: colors.text.primary,
+                        fontWeight: 'bold',
+                        marginLeft: spacing.sm,
+                      }}>
+                      {showDetails?.vote_average.toFixed(1)}
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.body1,
+                        color: colors.text.muted,
+                        marginLeft: spacing.xs,
+                      }}>
+                      ({formatCompact(showDetails?.vote_count)})
+                    </Text>
+                  </View>
+                  <View style={styles.buttonContainerColumn}>
+                    <View style={styles.buttonRowTop}>
+                      <GradientButton
+                        title="Watch Trailer"
+                        isIcon={true}
+                        onPress={() => {
+                          // setIsPlaying(true);
+                          navigation.navigate('CinemaScreen', {
+                            id: show.id.toString(),
+                            type: 'tv',
+                            title: show.name,
+                            season,
+                            episode,
+                          });
+                        }}
+                        style={{
+                          ...styles.watchButton,
+                          opacity: isPlaying ? 0.3 : 1,
+                        }}
+                        textStyle={styles.watchButtonText}
+                      />
+                      <WatchProvidersButton
+                        providers={watchProviders}
+                        contentId={show.id}
+                        title={show.name}
+                        type="tv"
+                      />
+                    </View>
+                    <View style={styles.buttonRowBottom}>
+                      {isFuture && (
                         <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={() => {
-                            setScheduleModalVisible(true);
+                          style={{
+                            paddingHorizontal: spacing.md,
+                            paddingVertical: 12,
+                            borderRadius: borderRadius.round,
+                            backgroundColor: colors.modal.blur,
+                            borderColor: colors.modal.content,
+                            borderWidth: 1,
+                            borderBottomWidth: 0,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 6,
                           }}
+                          onPress={handleToggleCalendar}
                           activeOpacity={0.7}>
                           <Ionicons
                             name={
-                              scheduledWatchDate
-                                ? 'calendar'
-                                : 'calendar-outline'
+                              isInCalendar
+                                ? 'notifications'
+                                : 'notifications-outline'
                             }
+                            size={18}
+                            color={isInCalendar ? colors.accent : '#fff'}
+                          />
+                          <View>
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.secondary,
+                                fontSize: 9,
+                              }}>
+                              {isInCalendar ? 'Airing On' : 'Remind Me'}
+                            </Text>
+                            <Text
+                              style={{
+                                ...typography.body1,
+                                color: colors.text.primary,
+                                fontSize: 11,
+                              }}>
+                              {(() => {
+                                const dateStr = nextEpisode?.air_date;
+                                if (!dateStr) return '';
+                                return new Date(dateStr).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  },
+                                );
+                              })()}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleWatchlistPress}
+                        disabled={removeFromWatchlistMutation.isPending}>
+                        <Ionicons
+                          name={isInAnyWatchlist ? 'checkmark' : 'add'}
+                          size={18}
+                          color={
+                            isInAnyWatchlist ? colors.text.primary : '#fff'
+                          }
+                        />
+                      </TouchableOpacity>
+                      <DiaryButton
+                        contentId={show.id}
+                        type="tv"
+                        title={show.name}
+                        posterPath={show.poster_path}
+                        backdropPath={show.backdrop_path}
+                        totalSeasons={showDetails?.number_of_seasons}
+                        seasonData={showDetails?.seasons}
+                        style={styles.addButton}
+                        showLabel={false}
+                      />
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => {
+                          setScheduleModalVisible(true);
+                        }}
+                        activeOpacity={0.7}>
+                        {scheduledWatchDate ? (
+                          <CalendarBold size={18} color={colors.text.primary} />
+                        ) : (
+                          <CalendarLinear
                             size={18}
                             color={colors.text.primary}
                           />
-                        </TouchableOpacity>
-                        {isFuture && (
-                          <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={handleToggleCalendar}
-                            activeOpacity={0.7}>
-                            <Ionicons
-                              name={
-                                isInCalendar
-                                  ? 'notifications'
-                                  : 'notifications-outline'
-                              }
-                              size={18}
-                              color={isInCalendar ? colors.accent : '#fff'}
-                            />
-                          </TouchableOpacity>
                         )}
-                        <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={handleWatchlistPress}
-                          disabled={removeFromWatchlistMutation.isPending}>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleOpenPoster}
+                        disabled={isSharingPoster}
+                        activeOpacity={0.9}>
+                        {isSharingPoster ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
                           <Ionicons
-                            name={isInAnyWatchlist ? 'checkmark' : 'add'}
-                            size={18}
-                            color={
-                              isInAnyWatchlist ? colors.text.primary : '#fff'
-                            }
+                            name="logo-instagram"
+                            size={20}
+                            color="#fff"
                           />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={handleOpenPoster}
-                          disabled={isSharingPoster}
-                          activeOpacity={0.9}>
-                          {isSharingPoster ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) : (
-                            <Ionicons
-                              name="logo-instagram"
-                              size={20}
-                              color="#fff"
-                            />
-                          )}
-                        </TouchableOpacity>
-                      </>
-                    )}
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   <View style={styles.genreContainer}>
                     {showDetails?.genres &&
@@ -2287,6 +2231,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                           </View>
                         ))}
                   </View>
+
                   {isLoadingAiImdb ? (
                     <View
                       style={{
@@ -2350,6 +2295,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             width: 50,
                             height: 20,
                             resizeMode: 'contain',
+                            opacity: 0.6,
                           }}
                         />
                         {isAnalysisLoading && !aiRatings?.imdb ? (
@@ -2407,6 +2353,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                             width: 20,
                             height: 20,
                             resizeMode: 'contain',
+                            opacity: 0.8,
                             marginVertical: 2,
                           }}
                         />
@@ -2769,6 +2716,31 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                                         numberOfLines={3}>
                                         {s.overview}
                                       </Text>
+                                    </View>
+
+                                    {/* Season Action Button */}
+                                    <View
+                                      style={{
+                                        position: 'absolute',
+                                        right: 10,
+                                        top: 10,
+                                        zIndex: 999,
+                                        elevation: 5,
+                                      }}
+                                      pointerEvents="box-none">
+                                      <EpisodeActionButtons
+                                        showId={show.id}
+                                        showTitle={show.name}
+                                        seasonNumber={s.season_number}
+                                        episodeNumber={s.episode_count} // Treat marking season as watching ALL episodes
+                                        episodeTitle={`Season ${s.season_number}`}
+                                        posterPath={show.poster_path}
+                                        backdropPath={show.backdrop_path}
+                                        totalSeasons={
+                                          showDetails?.number_of_seasons
+                                        }
+                                        seasonData={showDetails?.seasons}
+                                      />
                                     </View>
                                   </TouchableOpacity>
                                 ),

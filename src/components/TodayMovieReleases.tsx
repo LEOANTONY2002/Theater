@@ -157,6 +157,7 @@ export const TodayMovieReleases: React.FC<TodayMovieReleasesProps> = ({
             parallaxScrollingScale: 0.8,
             parallaxScrollingOffset: isTablet ? 300 : 150,
           }}
+          loop={movies?.length > 3 ? true : false}
           windowSize={3}
           scrollAnimationDuration={500}
           renderItem={({item}: {item: Movie}) => (

@@ -31,6 +31,7 @@ import {CinemaInsightsScreen} from '../screens/CinemaInsightsScreen';
 import {NotificationSettings} from '../screens/NotificationSettings';
 import {MyCollectionsScreen} from '../screens/MyCollections';
 import {MyCalendarScreen} from '../screens/MyCalendar';
+import {MyDiaryScreen} from '../screens/MyDiary';
 import {SimilarMoviesScreen} from '../screens/SimilarMovies';
 import {SimilarTVShowsScreen} from '../screens/SimilarTVShows';
 
@@ -368,6 +369,11 @@ export const MySpaceStackNavigator = () => (
     <MySpaceStack.Screen
       name="MyCalendarScreen"
       component={MyCalendarScreen}
+      options={slideFromRightOptions}
+    />
+    <MySpaceStack.Screen
+      name="MyDiaryScreen"
+      component={MyDiaryScreen}
       options={slideFromRightOptions}
     />
 

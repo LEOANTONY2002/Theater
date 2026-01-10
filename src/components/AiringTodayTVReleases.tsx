@@ -297,6 +297,7 @@ export const AiringTodayTVReleases: React.FC<AiringTodayTVReleasesProps> = ({
           width={SCREEN_WIDTH}
           height={CARD_DIMENSIONS.height}
           data={shows}
+          loop={shows?.length > 3 ? true : false}
           mode="parallax"
           modeConfig={{
             parallaxScrollingScale: 0.8,

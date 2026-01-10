@@ -13,6 +13,7 @@ interface GradientProgressBarProps {
   showValue?: boolean;
   height?: number;
   width?: number | string;
+  valueSuffix?: string;
 }
 
 export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
@@ -25,6 +26,7 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
   showValue = true,
   height = 10,
   width = '100%',
+  valueSuffix = '',
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<View>(null);
@@ -36,7 +38,8 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onStartShouldSetPanResponderCapture: () => true,
-    onMoveShouldSetPanResponder: (_evt, gestureState) => Math.abs(gestureState.dx) > 2,
+    onMoveShouldSetPanResponder: (_evt, gestureState) =>
+      Math.abs(gestureState.dx) > 2,
     onMoveShouldSetPanResponderCapture: () => true,
     onPanResponderGrant: evt => {
       setIsDragging(true);
@@ -45,9 +48,13 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
         const {locationX} = evt.nativeEvent;
         const clampedX = Math.max(0, Math.min(containerWidth, locationX));
         const newPercentage = (clampedX / containerWidth) * 100;
-        const newValue = minValue + (newPercentage / 100) * (maxValue - minValue);
+        const newValue =
+          minValue + (newPercentage / 100) * (maxValue - minValue);
         const steppedValue = Math.round(newValue / step) * step;
-        const clampedValue = Math.max(minValue, Math.min(maxValue, steppedValue));
+        const clampedValue = Math.max(
+          minValue,
+          Math.min(maxValue, steppedValue),
+        );
         onValueChange(clampedValue);
       }
     },
@@ -57,9 +64,13 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
         // Constrain within the track bounds
         const clampedX = Math.max(0, Math.min(containerWidth, locationX));
         const newPercentage = (clampedX / containerWidth) * 100;
-        const newValue = minValue + (newPercentage / 100) * (maxValue - minValue);
+        const newValue =
+          minValue + (newPercentage / 100) * (maxValue - minValue);
         const steppedValue = Math.round(newValue / step) * step;
-        const clampedValue = Math.max(minValue, Math.min(maxValue, steppedValue));
+        const clampedValue = Math.max(
+          minValue,
+          Math.min(maxValue, steppedValue),
+        );
         onValueChange(clampedValue);
       }
     },
@@ -96,7 +107,10 @@ export const GradientProgressBar: React.FC<GradientProgressBarProps> = ({
       {showValue && (
         <View style={styles.valueContainer}>
           <Text style={styles.sectionTitle}>{label}</Text>
-          <Text style={styles.currentValue}>{value.toFixed(1)}</Text>
+          <Text style={styles.currentValue}>
+            {valueSuffix === '%' ? Math.round(value) : value.toFixed(1)}
+            {valueSuffix}
+          </Text>
         </View>
       )}
 
