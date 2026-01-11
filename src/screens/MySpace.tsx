@@ -241,20 +241,52 @@ export const MySpaceScreen = React.memo(() => {
         const now = new Date();
         now.setHours(0, 0, 0, 0);
 
-        const upcoming = parsed
-          .map((item: any) => ({
-            ...item,
-            eventDate: new Date(item.date || item.releaseDate),
-          }))
-          .filter((item: any) => item.eventDate >= now)
-          .sort(
+        // Normalize dates
+        const normalized = parsed.map((item: any) => ({
+          ...item,
+          schedulerType: item.schedulerType || 'release',
+          date: item.date || item.releaseDate,
+          eventDate: new Date(item.date || item.releaseDate),
+        }));
+
+        // Filter valid items (Upcoming)
+        const validItems = normalized.filter((item: any) => {
+          const itemDate = new Date(item.eventDate);
+          itemDate.setHours(0, 0, 0, 0);
+          return itemDate.getTime() >= now.getTime();
+        });
+
+        // Current Upcoming Event (for UI)
+        if (validItems.length > 0) {
+          const sorted = [...validItems].sort(
             (a: any, b: any) => a.eventDate.getTime() - b.eventDate.getTime(),
           );
-
-        if (upcoming.length > 0) {
-          setUpcomingEvent(upcoming[0]);
+          setUpcomingEvent(sorted[0]);
         } else {
           setUpcomingEvent(null);
+        }
+
+        // Cleanup Logic (Same as MyCalendar)
+        const removedItems = normalized.filter((item: any) => {
+          const itemDate = new Date(item.eventDate);
+          itemDate.setHours(0, 0, 0, 0);
+          return itemDate.getTime() < now.getTime();
+        });
+
+        if (removedItems.length > 0) {
+          // Persist cleanup
+          // Strip eventDate property before saving to match schema
+          const toSave = validItems.map(({eventDate, ...rest}: any) => rest);
+          await AsyncStorage.setItem('calendar_items', JSON.stringify(toSave));
+
+          // Cancel notifications
+          removedItems.forEach((item: any) => {
+            if (item.notificationId) {
+              notificationService
+                .cancelScheduledNotification(item.notificationId)
+                .catch(err => console.warn('Failed to cancel notif', err));
+            }
+          });
         }
       } else {
         setUpcomingEvent(null);

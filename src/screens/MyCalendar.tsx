@@ -58,16 +58,57 @@ export const MyCalendarScreen: React.FC = () => {
     try {
       const stored = await AsyncStorage.getItem('calendar_items');
       if (stored) {
-        const parsed: CalendarItem[] = JSON.parse(stored).map((item: any) => ({
+        let parsed: CalendarItem[] = JSON.parse(stored).map((item: any) => ({
           ...item,
           schedulerType: item.schedulerType || 'release',
           date: item.date || item.releaseDate,
         }));
-        // Sort by date ascending
-        parsed.sort(
+
+        // Cleanup Logic: Filter past events
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        const validItems = parsed.filter(item => {
+          const itemDate = new Date(item.date);
+          itemDate.setHours(0, 0, 0, 0);
+          return itemDate.getTime() >= today.getTime();
+        });
+
+        // Identify removed items for notification cancellation
+        const removedItems = parsed.filter(item => {
+          const itemDate = new Date(item.date);
+          itemDate.setHours(0, 0, 0, 0);
+          return itemDate.getTime() < today.getTime();
+        });
+
+        // 1. Update State immediately (User sees only valid items)
+        validItems.sort(
           (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
         );
-        setItems(parsed);
+        setItems(validItems);
+
+        // 2. Background Task: Persist cleanup and cancel notifications
+        if (removedItems.length > 0) {
+          // Save cleaned list
+          await AsyncStorage.setItem(
+            'calendar_items',
+            JSON.stringify(validItems),
+          );
+
+          // Cancel notifications
+          removedItems.forEach(item => {
+            if (item.notificationId) {
+              notificationService
+                .cancelScheduledNotification(item.notificationId)
+                .catch(err =>
+                  console.warn(
+                    `Failed to cancel notification for ${item.id}`,
+                    err,
+                  ),
+                );
+            }
+          });
+        }
       } else {
         setItems([]);
       }
