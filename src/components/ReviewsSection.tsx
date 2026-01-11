@@ -240,9 +240,9 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   );
 
   const getGradientColors = (rating: number): string[] => {
-    if (rating <= 3) return ['transparent', '#FF6B6B']; // Transparent to Red (poor)
-    if (rating <= 6) return ['transparent', '#FFD93D']; // Transparent to Yellow (average)
-    return ['transparent', '#51CF66']; // Transparent to Green (good)
+    if (rating <= 3) return ['#ffb1b1ff', '#d30404ff']; // Transparent to Red (poor)
+    if (rating <= 6) return ['#fff3a3ff', '#c4aa00ff']; // Transparent to Yellow (average)
+    return ['#83fe98ff', '#05b623ff']; // Transparent to Green (good)
   };
 
   const renderRatingBar = useCallback(
@@ -314,12 +314,6 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
               </Text>
             ))}
           </View>
-
-          {/* Vertical Gradient Line */}
-          <LinearGradient
-            colors={['#51CF66', '#FFD93D', '#FF6B6B']}
-            style={styles.verticalLine}
-          />
 
           {/* Bars Column */}
           <View style={styles.barsList}>
@@ -650,8 +644,8 @@ const styles = StyleSheet.create({
   },
   barContainer: {
     flex: 1,
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    height: 2,
+    backgroundColor: colors.modal.blur,
     borderRadius: 3,
     overflow: 'hidden',
   },

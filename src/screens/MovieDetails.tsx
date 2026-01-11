@@ -1528,9 +1528,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      backgroundColor: 'rgba(15, 15, 15, 0.94)',
+      backgroundColor: 'rgba(34, 0, 54, 0.94)',
       borderWidth: 1,
-      borderColor: 'rgba(43, 42, 42, 0.37)',
+      borderColor: 'rgba(43, 42, 42, 0.7)',
       padding: 8,
       paddingHorizontal: 12,
       borderRadius: borderRadius.round,
@@ -1593,7 +1593,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       />
       {/* Floating AI chat button */}
       <LinearGradient
-        colors={['rgba(142, 4, 255, 0.46)', 'rgba(255, 4, 125, 0.65)']}
+        colors={['rgba(132, 0, 255, 0.72)', 'rgba(255, 4, 188, 0.65)']}
         start={{x: 0, y: 0}}
         end={{x: 1, y: 0}}
         style={{
@@ -1608,10 +1608,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           justifyContent: 'center',
           borderRadius: borderRadius.round,
           overflow: 'hidden',
-          elevation: 5,
-          shadowColor: 'rgba(46, 1, 39, 0.48)',
-          shadowOffset: {width: 0, height: 0},
-          shadowRadius: 10,
         }}>
         <TouchableOpacity
           onPress={() => setIsAIChatModalOpen(true)}
@@ -1621,15 +1617,12 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             borderRadius: borderRadius.round,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'rgba(15, 15, 15, 0.84)',
-            borderWidth: 1.5,
-            borderColor: 'rgba(255, 255, 255, 0.13)',
+            backgroundColor: 'rgba(15, 0, 24, 1)',
+            borderWidth: 2,
+            borderColor: 'rgba(99, 66, 108, 0.3)',
           }}
           activeOpacity={0.7}>
-          <Image
-            source={require('../assets/theaterai.webp')}
-            style={{width: 30, height: 20}}
-          />
+          <Icon name="sparkles" size={18} color="white" />
         </TouchableOpacity>
       </LinearGradient>
       {/* Poster Preview Modal */}
@@ -2294,7 +2287,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       (movieDetails as any)?.overview ||
                       ''}
                   </Text>
-                  <LinearGradient
+                  {/* <LinearGradient
                     colors={[colors.primary, colors.secondary]}
                     start={{x: 0, y: 0}}
                     end={{x: 1, y: 0}}
@@ -2309,7 +2302,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       />
                       <Text style={styles.aiButtonText}>Ask Theater AI</Text>
                     </TouchableOpacity>
-                  </LinearGradient>
+                  </LinearGradient> */}
                 </Animated.View>
               );
             case 'castCrew':
