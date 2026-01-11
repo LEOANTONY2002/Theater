@@ -48,6 +48,7 @@ import {BlurPreference} from '../store/blurPreference';
 import {getCinemaDNA, CinemaDNA, getTypeEmoji} from '../utils/cinemaDNA';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import {CollectionsManager} from '../store/collections';
+import {diaryManager, IDiaryEntry} from '../store/diary';
 
 import {notificationService} from '../services/NotificationService';
 
@@ -84,22 +85,56 @@ export const MySpaceScreen = React.memo(() => {
   const [cinemaDNA, setCinemaDNA] = useState<CinemaDNA | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
   const [upcomingEvent, setUpcomingEvent] = useState<any | null>(null);
+  const [diaryEntries, setDiaryEntries] = useState<IDiaryEntry[]>([]);
   const {width, height} = useWindowDimensions();
   const today = new Date();
 
-  const currentWeek = useMemo(() => {
+  // Load Diary Entries
+  useEffect(() => {
+    const loadEntries = async () => {
+      const entries = await diaryManager.getAllEntries();
+      setDiaryEntries(entries);
+    };
+    loadEntries();
+    diaryManager.addChangeListener(loadEntries);
+    return () => diaryManager.removeChangeListener(loadEntries);
+  }, []);
+
+  const weekData = useMemo(() => {
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay());
+
     return Array.from({length: 7}).map((_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
+
+      const dayEntries = diaryEntries.filter(e => {
+        const entryDate = new Date(e.last_updated_at);
+        return (
+          entryDate.getDate() === d.getDate() &&
+          entryDate.getMonth() === d.getMonth() &&
+          entryDate.getFullYear() === d.getFullYear()
+        );
+      });
+
+      // Sort by last updated desc to get latest
+      dayEntries.sort(
+        (a, b) =>
+          new Date(b.last_updated_at).getTime() -
+          new Date(a.last_updated_at).getTime(),
+      );
+
+      const latestEntry = dayEntries.length > 0 ? dayEntries[0] : null;
+      const emoji = latestEntry ? latestEntry.mood : null;
+
       return {
         name: d.toLocaleDateString('en-US', {weekday: 'short'}),
         num: d.getDate(),
         isToday: d.toDateString() === today.toDateString(),
+        emoji: emoji,
       };
     });
-  }, []);
+  }, [diaryEntries]);
 
   const {data: watchlists = [], isLoading: isLoadingWatchlists} =
     useWatchlists();
@@ -1041,7 +1076,7 @@ export const MySpaceScreen = React.memo(() => {
             style={[
               styles.tileHeaderRow,
               {
-                marginBottom: 0,
+                marginBottom: 6,
                 paddingBottom: 0,
               },
             ]}>
@@ -1089,7 +1124,7 @@ export const MySpaceScreen = React.memo(() => {
                   alignItems: 'center',
                   position: 'relative',
                 }}>
-                {currentWeek.map((d: any, i: number) => (
+                {weekData.map((d: any, i: number) => (
                   <View
                     key={i}
                     style={{
@@ -1123,9 +1158,15 @@ export const MySpaceScreen = React.memo(() => {
                             : colors.text.muted,
                           ...typography.h3,
                           fontWeight: 'bold',
-                          fontSize: isTablet ? 24 : 14,
+                          fontSize: d.emoji
+                            ? isTablet
+                              ? 22
+                              : 18
+                            : isTablet
+                            ? 24
+                            : 14, // Smaller font for emoji if needed
                         }}>
-                        {d.num}
+                        {d.emoji ? d.emoji : d.num}
                       </Text>
                     </View>
                   </View>

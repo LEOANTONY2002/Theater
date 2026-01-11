@@ -19,11 +19,20 @@ export const usePersonDetails = (personId: number) => {
   });
 };
 
-export const usePersonMovieCredits = (personId: number) => {
+export const usePersonMovieCredits = (
+  personId: number,
+  type:
+    | 'all'
+    | 'cast'
+    | 'crew'
+    | 'acting'
+    | 'production'
+    | 'appearances' = 'all',
+) => {
   return useInfiniteQuery({
-    queryKey: ['person', personId, 'movie_credits'],
+    queryKey: ['person', personId, 'movie_credits', type],
     queryFn: ({pageParam = 1}) =>
-      getPersonMovieCredits(personId, pageParam as number),
+      getPersonMovieCredits(personId, pageParam as number, type),
     getNextPageParam: (lastPage: MoviesResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -32,11 +41,20 @@ export const usePersonMovieCredits = (personId: number) => {
   });
 };
 
-export const usePersonTVCredits = (personId: number) => {
+export const usePersonTVCredits = (
+  personId: number,
+  type:
+    | 'all'
+    | 'cast'
+    | 'crew'
+    | 'acting'
+    | 'production'
+    | 'appearances' = 'all',
+) => {
   return useInfiniteQuery({
-    queryKey: ['person', personId, 'tv_credits'],
+    queryKey: ['person', personId, 'tv_credits', type],
     queryFn: ({pageParam = 1}) =>
-      getPersonTVCredits(personId, pageParam as number),
+      getPersonTVCredits(personId, pageParam as number, type),
     getNextPageParam: (lastPage: TVShowsResponse) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,

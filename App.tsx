@@ -22,6 +22,7 @@ import {enableScreens} from 'react-native-screens';
 import {DNSSetupGuide} from './src/components/DNSSetupGuide';
 import {checkInternet} from './src/services/connectivity';
 import {NoInternet} from './src/screens/NoInternet';
+import {useConnectivity} from './src/hooks/useConnectivity';
 import Onboarding from './src/screens/Onboarding';
 import {OnboardingManager} from './src/store/onboarding';
 import {checkTMDB} from './src/services/tmdb';
@@ -37,7 +38,7 @@ export default function App() {
   const [themeReady, setThemeReady] = useState(false);
   const [dbReady, setDbReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(true);
+  const {isOnline, checkLikelyOnline} = useConnectivity();
   const [hasCache, setHasCache] = useState(false);
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [showDNSModal, setShowDNSModal] = useState(false);
@@ -136,8 +137,7 @@ export default function App() {
     setRetrying(true);
 
     try {
-      const ok = await checkInternet();
-      setIsOnline(ok);
+      const ok = await checkLikelyOnline();
 
       if (!ok) {
         setShowDNSModal(false);
@@ -148,10 +148,9 @@ export default function App() {
       if (tmdbOk) {
         setShowDNSModal(false);
       } else {
-        const isStillOnline = await checkInternet();
+        const isStillOnline = await checkLikelyOnline();
 
         if (!isStillOnline) {
-          setIsOnline(false);
           setShowDNSModal(false);
         } else {
           console.log(
@@ -171,12 +170,11 @@ export default function App() {
     const runStartupChecks = async () => {
       console.log('[App] 🚀 Running Update Startup Checks...');
 
-      let ok = await checkInternet();
+      let ok = await checkLikelyOnline();
       if (!ok) {
         await new Promise(resolve => setTimeout(resolve, 500));
-        ok = await checkInternet();
+        ok = await checkLikelyOnline();
       }
-      setIsOnline(ok);
       console.log('[App] 🌐 Internet Status:', ok);
 
       if (!ok) {
@@ -190,11 +188,10 @@ export default function App() {
 
       if (!tmdbOk) {
         console.log('[App] TMDB failed - double-checking internet...');
-        const isStillOnline = await checkInternet();
+        const isStillOnline = await checkLikelyOnline();
 
         if (!isStillOnline) {
           console.log('[App] Internet lost - not showing DNS modal');
-          setIsOnline(false);
           setShowDNSModal(false); // Clear DNS modal if internet is lost
           return;
         }
@@ -237,21 +234,19 @@ export default function App() {
     const handleAppStateChange = async (nextAppState: string) => {
       if (nextAppState === 'active') {
         // Check internet first
-        const ok = await checkInternet();
-        setIsOnline(ok);
+        const ok = await checkLikelyOnline();
 
         // Only check TMDB if internet is OK
         if (ok) {
           const tmdbOk = await checkTMDB();
           if (!tmdbOk) {
             // Double-check internet to be sure
-            const isStillOnline = await checkInternet();
+            const isStillOnline = await checkLikelyOnline();
             if (isStillOnline) {
               // Internet OK but TMDB blocked - DNS issue
               setShowDNSModal(true);
             } else {
               // Internet lost
-              setIsOnline(false);
               setShowDNSModal(false); // Clear DNS modal if internet is lost
             }
           }

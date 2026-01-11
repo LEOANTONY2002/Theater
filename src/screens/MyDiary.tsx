@@ -26,6 +26,7 @@ import {MaybeBlurView} from '../components/MaybeBlurView';
 import {Modal} from 'react-native';
 import {Notebook as NotebookBold} from '@solar-icons/react-native/dist/icons/notes/Bold/Notebook.mjs';
 import {Notebook as NotebookLinear} from '@solar-icons/react-native/dist/icons/notes/Linear/Notebook.mjs';
+import {ActivityHeatMap} from '../components/ActivityHeatMap';
 
 const {width, height} = Dimensions.get('window');
 
@@ -299,7 +300,7 @@ export const MyDiaryScreen: React.FC = () => {
       if (displayType === 'timeline') {
         if (viewMode === 'month' && dayScrollRef.current) {
           const index = selectedDate.getDate() - 1;
-          const itemWidth = 75 + 8; // width + marginRight
+          const itemWidth = 55 + 8; // width + marginRight
           const offset = index * itemWidth - (width - 150) / 2 + itemWidth / 2;
           dayScrollRef.current.scrollTo({
             x: Math.max(0, offset),
@@ -307,7 +308,7 @@ export const MyDiaryScreen: React.FC = () => {
           });
         } else if (viewMode === 'year' && monthScrollRef.current) {
           const index = selectedDate.getMonth();
-          const itemWidth = 85 + 8; // width + marginRight
+          const itemWidth = 70 + 8; // width + marginRight
           const offset = index * itemWidth - (width - 150) / 2 + itemWidth / 2;
           monthScrollRef.current.scrollTo({
             x: Math.max(0, offset),
@@ -320,7 +321,7 @@ export const MyDiaryScreen: React.FC = () => {
         // 1. Scroll Month (Header)
         if (monthScrollRef.current) {
           const index = selectedDate.getMonth();
-          const itemWidth = 85 + 8; // styles.selectorPillMonth (85) + margin (8)
+          const itemWidth = 60 + 8; // styles.selectorPillMonth (85) + margin (8)
           const offset = index * itemWidth - (width - 32) / 2 + itemWidth / 2; // Approximation: width-32 is roughly safe area
           monthScrollRef.current.scrollTo({
             x: Math.max(0, offset),
@@ -330,7 +331,7 @@ export const MyDiaryScreen: React.FC = () => {
         // 2. Scroll Day (Footer)
         if (dayScrollRef.current) {
           const index = selectedDate.getDate() - 1;
-          const itemWidth = 40 + 24; // Fixed width (40) + margin (24)
+          const itemWidth = 40 + 12; // Fixed width (40) + margin (24)
           const offset = index * itemWidth - width / 2 + itemWidth / 2;
           dayScrollRef.current.scrollTo({
             x: Math.max(0, offset),
@@ -376,7 +377,7 @@ export const MyDiaryScreen: React.FC = () => {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#000',
+      backgroundColor: colors.background.primary,
     },
     header: {
       position: 'absolute',
@@ -404,9 +405,8 @@ export const MyDiaryScreen: React.FC = () => {
       color: '#fff',
     },
     scrapbookToggle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      padding: spacing.md,
+      borderRadius: borderRadius.round,
       backgroundColor: colors.modal.blur,
       borderWidth: 1,
       borderBottomWidth: 0,
@@ -459,10 +459,10 @@ export const MyDiaryScreen: React.FC = () => {
     },
     watchingCard: {
       width: 250,
-      backgroundColor: '#121214',
+      backgroundColor: colors.modal.blur,
       borderRadius: 24,
       borderWidth: 1,
-      borderColor: '#2C2C2E',
+      borderColor: colors.modal.header,
       flexDirection: 'row',
       padding: 12,
       marginRight: spacing.md,
@@ -490,7 +490,7 @@ export const MyDiaryScreen: React.FC = () => {
     },
     watchingProgressBarContainer: {
       height: 6,
-      backgroundColor: '#2C2C2E',
+      backgroundColor: colors.modal.content,
       borderRadius: 3,
       width: '100%',
       overflow: 'hidden',
@@ -532,12 +532,10 @@ export const MyDiaryScreen: React.FC = () => {
       width: 1,
       height: 50,
       backgroundColor: colors.modal.header,
-      marginRight: spacing.md,
-      marginLeft: spacing.sm,
     },
     edgeGradientLeft: {
       position: 'absolute',
-      left: -10,
+      left: 0,
       top: 0,
       bottom: 0,
       width: 60,
@@ -552,40 +550,27 @@ export const MyDiaryScreen: React.FC = () => {
       zIndex: 10,
     },
     selectorContent: {
-      paddingRight: 40,
+      paddingHorizontal: spacing.md,
     },
     selectorPill: {
       width: 75,
       height: 90,
       borderRadius: 24,
-      backgroundColor: colors.modal.blur,
       marginRight: 8,
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
       borderBottomWidth: 0,
       borderTopWidth: 0,
-      borderColor: colors.modal.content,
     },
     selectorPillMonth: {
-      width: 85,
       height: 60,
+      paddingHorizontal: 16,
       borderRadius: 24,
-      backgroundColor: colors.modal.blur,
-      marginRight: 8,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 1,
-      borderBottomWidth: 0,
-      borderTopWidth: 0,
-      borderColor: colors.modal.content,
     },
-    selectorPillActive: {
-      borderBottomWidth: 1,
-      borderTopWidth: 1,
-      backgroundColor: colors.modal.blur,
-      borderColor: colors.modal.active,
-    },
+    selectorPillActive: {},
     selectorDayName: {
       fontSize: 11,
       color: colors.text.secondary,
@@ -622,7 +607,10 @@ export const MyDiaryScreen: React.FC = () => {
       marginBottom: 4,
     },
     yearListItemActive: {
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      backgroundColor: colors.modal.blur,
+      borderColor: colors.modal.header,
+      borderWidth: 1,
+      borderBottomWidth: 0,
     },
     yearListItemText: {
       ...typography.h3,
@@ -637,11 +625,13 @@ export const MyDiaryScreen: React.FC = () => {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.05)',
+      backgroundColor: colors.modal.blur,
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.1)',
+      borderTopWidth: 0,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.header,
     },
     historyContainer: {
       paddingHorizontal: spacing.lg,
@@ -670,10 +660,10 @@ export const MyDiaryScreen: React.FC = () => {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#121214',
+      backgroundColor: colors.background.tertiaryGlass,
       borderRadius: 24,
       borderWidth: 1,
-      borderColor: '#2C2C2E',
+      borderColor: colors.modal.content,
       padding: 10,
       overflow: 'visible',
     },
@@ -684,6 +674,8 @@ export const MyDiaryScreen: React.FC = () => {
       width: 65,
       height: 110,
       borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.modal.content,
     },
     historyContent: {
       flex: 1,
@@ -886,9 +878,9 @@ export const MyDiaryScreen: React.FC = () => {
             )
           }>
           {displayType === 'timeline' ? (
-            <NotebookLinear size={16} color="#fff" />
+            <NotebookLinear size={20} color="#fff" />
           ) : (
-            <NotebookBold size={16} color="#fff" />
+            <NotebookBold size={20} color="#fff" />
           )}
         </TouchableOpacity>
       )}
@@ -934,8 +926,8 @@ export const MyDiaryScreen: React.FC = () => {
     const isTV = entry.type === 'tv';
     const hasNote = !!entry.note;
     const dayNum = new Date(entry.last_updated_at).getDate();
-    const moodEmoji = entry.mood || '🤩';
-    const ratingLabel = entry.rating ? (entry.rating / 2).toFixed(1) : '8.5'; // Fallback to figma default if missing
+    const moodEmoji = entry.mood || '';
+    const ratingLabel = entry.rating ? entry.rating.toFixed(1) : '';
 
     return (
       <View key={entry.id} style={styles.historyCardOuter}>
@@ -966,7 +958,7 @@ export const MyDiaryScreen: React.FC = () => {
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                right: 0,
+                right: -5,
                 bottom: 0,
               }}
             />
@@ -1094,7 +1086,6 @@ export const MyDiaryScreen: React.FC = () => {
           style={{
             flex: 1,
             position: 'relative',
-            marginHorizontal: -spacing.md,
           }}>
           <ScrollView
             horizontal
@@ -1104,18 +1095,39 @@ export const MyDiaryScreen: React.FC = () => {
             {viewMode === 'month'
               ? daysInMonth.map((d, i) => {
                   const isActive = d.getDate() === selectedDate.getDate();
+                  const hasData = daysWithData.has(d.getDate());
+
                   return (
                     <TouchableOpacity
                       key={i}
+                      disabled={!hasData}
                       style={[
-                        styles.selectorPill,
-                        isActive && styles.selectorPillActive,
+                        {
+                          padding: 16,
+                          minWidth: 60,
+                          borderRadius: 24,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: colors.modal.blur,
+                          borderWidth: 1,
+                          borderColor: colors.modal.content,
+                          marginRight: 6,
+                        },
+                        isActive && {
+                          backgroundColor: colors.modal.blur,
+                          borderColor: colors.modal.header,
+                          borderWidth: 1,
+                          borderBottomWidth: 1,
+                          borderTopWidth: 1,
+                        },
+                        !hasData && {opacity: 0.2},
                       ]}
                       onPress={() => setSelectedDate(new Date(d))}>
                       <Text
                         style={[
                           styles.selectorDayName,
                           isActive && styles.selectorDayActive,
+                          !hasData && {color: '#8E8E93'},
                         ]}>
                         {d.toLocaleDateString('en-US', {weekday: 'short'})}
                       </Text>
@@ -1123,6 +1135,7 @@ export const MyDiaryScreen: React.FC = () => {
                         style={[
                           styles.selectorDayNum,
                           isActive && styles.selectorDayNumActive,
+                          !hasData && {color: '#8E8E93'},
                         ]}>
                         {d.getDate()}
                       </Text>
@@ -1131,18 +1144,33 @@ export const MyDiaryScreen: React.FC = () => {
                 })
               : monthsOfYear.map((m, i) => {
                   const isActive = m.getMonth() === selectedDate.getMonth();
+                  const hasData = monthsWithData.has(m.getMonth());
+
                   return (
                     <TouchableOpacity
                       key={i}
+                      disabled={!hasData}
                       style={[
-                        styles.selectorPillMonth,
-                        isActive && styles.selectorPillActive,
+                        {
+                          height: 60,
+                          paddingHorizontal: 16,
+                          borderRadius: 24,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        },
+                        isActive && {
+                          backgroundColor: colors.modal.blur,
+                          borderColor: colors.modal.header,
+                          borderWidth: 1,
+                        },
+                        !hasData && {opacity: 0.2},
                       ]}
                       onPress={() => setSelectedDate(new Date(m))}>
                       <Text
                         style={[
                           styles.selectorMonthName,
                           isActive && styles.selectorMonthActive,
+                          !hasData && {color: '#8E8E93'},
                         ]}>
                         {m.toLocaleDateString('en-US', {month: 'short'})}
                       </Text>
@@ -1153,7 +1181,7 @@ export const MyDiaryScreen: React.FC = () => {
 
           {/* Left Edge Gradient */}
           <LinearGradient
-            colors={['#000', 'transparent']}
+            colors={[colors.background.primary, 'transparent']}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 0}}
             style={styles.edgeGradientLeft}
@@ -1161,7 +1189,7 @@ export const MyDiaryScreen: React.FC = () => {
           />
           {/* Right Edge Gradient */}
           <LinearGradient
-            colors={['transparent', '#000']}
+            colors={['transparent', colors.background.primary]}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 0}}
             style={styles.edgeGradientRight}
@@ -1180,10 +1208,9 @@ export const MyDiaryScreen: React.FC = () => {
         colors={[
           colors.background.primary,
           colors.background.primary,
-          'rgba(0,0,0,0.8)',
           'transparent',
         ]}
-        style={{...StyleSheet.absoluteFillObject, height: 180}}
+        style={{...StyleSheet.absoluteFillObject, height: 250}}
         pointerEvents="none"
       />
 
@@ -1199,9 +1226,9 @@ export const MyDiaryScreen: React.FC = () => {
             )
           }>
           {displayType === 'timeline' ? (
-            <NotebookLinear size={16} color="#fff" />
+            <NotebookLinear size={20} color="#fff" />
           ) : (
-            <NotebookBold size={16} color="#fff" />
+            <NotebookBold size={20} color="#fff" />
           )}
         </TouchableOpacity>
       </View>
@@ -1249,7 +1276,6 @@ export const MyDiaryScreen: React.FC = () => {
             style={{
               flex: 1,
               position: 'relative',
-              marginHorizontal: -spacing.md,
             }}>
             <ScrollView
               horizontal
@@ -1284,7 +1310,7 @@ export const MyDiaryScreen: React.FC = () => {
 
             {/* Left Edge Gradient */}
             <LinearGradient
-              colors={['#000', 'transparent']}
+              colors={[colors.background.primary, 'transparent']}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 0}}
               style={styles.edgeGradientLeft}
@@ -1292,7 +1318,7 @@ export const MyDiaryScreen: React.FC = () => {
             />
             {/* Right Edge Gradient */}
             <LinearGradient
-              colors={['transparent', '#000']}
+              colors={['transparent', colors.background.primary]}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 0}}
               style={styles.edgeGradientRight}
@@ -1422,9 +1448,9 @@ export const MyDiaryScreen: React.FC = () => {
         const timeDiff = Math.abs(end.getTime() - start.getTime());
         const days = Math.floor(timeDiff / (1000 * 3600 * 24));
         const displayDays = days < 1 ? 1 : days;
-        durationString = `Completed in ${displayDays} ${
-          displayDays === 1 ? 'day' : 'days'
-        }`;
+        durationString = isTV
+          ? `Watched in ${displayDays} ${displayDays === 1 ? 'day' : 'days'}`
+          : '';
       } else {
         durationString = `Started ${new Date(
           viewingEntry.started_at,
@@ -1457,7 +1483,7 @@ export const MyDiaryScreen: React.FC = () => {
       const seasonNote = sNotes[sNum.toString()] || sNotes[`${sNum}`];
       timelineData.push({
         type: 'season',
-        title: `Season ${sNum}`,
+        title: sNum === 0 ? 'Specials' : `Season ${sNum}`,
         note: seasonNote,
       });
 
@@ -1491,9 +1517,7 @@ export const MyDiaryScreen: React.FC = () => {
               displayTitle = `${epNumStr} ${parsed.title}`;
             }
           }
-        } catch (e) {
-          // Fallback to simpler display if parsing fails
-        }
+        } catch (e) {}
 
         timelineData.push({
           type: 'episode',
@@ -1589,7 +1613,7 @@ export const MyDiaryScreen: React.FC = () => {
                       zIndex: 1,
                       borderWidth: 2,
                       borderColor: 'rgba(255,255,255,0.1)',
-                      shadowColor: '#000',
+                      shadowColor: colors.background.primary,
                       shadowOffset: {width: 0, height: 4},
                       shadowOpacity: 0.5,
                       shadowRadius: 8,
@@ -1692,6 +1716,20 @@ export const MyDiaryScreen: React.FC = () => {
                         }}
                       />
 
+                      {/* Secondary Vertical Line for Episodes */}
+                      {episodes.length > 0 && (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left: 29, // Align with episode dots (26 + 3.5)
+                            top: 60,
+                            bottom: 12,
+                            width: 1,
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                          }}
+                        />
+                      )}
+
                       {/* Season Header */}
                       <View
                         style={{
@@ -1710,24 +1748,24 @@ export const MyDiaryScreen: React.FC = () => {
                               width: 6,
                               height: 6,
                               borderRadius: 3,
-                              backgroundColor: '#fff',
+                              backgroundColor: '#cacacaff',
                             }}
                           />
                         </View>
                         <View style={{flex: 1}}>
                           <Text
                             style={{
-                              color: '#fff',
+                              color: '#a5a5a5ff',
                               fontSize: 13,
                               fontWeight: '700',
                               marginBottom: 4,
                             }}>
-                            Season {sNum}
+                            {sNum === 0 ? 'Specials' : `Season ${sNum}`}
                           </Text>
                           {seasonNote ? (
                             <Text
                               style={{
-                                color: 'rgba(255,255,255,0.6)',
+                                color: colors.text.primary,
                                 fontSize: 13,
                                 lineHeight: 18,
                               }}>
@@ -1744,7 +1782,8 @@ export const MyDiaryScreen: React.FC = () => {
                         const epNumStr = epNum < 10 ? `0${epNum}` : `${epNum}`;
 
                         let displayNote = noteStr;
-                        let displayTitle = `Episode`; // Default title without number
+                        let displayNumber = 'E' + epNum;
+                        let displayTitle = `Episode ${epNum}`;
 
                         try {
                           if (noteStr && noteStr.trim().startsWith('{')) {
@@ -1757,50 +1796,60 @@ export const MyDiaryScreen: React.FC = () => {
                         return (
                           <View
                             key={key}
-                            style={{flexDirection: 'row', marginBottom: 16}}>
+                            style={{
+                              flexDirection: 'row',
+                              marginBottom: 12,
+                              marginLeft: 26, // Indent for episode row
+                            }}>
                             <View
                               style={{
-                                width: 20,
+                                width: 7,
+                                height: 7,
                                 alignItems: 'center',
                                 marginRight: 12,
-                                paddingTop: 8,
+                                paddingTop: 4,
                               }}>
-                              {/* Horizontal Tick for Episode */}
+                              {/* Episode Dot */}
                               <View
                                 style={{
-                                  width: 6,
-                                  height: 1.5,
-                                  backgroundColor: 'rgba(255,255,255,0.5)',
+                                  width: 7,
+                                  height: 7,
+                                  borderRadius: 3.5,
+                                  backgroundColor: '#7e7e7eff',
+                                  marginTop: 4,
                                 }}
                               />
                             </View>
                             <View style={{flex: 1}}>
-                              <Text style={{fontSize: 14, marginBottom: 2}}>
+                              <View style={{flexDirection: 'row', gap: 4}}>
                                 <Text
                                   style={{
-                                    color: 'rgba(255,255,255,0.5)',
-                                    fontWeight: '600',
+                                    color: '#a5a5a5ff',
+                                    fontSize: 12,
+                                    fontWeight: '700',
                                   }}>
-                                  {epNumStr}
+                                  {displayNumber}
                                 </Text>
                                 <Text
-                                  style={{color: '#fff', fontWeight: '700'}}>
-                                  {' '}
+                                  style={{
+                                    color: colors.text.primary,
+                                    fontSize: 12,
+                                    fontWeight: '700',
+                                    marginBottom: 2,
+                                  }}>
                                   {displayTitle}
                                 </Text>
+                              </View>
+                              <Text
+                                style={{
+                                  color: colors.text.primary,
+                                  fontSize: 13,
+                                  lineHeight: 18,
+                                }}>
+                                {typeof displayNote === 'string'
+                                  ? displayNote
+                                  : ''}
                               </Text>
-                              {displayNote &&
-                              typeof displayNote === 'string' ? (
-                                <Text
-                                  style={{
-                                    color: 'rgba(255,255,255,0.6)',
-                                    fontSize: 13,
-                                    lineHeight: 18,
-                                    marginTop: 2,
-                                  }}>
-                                  {displayNote}
-                                </Text>
-                              ) : null}
                             </View>
                           </View>
                         );
@@ -1816,13 +1865,17 @@ export const MyDiaryScreen: React.FC = () => {
                 style={{
                   position: 'absolute',
                   top: 16,
-                  left: 16,
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  right: 16,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: colors.modal.blur,
                   alignItems: 'center',
                   justifyContent: 'center',
+                  borderWidth: 1,
+                  borderBottomWidth: 0,
+                  borderTopWidth: 0,
+                  borderColor: colors.modal.content,
                 }}>
                 <Ionicons name="close" size={18} color="#fff" />
               </TouchableOpacity>
@@ -1890,7 +1943,7 @@ export const MyDiaryScreen: React.FC = () => {
                   gap: spacing.md,
                 }}>
                 <View>
-                  <Text style={{color: '#fff', ...typography.h3, fontSize: 18}}>
+                  <Text style={{color: '#fff', ...typography.h3}}>
                     Select Year
                   </Text>
                 </View>
@@ -1954,127 +2007,7 @@ export const MyDiaryScreen: React.FC = () => {
     </Modal>
   );
 
-  // --- RENDER HELPERS ---
-
-  // 1. Fixed Header (Title + Month Selector)
-  const renderFixedHeader = () => {
-    return (
-      <View
-        style={{position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100}}>
-        {/* Top Gradient for status bar area */}
-        <LinearGradient
-          colors={[
-            colors.background.primary,
-            colors.background.primary,
-            'rgba(0,0,0,0.8)',
-            'transparent',
-          ]}
-          style={{...StyleSheet.absoluteFillObject, height: 160}}
-          pointerEvents="none"
-        />
-
-        {/* Title Row */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: spacing.lg,
-            paddingTop: 50, // Safe area
-            paddingBottom: spacing.sm,
-            marginBottom: 10,
-          }}>
-          <Text style={{...typography.h2, color: '#fff', fontSize: 28}}>
-            My Diary
-          </Text>
-          <TouchableOpacity
-            style={styles.scrapbookToggle}
-            onPress={() =>
-              setDisplayType(prev =>
-                prev === 'timeline' ? 'scrapbook' : 'timeline',
-              )
-            }>
-            <Ionicons
-              name={
-                displayType === 'timeline' ? 'grid-outline' : 'list-outline'
-              }
-              size={20}
-              color="#fff"
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Month Selector Row */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingLeft: spacing.lg,
-          }}>
-          {/* Fixed Year */}
-          <TouchableOpacity
-            onPress={() => toggleYearModal(true)}
-            style={{
-              paddingRight: 16,
-              marginRight: 16,
-              borderRightWidth: 1,
-              borderRightColor: 'rgba(255,255,255,0.2)',
-            }}>
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 24,
-                fontWeight: '900',
-                lineHeight: 28,
-              }}>
-              {selectedDate.getFullYear().toString().slice(0, 2)}
-              {'\n'}
-              {selectedDate.getFullYear().toString().slice(2)}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Scrollable Months */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{paddingRight: spacing.lg}}>
-            {monthsOfYear.map((m, i) => {
-              const isActive = m.getMonth() === selectedDate.getMonth();
-              return (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => {
-                    const newDate = new Date(selectedDate);
-                    newDate.setMonth(m.getMonth());
-                    setSelectedDate(newDate);
-                  }}
-                  style={{
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: isActive ? '#fff' : 'rgba(255,255,255,0.15)',
-                    backgroundColor: isActive ? '#fff' : 'transparent',
-                    marginRight: 8,
-                  }}>
-                  <Text
-                    style={{
-                      color: isActive ? '#000' : '#fff',
-                      fontWeight: isActive ? '700' : '400',
-                      fontSize: 14,
-                    }}>
-                    {m.toLocaleDateString('en-US', {month: 'short'})}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </View>
-    );
-  };
-
-  // 2. Fixed Footer (Day Selector)
+  // Fixed Footer (Day Selector)
   const renderFixedFooter = () => {
     // Generate days for current month
     const days = daysInMonth;
@@ -2092,14 +2025,41 @@ export const MyDiaryScreen: React.FC = () => {
         <LinearGradient
           colors={[
             'transparent',
-            'rgba(0,0,0,0.8)',
             colors.background.primary,
             colors.background.primary,
           ]}
-          style={{...StyleSheet.absoluteFillObject, height: 140, top: -40}}
+          style={{...StyleSheet.absoluteFillObject, height: 200, top: -60}}
           pointerEvents="none"
         />
-
+        <LinearGradient
+          colors={[colors.background.primary, 'transparent']}
+          useAngle
+          angle={90}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '30%',
+            height: 70,
+            zIndex: 1,
+          }}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={[colors.background.primary, 'transparent']}
+          useAngle
+          angle={-90}
+          style={{
+            position: 'absolute',
+            right: 0,
+            bottom: 0,
+            width: '30%',
+            height: 70,
+            zIndex: 1,
+          }}
+          pointerEvents="none"
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -2122,11 +2082,19 @@ export const MyDiaryScreen: React.FC = () => {
                 onPress={() => setSelectedDate(d)}
                 style={{
                   alignItems: 'center',
-                  width: 40, // Fixed width for accurate scroll calculation
-                  marginRight: 24,
+                  marginRight: 10,
+                  width: 40,
                   opacity: isActive ? 1 : hasData ? 0.5 : 0.2,
                   transform: [{scale: isActive ? 1.1 : 1}],
                 }}>
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 24,
+                    fontWeight: '900',
+                  }}>
+                  {d.getDate()}
+                </Text>
                 <Text
                   style={{
                     color: '#fff',
@@ -2137,25 +2105,6 @@ export const MyDiaryScreen: React.FC = () => {
                   }}>
                   {d.toLocaleDateString('en-US', {weekday: 'short'})}
                 </Text>
-                <Text
-                  style={{
-                    color: '#fff',
-                    fontSize: 24,
-                    fontWeight: '900',
-                  }}>
-                  {d.getDate()}
-                </Text>
-                {isToday && (
-                  <View
-                    style={{
-                      width: 4,
-                      height: 4,
-                      borderRadius: 2,
-                      backgroundColor: colors.accent,
-                      marginTop: 4,
-                    }}
-                  />
-                )}
               </TouchableOpacity>
             );
           })}
@@ -2249,8 +2198,8 @@ export const MyDiaryScreen: React.FC = () => {
                         position: 'absolute',
                         left: -45,
                         top: 0,
-                        backgroundColor: '#000',
-                        shadowColor: '#000',
+                        backgroundColor: colors.background.primary,
+                        shadowColor: colors.background.primary,
                         shadowOpacity: 0.5,
                         shadowRadius: 10,
                         elevation: 5,
@@ -2391,7 +2340,7 @@ export const MyDiaryScreen: React.FC = () => {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
-            paddingTop: 240, // Header height + extra space
+            paddingTop: 200, // Header height + extra space
             paddingBottom: 160, // Footer height
             paddingHorizontal: spacing.lg,
           }}>
@@ -2405,7 +2354,7 @@ export const MyDiaryScreen: React.FC = () => {
             dayEntries.map(entry => {
               const moodEmoji = entry.mood || '🤩';
               const ratingLabel = entry.rating
-                ? (entry.rating / 2).toFixed(1)
+                ? entry.rating.toFixed(1)
                 : '8.5';
 
               return (
@@ -2512,7 +2461,7 @@ export const MyDiaryScreen: React.FC = () => {
 
                               return (
                                 <View key={`s-block-${sNum}`}>
-                                  {/* Main Vertical Line for this block */}
+                                  {/* Main Vertical Line for Season */}
                                   <View
                                     style={{
                                       position: 'absolute',
@@ -2524,20 +2473,35 @@ export const MyDiaryScreen: React.FC = () => {
                                     }}
                                   />
 
+                                  {/* Secondary Vertical Line for Episodes */}
+                                  {episodes.length > 0 && (
+                                    <View
+                                      style={{
+                                        position: 'absolute',
+                                        left: 23, // 20px indent + 3px for center
+                                        top: 40, // Start roughly at first episode dot
+                                        bottom: 12,
+                                        width: 1,
+                                        backgroundColor:
+                                          'rgba(255,255,255,0.1)',
+                                      }}
+                                    />
+                                  )}
+
                                   {/* Season Header */}
                                   <View
                                     style={{
                                       flexDirection: 'row',
                                       alignItems: 'flex-start',
                                       marginBottom:
-                                        episodes.length > 0 ? 8 : 12,
+                                        episodes.length > 0 ? 12 : 12,
                                     }}>
                                     <View
                                       style={{
                                         width: 7,
                                         height: 7,
                                         borderRadius: 3.5,
-                                        backgroundColor: '#fff',
+                                        backgroundColor: '#cacacaff',
                                         marginTop: 6,
                                         marginRight: 12,
                                         zIndex: 2,
@@ -2588,8 +2552,6 @@ export const MyDiaryScreen: React.FC = () => {
                                           displayNote = parsed.text;
                                         if (parsed.title)
                                           displayTitle = `${parsed.title}`;
-                                      } else {
-                                        displayTitle = `Episode Name`; // Fallback/Default format
                                       }
                                     } catch (e) {}
 
@@ -2600,14 +2562,20 @@ export const MyDiaryScreen: React.FC = () => {
                                           flexDirection: 'row',
                                           alignItems: 'flex-start',
                                           marginBottom: 12,
-                                          marginLeft: 0, // Align with season line
+                                          marginLeft: 20, // Indent for episode row
                                         }}>
+                                        {/* Episode Dot */}
                                         <View
                                           style={{
                                             width: 7,
-                                            alignItems: 'center',
+                                            height: 7,
+                                            borderRadius: 3.5,
+                                            backgroundColor: '#7e7e7eff',
+                                            marginTop: 4,
                                             marginRight: 12,
-                                          }}></View>
+                                            zIndex: 2,
+                                          }}
+                                        />
                                         <View style={{flex: 1}}>
                                           <View
                                             style={{
@@ -2716,6 +2684,20 @@ export const MyDiaryScreen: React.FC = () => {
                 historyEntries.map(renderHistoryCard)
               )}
             </View>
+
+            {entries.length > 0 && (
+              <View
+                style={{
+                  paddingHorizontal: spacing.lg,
+                  marginTop: spacing.xl,
+                }}>
+                <ActivityHeatMap
+                  dates={entries.map(e => e.last_updated_at)}
+                  weeks={20}
+                  title="Viewing Activity"
+                />
+              </View>
+            )}
           </ScrollView>
         </View>
       )}

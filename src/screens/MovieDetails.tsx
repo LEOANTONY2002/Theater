@@ -40,7 +40,11 @@ import {MediaTabs} from '../components/MediaTabs';
 import {KeywordsDisplay} from '../components/KeywordsDisplay';
 import {ProductionInfo} from '../components/ProductionInfo';
 import {CollectionBanner} from '../components/CollectionBanner';
-import {useNavigation, RouteProp} from '@react-navigation/native';
+import {
+  useNavigation,
+  RouteProp,
+  useFocusEffect,
+} from '@react-navigation/native';
 import {ContentItem} from '../components/MovieList';
 import {
   MySpaceStackParamList,
@@ -103,6 +107,7 @@ import {ScheduleWatchModal} from '../components/ScheduleWatchModal';
 import {FeedbackModal} from '../components/FeedbackModal';
 import {CalendarMark as CalendarBold} from '@solar-icons/react-native/dist/icons/time/Bold/CalendarMark.mjs';
 import {CalendarAdd as CalendarLinear} from '@solar-icons/react-native/dist/icons/time/Linear/CalendarAdd.mjs';
+import {useConnectivity} from '../hooks/useConnectivity';
 
 type MovieDetailsScreenNavigationProp = NativeStackNavigationProp<
   MySpaceStackParamList &
@@ -170,7 +175,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const {isOnline, checkLikelyOnline} = useConnectivity();
   const [hasCache, setHasCache] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
@@ -291,30 +296,31 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const loadingRatingsRef = useRef<number | null>(null);
 
   // Check connectivity and cache status for this specific movie
-  useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const online = await checkInternet();
-        // Check if movie is cached in Realm
-        const realm = getRealm();
-        const cachedMovie = realm.objectForPrimaryKey('Movie', movie.id);
-        setIsOnline(online);
-        setHasCache(!!cachedMovie);
-      } catch (error) {
-        console.error('Error checking connectivity/cache status:', error);
-        setIsOnline(true); // Default to online if check fails
-        setHasCache(false);
-      }
-    };
-    checkStatus();
-  }, [movie.id]);
+  useFocusEffect(
+    useCallback(() => {
+      const checkStatus = async () => {
+        try {
+          // Re-check internet status on focus to avoid stale state
+          await checkLikelyOnline();
+
+          // Check if movie is cached in Realm
+          const realm = getRealm();
+          const cachedMovie = realm.objectForPrimaryKey('Movie', movie.id);
+          setHasCache(!!cachedMovie);
+        } catch (error) {
+          console.error('Error checking connectivity/cache status:', error);
+          setHasCache(false);
+        }
+      };
+      checkStatus();
+    }, [movie.id, checkLikelyOnline]),
+  );
 
   const handleRetry = async () => {
     if (retrying) return;
     setRetrying(true);
     try {
-      const online = await checkInternet();
-      setIsOnline(online);
+      const online = await checkLikelyOnline();
 
       if (online) {
         // If back online, invalidate and refetch all queries for this movie

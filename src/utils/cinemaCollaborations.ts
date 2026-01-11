@@ -1,4 +1,5 @@
 import {RealmHistoryManager} from '../database/managers';
+import {getMoviesByDirector} from '../services/tmdb';
 
 export interface Collaboration {
   person1: {
@@ -354,27 +355,39 @@ export const getCollectionProgress = async (): Promise<
     });
 
     // Get top 3 directors with at least 3 films
+    // Get top 6 directors with at least 2 films
     const topDirectors = Array.from(directorCounts.entries())
-      .filter(([_, data]) => data.count >= 3)
+      .filter(([_, data]) => data.count >= 2)
       .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 3);
+      .slice(0, 6);
 
-    // For now, return simple progress based on watched films
-    // In a real implementation, you'd fetch full filmographies from TMDB
-    const collections: CollectionProgress[] = topDirectors.map(([id, data]) => {
-      // Estimate total films (this is a placeholder - would need TMDB API call)
-      const estimatedTotal = Math.max(data.count + 2, 10);
+    const collections: CollectionProgress[] = await Promise.all(
+      topDirectors.map(async ([id, data]) => {
+        let total = Math.max(data.count + 5, 10); // Default estimate
 
-      return {
-        name: `${data.name} Collection`,
-        directorId: id,
-        directorName: data.name,
-        completed: data.count,
-        total: estimatedTotal,
-        percentage: (data.count / estimatedTotal) * 100,
-        films: [], // Would populate with actual filmography
-      };
-    });
+        try {
+          const directedMovies = await getMoviesByDirector(id);
+          if (directedMovies && directedMovies.length > 0) {
+            total = directedMovies.length;
+          }
+        } catch (e) {
+          // Fallback to estimate if API fails
+        }
+
+        // Ensure total is at least what we've watched
+        total = Math.max(total, data.count);
+
+        return {
+          name: `${data.name} Collection`,
+          directorId: id,
+          directorName: data.name,
+          completed: data.count,
+          total: total,
+          percentage: (data.count / total) * 100,
+          films: [],
+        };
+      }),
+    );
 
     return collections;
   } catch (error) {

@@ -1,9 +1,12 @@
 import React, {useState, useEffect} from 'react';
-import {TouchableOpacity, View} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import {TouchableOpacity, View, StyleSheet} from 'react-native';
 import {diaryManager} from '../store/diary';
-import {colors} from '../styles/theme';
+import {colors, borderRadius} from '../styles/theme';
 import {ContextualNoteModal} from './modals/ContextualNoteModal';
+import {Eye as EyeBold} from '@solar-icons/react-native/dist/icons/security/Bold/Eye.mjs';
+import {Eye as EyeLinear} from '@solar-icons/react-native/dist/icons/security/Linear/Eye.mjs';
+import {Notebook as NotebookBold} from '@solar-icons/react-native/dist/icons/notes/Bold/Notebook.mjs';
+import {Notebook as NotebookLinear} from '@solar-icons/react-native/dist/icons/notes/Linear/Notebook.mjs';
 
 interface EpisodeActionButtonsProps {
   showId: number;
@@ -188,34 +191,44 @@ export const EpisodeActionButtons: React.FC<EpisodeActionButtonsProps> = ({
   };
 
   return (
-    <View style={{flexDirection: 'row', alignItems: 'center'}}>
-      {!isWatched ? (
-        <TouchableOpacity
-          onPress={handleToggleWatch}
-          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-          style={{padding: 8}}>
-          <Ionicons name="eye-outline" size={24} color={colors.text.muted} />
-        </TouchableOpacity>
-      ) : (
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-          <TouchableOpacity
-            onPress={handleToggleWatch}
-            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-            style={{padding: 8}}>
-            <Ionicons name="eye" size={24} color={colors.primary} />
-          </TouchableOpacity>
+    <View style={styles.container}>
+      {/* Watch Button */}
+      <TouchableOpacity
+        onPress={handleToggleWatch}
+        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+        style={styles.actionButton}>
+        {isWatched ? (
+          <EyeBold size={20} color={colors.text.primary} />
+        ) : (
+          <EyeLinear size={20} color={colors.text.muted} />
+        )}
+      </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => setModalVisible(true)}
-            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-            style={{padding: 8}}>
-            <Ionicons
-              name={currentNote ? 'document-text' : 'document-text-outline'}
-              size={24}
-              color={currentNote ? colors.primary : colors.text.primary}
-            />
-          </TouchableOpacity>
-        </View>
+      {/* Note Button (Only show if watched, or if already has note) */}
+      {(isWatched || currentNote.length > 0) && (
+        <TouchableOpacity
+          onPress={() => setModalVisible(true)}
+          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+          style={styles.actionButton}>
+          {currentNote.length > 0 ? (
+            <NotebookBold size={20} color={colors.text.primary} />
+          ) : (
+            <NotebookLinear size={20} color={colors.text.muted} />
+          )}
+        </TouchableOpacity>
+      )}
+
+      {/* If not watched and no note, we still might want the note button accessible but maybe less prominent? 
+          Actually, let's keep it visible so users can add notes to unwatched episodes (e.g. spoilers/reminders)
+          but typically "Diary" implies logging what happened. Let's show it always but style it consistently.
+       */}
+      {!isWatched && currentNote.length === 0 && (
+        <TouchableOpacity
+          onPress={() => setModalVisible(true)}
+          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+          style={styles.actionButton}>
+          <NotebookLinear size={20} color={colors.text.muted} />
+        </TouchableOpacity>
       )}
 
       <ContextualNoteModal
@@ -232,3 +245,21 @@ export const EpisodeActionButtons: React.FC<EpisodeActionButtonsProps> = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.modal.blur,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderTopWidth: 0,
+    borderColor: colors.modal.header,
+  },
+});

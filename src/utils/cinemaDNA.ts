@@ -22,6 +22,7 @@ export interface CinemaDNA {
     composers: number;
     cinematographers: number;
   };
+  viewingDates: Date[];
 }
 
 export const getCinemaDNA = async (): Promise<CinemaDNA | null> => {
@@ -161,9 +162,14 @@ export const getCinemaDNA = async (): Promise<CinemaDNA | null> => {
       return null;
     }
 
+    // Filter for valid top person types (Director or Actor only)
+    const validTopPerson =
+      sortedCrew.find(p => p.type === 'director' || p.type === 'actor') ||
+      sortedCrew[0];
+
     return {
       totalFilms: history.length,
-      topPerson: sortedCrew[0],
+      topPerson: validTopPerson,
       otherTop: sortedCrew, // All crew (UI will filter by type)
       counts: {
         directors: counts.directors.size,
@@ -171,6 +177,7 @@ export const getCinemaDNA = async (): Promise<CinemaDNA | null> => {
         composers: counts.composers.size,
         cinematographers: counts.cinematographers.size,
       },
+      viewingDates: history.map(h => h.viewedAt),
     };
   } catch (error) {
     return null;

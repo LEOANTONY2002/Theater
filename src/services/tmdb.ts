@@ -1050,12 +1050,40 @@ export const getAvailableWatchProviders = async (region = 'US') => {
   return response.data.results || [];
 };
 
-export const getPersonMovieCredits = async (personId: number, page = 1) => {
+export const getPersonMovieCredits = async (
+  personId: number,
+  page = 1,
+  type:
+    | 'all'
+    | 'cast'
+    | 'crew'
+    | 'acting'
+    | 'production'
+    | 'appearances' = 'all',
+) => {
   const response = await tmdbApi.get(`/person/${personId}/movie_credits`);
   const {cast, crew} = response.data;
+  const selfRegex = /\b(self|himself|herself|host|guest|narrator)\b/i;
 
-  // Combine cast and crew, removing duplicates by movie ID
-  const allCredits = [...cast, ...crew];
+  // Filter based on type
+  let allCredits: any[] = [];
+  if (type === 'cast') {
+    allCredits = cast;
+  } else if (type === 'crew' || type === 'production') {
+    allCredits = crew;
+  } else if (type === 'acting') {
+    allCredits = cast.filter(
+      (item: any) => !selfRegex.test(item.character || ''),
+    );
+  } else if (type === 'appearances') {
+    allCredits = cast.filter((item: any) =>
+      selfRegex.test(item.character || ''),
+    );
+  } else {
+    allCredits = [...cast, ...crew];
+  }
+
+  // Deduplicate
   const uniqueCredits = Array.from(
     new Map(allCredits.map(item => [item.id, item])).values(),
   );
@@ -1083,12 +1111,40 @@ export const getPersonMovieCredits = async (personId: number, page = 1) => {
   };
 };
 
-export const getPersonTVCredits = async (personId: number, page = 1) => {
+export const getPersonTVCredits = async (
+  personId: number,
+  page = 1,
+  type:
+    | 'all'
+    | 'cast'
+    | 'crew'
+    | 'acting'
+    | 'production'
+    | 'appearances' = 'all',
+) => {
   const response = await tmdbApi.get(`/person/${personId}/tv_credits`);
   const {cast, crew} = response.data;
+  const selfRegex = /\b(self|himself|herself|host|guest|narrator)\b/i;
 
-  // Combine cast and crew, removing duplicates by TV show ID
-  const allCredits = [...cast, ...crew];
+  // Filter based on type
+  let allCredits: any[] = [];
+  if (type === 'cast') {
+    allCredits = cast;
+  } else if (type === 'crew' || type === 'production') {
+    allCredits = crew;
+  } else if (type === 'acting') {
+    allCredits = cast.filter(
+      (item: any) => !selfRegex.test(item.character || ''),
+    );
+  } else if (type === 'appearances') {
+    allCredits = cast.filter((item: any) =>
+      selfRegex.test(item.character || ''),
+    );
+  } else {
+    allCredits = [...cast, ...crew];
+  }
+
+  // Deduplicate
   const uniqueCredits = Array.from(
     new Map(allCredits.map(item => [item.id, item])).values(),
   );

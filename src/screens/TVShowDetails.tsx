@@ -51,7 +51,11 @@ import {KeywordsDisplay} from '../components/KeywordsDisplay';
 import {TVShowMetaInfo} from '../components/TVShowMetaInfo';
 import {ShowStatus} from '../components/ShowStatus';
 import {TVShowProductionInfo} from '../components/TVShowProductionInfo';
-import {useIsFocused, useNavigation} from '@react-navigation/native';
+import {
+  useIsFocused,
+  useNavigation,
+  useFocusEffect,
+} from '@react-navigation/native';
 import {useNavigationState} from '../hooks/useNavigationState';
 import {useContentTags} from '../hooks/useContentTags';
 import {ContentTagsDisplay} from '../components/ContentTagsDisplay';
@@ -109,6 +113,7 @@ import {BlurPreference} from '../store/blurPreference';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {CalendarMark as CalendarBold} from '@solar-icons/react-native/dist/icons/time/Bold/CalendarMark.mjs';
 import {CalendarAdd as CalendarLinear} from '@solar-icons/react-native/dist/icons/time/Linear/CalendarAdd.mjs';
+import {useConnectivity} from '../hooks/useConnectivity';
 
 type TVShowDetailsScreenNavigationProp = NativeStackNavigationProp<
   MySpaceStackParamList &
@@ -475,7 +480,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const {isOnline, checkLikelyOnline} = useConnectivity();
   const [hasCache, setHasCache] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const {isTablet, orientation} = useResponsive();
@@ -711,22 +716,24 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const showAiSections = isAIEnabled && isAnalysisUseful;
 
   // Check connectivity and cache status for this specific TV show
-  useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const online = await checkInternet();
-        // Check if TV show is cached in Realm
-        const realm = getRealm();
-        const cachedShow = realm.objectForPrimaryKey('TVShow', show.id);
-        setIsOnline(online);
-        setHasCache(!!cachedShow);
-      } catch (error) {
-        setIsOnline(true); // Default to online if check fails
-        setHasCache(false);
-      }
-    };
-    checkStatus();
-  }, [show.id]);
+  useFocusEffect(
+    useCallback(() => {
+      const checkStatus = async () => {
+        try {
+          // Re-check internet status on focus to avoid stale state
+          await checkLikelyOnline();
+
+          // Check if TV show is cached in Realm
+          const realm = getRealm();
+          const cachedShow = realm.objectForPrimaryKey('TVShow', show.id);
+          setHasCache(!!cachedShow);
+        } catch (error) {
+          setHasCache(false);
+        }
+      };
+      checkStatus();
+    }, [show.id, checkLikelyOnline]),
+  );
 
   const retryAiRatings = useCallback(async () => {
     queryClient.invalidateQueries({
@@ -738,8 +745,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
     if (retrying) return;
     setRetrying(true);
     try {
-      const online = await checkInternet();
-      setIsOnline(online);
+      const online = await checkLikelyOnline();
 
       if (online) {
         // If back online, invalidate and refetch all queries for this TV show

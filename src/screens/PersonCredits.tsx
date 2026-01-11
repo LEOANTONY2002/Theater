@@ -1,4 +1,4 @@
-import React, {useMemo, useCallback, useState} from 'react';
+import React, {useMemo, useCallback, useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   Image,
+  Animated,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {useRoute, RouteProp, useIsFocused} from '@react-navigation/native';
@@ -34,6 +35,61 @@ type PersonCreditsScreenRouteProp = RouteProp<
   'PersonCredits'
 >;
 
+const shimmerColors = [
+  'rgba(10, 10, 18, 0.62)',
+  'rgba(8, 8, 19, 0.45)',
+  'rgb(0, 0, 1)',
+];
+
+const LocalAnimatedShimmer = ({
+  width,
+  height,
+  radius = 8,
+}: {
+  width: number;
+  height: number;
+  radius?: number;
+}) => {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      }),
+    ).start();
+  }, [shimmerAnim]);
+
+  const shimmerTranslate = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-width, width * 2],
+  });
+
+  return (
+    <View
+      style={{
+        width,
+        height,
+        backgroundColor: shimmerColors[0],
+        borderRadius: radius,
+        overflow: 'hidden',
+      }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: width * 0.4,
+          height: '100%',
+          borderRadius: radius,
+          backgroundColor: shimmerColors[1],
+          transform: [{translateX: shimmerTranslate}],
+        }}
+      />
+    </View>
+  );
+};
+
 export const PersonCreditsScreen = () => {
   const route = useRoute<PersonCreditsScreenRouteProp>();
   const {personId, personName} = route.params;
@@ -53,9 +109,17 @@ export const PersonCreditsScreen = () => {
   const {data: personDetails, isLoading: isLoadingDetails} =
     usePersonDetails(personId);
 
+  // Determine main role
+  const knownFor = (personDetails as any)?.known_for_department;
+  const isActor = knownFor === 'Acting';
+
+  const [filterType, setFilterType] = useState<
+    'all' | 'cast' | 'crew' | 'acting' | 'production' | 'appearances'
+  >('all');
+
   // Use both hooks to get all credits
-  const movieCredits = usePersonMovieCredits(personId);
-  const tvCredits = usePersonTVCredits(personId);
+  const movieCredits = usePersonMovieCredits(personId, filterType);
+  const tvCredits = usePersonTVCredits(personId, filterType);
 
   const isLoading =
     isLoadingDetails ||
@@ -138,12 +202,9 @@ export const PersonCreditsScreen = () => {
       backgroundColor: colors.background.primary,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
       paddingHorizontal: spacing.md,
       paddingTop: isTablet ? 200 : 120,
-      paddingBottom: spacing.xxl,
+      paddingBottom: spacing.sm,
       zIndex: 1,
     },
     titleContainer: {
@@ -161,12 +222,12 @@ export const PersonCreditsScreen = () => {
     },
     listContent: {
       paddingBottom: 120,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     cardContainer: {
       alignItems: 'center',
       justifyContent: 'center',
-      // Avoid forcing fractional flex that creates space-between gaps
-      flexGrow: 0,
     },
     columnWrapper: {
       justifyContent: 'center',
@@ -257,27 +318,6 @@ export const PersonCreditsScreen = () => {
   // }
 
   // Only render content after renderPhase allows it
-  if (movieCredits.isLoading || tvCredits.isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{personName}</Text>
-            {personDetails?.place_of_birth ? (
-              <Text style={styles.subtitle}>
-                {personDetails.place_of_birth}
-              </Text>
-            ) : (
-              <View style={{marginLeft: -spacing.md, marginTop: spacing.xs}}>
-                <HeadingSkeleton />
-              </View>
-            )}
-          </View>
-        </View>
-        <GridListSkeleton />
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -366,53 +406,143 @@ export const PersonCreditsScreen = () => {
         />
       </View>
 
-      <FlatList
-        key={`credits-grid-${columns}`}
-        data={transformedData}
-        renderItem={renderItem}
-        keyExtractor={item => `${item.type}-${item.id}`}
-        numColumns={columns}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>{personName}</Text>
-              <Text style={styles.subtitle}>
-                {personDetails?.place_of_birth}
-              </Text>
-            </View>
-          </View>
-        }
-        ListFooterComponent={
-          <View style={styles.footerLoader}>
-            {(movieCredits.isFetchingNextPage ||
-              tvCredits.isFetchingNextPage) && (
-              <View style={styles.loadingIndicatorContainer}>
-                <GradientSpinner
-                  size={30}
-                  style={{
-                    marginVertical: 50,
-                    alignItems: 'center',
-                    alignSelf: 'center',
-                  }}
-                  color={colors.modal.activeBorder}
-                />
+      <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+        <FlatList
+          key={`credits-grid-${columns}`}
+          data={transformedData}
+          renderItem={renderItem}
+          keyExtractor={item => `${item.type}-${item.id}`}
+          numColumns={columns}
+          showsVerticalScrollIndicator={false}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          ListHeaderComponent={
+            <View style={styles.header}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.title}>{personName}</Text>
+                <Text style={styles.subtitle}>
+                  {personDetails?.place_of_birth}
+                </Text>
               </View>
-            )}
-            <View style={styles.footerSpace} />
-          </View>
-        }
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No items found</Text>
+
+              {/* Filter Tabs */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  marginTop: spacing.xxl,
+                  gap: spacing.sm,
+                  alignSelf: 'center',
+                }}>
+                {[
+                  {label: 'All', value: 'all'},
+                  {
+                    label: isActor ? 'Acting' : 'Production',
+                    value: isActor ? 'acting' : 'production',
+                  },
+                  {label: 'Appearances', value: 'appearances'},
+                ].map(tab => {
+                  const isActive = filterType === tab.value;
+                  return (
+                    <TouchableOpacity
+                      key={tab.value}
+                      onPress={() => setFilterType(tab.value as any)}
+                      activeOpacity={0.7}>
+                      {isActive ? (
+                        <View
+                          style={{
+                            paddingHorizontal: spacing.lg,
+                            paddingVertical: spacing.sm,
+                            borderRadius: borderRadius.round,
+                            backgroundColor: colors.modal.border,
+                            borderColor: colors.modal.active,
+                            borderWidth: 1,
+                          }}>
+                          <Text
+                            style={{
+                              color: colors.text.primary,
+                              ...typography.button,
+                              fontSize: 13,
+                            }}>
+                            {tab.label}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View
+                          style={{
+                            paddingHorizontal: spacing.lg,
+                            paddingVertical: spacing.sm,
+                            borderRadius: borderRadius.round,
+                            borderWidth: 1,
+                            borderBottomWidth: 0,
+                            borderTopWidth: 0,
+                            borderColor: colors.modal.content,
+                            backgroundColor: colors.modal.blur,
+                          }}>
+                          <Text
+                            style={{
+                              color: colors.text.secondary,
+                              ...typography.button,
+                              fontSize: 13,
+                            }}>
+                            {tab.label}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          ) : null
-        }
-      />
+          }
+          ListFooterComponent={
+            <View style={styles.footerLoader}>
+              {(movieCredits.isFetchingNextPage ||
+                tvCredits.isFetchingNextPage) && (
+                <View style={styles.loadingIndicatorContainer}>
+                  <GradientSpinner
+                    size={30}
+                    style={{
+                      marginVertical: 50,
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                    }}
+                    color={colors.modal.activeBorder}
+                  />
+                </View>
+              )}
+              <View style={styles.footerSpace} />
+            </View>
+          }
+          ListEmptyComponent={
+            isLoading ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                }}>
+                {[...Array(isTablet ? 20 : 12)].map((_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      margin: 3,
+                    }}>
+                    <LocalAnimatedShimmer
+                      width={cardWidth}
+                      height={cardHeight}
+                      radius={12}
+                    />
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No items found</Text>
+              </View>
+            )
+          }
+        />
+      </View>
     </View>
   );
 };
