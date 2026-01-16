@@ -96,10 +96,6 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
             : undefined
         }
         onEndReachedThreshold={0.5}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={50}
-        initialNumToRender={15}
-        windowSize={10}
         getItemLayout={(data, index) => ({
           length: cardWidth * 1.5 + 6, // card height + margin
           offset: Math.floor(index / columns) * (cardWidth * 1.5 + 6),

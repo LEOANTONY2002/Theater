@@ -124,6 +124,7 @@ const AISettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [availableModels, setAvailableModels] =
     useState<GroqModel[]>(FALLBACK_MODELS);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -133,6 +134,7 @@ const AISettingsScreen: React.FC = () => {
   const [initialSettings, setInitialSettings] = useState<{
     apiKey: string | null;
     model: string;
+    aiEnabled: boolean;
   } | null>(null);
   // In-screen modal state for replacing Alert.alert
   const [modalVisible, setModalVisible] = useState(false);
@@ -150,22 +152,17 @@ const AISettingsScreen: React.FC = () => {
     loadSettings();
   }, []);
 
-  // Load models when API key changes
-  useEffect(() => {
-    if (apiKey && apiKey.trim() !== '') {
-      loadAvailableModels(apiKey);
-    }
-  }, [apiKey]);
-
   const loadSettings = async () => {
     try {
       const settings = await AISettingsManager.getSettings();
       if (settings) {
         setApiKey(settings.apiKey || null);
         setSelectedModel(settings.model || DEFAULT_MODEL);
+        setAiEnabled(settings.aiEnabled);
         setInitialSettings({
           apiKey: settings.apiKey || null,
           model: settings.model || DEFAULT_MODEL,
+          aiEnabled: settings.aiEnabled,
         });
 
         // Load available models if we have an API key
@@ -176,12 +173,14 @@ const AISettingsScreen: React.FC = () => {
         setInitialSettings({
           apiKey: null,
           model: DEFAULT_MODEL,
+          aiEnabled: false,
         });
       }
     } catch (error) {
       setInitialSettings({
         apiKey: null,
         model: DEFAULT_MODEL,
+        aiEnabled: false,
       });
     }
   };
@@ -202,7 +201,8 @@ const AISettingsScreen: React.FC = () => {
     if (!initialSettings) return false;
     return (
       apiKey !== initialSettings.apiKey ||
-      selectedModel !== initialSettings.model
+      selectedModel !== initialSettings.model ||
+      aiEnabled !== initialSettings.aiEnabled
     );
   };
 
@@ -274,7 +274,12 @@ const AISettingsScreen: React.FC = () => {
     if (!hasChanges()) return;
 
     const trimmedApiKey = apiKey?.trim() || null;
-    if (trimmedApiKey && trimmedApiKey !== initialSettings?.apiKey) {
+
+    if (
+      aiEnabled &&
+      trimmedApiKey &&
+      trimmedApiKey !== initialSettings?.apiKey
+    ) {
       setIsValidating(true);
       try {
         const isValid = await validateApiKey(trimmedApiKey);
@@ -306,6 +311,7 @@ const AISettingsScreen: React.FC = () => {
         model: selectedModel,
         modelCreated: selectedModelObj?.created || null,
         apiKey: trimmedApiKey,
+        aiEnabled,
       });
 
       queryClient.invalidateQueries({queryKey: ['aiSettings']});
@@ -314,6 +320,7 @@ const AISettingsScreen: React.FC = () => {
       setInitialSettings({
         apiKey: trimmedApiKey,
         model: selectedModel,
+        aiEnabled,
       });
 
       setShowApiKeyInput(false);
@@ -422,241 +429,324 @@ const AISettingsScreen: React.FC = () => {
           <Text style={styles.headerTitle}>AI Settings</Text>
           <View />
         </View>
-        {/* API Key Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>API Key</Text>
-          <Text style={styles.sectionDescription}>
-            {apiKey
-              ? 'Your API key is saved securely'
-              : 'Add your Groq API key to enable AI features'}
-          </Text>
 
-          {showApiKeyInput ? (
-            <View>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[styles.input, {paddingRight: 40}]}
-                  value={apiKey || ''}
-                  onChangeText={setApiKey}
-                  placeholder="Enter your Groq API key..."
-                  placeholderTextColor={colors.text.tertiary}
-                  secureTextEntry={apiKey === DEFAULT_API_KEY}
-                  multiline={false}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoFocus={true}
-                />
-                <TouchableOpacity
-                  style={styles.clipboardButton}
-                  onPress={handlePasteFromClipboard}
-                  activeOpacity={0.7}>
-                  <Icon
-                    name={isApiKeyCopied ? 'checkmark' : 'clipboard-outline'}
-                    size={20}
-                    color={
-                      isApiKeyCopied ? colors.primary : colors.text.secondary
-                    }
-                  />
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                onPress={() => Linking.openURL('https://console.groq.com/keys')}
-                activeOpacity={0.8}>
-                <Text style={styles.inputHint}>
-                  Get your API key from Groq Console
-                </Text>
-                <Text
-                  style={{
-                    color: colors.text.tertiary,
-                    fontStyle: 'italic',
-                    textDecorationLine: 'underline',
-                    textDecorationColor: colors.text.primary,
-                    textDecorationStyle: 'solid',
-                    fontFamily: 'Inter_18pt-Regular',
-                  }}>
-                  https://console.groq.com/keys
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.apiKeyButton}
-              onPress={toggleApiKeyInput}
-              activeOpacity={0.8}>
-              <Icon
-                name={apiKey ? 'key-outline' : 'add-circle-outline'}
-                size={20}
-                color={colors.text.primary}
-                style={styles.apiKeyButtonIcon}
-              />
-              <Text style={styles.apiKeyButtonText}>
-                {apiKey !== null ? 'Edit API Key' : 'Add API Key'}
-              </Text>
-            </TouchableOpacity>
-          )}
+        {/* AI Features Toggle Row */}
+        <View style={styles.toggleRow}>
+          <View style={{flex: 1}}>
+            <Text style={styles.toggleTitle}>Enable AI Features</Text>
+            <Text style={styles.toggleDescription}>
+              Unlock Cinema Chat, Recommendations, and more
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setAiEnabled(!aiEnabled)}
+            activeOpacity={0.8}
+            style={[
+              styles.toggleSwitch,
+              aiEnabled ? styles.toggleSwitchOn : styles.toggleSwitchOff,
+            ]}>
+            <View
+              style={[
+                styles.toggleKnob,
+                aiEnabled ? styles.toggleKnobOn : styles.toggleKnobOff,
+              ]}
+            />
+          </TouchableOpacity>
         </View>
-        {/* Model Selection Section - Only show when API key is set */}
-        {apiKey && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleContainer}>
-                <Text
-                  style={[styles.sectionTitle, {marginBottom: -spacing.sm}]}>
-                  Groq Model
-                </Text>
-                <TouchableOpacity
-                  style={styles.refreshButton}
-                  onPress={() => loadAvailableModels(apiKey || '')}
-                  disabled={isLoadingModels}>
-                  <Icon
-                    name="refresh"
-                    size={16}
-                    color={
-                      isLoadingModels
-                        ? colors.text.tertiary
-                        : colors.text.secondary
-                    }
-                  />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.sectionDescription}>
-                Choose the AI model for chat and recommendations
-                {isLoadingModels && ' (Loading latest models...)'}
-              </Text>
-            </View>
 
-            {isLoadingModels ? (
-              <View style={styles.modelsLoadingContainer}>
-                <GradientSpinner color={colors.primary} size={24} />
-                <Text style={styles.modelsLoadingText}>
-                  Fetching available models...
-                </Text>
-              </View>
-            ) : (
-              <View style={{height: 400, position: 'relative'}}>
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={[colors.background.primary, 'transparent']}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 80,
-                    zIndex: 1,
-                  }}
-                />
-                <FlatList
-                  keyExtractor={item => item.id}
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled={true}
-                  contentContainerStyle={{
-                    paddingVertical: spacing.md,
-                  }}
-                  data={availableModels}
-                  renderItem={({item}) => (
+        {aiEnabled ? (
+          <>
+            {/* API Key Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>API Key</Text>
+              <Text style={styles.sectionDescription}>
+                {apiKey
+                  ? 'Your API key is saved securely'
+                  : 'Add your Groq API key to enable AI features'}
+              </Text>
+
+              {showApiKeyInput ? (
+                <View>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={[styles.input, {paddingRight: 40}]}
+                      value={apiKey || ''}
+                      onChangeText={setApiKey}
+                      placeholder="Enter your Groq API key..."
+                      placeholderTextColor={colors.text.tertiary}
+                      secureTextEntry={apiKey === DEFAULT_API_KEY}
+                      multiline={false}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoFocus={true}
+                    />
                     <TouchableOpacity
-                      activeOpacity={0.9}
-                      key={item.id}
-                      style={[
-                        styles.modelOption,
-                        selectedModel === item.id && styles.selectedModelOption,
-                      ]}
-                      onPress={() => {
-                        setSelectedModel(item.id);
-                      }}>
-                      <View style={styles.modelInfo}>
-                        <Text style={styles.modelName}>{item.name}</Text>
-                        <Text style={styles.modelDescription}>
-                          {item.description}
-                        </Text>
-                        {item.created && (
-                          <Text
-                            style={{
-                              ...typography.caption,
-                              color: colors.text.tertiary,
-                              marginTop: 2,
-                            }}>
-                            Released:{' '}
-                            {new Date(item.created * 1000).toLocaleDateString(
-                              undefined,
-                              {month: 'short', year: 'numeric'},
-                            )}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={styles.radioButton}>
-                        {selectedModel === item.id && (
-                          <View style={styles.radioButtonSelected} />
-                        )}
-                      </View>
+                      style={styles.clipboardButton}
+                      onPress={handlePasteFromClipboard}
+                      activeOpacity={0.7}>
+                      <Icon
+                        name={
+                          isApiKeyCopied ? 'checkmark' : 'clipboard-outline'
+                        }
+                        size={20}
+                        color={
+                          isApiKeyCopied
+                            ? colors.primary
+                            : colors.text.secondary
+                        }
+                      />
                     </TouchableOpacity>
-                  )}
-                  extraData={selectedModel}
-                />
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={['transparent', colors.background.primary]}
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 80,
-                    zIndex: 1,
-                  }}
-                />
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL('https://console.groq.com/keys')
+                    }
+                    activeOpacity={0.8}>
+                    <Text style={styles.inputHint}>
+                      Get your API key from Groq Console
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.text.tertiary,
+                        fontStyle: 'italic',
+                        textDecorationLine: 'underline',
+                        textDecorationColor: colors.text.primary,
+                        textDecorationStyle: 'solid',
+                        fontFamily: 'Inter_18pt-Regular',
+                      }}>
+                      https://console.groq.com/keys
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.apiKeyButton}
+                  onPress={toggleApiKeyInput}
+                  activeOpacity={0.8}>
+                  <Icon
+                    name={apiKey ? 'key-outline' : 'add-circle-outline'}
+                    size={20}
+                    color={colors.text.primary}
+                    style={styles.apiKeyButtonIcon}
+                  />
+                  <Text style={styles.apiKeyButtonText}>
+                    {apiKey !== null ? 'Edit API Key' : 'Add API Key'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {/* Model Selection Section - Only show when API key is set */}
+            {apiKey && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitleContainer}>
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        {marginBottom: -spacing.sm},
+                      ]}>
+                      Groq Model
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.refreshButton}
+                      onPress={() => loadAvailableModels(apiKey || '')}
+                      disabled={isLoadingModels}>
+                      <Icon
+                        name="refresh"
+                        size={16}
+                        color={
+                          isLoadingModels
+                            ? colors.text.tertiary
+                            : colors.text.secondary
+                        }
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.sectionDescription}>
+                    Choose the AI model for chat and recommendations
+                    {isLoadingModels && ' (Loading latest models...)'}
+                  </Text>
+                </View>
+
+                {isLoadingModels ? (
+                  <View style={styles.modelsLoadingContainer}>
+                    <GradientSpinner color={colors.primary} size={24} />
+                    <Text style={styles.modelsLoadingText}>
+                      Fetching available models...
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={{height: 400, position: 'relative'}}>
+                    <LinearGradient
+                      pointerEvents="none"
+                      colors={[colors.background.primary, 'transparent']}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 80,
+                        zIndex: 1,
+                      }}
+                    />
+                    <FlatList
+                      keyExtractor={item => item.id}
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled={true}
+                      contentContainerStyle={{
+                        paddingVertical: spacing.md,
+                      }}
+                      data={availableModels}
+                      renderItem={({item}) => (
+                        <TouchableOpacity
+                          activeOpacity={0.9}
+                          key={item.id}
+                          style={[
+                            styles.modelOption,
+                            selectedModel === item.id &&
+                              styles.selectedModelOption,
+                          ]}
+                          onPress={() => {
+                            setSelectedModel(item.id);
+                          }}>
+                          <View style={styles.modelInfo}>
+                            <Text style={styles.modelName}>{item.name}</Text>
+                            <Text style={styles.modelDescription}>
+                              {item.description}
+                            </Text>
+                            {item.created && (
+                              <Text
+                                style={{
+                                  ...typography.caption,
+                                  color: colors.text.tertiary,
+                                  marginTop: 2,
+                                }}>
+                                Released:{' '}
+                                {new Date(
+                                  item.created * 1000,
+                                ).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.radioButton}>
+                            {selectedModel === item.id && (
+                              <View style={styles.radioButtonSelected} />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                      extraData={selectedModel}
+                    />
+                    <LinearGradient
+                      pointerEvents="none"
+                      colors={['transparent', colors.background.primary]}
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 80,
+                        zIndex: 1,
+                      }}
+                    />
+                  </View>
+                )}
               </View>
             )}
+
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <Text
+                style={{
+                  color: colors.text.secondary,
+                  marginBottom: spacing.xs,
+                  fontFamily: 'Inter_18pt-Regular',
+                }}>
+                Important Warning:
+              </Text>
+              <Text
+                style={{
+                  color: colors.text.muted,
+                  marginBottom: spacing.md,
+                  fontFamily: 'Inter_18pt-Regular',
+                }}>
+                • Your API key is like a password. Do not share it with anyone.
+                {'\n'}• You are responsible for any usage and associated costs
+                with your key.
+                {'\n'}• By using your own key, you agree to Groq's terms of
+                service.
+              </Text>
+              <TouchableOpacity
+                style={[!hasChanges() || isValidating ? {opacity: 0.3} : {}]}
+                onPress={saveSettings}
+                disabled={!hasChanges() || isValidating}
+                activeOpacity={0.8}>
+                <LinearGradient
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  colors={[colors.primary, colors.secondary]}
+                  style={styles.saveButtonGradient}>
+                  {isValidating ? (
+                    <GradientSpinner
+                      colors={[colors.primary, colors.secondary]}
+                      size={24}
+                    />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save Settings</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+              <View style={{height: 100}} />
+            </View>
+          </>
+        ) : (
+          <View style={styles.disabledContainer}>
+            <View>
+              <Icon
+                name="sparkles"
+                size={80}
+                color={colors.text.primary}
+                style={{marginBottom: spacing.lg, position: 'relative'}}
+              />
+              <LinearGradient
+                colors={['transparent', colors.background.primary]}
+                useAngle
+                angle={90}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: -20,
+                  right: -10,
+                  bottom: 0,
+                }}
+              />
+            </View>
+            <Text style={styles.disabledTitle}>Let the AI assist </Text>
+            <Text style={styles.disabledDescription}>
+              Enable AI features to enhance your experience.
+            </Text>
+            <TouchableOpacity
+              style={[
+                {marginTop: spacing.xl},
+                !hasChanges() || isValidating ? {opacity: 0.3} : {},
+              ]}
+              onPress={saveSettings}
+              disabled={!hasChanges() || isValidating}
+              activeOpacity={0.8}>
+              <LinearGradient
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                colors={[colors.primary, colors.secondary]}
+                style={styles.saveButtonGradient}>
+                <Text style={styles.saveButtonText}>Save Settings</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <Text
-            style={{
-              color: colors.text.secondary,
-              marginBottom: spacing.xs,
-              fontFamily: 'Inter_18pt-Regular',
-            }}>
-            Important Warning:
-          </Text>
-          <Text
-            style={{
-              color: colors.text.muted,
-              marginBottom: spacing.md,
-              fontFamily: 'Inter_18pt-Regular',
-            }}>
-            • Your API key is like a password. Do not share it with anyone.
-            {'\n'}• You are responsible for any usage and associated costs with
-            your key.
-            {'\n'}• By using your own key, you agree to Groq's terms of service.
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasChanges() || isValidating ? {opacity: 0.3} : null,
-            ]}
-            onPress={saveSettings}
-            disabled={!hasChanges() || isValidating}
-            activeOpacity={0.8}>
-            <LinearGradient
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              colors={[colors.primary, colors.secondary]}
-              style={styles.saveButtonGradient}>
-              {isValidating ? (
-                <GradientSpinner
-                  colors={[colors.primary, colors.secondary]}
-                  size={24}
-                />
-              ) : (
-                <Text style={styles.saveButtonText}>Save Settings</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-          <View style={{height: 100}} />
-        </View>
       </ScrollView>
     </View>
   );
@@ -798,6 +888,73 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     paddingRight: 40, // Space for clipboard button
   },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.modal.content,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.modal.border,
+    marginBottom: spacing.xl,
+  },
+  toggleTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  toggleDescription: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    paddingRight: spacing.sm,
+  },
+  toggleSwitch: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleSwitchOn: {
+    backgroundColor: colors.text.secondary,
+  },
+  toggleSwitchOff: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  toggleKnob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  toggleKnobOn: {
+    alignSelf: 'flex-end',
+  },
+  toggleKnobOff: {
+    alignSelf: 'flex-start',
+  },
+  disabledContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  disabledTitle: {
+    ...typography.h2,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  disabledDescription: {
+    ...typography.body1,
+    color: colors.text.muted,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+  },
   clipboardButton: {
     position: 'absolute',
     right: 10,
@@ -830,24 +987,15 @@ const styles = StyleSheet.create({
   actionButtons: {
     marginBottom: spacing.xxl,
   },
-  saveButton: {
-    borderRadius: borderRadius.round,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-    position: 'relative',
-    height: 60,
-    backgroundColor: colors.primary,
-  },
   saveButtonGradient: {
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
+    height: 50,
+    width: 200,
+    borderRadius: borderRadius.round,
+    alignSelf: 'center',
   },
   saveButtonDisabled: {
     opacity: 0.5,

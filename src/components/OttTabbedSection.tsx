@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   Image,
+  Animated,
 } from 'react-native';
 import {useRegion} from '../hooks/useApp';
 import {useNavigationState} from '../hooks/useNavigationState';
@@ -24,12 +25,65 @@ import {SettingsManager} from '../store/settings';
 import {useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {buildOTTFilters} from '../services/tmdbWithCache';
+import FastImage from 'react-native-fast-image';
 
 interface OttProvider {
   id: number;
   provider_name: string;
   logo_path?: string;
 }
+
+const OttTabButton: React.FC<{
+  provider: OttProvider;
+  isActive: boolean;
+  onPress: () => void;
+  onLongPress?: () => void;
+}> = React.memo(({provider, isActive, onPress, onLongPress}) => {
+  const scale = React.useRef(new Animated.Value(isActive ? 1.15 : 1)).current;
+  const opacity = React.useRef(new Animated.Value(isActive ? 1 : 0.3)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: isActive ? 1.15 : 1,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 40,
+      }),
+      Animated.timing(opacity, {
+        toValue: isActive ? 1 : 0.3,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [isActive]);
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{scale}],
+        opacity,
+      }}>
+      <TouchableOpacity
+        style={[styles.tabButton, isActive && styles.activeTabButton]}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        activeOpacity={0.7}>
+        {provider?.logo_path && (
+          <FastImage
+            source={{
+              uri: `https://image.tmdb.org/t/p/w154${provider.logo_path}`,
+              priority: FastImage.priority.normal,
+              cache: FastImage.cacheControl.immutable,
+            }}
+            style={styles.tabLogo}
+            resizeMode="cover"
+          />
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 interface Props {
   providers: OttProvider[];
@@ -163,33 +217,13 @@ export const OttTabbedSection: React.FC<Props> = ({
   );
 
   const renderTabButton = (provider: OttProvider) => (
-    <TouchableOpacity
+    <OttTabButton
       key={provider.id}
-      style={[
-        styles.tabButton,
-        activeProviderId === provider.id && styles.activeTabButton,
-      ]}
+      provider={provider}
+      isActive={activeProviderId === provider.id}
       onPress={() => setActiveProviderId(provider.id)}
-      onLongPress={
-        isPersonalized ? () => handleRemoveOTT(provider) : undefined
-      }>
-      {provider?.logo_path && (
-        <Image
-          source={{
-            uri: `https://image.tmdb.org/t/p/w45${provider.logo_path}`,
-          }}
-          style={styles.tabLogo}
-          resizeMode="cover"
-        />
-      )}
-      <Text
-        style={[
-          styles.tabText,
-          activeProviderId === provider.id && styles.activeTabText,
-        ]}>
-        {provider.provider_name}
-      </Text>
-    </TouchableOpacity>
+      onLongPress={isPersonalized ? () => handleRemoveOTT(provider) : undefined}
+    />
   );
 
   if (!providers || providers.length === 0) {
@@ -279,28 +313,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   tabButton: {
-    padding: spacing.xs,
-    paddingRight: spacing.sm,
+    // padding: spacing.sm,
     borderRadius: borderRadius.md,
     marginHorizontal: spacing.xs,
     alignItems: 'center',
-    backgroundColor: colors.modal.blur,
-    borderWidth: 1,
-    borderColor: colors.modal.content,
     flexDirection: 'row',
     gap: 6,
   },
   tabLogo: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
+    width: 50,
+    height: 50,
+    borderRadius: borderRadius.md,
   },
   activeTabButton: {
-    backgroundColor: colors.modal.border,
     borderWidth: 1,
-    borderBottomWidth: 0,
-    borderTopWidth: 0,
-    borderColor: colors.modal.active,
+    borderColor: colors.modal.header,
   },
   tabText: {
     color: colors.text.secondary,

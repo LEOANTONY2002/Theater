@@ -149,96 +149,89 @@ export default function App() {
   enableScreens();
   LogBox.ignoreAllLogs();
 
-  const handleTryAgain = async () => {
-    if (retrying) {
-      return;
-    }
-    setRetrying(true);
-
+  const checkLocalCache = () => {
     try {
-      const ok = await checkLikelyOnline();
-
-      if (!ok) {
-        setShowDNSModal(false);
-        return;
-      }
-      const tmdbOk = await checkTMDB();
-
-      if (tmdbOk) {
-        setShowDNSModal(false);
-      } else {
-        const isStillOnline = await checkLikelyOnline();
-
-        if (!isStillOnline) {
-          setShowDNSModal(false);
-        } else {
-          console.log(
-            '[handleTryAgain] TMDB still blocked - staying on DNS screen',
-          );
-        }
-      }
+      if (!dbReady) return false;
+      const {getRealm} = require('./src/database/realm');
+      const realm = getRealm();
+      // Check if we have any movies in the database
+      const hasMovies = realm.objects('Movie').length > 0;
+      return hasMovies;
     } catch (error) {
-      console.error('[handleTryAgain] Error:', error);
-    } finally {
-      console.log('[handleTryAgain] Done, setting retrying to false');
-      setRetrying(false);
+      console.warn('Cache check failed:', error);
+      return false;
     }
   };
 
-  useEffect(() => {
-    const runStartupChecks = async () => {
-      console.log('[App] 🚀 Running Update Startup Checks...');
+  const performConnectivityCheck = async () => {
+    console.log('[App] 🚀 Performing Connectivity Check...');
 
-      let ok = await checkLikelyOnline();
-      if (!ok) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        ok = await checkLikelyOnline();
-      }
-      console.log('[App] 🌐 Internet Status:', ok);
+    // 1. Check Cache
+    const cacheExists = checkLocalCache();
+    setHasCache(cacheExists);
+    console.log('[App] 💾 Cache Status:', cacheExists);
 
-      if (!ok) {
-        console.log('[App] No internet - skipping TMDB check');
-        setShowDNSModal(false); // Clear DNS modal if internet is off
-        return;
-      }
-      console.log('[App] 🎬 Checking TMDB availability...');
-      const tmdbOk = await checkTMDB();
-      console.log('[App] 🎬 TMDB Status:', tmdbOk);
+    if (cacheExists) {
+      console.log('[App] Cache present - skipping Internet/DNS checks');
+      setShowDNSModal(false);
+      return;
+    }
 
-      if (!tmdbOk) {
-        console.log('[App] TMDB failed - double-checking internet...');
-        const isStillOnline = await checkLikelyOnline();
+    // 2. No Cache -> Check Internet
+    const online = await checkLikelyOnline();
+    console.log('[App] 🌐 Internet Status:', online);
 
-        if (!isStillOnline) {
-          console.log('[App] Internet lost - not showing DNS modal');
-          setShowDNSModal(false); // Clear DNS modal if internet is lost
-          return;
-        }
+    if (!online) {
+      console.log('[App] No Internet - showing NoInternet screen (via state)');
+      setShowDNSModal(false);
+      return;
+    }
 
+    // 3. Internet YES -> Check DNS (TMDB)
+    console.log('[App] 🎬 Checking TMDB availability...');
+    const tmdbOk = await checkTMDB();
+    console.log('[App] 🎬 TMDB Status:', tmdbOk);
+
+    if (tmdbOk) {
+      setShowDNSModal(false);
+    } else {
+      // Double check internet to be sure it's not a momentary drop
+      const isStillOnline = await checkLikelyOnline();
+      if (isStillOnline) {
         console.log('[App] Internet OK but TMDB blocked - showing DNS modal');
         setShowDNSModal(true);
+      } else {
+        setShowDNSModal(false);
       }
-    };
+    }
+  };
 
-    runStartupChecks();
-  }, []);
+  const handleTryAgain = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    await performConnectivityCheck();
+    setRetrying(false);
+  };
 
+  // Startup Check (Run when DB is ready)
+  useEffect(() => {
+    if (dbReady) {
+      performConnectivityCheck();
+    }
+  }, [dbReady]);
+
+  // Initialization (Onboarding & Loading)
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Wait for Realm to be ready
-        if (!dbReady) {
-          return;
-        }
+        if (!dbReady) return;
 
-        // Load onboarding state
         const ob = await OnboardingManager.getState();
         setIsOnboarded(!!ob.isOnboarded);
 
-        if (!ob.isOnboarded) {
-          setIsLoading(false);
-          return;
-        }
+        // If not onboarded, we stop loading but don't strictly require connectivity check yet
+        // (Onboarding has its own requirements, typically needs internet)
+        // But our main guard is below.
 
         setIsLoading(false);
       } catch (error) {
@@ -249,36 +242,20 @@ export default function App() {
     initializeApp();
   }, [dbReady]);
 
+  // AppState Listener (Focus)
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: string) => {
       if (nextAppState === 'active') {
-        // Check for pending watch tracking
+        // Watch Prompt Check
         const watch = await watchTrackingService.shouldShowPrompt();
         if (watch) {
           setPendingWatch(watch);
           setShowWatchPrompt(true);
         }
 
-        // Check internet first
-        const ok = await checkLikelyOnline();
-
-        // Only check TMDB if internet is OK
-        if (ok) {
-          const tmdbOk = await checkTMDB();
-          if (!tmdbOk) {
-            // Double-check internet to be sure
-            const isStillOnline = await checkLikelyOnline();
-            if (isStillOnline) {
-              // Internet OK but TMDB blocked - DNS issue
-              setShowDNSModal(true);
-            } else {
-              // Internet lost
-              setShowDNSModal(false); // Clear DNS modal if internet is lost
-            }
-          }
-        } else {
-          // No internet - clear DNS modal
-          setShowDNSModal(false);
+        // Connectivity Check
+        if (dbReady) {
+          performConnectivityCheck();
         }
       }
     };
@@ -289,7 +266,7 @@ export default function App() {
     return () => {
       subscription?.remove();
     };
-  }, []);
+  }, [dbReady]);
 
   // Avoid flashing Home before theme/onboarding state is known
   // BUT Render DNS Modal if needed

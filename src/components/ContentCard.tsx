@@ -73,7 +73,7 @@ export const ContentCard: React.FC<ContentCardProps> = memo(
                 : {
                     uri: imageUrl,
                     priority: FastImage.priority.normal,
-                    cache: FastImage.cacheControl.web,
+                    cache: FastImage.cacheControl.immutable,
                   }
             }
             style={

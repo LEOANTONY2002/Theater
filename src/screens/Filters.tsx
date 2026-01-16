@@ -29,6 +29,7 @@ import {
 } from '../components/LoadingSkeleton';
 import FastImage from 'react-native-fast-image';
 import {useResponsive} from '../hooks/useResponsive';
+import {BlurPreference} from '../store/blurPreference';
 
 interface FiltersScreenProps {
   onScroll?: any;
@@ -44,6 +45,8 @@ export const FiltersScreen: React.FC<FiltersScreenProps> = ({
   const [bannerContent, setBannerContent] = useState<ContentItem[]>([]);
   const {isTablet, orientation} = useResponsive();
   const {width, height} = useWindowDimensions();
+  const themeMode = BlurPreference.getMode();
+  const isGlass = themeMode === 'glass';
 
   // Get real saved filters data
   const {data: savedFilters = [], isLoading} = useQuery({
@@ -332,11 +335,13 @@ export const FiltersScreen: React.FC<FiltersScreenProps> = ({
           style={{
             paddingHorizontal: spacing.lg,
             paddingVertical: spacing.md,
-            backgroundColor: colors.modal.blur,
+            backgroundColor: isGlass
+              ? colors.modal.blur
+              : colors.background.tertiarySolid,
             borderRadius: borderRadius.round,
             borderWidth: 1,
-            borderBottomWidth: 0,
-            borderColor: colors.modal.header,
+            borderBottomWidth: isGlass ? 0 : 1,
+            borderColor: isGlass ? colors.modal.border : colors.modal.blurSolid,
             marginTop: spacing.md,
           }}>
           <Text

@@ -263,20 +263,20 @@ export const MyFiltersScreen = () => {
     actionButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.modal.blur,
-      paddingVertical: 14,
+      backgroundColor: isSolid ? colors.modal.blurSolid : colors.modal.blur,
+      paddingVertical: 12,
       paddingHorizontal: 16,
       borderRadius: 12,
       borderWidth: 1,
-      borderBottomWidth: 0,
-      borderColor: colors.modal.header,
+      borderBottomWidth: isSolid ? 1 : 0,
+      borderColor: isSolid ? colors.modal.contentSolid : colors.modal.header,
       opacity: 0.8,
       gap: 8,
     },
     actionButtonText: {
       color: colors.text.primary,
       ...typography.button,
-      fontSize: 14,
+      fontSize: isTablet ? 14 : 10,
     },
     modalContainer: {
       flex: 1,
@@ -289,17 +289,6 @@ export const MyFiltersScreen = () => {
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
       paddingBottom: spacing.md,
-    },
-    addRow: {flexDirection: 'row', alignItems: 'center', gap: spacing.md},
-    addButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.md,
-      height: 40,
-      width: 40,
-      zIndex: 1,
     },
     content: {
       paddingHorizontal: spacing.md,
@@ -1363,9 +1352,13 @@ export const MyFiltersScreen = () => {
                 paddingHorizontal: 34,
                 borderRadius: borderRadius.round,
                 borderWidth: 1,
-                borderBottomWidth: 0,
-                borderColor: colors.modal.content,
-                backgroundColor: colors.modal.blur,
+                borderBottomWidth: isSolid ? 1 : 0,
+                borderColor: isSolid
+                  ? colors.modal.contentSolid
+                  : colors.modal.content,
+                backgroundColor: isSolid
+                  ? colors.modal.blurSolid
+                  : colors.modal.blur,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 8,

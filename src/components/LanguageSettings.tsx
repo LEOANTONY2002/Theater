@@ -14,6 +14,7 @@ import languageData from '../utils/language.json';
 import {SettingsManager, Language} from '../store/settings';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {BlurPreference} from '../store/blurPreference';
 
 // Define suggested language codes
 const SUGGESTED_LANGUAGE_CODES = [
@@ -47,6 +48,8 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
   const queryClient = useQueryClient();
   const [selectedLanguages, setSelectedLanguages] = useState<Language[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   // Languages are static - use directly from JSON
   const languages = languageData as Language[];
@@ -166,6 +169,112 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
         lang.iso_639_1.toLowerCase().includes(query),
     );
   }, [sortedLanguages, searchQuery]);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    description: {
+      ...typography.body1,
+      color: colors.text.secondary,
+      marginBottom: spacing.lg,
+    },
+    languageList: {
+      flex: 1,
+    },
+    section: {
+      flex: 1,
+      marginBottom: spacing.md,
+    },
+    suggestedSection: {
+      marginBottom: spacing.lg,
+    },
+    moreLanguagesSection: {
+      marginBottom: spacing.xl,
+    },
+    sectionTitle: {
+      ...typography.h3,
+      color: colors.text.primary,
+      marginBottom: spacing.md,
+    },
+    languageItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: spacing.md,
+      backgroundColor: isSolid ? colors.modal.blurSolid : colors.modal.blur,
+      marginBottom: spacing.sm,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderBottomWidth: isSolid ? 1 : 0,
+      borderColor: isSolid ? 'transparent' : colors.modal.content,
+    },
+    selectedItem: {
+      borderColor: colors.modal.active,
+      backgroundColor: colors.modal.border,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+    },
+    languageInfo: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    languageName: {
+      ...typography.body1,
+      color: colors.text.primary,
+    },
+    nativeName: {
+      ...typography.body2,
+      color: colors.text.secondary,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isSolid ? colors.modal.blurSolid : colors.modal.blur,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.modal.content,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.md,
+    },
+    searchIcon: {
+      marginRight: spacing.sm,
+    },
+    searchInput: {
+      flex: 1,
+      ...typography.body1,
+      color: colors.text.primary,
+      paddingVertical: spacing.md,
+      fontFamily: 'Inter_18pt-Regular',
+    },
+    clearButton: {
+      padding: spacing.xs,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: spacing.xxl * 2,
+    },
+    emptyText: {
+      ...typography.h3,
+      color: colors.text.secondary,
+      marginTop: spacing.md,
+    },
+    emptySubtext: {
+      ...typography.body2,
+      color: colors.text.tertiary,
+      marginTop: spacing.xs,
+    },
+  });
 
   const renderLanguageItem: ListRenderItem<Language> = ({item}) => {
     const isSelected = selectedLanguages.some(
@@ -287,110 +396,3 @@ export const LanguageSettings: React.FC<LanguageSettingsProps> = ({
     />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  description: {
-    ...typography.body1,
-    color: colors.text.secondary,
-    marginBottom: spacing.lg,
-  },
-  languageList: {
-    flex: 1,
-  },
-  section: {
-    flex: 1,
-    marginBottom: spacing.md,
-  },
-  suggestedSection: {
-    marginBottom: spacing.lg,
-  },
-  moreLanguagesSection: {
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: spacing.md,
-  },
-  languageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    backgroundColor: colors.modal.blur,
-    marginBottom: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: colors.modal.content,
-  },
-  selectedItem: {
-    borderColor: colors.modal.active,
-    backgroundColor: colors.modal.border,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-  },
-  languageInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  languageName: {
-    ...typography.body1,
-    color: colors.text.primary,
-  },
-  nativeName: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.modal.blur,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.modal.content,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    ...typography.body1,
-    color: colors.text.primary,
-    paddingVertical: spacing.md,
-    fontFamily: 'Inter_18pt-Regular',
-  },
-  clearButton: {
-    padding: spacing.xs,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing.xxl * 2,
-  },
-  emptyText: {
-    ...typography.h3,
-    color: colors.text.secondary,
-    marginTop: spacing.md,
-  },
-  emptySubtext: {
-    ...typography.body2,
-    color: colors.text.tertiary,
-    marginTop: spacing.xs,
-  },
-});

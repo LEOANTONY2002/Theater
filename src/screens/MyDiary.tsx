@@ -28,6 +28,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import {MySpaceStackParamList} from '../types/navigation';
 import LinearGradient from 'react-native-linear-gradient';
 import {diaryManager, IDiaryEntry} from '../store/diary';
+import {diaryImportExportService} from '../services/DiaryImportExportService';
 import {DiaryModal} from '../components/modals/DiaryModal';
 import {MaybeBlurView} from '../components/MaybeBlurView';
 import {Modal} from 'react-native';
@@ -82,6 +83,14 @@ export const MyDiaryScreen: React.FC = () => {
     type?: 'movie' | 'tv' | 'all';
   }>({});
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [importExportModalVisible, setImportExportModalVisible] =
+    useState(false);
+  const [downloadSuccessModalVisible, setDownloadSuccessModalVisible] =
+    useState(false);
+  const [downloadedFile, setDownloadedFile] = useState<{
+    fileName: string;
+    path: string;
+  } | null>(null);
 
   const toggleYearModal = (visible: boolean) => {
     if (visible) {
@@ -433,9 +442,8 @@ export const MyDiaryScreen: React.FC = () => {
       marginTop: spacing.xl,
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.md,
       paddingBottom: spacing.md,
-      marginHorizontal: isTablet ? '10%' : spacing.md,
+      marginHorizontal: isTablet ? '10%' : spacing.lg,
     },
     topGradient: {
       position: 'absolute',
@@ -1345,6 +1353,24 @@ export const MyDiaryScreen: React.FC = () => {
         <Text style={styles.headerTitle}>My Diary</Text>
         <View style={{flex: 1}} />
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity
+            style={{
+              padding: 14,
+              marginRight: spacing.sm,
+              borderRadius: borderRadius.round,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              backgroundColor: colors.modal.blur,
+              borderColor: colors.modal.blur,
+            }}
+            onPress={() => setImportExportModalVisible(true)}>
+            <Ionicons
+              name="swap-vertical-outline"
+              size={16}
+              color={colors.text.tertiary}
+            />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               {
@@ -2821,6 +2847,282 @@ export const MyDiaryScreen: React.FC = () => {
     );
   };
 
+  const renderImportExportModal = () => {
+    return (
+      <Modal
+        visible={importExportModalVisible}
+        animationType="fade"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={() => setImportExportModalVisible(false)}>
+        {BlurPreference.getMode() !== 'normal' && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: spacing.xl,
+            backgroundColor:
+              BlurPreference.getMode() === 'normal'
+                ? 'rgba(0,0,0,0.5)'
+                : 'transparent',
+          }}>
+          <View
+            style={{
+              width: '100%',
+              maxWidth: 400,
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: colors.modal.content,
+              backgroundColor:
+                BlurPreference.getMode() === 'normal'
+                  ? colors.background.tertiary
+                  : 'transparent',
+            }}>
+            {BlurPreference.getMode() !== 'normal' && (
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="dark"
+                blurAmount={10}
+                overlayColor={colors.modal.blur}
+              />
+            )}
+            <View style={{padding: spacing.xl}}>
+              <Text
+                style={{
+                  ...typography.h3,
+                  color: '#fff',
+                  marginBottom: spacing.sm,
+                  textAlign: 'center',
+                }}>
+                Data Management
+              </Text>
+              <Text
+                style={{
+                  ...typography.body2,
+                  color: colors.text.secondary,
+                  marginBottom: spacing.xl,
+                  textAlign: 'center',
+                }}>
+                Generate a CSV file to import on another Theater app or backup
+                your data.
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setImportExportModalVisible(false);
+                  setTimeout(() => diaryImportExportService.shareDiary(), 300);
+                }}
+                style={{
+                  backgroundColor: colors.modal.blur,
+                  paddingVertical: 16,
+                  borderRadius: borderRadius.lg,
+                  marginBottom: spacing.md,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 10,
+                  borderWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons name="share-social-outline" size={20} color="#fff" />
+                <Text style={{color: '#fff', fontWeight: '600'}}>
+                  Share CSV
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setImportExportModalVisible(false);
+                  setTimeout(async () => {
+                    const result =
+                      await diaryImportExportService.downloadDiary();
+                    if (
+                      result &&
+                      result.success &&
+                      result.fileName &&
+                      result.path
+                    ) {
+                      setDownloadedFile({
+                        fileName: result.fileName,
+                        path: result.path,
+                      });
+                      setDownloadSuccessModalVisible(true);
+                    }
+                  }, 300);
+                }}
+                style={{
+                  backgroundColor: colors.modal.blur,
+                  paddingVertical: 16,
+                  borderRadius: borderRadius.lg,
+                  marginBottom: spacing.md,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 10,
+                  borderWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons name="save-outline" size={20} color="#fff" />
+                <Text style={{color: '#fff', fontWeight: '600'}}>
+                  Download CSV
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setImportExportModalVisible(false);
+                  setTimeout(() => diaryImportExportService.importDiary(), 300);
+                }}
+                style={{
+                  backgroundColor: colors.modal.blur,
+                  paddingVertical: 16,
+                  borderRadius: borderRadius.lg,
+                  marginBottom: spacing.lg,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 10,
+                  borderWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons name="download-outline" size={20} color="#fff" />
+                <Text style={{color: '#fff', fontWeight: '600'}}>
+                  Import from CSV
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setImportExportModalVisible(false)}
+                style={{alignItems: 'center', padding: 10}}>
+                <Text style={{color: colors.text.secondary}}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderDownloadSuccessModal = () => {
+    return (
+      <Modal
+        visible={downloadSuccessModalVisible}
+        statusBarTranslucent={true}
+        transparent
+        animationType="fade"
+        backdropColor={colors.modal.blurDark}
+        onRequestClose={() => setDownloadSuccessModalVisible(false)}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: spacing.md,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}>
+          {BlurPreference.getMode() !== 'normal' && (
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="dark"
+              blurAmount={10}
+              overlayColor={colors.modal.blurDark}
+            />
+          )}
+
+          <View
+            style={{
+              width: '95%',
+              maxWidth: 400,
+              backgroundColor: colors.modal.blur,
+              borderRadius: borderRadius.xl,
+              borderWidth: 1,
+              borderColor: colors.modal.header,
+              padding: spacing.xl,
+            }}>
+            <View
+              style={{
+                marginBottom: spacing.md,
+                backgroundColor: colors.modal.blur,
+                padding: spacing.md,
+                borderRadius: borderRadius.round,
+                alignSelf: 'center',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Ionicons
+                name="checkmark-circle"
+                size={40}
+                color={colors.text.muted}
+              />
+            </View>
+
+            <Text
+              style={{
+                ...typography.body2,
+                color: colors.text.secondary,
+                textAlign: 'center',
+                marginBottom: spacing.sm,
+              }}>
+              Downloaded to
+            </Text>
+
+            <View
+              style={{
+                backgroundColor: colors.background.tertiary,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: borderRadius.md,
+                width: '100%',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.05)',
+                marginBottom: spacing.md,
+              }}>
+              <Text
+                style={{
+                  ...typography.body1,
+                  color: colors.text.primary,
+                  fontWeight: '500',
+                  textAlign: 'center',
+                }}>
+                downloads/{downloadedFile?.fileName || 'file.csv'}
+              </Text>
+            </View>
+
+            <View style={{width: '100%', marginTop: spacing.sm}}>
+              <TouchableOpacity
+                onPress={() => setDownloadSuccessModalVisible(false)}
+                activeOpacity={0.8}
+                style={{
+                  width: '100%',
+                  height: 50,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: borderRadius.round,
+                  backgroundColor: colors.modal.blur,
+                  borderWidth: 1,
+                  borderBottomWidth: 0,
+                  borderColor: colors.modal.header,
+                }}>
+                <Text style={{...typography.body2, color: colors.text.primary}}>
+                  OK
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   const renderFilteredResults = () => {
     return (
       <View style={{flex: 1}}>
@@ -2933,6 +3235,8 @@ export const MyDiaryScreen: React.FC = () => {
         </View>
       )}
 
+      {renderImportExportModal()}
+      {renderDownloadSuccessModal()}
       {renderYearSelectorModal()}
       {renderEntryViewModal()}
 

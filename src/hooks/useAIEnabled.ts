@@ -8,7 +8,10 @@ export const useAIEnabled = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const isAIEnabled = aiSettings?.apiKey && aiSettings.apiKey.trim() !== '';
+  const isAIEnabled =
+    aiSettings?.aiEnabled &&
+    aiSettings?.apiKey &&
+    aiSettings.apiKey.trim() !== '';
 
   return {
     isAIEnabled,

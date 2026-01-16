@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import {diaryManager} from '../../store/diary';
 import {useResponsive} from '../../hooks/useResponsive';
 import {GradientButton} from '../GradientButton';
 import {GradientProgressBar} from '../GradientProgressBar';
+import {MicButton} from '../MicButton';
 
 interface DiaryModalProps {
   visible: boolean;
@@ -60,6 +61,7 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
   const [mood, setMood] = useState<string | null>(null);
   const [watchDate, setWatchDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   // TV Specifics
   const [currentSeason, setCurrentSeason] = useState(1);
@@ -543,19 +545,35 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
 
                 <View style={styles.section}>
                   <Text style={styles.label}>Diary Note</Text>
-                  <TextInput
-                    style={styles.textArea}
-                    placeholder={
-                      type === 'movie'
-                        ? 'Thoughts on the movie...'
-                        : 'Add notes to your diary...'
-                    }
-                    placeholderTextColor={colors.text.muted}
-                    multiline
-                    numberOfLines={4}
-                    value={note}
-                    onChangeText={setNote}
-                  />
+                  <View style={styles.textAreaContainer}>
+                    <TextInput
+                      ref={inputRef}
+                      style={styles.textArea}
+                      placeholder={
+                        type === 'movie'
+                          ? 'Thoughts on the movie...'
+                          : 'Add notes to your diary...'
+                      }
+                      placeholderTextColor={colors.text.muted}
+                      multiline
+                      numberOfLines={4}
+                      value={note}
+                      onChangeText={setNote}
+                    />
+                    <View style={styles.micContainer}>
+                      <MicButton
+                        onFinalText={text => {
+                          setNote(text);
+                          inputRef.current?.focus();
+                        }}
+                        onPartialText={text => {
+                          if (text) setNote(text);
+                        }}
+                        locale={Platform.OS === 'android' ? 'en-IN' : undefined}
+                        color={colors.text.primary}
+                      />
+                    </View>
+                  </View>
                 </View>
               </>
             )}
@@ -645,14 +663,26 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   textArea: {
-    backgroundColor: colors.background.tertiary,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    flex: 1,
     color: colors.text.primary,
     minHeight: 120,
     textAlignVertical: 'top',
+    padding: spacing.md,
+    ...typography.body2,
+  },
+  textAreaContainer: {
+    backgroundColor: colors.background.tertiary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    overflow: 'hidden',
+  },
+  micContainer: {
+    padding: spacing.sm,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
   },
   dateSelector: {
     flexDirection: 'row',

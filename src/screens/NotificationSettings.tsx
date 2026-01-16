@@ -163,6 +163,197 @@ export const NotificationSettings: React.FC = () => {
     setHistory([]);
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    scrollContent: {
+      paddingBottom: spacing.xl,
+    },
+    header: {
+      paddingHorizontal: spacing.md,
+      marginTop: 60, // Match MyFilters
+      marginBottom: spacing.md,
+      zIndex: 10,
+    },
+    headerTitle: {
+      color: colors.text.primary,
+      ...typography.h2,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    backButton: {
+      alignSelf: 'flex-start',
+      padding: 4,
+      marginLeft: -4,
+    },
+    actionsScroll: {
+      flexGrow: 0,
+    },
+    actionsContainer: {
+      gap: spacing.sm,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isSolid ? colors.modal.blurSolid : colors.modal.blur,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 12, // Match MyFilters/Watchlists
+      borderWidth: 1,
+      borderBottomWidth: isSolid ? 1 : 0,
+      borderColor: isSolid ? colors.modal.contentSolid : colors.modal.content,
+      gap: 8,
+    },
+    actionButtonText: {
+      color: colors.text.primary,
+      ...typography.button,
+      fontSize: isTablet ? 14 : 10,
+    },
+    iconButtonDisabled: {
+      opacity: 0.5,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    dateGroup: {
+      marginTop: spacing.lg,
+    },
+    dateGroupTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text.secondary,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    notificationCard: {
+      backgroundColor: colors.background.primary,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+      borderRadius: borderRadius.xl,
+      borderWidth: 1,
+      borderColor: colors.modal.content,
+      overflow: 'hidden',
+    },
+    notificationWithImage: {
+      width: '100%',
+      position: 'relative',
+    },
+    backgroundImage: {
+      borderRadius: borderRadius.md,
+      width: '60%',
+      left: '40%',
+      opacity: 0.5,
+    },
+    gradientOverlay: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: '40%', // Start from image start
+      width: '100%', // Match image width
+    },
+    notificationHeader: {
+      flexDirection: 'row',
+      padding: spacing.md,
+    },
+    notificationIconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.background.secondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.sm,
+    },
+    notificationContent: {
+      flex: 1,
+    },
+    notificationTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.text.secondary,
+      marginBottom: spacing.xs,
+      lineHeight: 20,
+    },
+    notificationTitleUnread: {
+      color: colors.text.primary,
+      fontWeight: '400',
+    },
+    notificationBody: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      lineHeight: 20,
+      marginBottom: spacing.sm,
+    },
+    notificationFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    notificationTime: {
+      fontSize: 12,
+      color: colors.text.tertiary,
+    },
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.primary,
+    },
+    emptyState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xxl * 3,
+      paddingHorizontal: spacing.xl,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text.secondary,
+      marginTop: spacing.lg,
+      marginBottom: spacing.xs,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: colors.text.muted,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    loadingContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xxl * 3,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: colors.text.muted,
+      marginTop: spacing.md,
+    },
+    footer: {
+      height: 40,
+    },
+    enableButton: {
+      marginTop: spacing.xl,
+      backgroundColor: colors.modal.blur,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: colors.modal.content,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.round,
+    },
+    enableButtonText: {
+      color: colors.text.primary,
+      fontWeight: '600',
+      fontSize: 12,
+    },
+  });
+
   return (
     <View style={styles.container}>
       {/* Fixed Header */}
@@ -392,194 +583,3 @@ export const NotificationSettings: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  scrollContent: {
-    paddingBottom: spacing.xl,
-  },
-  header: {
-    paddingHorizontal: spacing.md,
-    marginTop: 60, // Match MyFilters
-    marginBottom: spacing.md,
-    zIndex: 10,
-  },
-  headerTitle: {
-    color: colors.text.primary,
-    ...typography.h2,
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 4,
-    marginLeft: -4,
-  },
-  actionsScroll: {
-    flexGrow: 0,
-  },
-  actionsContainer: {
-    gap: spacing.sm,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.modal.blur,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12, // Match MyFilters/Watchlists
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.modal.content,
-    gap: 8,
-  },
-  actionButtonText: {
-    color: colors.text.primary,
-    ...typography.button,
-    fontSize: 14,
-  },
-  iconButtonDisabled: {
-    opacity: 0.5,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  dateGroup: {
-    marginTop: spacing.lg,
-  },
-  dateGroupTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  notificationCard: {
-    backgroundColor: colors.background.primary,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.modal.content,
-    overflow: 'hidden',
-  },
-  notificationWithImage: {
-    width: '100%',
-    position: 'relative',
-  },
-  backgroundImage: {
-    borderRadius: borderRadius.md,
-    width: '60%',
-    left: '40%',
-    opacity: 0.5,
-  },
-  gradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: '40%', // Start from image start
-    width: '100%', // Match image width
-  },
-  notificationHeader: {
-    flexDirection: 'row',
-    padding: spacing.md,
-  },
-  notificationIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  notificationContent: {
-    flex: 1,
-  },
-  notificationTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text.secondary,
-    marginBottom: spacing.xs,
-    lineHeight: 20,
-  },
-  notificationTitleUnread: {
-    color: colors.text.primary,
-    fontWeight: '400',
-  },
-  notificationBody: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    lineHeight: 20,
-    marginBottom: spacing.sm,
-  },
-  notificationFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  notificationTime: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxl * 3,
-    paddingHorizontal: spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxl * 3,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginTop: spacing.md,
-  },
-  footer: {
-    height: 40,
-  },
-  enableButton: {
-    marginTop: spacing.xl,
-    backgroundColor: colors.modal.blur,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.modal.content,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.round,
-  },
-  enableButtonText: {
-    color: colors.text.primary,
-    fontWeight: '600',
-    fontSize: 12,
-  },
-});

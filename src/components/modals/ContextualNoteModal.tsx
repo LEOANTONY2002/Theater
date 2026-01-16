@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   Modal,
   View,
@@ -17,6 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {colors, spacing, borderRadius, typography} from '../../styles/theme';
 import {useResponsive} from '../../hooks/useResponsive';
 import {GradientButton} from '../GradientButton';
+import {MicButton} from '../MicButton';
 
 interface ContextualNoteModalProps {
   visible: boolean;
@@ -35,6 +36,7 @@ export const ContextualNoteModal: React.FC<ContextualNoteModalProps> = ({
 }) => {
   const {isTablet} = useResponsive();
   const [note, setNote] = useState(initialNote);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (visible) {
@@ -98,16 +100,32 @@ export const ContextualNoteModal: React.FC<ContextualNoteModalProps> = ({
                 contentContainerStyle={{paddingVertical: spacing.md}}>
                 <View style={styles.section}>
                   <Text style={styles.label}>Diary Note</Text>
-                  <TextInput
-                    style={styles.textArea}
-                    placeholder="Add notes for this entry..."
-                    placeholderTextColor={colors.text.muted}
-                    multiline
-                    numberOfLines={4}
-                    value={note}
-                    onChangeText={setNote}
-                    autoFocus
-                  />
+                  <View style={styles.textAreaContainer}>
+                    <TextInput
+                      ref={inputRef}
+                      style={styles.textArea}
+                      placeholder="Add notes for this entry..."
+                      placeholderTextColor={colors.text.muted}
+                      multiline
+                      numberOfLines={4}
+                      value={note}
+                      onChangeText={setNote}
+                      autoFocus
+                    />
+                    <View style={styles.micContainer}>
+                      <MicButton
+                        onFinalText={text => {
+                          setNote(text);
+                          inputRef.current?.focus();
+                        }}
+                        onPartialText={text => {
+                          if (text) setNote(text);
+                        }}
+                        locale={Platform.OS === 'android' ? 'en-IN' : undefined}
+                        color={colors.text.primary}
+                      />
+                    </View>
+                  </View>
                 </View>
               </ScrollView>
 
@@ -190,14 +208,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   textArea: {
-    backgroundColor: colors.background.tertiary,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    flex: 1,
     color: colors.text.primary,
     minHeight: 120,
     textAlignVertical: 'top',
+    padding: spacing.md,
+    ...typography.body1,
+  },
+  textAreaContainer: {
+    backgroundColor: colors.background.tertiary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
-    ...typography.body1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    overflow: 'hidden',
+  },
+  micContainer: {
+    padding: spacing.sm,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
   },
 });

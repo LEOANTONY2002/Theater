@@ -6,12 +6,14 @@ const AI_MODEL_KEY = 'ai_model';
 const AI_MODEL_CREATED_KEY = 'ai_model_created';
 const AI_API_KEY_KEY = 'ai_api_key';
 const AI_IS_DEFAULT_KEY = 'ai_is_default';
+const AI_ENABLED_KEY = 'ai_enabled';
 
 export interface AISettings {
   model: string;
   modelCreated: number | null;
   apiKey: string | null;
   isDefault: boolean; // true if using the hardcoded default key
+  aiEnabled: boolean;
 }
 
 // Allow callers to omit isDefault; we compute it from apiKey
@@ -20,6 +22,7 @@ export interface AISettingsInput {
   modelCreated?: number | null;
   apiKey: string | null;
   isDefault?: boolean;
+  aiEnabled?: boolean;
 }
 
 const DEFAULT_SETTINGS: AISettings = {
@@ -27,6 +30,7 @@ const DEFAULT_SETTINGS: AISettings = {
   modelCreated: null,
   apiKey: null,
   isDefault: true,
+  aiEnabled: false,
 };
 
 export class AISettingsManager {
@@ -40,16 +44,19 @@ export class AISettingsManager {
       const isDefaultStr = await RealmSettingsManager.getSetting(
         AI_IS_DEFAULT_KEY,
       );
+      const aiEnabledStr = await RealmSettingsManager.getSetting(
+        AI_ENABLED_KEY,
+      );
 
       const isDefault = isDefaultStr === 'true' || isDefaultStr === null;
-
-      // (Constraint removed: gemini-2.5-flash-lite is now allowed)
+      const aiEnabled = aiEnabledStr === 'true';
 
       return {
         model: model || DEFAULT_SETTINGS.model,
         modelCreated: modelCreated ? parseInt(modelCreated, 10) : null,
         apiKey: apiKey || DEFAULT_SETTINGS.apiKey,
         isDefault,
+        aiEnabled,
       };
     } catch (error) {
       return DEFAULT_SETTINGS;
@@ -70,8 +77,6 @@ export class AISettingsManager {
           settings.modelCreated.toString(),
         );
       } else {
-        // If null, we might want to remove it or set to empty/0.
-        // RealmSettingsManager typically sets strings.
         await RealmSettingsManager.setSetting(AI_MODEL_CREATED_KEY, '');
       }
       await RealmSettingsManager.setSetting(
@@ -82,6 +87,12 @@ export class AISettingsManager {
         AI_IS_DEFAULT_KEY,
         isDefault.toString(),
       );
+      if (settings.aiEnabled !== undefined) {
+        await RealmSettingsManager.setSetting(
+          AI_ENABLED_KEY,
+          settings.aiEnabled.toString(),
+        );
+      }
     } catch (error) {
       throw error;
     }
@@ -109,7 +120,18 @@ export class AISettingsManager {
       await this.saveSettings({
         ...currentSettings,
         apiKey,
-        // isDefault will auto-compute based on apiKey
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async updateAIEnabled(enabled: boolean): Promise<void> {
+    try {
+      const currentSettings = await this.getSettings();
+      await this.saveSettings({
+        ...currentSettings,
+        aiEnabled: enabled,
       });
     } catch (error) {
       throw error;

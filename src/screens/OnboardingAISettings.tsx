@@ -630,11 +630,11 @@ const OnboardingAISettings: React.FC<{
                 out on:
                 {'\n'}
                 {'\n'}• Cinema chat assistant
+                {'\n'}• AI Search
                 {'\n'}• Movie/Series level chat assistant
-                {'\n'}• Simiar Movie/Series recommendations
-                {'\n'}• AI-powered movie recommendations
-                {'\n'}• My Next Watch - Personalized content discovery
+                {'\n'}• Personalized recommendations
                 {'\n'}• Trivia & Facts
+                {'\n'}• Watchlist Analysis
               </Text>
               <View
                 style={{

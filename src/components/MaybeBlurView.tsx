@@ -224,34 +224,19 @@ export const MaybeBlurView: React.FC<
       );
     } else {
       return (
-        <LinearGradient
-          colors={['rgba(111, 111, 111, 0.3)', 'rgba(20, 20, 20, 0.5)']}
-          start={{x: 0, y: 1}}
-          end={{x: 1, y: 0}}
-          style={[
-            style,
-            {
-              flex: 1,
-              borderRadius: borderRadius.round,
-              overflow: 'hidden',
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
-          ]}
-          pointerEvents={pointerEvents as any}>
-          <View
-            style={{
-              backgroundColor: colors.background.primary,
-              borderWidth: 1.5,
-              borderColor: 'rgba(0, 0, 0, 0.04)',
-              height: '100%',
-              width: '100%',
-              borderRadius: borderRadius.round,
-              zIndex: 10,
-            }}>
-            {children}
-          </View>
-        </LinearGradient>
+        <View
+          style={{
+            backgroundColor: colors.background.tertiarySolid,
+            borderWidth: 1,
+            borderColor: colors.modal.blurSolid,
+            height: '100%',
+            width: '100%',
+            borderRadius: borderRadius.round,
+            zIndex: 10,
+            elevation: 40,
+          }}>
+          {children}
+        </View>
       );
     }
   }

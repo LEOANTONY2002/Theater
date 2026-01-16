@@ -703,11 +703,11 @@ const AboutLegalScreen: React.FC = () => {
                     1. User Responsibility for API Keys{'\n'}
                   </Text>
                   <Text style={styles.privacyText}>
-                    This app relies on a Google Gemini API key that you, the
-                    user, must provide. You are solely responsible for all API
-                    usage associated with your key, including any potential
-                    costs incurred. By using your key, you agree to and are
-                    bound by Google’s Generative AI terms of service.{'\n\n'}
+                    This app relies on a Groq API key that you, the user, must
+                    provide. You are solely responsible for all API usage
+                    associated with your key, including any potential costs
+                    incurred. By using your key, you agree to and are bound by
+                    Groq's terms of service.{'\n\n'}
                   </Text>
 
                   <Text style={styles.privacySectionTitle}>

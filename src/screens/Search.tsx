@@ -47,6 +47,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import {MicButton} from '../components/MicButton';
 import {aiSearch} from '../services/groq';
 import {getImageUrl} from '../services/tmdb';
+import {BlurPreference} from '../store/blurPreference';
 
 const MAX_RECENT_ITEMS = 10;
 
@@ -84,6 +85,8 @@ export const SearchScreen = React.memo(() => {
   const route = useRoute<RouteProp<SearchStackParamList, 'SearchScreen'>>();
   const queryClient = useQueryClient();
   const {isTablet} = useResponsive();
+  const themeMode = BlurPreference.getMode();
+  const isSolid = themeMode === 'normal';
 
   // Search or discover based on query - use enhanced search for better filtering
   const {
@@ -488,7 +491,6 @@ export const SearchScreen = React.memo(() => {
       alignItems: 'center',
       paddingHorizontal: spacing.sm,
       marginHorizontal: isTablet ? '10%' : spacing.md,
-      marginTop: spacing.xl,
       marginBottom: spacing.md,
       backgroundColor: 'transparent',
       position: 'absolute',
@@ -511,44 +513,40 @@ export const SearchScreen = React.memo(() => {
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
+      padding: 6,
+      paddingLeft: spacing.md,
+      paddingRight: spacing.xs,
+      backgroundColor: isSolid
+        ? colors.background.tertiarySolid
+        : colors.modal.blur,
+      zIndex: 1,
+      elevation: 10,
+      borderColor: isSolid ? colors.background.tertiary : colors.modal.content,
+      borderWidth: 1,
+      borderBottomWidth: isSolid ? 1 : 0,
       borderRadius: borderRadius.round,
-      paddingLeft: spacing.sm,
+      overflow: 'hidden',
     },
     searchInput: {
       flex: 1,
+      ...typography.body1,
       height: 48,
       paddingHorizontal: spacing.sm,
+      paddingRight: spacing.md,
       color: colors.text.primary,
-      ...typography.body1,
     },
     clearButton: {
       padding: spacing.xs,
     },
-    filterButton: {
-      width: 48,
-      height: 48,
-      borderRadius: borderRadius.round,
-      // backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginLeft: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.modal.border,
-    },
-    filterButtonActive: {
-      borderWidth: 1,
-      borderColor: colors.modal.border,
-      backgroundColor: colors.modal.activeText,
-    },
     inlineFilterButton: {
-      padding: spacing.sm,
+      padding: 10,
       marginRight: spacing.sm,
       borderRadius: borderRadius.round,
-      borderTopWidth: 1,
-      borderLeftWidth: 1,
-      borderRightWidth: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.03)',
-      borderColor: colors.modal.blur,
+      borderWidth: 1,
+      borderBottomWidth: isSolid ? 1 : 0,
+      borderTopWidth: isSolid ? 1 : 0,
+      backgroundColor: isSolid ? colors.background.tertiary : colors.modal.blur,
+      borderColor: isSolid ? colors.background.tertiary : colors.modal.content,
     },
     recentItemsContainer: {
       paddingTop: spacing.sm,
@@ -782,19 +780,46 @@ export const SearchScreen = React.memo(() => {
         />
       </Animated.View>
       <LinearGradient
-        colors={[colors.background.primary, 'transparent']}
+        colors={[colors.background.primary, '#000009db', 'transparent']}
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: 100,
+          height: 150,
           zIndex: 1,
         }}
+        pointerEvents="none"
       />
 
+      <Animated.View
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 150,
+            zIndex: 5,
+          },
+          {opacity: gradientOpacity},
+        ]}>
+        <LinearGradient
+          colors={['#19023bff', '#18003db2', 'transparent']}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 150,
+            zIndex: 5,
+          }}
+          pointerEvents="none"
+        />
+      </Animated.View>
+
       <View style={styles.header}>
-        {isFocused && (
+        {/* {isFocused && (
           <MaybeBlurView
             style={styles.blurView}
             blurType="dark"
@@ -802,17 +827,34 @@ export const SearchScreen = React.memo(() => {
             dialog
             pointerEvents="none"
           />
-        )}
+        )} */}
         <View style={styles.searchContainer}>
           <Icon name="search" size={15} color={colors.text.muted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search movies & TV shows..."
-            numberOfLines={1}
-            placeholderTextColor={colors.text.tertiary}
-            value={query}
-            onChangeText={setQuery}
-          />
+          <View style={{flex: 1, justifyContent: 'center'}}>
+            {query === '' && (
+              <Text
+                style={{
+                  position: 'absolute',
+                  left: spacing.sm,
+                  right: spacing.md,
+                  top: 13,
+                  color: colors.text.tertiary,
+                  ...typography.body1,
+                }}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                pointerEvents="none">
+                {isAISearchMode ? 'Ask AI' : 'Search movies & TV shows'}
+              </Text>
+            )}
+            <TextInput
+              style={styles.searchInput}
+              placeholder=""
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+            />
+          </View>
           {!(isAISearchMode && query.trim().length > 0) && (
             <Animated.View
               style={[
@@ -864,7 +906,7 @@ export const SearchScreen = React.memo(() => {
               disabled={isAISearchMode}>
               <Icon
                 name="funnel"
-                size={15}
+                size={18}
                 color={hasActiveFilters ? colors.accent : colors.text.tertiary}
               />
             </TouchableOpacity>
@@ -907,8 +949,8 @@ export const SearchScreen = React.memo(() => {
                 {isAIEnabled && (
                   <View
                     style={{
-                      paddingHorizontal: spacing.md,
-                      paddingVertical: spacing.md,
+                      paddingHorizontal: isTablet ? spacing.xl : spacing.md,
+                      paddingVertical: isTablet ? spacing.xl : spacing.md,
                       marginHorizontal: isTablet ? '10%' : spacing.md,
                       marginBottom: spacing.md,
                       borderRadius: borderRadius.lg,
@@ -1130,13 +1172,10 @@ export const SearchScreen = React.memo(() => {
                 </View> */}
 
                 {/* Tab Navigation */}
-                <ScrollView
-                  style={styles.tabContainer}
-                  horizontal={true}
-                  showsHorizontalScrollIndicator={false}>
+                <View style={styles.tabContainer}>
                   {renderTabButton('trending', 'Trending')}
                   {renderTabButton('history', 'History')}
-                </ScrollView>
+                </View>
 
                 {/* Tab Content */}
                 {renderTabContent()}
@@ -1144,6 +1183,7 @@ export const SearchScreen = React.memo(() => {
               </>
             )}
             showsVerticalScrollIndicator={false}
+            decelerationRate={0.96}
           />
         ) : (
           <>

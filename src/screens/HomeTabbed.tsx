@@ -142,8 +142,10 @@ export const HomeTabbedScreen = React.memo(() => {
     header: {
       borderWidth: 1,
       borderBottomWidth: isGlass ? 0 : 1,
-      borderColor: isGlass ? colors.modal.border : 'rgba(164, 164, 164, 0.15)',
-      backgroundColor: isGlass ? colors.modal.blur : colors.modal.active,
+      borderColor: isGlass ? colors.modal.border : colors.modal.contentSolid,
+      backgroundColor: isGlass
+        ? colors.modal.blur
+        : colors.background.tertiarySolid,
       overflow: 'hidden',
       zIndex: 10,
       display: 'flex',
@@ -152,6 +154,7 @@ export const HomeTabbedScreen = React.memo(() => {
       justifyContent: 'center',
       borderRadius: borderRadius.round,
       alignSelf: 'center',
+      elevation: isGlass ? 0 : 40,
     },
     tabButton: {
       paddingVertical: isTablet ? spacing.md : 10,
@@ -166,9 +169,9 @@ export const HomeTabbedScreen = React.memo(() => {
     activeTabButton: {
       backgroundColor: isGlass
         ? colors.modal.header
-        : colors.background.primary,
-      borderColor: colors.modal.border,
-      borderBottomWidth: 0,
+        : colors.background.tertiary,
+      borderColor: isGlass ? colors.modal.border : colors.background.tertiary,
+      borderBottomWidth: isGlass ? 0 : 1,
       margin: 5,
       paddingHorizontal: isTablet ? spacing.lg : 14,
     },
