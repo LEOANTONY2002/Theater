@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.theater</string>
+	<string>com.lacurations.theater</string>
 	<key>PROJECT_ID</key>
 	<string>la-curations</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:887670089717:ios:5dfe0c08b77627b747e2bc</string>
+	<string>1:887670089717:ios:fa47d2e87dbc3b5847e2bc</string>
 </dict>
 </plist>

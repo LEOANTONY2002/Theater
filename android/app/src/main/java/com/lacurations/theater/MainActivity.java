@@ -1,4 +1,4 @@
-package com.theater;
+package com.lacurations.theater;
 
 import android.os.Bundle;
 import com.facebook.react.ReactActivity;

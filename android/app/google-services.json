@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:887670089717:android:cc226fe77f6068cb47e2bc",
+        "mobilesdk_app_id": "1:887670089717:android:f44d29ad74d0aa4b47e2bc",
         "android_client_info": {
-          "package_name": "com.theater"
+          "package_name": "com.lacurations.theater"
         }
       },
       "oauth_client": [],

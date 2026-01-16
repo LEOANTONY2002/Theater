@@ -42,7 +42,7 @@
 -dontwarn io.realm.**
 
 # Keep all Realm model classes (your schema classes)
--keep class com.theater.** extends io.realm.RealmObject { *; }
+-keep class com.lacurations.theater.** extends io.realm.RealmObject { *; }
 -keep class * extends io.realm.RealmObject { *; }
 
 # Keep Realm annotations

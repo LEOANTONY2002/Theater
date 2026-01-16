@@ -1,4 +1,4 @@
-package com.theater
+package com.lacurations.theater
 
 import android.app.Application
 import com.facebook.react.PackageList
