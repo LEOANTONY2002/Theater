@@ -40,6 +40,7 @@ export const NotificationSettings: React.FC = () => {
   const [history, setHistory] = useState<NotificationHistoryItem[]>([]);
   const [hasPermission, setHasPermission] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isEnabling, setIsEnabling] = useState(false);
   const {isTablet} = useResponsive();
@@ -49,6 +50,7 @@ export const NotificationSettings: React.FC = () => {
 
   const loadData = async () => {
     try {
+      setIsLoading(true);
       // Sync subscriptions on load to auto-fix invalid states
       const settingsRegion = await SettingsManager.getRegion();
       const region = settingsRegion?.iso_3166_1;
@@ -75,6 +77,8 @@ export const NotificationSettings: React.FC = () => {
       setHistory(notifHistory);
     } catch (error) {
       console.error('Error loading notification data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -195,76 +199,119 @@ export const NotificationSettings: React.FC = () => {
       </View>
 
       {/* Notification List */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size={isTablet ? 'large' : 'small'}
+            color={colors.accent}
           />
-        }>
-        {history.length > 0 ? (
-          Object.entries(groupedNotifications).map(
-            ([dateGroup, notifications]) => (
-              <View key={dateGroup} style={styles.dateGroup}>
-                <Text style={styles.dateGroupTitle}>{dateGroup}</Text>
-                {notifications.map(item => {
-                  const imageUrl = item.imageUrl;
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
+          }>
+          {history.length > 0 ? (
+            Object.entries(groupedNotifications).map(
+              ([dateGroup, notifications]) => (
+                <View key={dateGroup} style={styles.dateGroup}>
+                  <Text style={styles.dateGroupTitle}>{dateGroup}</Text>
+                  {notifications.map(item => {
+                    const imageUrl = item.imageUrl;
 
-                  const handlePress = () => {
-                    if (item.data?.screen) {
-                      const {screen, ...params} = item.data;
+                    const handlePress = () => {
+                      if (item.data?.screen) {
+                        const {screen, ...params} = item.data;
 
-                      // Auto-correct screen name (same as NotificationService)
-                      let correctedScreen = screen;
-                      if (screen.toLowerCase() === 'tvshowdetails') {
-                        correctedScreen = 'TVShowDetails';
-                      } else if (screen.toLowerCase() === 'moviedetails') {
-                        correctedScreen = 'MovieDetails';
+                        // Auto-correct screen name (same as NotificationService)
+                        let correctedScreen = screen;
+                        if (screen.toLowerCase() === 'tvshowdetails') {
+                          correctedScreen = 'TVShowDetails';
+                        } else if (screen.toLowerCase() === 'moviedetails') {
+                          correctedScreen = 'MovieDetails';
+                        }
+
+                        // Convert IDs to numbers
+                        const cleanParams: any = {...params};
+                        if (cleanParams.movieId) {
+                          cleanParams.movieId = parseInt(
+                            cleanParams.movieId,
+                            10,
+                          );
+                        }
+                        if (cleanParams.tvShowId) {
+                          cleanParams.tvShowId = parseInt(
+                            cleanParams.tvShowId,
+                            10,
+                          );
+                        }
+                        if (cleanParams.id) {
+                          cleanParams.id = parseInt(cleanParams.id, 10);
+                        }
+
+                        // Navigate using NavigationService (handles nested navigators)
+                        navigate(correctedScreen as any, cleanParams);
                       }
+                    };
 
-                      // Convert IDs to numbers
-                      const cleanParams: any = {...params};
-                      if (cleanParams.movieId) {
-                        cleanParams.movieId = parseInt(cleanParams.movieId, 10);
-                      }
-                      if (cleanParams.tvShowId) {
-                        cleanParams.tvShowId = parseInt(
-                          cleanParams.tvShowId,
-                          10,
-                        );
-                      }
-                      if (cleanParams.id) {
-                        cleanParams.id = parseInt(cleanParams.id, 10);
-                      }
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.notificationCard}
+                        onPress={handlePress}
+                        activeOpacity={1}>
+                        {imageUrl ? (
+                          // Card with image background
+                          <ImageBackground
+                            source={{uri: imageUrl}}
+                            style={styles.notificationWithImage}
+                            imageStyle={styles.backgroundImage}>
+                            <LinearGradient
+                              colors={[
+                                colors.background.primary,
+                                'transparent',
+                              ]}
+                              useAngle
+                              angle={90}
+                              style={styles.gradientOverlay}
+                            />
 
-                      // Navigate using NavigationService (handles nested navigators)
-                      navigate(correctedScreen as any, cleanParams);
-                    }
-                  };
-
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={styles.notificationCard}
-                      onPress={handlePress}
-                      activeOpacity={1}>
-                      {imageUrl ? (
-                        // Card with image background
-                        <ImageBackground
-                          source={{uri: imageUrl}}
-                          style={styles.notificationWithImage}
-                          imageStyle={styles.backgroundImage}>
-                          <LinearGradient
-                            colors={[colors.background.primary, 'transparent']}
-                            useAngle
-                            angle={90}
-                            style={styles.gradientOverlay}
-                          />
-
+                            <View style={styles.notificationHeader}>
+                              <View style={styles.notificationContent}>
+                                <Text
+                                  style={[
+                                    styles.notificationTitle,
+                                    !item.opened &&
+                                      styles.notificationTitleUnread,
+                                  ]}
+                                  numberOfLines={2}>
+                                  {item.title || 'Notification'}
+                                </Text>
+                                {item.body && (
+                                  <Text
+                                    style={styles.notificationBody}
+                                    numberOfLines={3}>
+                                    {item.body}
+                                  </Text>
+                                )}
+                                <View style={styles.notificationFooter}>
+                                  <Text style={styles.notificationTime}>
+                                    {formatDate(item.receivedAt)}
+                                  </Text>
+                                </View>
+                              </View>
+                            </View>
+                          </ImageBackground>
+                        ) : (
+                          // Card without image
                           <View style={styles.notificationHeader}>
                             <View style={styles.notificationContent}>
                               <Text
@@ -290,76 +337,53 @@ export const NotificationSettings: React.FC = () => {
                               </View>
                             </View>
                           </View>
-                        </ImageBackground>
-                      ) : (
-                        // Card without image
-                        <View style={styles.notificationHeader}>
-                          <View style={styles.notificationContent}>
-                            <Text
-                              style={[
-                                styles.notificationTitle,
-                                !item.opened && styles.notificationTitleUnread,
-                              ]}
-                              numberOfLines={2}>
-                              {item.title || 'Notification'}
-                            </Text>
-                            {item.body && (
-                              <Text
-                                style={styles.notificationBody}
-                                numberOfLines={3}>
-                                {item.body}
-                              </Text>
-                            )}
-                            <View style={styles.notificationFooter}>
-                              <Text style={styles.notificationTime}>
-                                {formatDate(item.receivedAt)}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ),
-          )
-        ) : (
-          <View style={styles.emptyState}>
-            <Image
-              source={require('../assets/notificationOff.png')}
-              style={{
-                width: isTablet ? width / 3 : width / 2,
-                height: isTablet ? width / 3 : width / 2,
-              }}
-            />
-            <Text style={styles.emptyTitle}>
-              {hasPermission ? 'No notifications yet' : 'Let the bell ring'}
-            </Text>
-            <Text style={styles.emptySubtitle}>
-              {hasPermission
-                ? "You'll see your notifications here when you receive them"
-                : 'Turn on the notification to get your cherry picks, updates and more'}
-            </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ),
+            )
+          ) : (
+            <View style={styles.emptyState}>
+              <Image
+                source={require('../assets/notificationOff.png')}
+                style={{
+                  width: isTablet ? width / 3 : width / 2,
+                  height: isTablet ? width / 3 : width / 2,
+                }}
+              />
+              <Text style={styles.emptyTitle}>
+                {hasPermission ? 'No notifications yet' : 'Let the bell ring'}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {hasPermission
+                  ? "You'll see your notifications here when you receive them"
+                  : 'Turn on the notification to get your cherry picks, updates and more'}
+              </Text>
 
-            {!hasPermission && (
-              <TouchableOpacity
-                style={styles.enableButton}
-                onPress={handleEnableNotifications}
-                disabled={isEnabling}>
-                {isEnabling ? (
-                  <ActivityIndicator size="small" color={colors.text.primary} />
-                ) : (
-                  <Text style={styles.enableButtonText}>
-                    Turn On Notifications
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-        <View style={styles.footer} />
-      </ScrollView>
+              {!hasPermission && (
+                <TouchableOpacity
+                  style={styles.enableButton}
+                  onPress={handleEnableNotifications}
+                  disabled={isEnabling}>
+                  {isEnabling ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={colors.text.primary}
+                    />
+                  ) : (
+                    <Text style={styles.enableButtonText}>
+                      Turn On Notifications
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          <View style={styles.footer} />
+        </ScrollView>
+      )}
       <NotificationSettingsModal
         visible={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
@@ -441,7 +465,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderBottomWidth: 0,
     borderColor: colors.modal.content,
     overflow: 'hidden',
   },
@@ -480,14 +503,14 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '700',
     color: colors.text.secondary,
     marginBottom: spacing.xs,
     lineHeight: 20,
   },
   notificationTitleUnread: {
     color: colors.text.primary,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   notificationBody: {
     fontSize: 12,
@@ -529,6 +552,17 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl * 3,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.text.muted,
+    marginTop: spacing.md,
   },
   footer: {
     height: 40,

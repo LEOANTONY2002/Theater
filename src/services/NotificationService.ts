@@ -43,7 +43,7 @@ class NotificationService {
   async createNotificationChannel() {
     if (Platform.OS === 'android') {
       await notifee.createChannel({
-        id: 'la_theater_v13',
+        id: 'la_theater',
         name: 'Main Notifications',
         importance: AndroidImportance.HIGH,
       });
@@ -306,6 +306,13 @@ class NotificationService {
         state,
       };
 
+      // Check for duplicates - don't save if already exists
+      const isDuplicate = history.some(h => h.id === item.id);
+      if (isDuplicate) {
+        console.log('⚠️ Skipping duplicate notification:', item.id);
+        return;
+      }
+
       history.unshift(item);
       const trimmed = history.slice(0, 50);
       await AsyncStorage.setItem(
@@ -439,9 +446,13 @@ class NotificationService {
     // App opened from quit state - HANDLE NAVIGATION
     messaging()
       .getInitialNotification()
-      .then(remoteMessage => {
+      .then(async remoteMessage => {
         if (remoteMessage) {
           console.log('🚀 Notification opened from quit:', remoteMessage);
+
+          // Save to history (since background handler doesn't run when app is killed)
+          await this.saveNotificationToHistory(remoteMessage, 'quit');
+
           // Mark as read
           if (remoteMessage.messageId) {
             this.markNotificationAsRead(remoteMessage.messageId);
@@ -645,6 +656,13 @@ class NotificationService {
         timestamp: date.getTime(),
       };
 
+      // Validate imageUrl - must be a valid HTTP/HTTPS URL
+      const validImageUrl =
+        imageUrl &&
+        (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))
+          ? imageUrl
+          : undefined;
+
       await notifee.createTriggerNotification(
         {
           id,
@@ -652,18 +670,18 @@ class NotificationService {
           body,
           data,
           android: {
-            channelId: 'la_theater_v13', // Use existing channel
+            channelId: 'la_theater', // Use existing channel
             importance: AndroidImportance.HIGH,
             smallIcon: 'ic_notification',
             color: '#FFFFFF',
             pressAction: {
               id: 'default',
             },
-            largeIcon: imageUrl || undefined,
-            style: imageUrl
+            largeIcon: validImageUrl,
+            style: validImageUrl
               ? ({
                   type: AndroidStyle.BIGPICTURE,
-                  picture: imageUrl,
+                  picture: validImageUrl,
                 } as any)
               : undefined,
           },
@@ -712,7 +730,7 @@ class NotificationService {
         body,
         data,
         android: {
-          channelId: 'la_theater_v13',
+          channelId: 'la_theater',
           importance: AndroidImportance.HIGH,
           smallIcon: 'ic_notification',
           color: '#FFFFFF',

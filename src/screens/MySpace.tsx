@@ -984,7 +984,7 @@ export const MySpaceScreen = React.memo(() => {
                     : colors.background.border,
                   width: width * 0.32,
                   minWidth: isTablet ? 160 : 120,
-                  height: 50,
+                  height: isTablet ? 80 : 50,
                   marginBottom: 0,
                   overflow: 'hidden',
                 }}>
@@ -1026,16 +1026,7 @@ export const MySpaceScreen = React.memo(() => {
                         style={{width: '100%', height: '100%'}}
                         resizeMode="cover"
                       />
-                    ) : (
-                      <Icon
-                        name="user-secret"
-                        size={isTablet ? 40 : 30}
-                        color={colors.text.primary}
-                        style={{
-                          marginRight: isTablet ? 0 : -spacing.md,
-                        }}
-                      />
-                    )}
+                    ) : null}
                     <LinearGradient
                       colors={[
                         forceBlurAll
@@ -1066,16 +1057,16 @@ export const MySpaceScreen = React.memo(() => {
                   padding: isTablet ? 14 : 12,
                   borderRadius: borderRadius.round,
                   position: 'relative',
-                  minHeight: 44,
-                  width: 44,
+                  minHeight: isTablet ? 80 : 44,
+                  width: isTablet ? 80 : 44,
                   alignItems: 'center',
                   justifyContent: 'center',
                 },
               ]}
-              activeOpacity={0.7}>
+              activeOpacity={0.9}>
               <Image
                 source={require('../assets/notification.png')}
-                style={{width: 20, height: 20}}
+                style={{width: isTablet ? 30 : 20, height: isTablet ? 30 : 20}}
               />
               {hasUnread && (
                 <View
@@ -1554,13 +1545,10 @@ export const MySpaceScreen = React.memo(() => {
                           backgroundColor: colors.background.secondary,
                           position: 'absolute',
                           top: 0,
-                          left: -10,
+                          left: isTablet ? -20 : -10,
                           right: 0,
                           bottom: 0,
                           zIndex: 1,
-                          borderRadius: isTablet
-                            ? borderRadius.lg
-                            : borderRadius.md,
                           overflow: 'hidden',
                         }}>
                         <Image
