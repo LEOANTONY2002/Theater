@@ -390,6 +390,7 @@ const OnboardingAISettings: React.FC<{
         model: selectedModel,
         modelCreated: selectedModelObj?.created || null,
         apiKey: trimmedApiKey,
+        aiEnabled: true,
       });
 
       queryClient.invalidateQueries({queryKey: ['aiSettings']});
