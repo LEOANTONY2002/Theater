@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import {getImageUrl} from '../services/tmdb';
 import {colors, spacing, typography, borderRadius} from '../styles/theme';
+import {watchTrackingService} from '../services/WatchTrackingService';
 import {WatchProviders as WatchProvidersType} from '../hooks/useWatchProviders';
 // @ts-ignore
 import * as cheerio from 'cheerio-without-node-native';
@@ -27,6 +28,8 @@ interface WatchProvidersButtonProps {
   contentId: number;
   title: string;
   type: 'movie' | 'tv';
+  posterPath?: string | null;
+  seasonData?: {season_number: number; episode_count: number}[];
 }
 
 interface ScrapedProvider {
@@ -101,7 +104,10 @@ const STREAMING_APPS: Record<string, {app?: string; web: string}> = {
 export const WatchProvidersButton: React.FC<WatchProvidersButtonProps> = ({
   providers,
   contentId,
+  title,
   type,
+  posterPath,
+  seasonData,
 }) => {
   const [scrapedProviders, setScrapedProviders] = useState<ScrapedProvider[]>(
     [],
@@ -180,6 +186,17 @@ export const WatchProvidersButton: React.FC<WatchProvidersButtonProps> = ({
     providerName: string,
     fallbackUrl?: string,
   ) => {
+    // Track pending watch
+    await watchTrackingService.setPendingWatch({
+      id: contentId,
+      title: title,
+      type: type,
+      platform: providerName,
+      clickedAt: Date.now(),
+      posterPath: posterPath || undefined,
+      seasonData: seasonData,
+    });
+
     const provider = STREAMING_APPS[providerName];
 
     // If no provider config found, use fallback URL

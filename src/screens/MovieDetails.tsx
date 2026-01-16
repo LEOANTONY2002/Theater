@@ -2012,6 +2012,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         contentId={movie.id}
                         title={displayTitle}
                         type="movie"
+                        posterPath={displayPoster}
                       />
                     </View>
                     <View style={styles.buttonRowBottom}>
@@ -2410,6 +2411,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                   contentId={movie.id.toString()}
                   title={displayTitle}
                   type="movie"
+                  posterPath={displayPoster}
                 />
               ) : null;
             case 'tags':

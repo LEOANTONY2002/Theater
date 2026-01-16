@@ -12,12 +12,14 @@ import {colors, spacing, typography} from '../styles/theme';
 import {WatchProviders as WatchProvidersType} from '../hooks/useWatchProviders';
 // @ts-ignore
 import * as cheerio from 'cheerio-without-node-native';
+import {watchTrackingService} from '../services/WatchTrackingService';
 
 interface WatchProvidersProps {
   providers: WatchProvidersType;
   contentId: string;
   title: string;
   type: 'movie' | 'tv';
+  posterPath?: string | null;
 }
 
 interface ProviderURLs {
@@ -97,6 +99,8 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
   providers,
   contentId,
   type,
+  title,
+  posterPath,
 }) => {
   const [scrapedProviders, setScrapedProviders] = useState<ScrapedProvider[]>(
     [],
@@ -149,6 +153,16 @@ export const WatchProviders: React.FC<WatchProvidersProps> = ({
     providerName: string,
     fallbackUrl?: string,
   ) => {
+    // Track pending watch
+    await watchTrackingService.setPendingWatch({
+      id: parseInt(contentId),
+      title: title,
+      type: type,
+      platform: providerName,
+      clickedAt: Date.now(),
+      posterPath: posterPath || undefined,
+    });
+
     const provider = STREAMING_APPS[providerName];
 
     // If no provider config found, use fallback URL

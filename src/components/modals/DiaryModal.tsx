@@ -38,6 +38,7 @@ interface DiaryModalProps {
   seasonData?: {season_number: number; episode_count: number}[];
   initialSeason?: number;
   initialEpisode?: number;
+  initialProgress?: number;
 }
 
 export const DiaryModal: React.FC<DiaryModalProps> = ({
@@ -50,6 +51,7 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
   backdropPath,
   totalSeasons = 1,
   seasonData = [],
+  initialProgress,
 }) => {
   const {isTablet} = useResponsive();
   const [progress, setProgress] = useState(0); // 0-100%
@@ -120,7 +122,7 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
       }
     } else {
       setIsExisting(false);
-      setProgress(100);
+      setProgress(initialProgress ?? 100);
       setRating(0);
       setNote('');
       setMood(null);
@@ -128,13 +130,22 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
 
       if (type === 'tv') {
         if (seasonData && seasonData.length > 0) {
-          // Start with latest season
-          const lastSeason = seasonData[seasonData.length - 1];
-          setCurrentSeason(lastSeason.season_number);
-          setCurrentEpisode(lastSeason.episode_count);
-          setMaxEpisodes(lastSeason.episode_count);
+          if (initialProgress === 0) {
+            // Default to first season, first episode for "Watching"
+            const firstSeason =
+              seasonData.find(s => s.season_number > 0) || seasonData[0];
+            setCurrentSeason(firstSeason.season_number);
+            setCurrentEpisode(1);
+            setMaxEpisodes(firstSeason.episode_count);
+          } else {
+            // Start with latest season (Completed)
+            const lastSeason = seasonData[seasonData.length - 1];
+            setCurrentSeason(lastSeason.season_number);
+            setCurrentEpisode(lastSeason.episode_count);
+            setMaxEpisodes(lastSeason.episode_count);
+          }
         } else {
-          setCurrentSeason(totalSeasons || 1);
+          setCurrentSeason(1);
           setCurrentEpisode(1);
         }
       } else {
@@ -392,9 +403,11 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
               justifyContent: 'space-between',
               marginBottom: 6,
             }}>
-            <Text style={{...typography.caption, color: colors.text.tertiary}}>
-              Progress
-            </Text>
+            <Text
+              style={{
+                ...typography.caption,
+                color: colors.text.tertiary,
+              }}></Text>
             <Text
               style={{
                 ...typography.caption,
@@ -554,6 +567,7 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
               onPress={handleSave}
               style={{width: '100%', borderRadius: borderRadius.round}}
               isIcon={false}
+              disabled={currentDisplayProgress === 0}
             />
 
             {isExisting && (

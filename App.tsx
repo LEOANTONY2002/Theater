@@ -33,6 +33,12 @@ import {BlurPreference} from './src/store/blurPreference';
 import {initializeRealm} from './src/database/realm';
 import {SettingsManager} from './src/store/settings';
 import {useAppUpdate} from './src/hooks/useAppUpdate';
+import {
+  watchTrackingService,
+  PendingWatch,
+} from './src/services/WatchTrackingService';
+import {WatchPromptModal} from './src/components/WatchPromptModal';
+import {DiaryModal} from './src/components/modals/DiaryModal';
 
 export default function App() {
   const [themeReady, setThemeReady] = useState(false);
@@ -43,6 +49,19 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [showDNSModal, setShowDNSModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [showWatchPrompt, setShowWatchPrompt] = useState(false);
+  const [pendingWatch, setPendingWatch] = useState<PendingWatch | null>(null);
+
+  // Diary Modal State
+  const [showDiaryModal, setShowDiaryModal] = useState(false);
+  const [diaryData, setDiaryData] = useState<{
+    contentId: number;
+    type: 'movie' | 'tv';
+    title: string;
+    posterPath?: string;
+    initialProgress?: number;
+    seasonData?: {season_number: number; episode_count: number}[];
+  } | null>(null);
 
   // Check for In-App Updates (Android)
   useAppUpdate();
@@ -233,6 +252,13 @@ export default function App() {
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: string) => {
       if (nextAppState === 'active') {
+        // Check for pending watch tracking
+        const watch = await watchTrackingService.shouldShowPrompt();
+        if (watch) {
+          setPendingWatch(watch);
+          setShowWatchPrompt(true);
+        }
+
         // Check internet first
         const ok = await checkLikelyOnline();
 
@@ -320,6 +346,69 @@ export default function App() {
               return null;
             })()}
           </>
+        )}
+
+        {/* Watch Tracking Prompt */}
+        <WatchPromptModal
+          visible={showWatchPrompt}
+          watch={pendingWatch}
+          onWatched={async () => {
+            setShowWatchPrompt(false);
+            if (pendingWatch) {
+              await watchTrackingService.markAsPrompted(pendingWatch.id);
+              await watchTrackingService.clearPendingWatch();
+
+              // Open Diary Modal
+              setDiaryData({
+                contentId: pendingWatch.id,
+                type: pendingWatch.type,
+                title: pendingWatch.title,
+                posterPath: pendingWatch.posterPath,
+                seasonData: pendingWatch.seasonData,
+              });
+              setShowDiaryModal(true);
+            }
+          }}
+          onPartial={async () => {
+            setShowWatchPrompt(false);
+            if (pendingWatch) {
+              await watchTrackingService.markAsPrompted(pendingWatch.id);
+              await watchTrackingService.clearPendingWatch();
+
+              // Open Diary Modal (user can select partial status there if supported, or just log entry)
+              setDiaryData({
+                contentId: pendingWatch.id,
+                type: pendingWatch.type,
+                title: pendingWatch.title,
+                posterPath: pendingWatch.posterPath,
+                initialProgress: 0, // Default to 0/Watching for partial
+                seasonData: pendingWatch.seasonData,
+              });
+              setShowDiaryModal(true);
+            }
+          }}
+          onDismiss={async () => {
+            setShowWatchPrompt(false);
+            if (pendingWatch) {
+              await watchTrackingService.markAsPrompted(pendingWatch.id);
+              await watchTrackingService.clearPendingWatch();
+            }
+          }}
+        />
+
+        {/* Diary Modal for Watch Tracking */}
+        {diaryData && (
+          <DiaryModal
+            visible={showDiaryModal}
+            onClose={() => setShowDiaryModal(false)}
+            contentId={diaryData.contentId}
+            type={diaryData.type}
+            title={diaryData.title}
+            posterPath={diaryData.posterPath}
+            initialProgress={diaryData.initialProgress}
+            seasonData={diaryData.seasonData}
+            // backdropPath, totalSeasons, etc. not available here but can be fetched by modal if needed
+          />
         )}
       </SafeAreaView>
     </QueryClientProvider>

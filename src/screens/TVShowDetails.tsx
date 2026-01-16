@@ -2101,6 +2101,8 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         contentId={show.id}
                         title={show.name}
                         type="tv"
+                        posterPath={show.poster_path}
+                        seasonData={showDetails?.seasons}
                       />
                     </View>
                     <View style={styles.buttonRowBottom}>
@@ -2497,6 +2499,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                   contentId={show.id.toString()}
                   title={show.name}
                   type="tv"
+                  posterPath={show.poster_path}
                 />
               ) : null;
             case 'seasons':
