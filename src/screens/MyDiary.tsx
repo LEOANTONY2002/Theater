@@ -11,12 +11,19 @@ import {
   Dimensions,
   FlatList,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {colors, spacing, typography, borderRadius} from '../styles/theme';
+import {
+  colors,
+  spacing,
+  typography,
+  borderRadius,
+  MOODS,
+} from '../styles/theme';
 import {useResponsive} from '../hooks/useResponsive';
 import {MySpaceStackParamList} from '../types/navigation';
 import LinearGradient from 'react-native-linear-gradient';
@@ -27,12 +34,17 @@ import {Modal} from 'react-native';
 import {Notebook as NotebookBold} from '@solar-icons/react-native/dist/icons/notes/Bold/Notebook.mjs';
 import {Notebook as NotebookLinear} from '@solar-icons/react-native/dist/icons/notes/Linear/Notebook.mjs';
 import {ActivityHeatMap} from '../components/ActivityHeatMap';
+import {Chip} from '../components/Chip';
+import {modalStyles} from '../styles/styles';
+import {BlurPreference} from '../store/blurPreference';
+import {GradientProgressBar} from '../components/GradientProgressBar';
 
 const {width, height} = Dimensions.get('window');
 
 type ViewMode = 'month' | 'year';
 
 export const MyDiaryScreen: React.FC = () => {
+  const {width} = useWindowDimensions();
   const navigation =
     useNavigation<NativeStackNavigationProp<MySpaceStackParamList>>();
   const [entries, setEntries] = useState<IDiaryEntry[]>([]);
@@ -63,6 +75,13 @@ export const MyDiaryScreen: React.FC = () => {
   const yearFadeAnim = useRef(new Animated.Value(0)).current;
   const viewScaleAnim = useRef(new Animated.Value(0)).current;
   const viewFadeAnim = useRef(new Animated.Value(0)).current;
+  const [activeFilters, setActiveFilters] = useState<{
+    ratingGte?: number;
+    ratingLte?: number;
+    moods?: string[];
+    type?: 'movie' | 'tv' | 'all';
+  }>({});
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   const toggleYearModal = (visible: boolean) => {
     if (visible) {
@@ -179,11 +198,38 @@ export const MyDiaryScreen: React.FC = () => {
     return entries.filter(e => e.status === 'watching');
   }, [entries]);
 
+  const filteredEntries = useMemo(() => {
+    return entries.filter(e => {
+      if (e.status === 'watching') return false;
+
+      // Apply shared filters
+      if (
+        activeFilters.type &&
+        activeFilters.type !== 'all' &&
+        e.type !== activeFilters.type
+      )
+        return false;
+
+      const rating = e.rating || 0;
+      const min =
+        activeFilters.ratingGte !== undefined ? activeFilters.ratingGte : 0;
+      const max =
+        activeFilters.ratingLte !== undefined ? activeFilters.ratingLte : 10;
+
+      if (rating < min || rating > max) return false;
+
+      if (activeFilters.moods && activeFilters.moods.length > 0) {
+        if (!e.mood || !activeFilters.moods.includes(e.mood)) return false;
+      }
+
+      return true;
+    });
+  }, [entries, activeFilters]);
+
   const historyEntries = useMemo(() => {
     if (viewMode === 'month') {
       // Monthly view: Filter by selected year, month, and day
-      return entries.filter(e => {
-        if (e.status === 'watching') return false;
+      return filteredEntries.filter(e => {
         const d = new Date(e.last_updated_at);
         return (
           d.getFullYear() === selectedDate.getFullYear() &&
@@ -193,8 +239,7 @@ export const MyDiaryScreen: React.FC = () => {
       });
     } else {
       // Yearly view: Filter by selected year and month
-      return entries.filter(e => {
-        if (e.status === 'watching') return false;
+      return filteredEntries.filter(e => {
         const d = new Date(e.last_updated_at);
         return (
           d.getFullYear() === selectedDate.getFullYear() &&
@@ -202,7 +247,7 @@ export const MyDiaryScreen: React.FC = () => {
         );
       });
     }
-  }, [entries, viewMode, selectedDate]);
+  }, [filteredEntries, viewMode, selectedDate]);
 
   const monthsWithData = useMemo(() => {
     const year = selectedDate.getFullYear();
@@ -385,11 +430,12 @@ export const MyDiaryScreen: React.FC = () => {
       left: 0,
       right: 0,
       zIndex: 10,
-      marginTop: 30,
+      marginTop: spacing.xl,
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.lg,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.md,
+      marginHorizontal: isTablet ? '10%' : spacing.md,
     },
     topGradient: {
       position: 'absolute',
@@ -426,13 +472,12 @@ export const MyDiaryScreen: React.FC = () => {
       borderWidth: 1,
       borderBottomWidth: 0,
       borderColor: colors.modal.content,
-      borderRadius: 20,
+      borderRadius: borderRadius.round,
       padding: 4,
     },
     toggleBtn: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 18,
+      padding: 14,
+      borderRadius: borderRadius.round,
     },
     toggleBtnActive: {
       backgroundColor: colors.modal.blur,
@@ -442,10 +487,12 @@ export const MyDiaryScreen: React.FC = () => {
       borderTopWidth: 0,
     },
     toggleText: {
+      ...typography.body1,
       fontSize: 12,
       color: colors.text.secondary,
     },
     toggleTextActive: {
+      ...typography.body1,
       color: colors.text.primary,
     },
     watchingSection: {
@@ -783,7 +830,7 @@ export const MyDiaryScreen: React.FC = () => {
     topTenCard: {
       width: 100,
       height: 150,
-      marginRight: 12,
+      marginRight: 3,
       borderRadius: 16,
       overflow: 'hidden',
       backgroundColor: '#121214',
@@ -865,27 +912,102 @@ export const MyDiaryScreen: React.FC = () => {
     },
   });
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>My Diary</Text>
-      <View style={{flex: 1}} />
-      {entries.length > 0 && (
-        <TouchableOpacity
-          style={styles.scrapbookToggle}
-          onPress={() =>
-            setDisplayType(
-              displayType === 'timeline' ? 'scrapbook' : 'timeline',
-            )
-          }>
-          {displayType === 'timeline' ? (
-            <NotebookLinear size={20} color="#fff" />
-          ) : (
-            <NotebookBold size={20} color="#fff" />
+  const renderHeader = () => {
+    const hasActiveFilters = Object.keys(activeFilters).length > 0;
+    return (
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Diary</Text>
+        <View style={{flex: 1}} />
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          {entries.length > 0 && (
+            <>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <TouchableOpacity
+                  style={[
+                    {
+                      padding: 14,
+                      marginRight: hasActiveFilters ? spacing.xs : spacing.sm,
+                      borderRadius: borderRadius.round,
+                      borderTopWidth: 1,
+                      borderLeftWidth: 1,
+                      borderRightWidth: 1,
+                      backgroundColor: colors.modal.blur,
+                      borderColor: colors.modal.blur,
+                    },
+                    hasActiveFilters && {
+                      backgroundColor: colors.modal.active,
+                      borderColor: colors.modal.activeBorder,
+                    },
+                  ]}
+                  onPress={() => setFilterModalVisible(true)}>
+                  <Ionicons
+                    name={hasActiveFilters ? 'funnel' : 'funnel-outline'}
+                    size={16}
+                    color={
+                      hasActiveFilters ? colors.accent : colors.text.tertiary
+                    }
+                  />
+                </TouchableOpacity>
+
+                {hasActiveFilters && (
+                  <TouchableOpacity
+                    style={{
+                      padding: 4,
+                      marginRight: spacing.sm,
+                      borderRadius: borderRadius.round,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => setActiveFilters({})}>
+                    <Ionicons
+                      name="close"
+                      size={16}
+                      color={colors.text.secondary}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {!hasActiveFilters && (
+                <View style={[styles.toggleContainer, {marginRight: 0}]}>
+                  <TouchableOpacity
+                    style={[
+                      styles.toggleBtn,
+                      displayType === 'timeline' && styles.toggleBtnActive,
+                    ]}
+                    onPress={() => setDisplayType('timeline')}>
+                    <Ionicons
+                      name={
+                        displayType === 'timeline' ? 'grid' : 'grid-outline'
+                      }
+                      size={16}
+                      color={
+                        displayType === 'timeline'
+                          ? colors.text.primary
+                          : colors.text.tertiary
+                      }
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.toggleBtn,
+                      displayType === 'scrapbook' && styles.toggleBtnActive,
+                    ]}
+                    onPress={() => setDisplayType('scrapbook')}>
+                    {displayType === 'scrapbook' ? (
+                      <NotebookBold size={16} color={colors.text.primary} />
+                    ) : (
+                      <NotebookLinear size={16} color={colors.text.tertiary} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           )}
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+        </View>
+      </View>
+    );
+  };
 
   const renderWatchingCard = ({item}: {item: IDiaryEntry}) => {
     const dateLabel = new Date(item.started_at).toLocaleDateString('en-US', {
@@ -897,6 +1019,13 @@ export const MyDiaryScreen: React.FC = () => {
         style={styles.watchingCard}
         activeOpacity={0.8}
         onPress={() => {
+          if (item.type === 'movie') {
+            navigation.navigate('MovieDetails', {movie: item as any});
+          } else {
+            navigation.navigate('TVShowDetails', {show: item as any});
+          }
+        }}
+        onLongPress={() => {
           setSelectedEntry(item);
           setModalVisible(true);
         }}>
@@ -1050,10 +1179,7 @@ export const MyDiaryScreen: React.FC = () => {
               </Text>
             </>
           ) : (
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => toggleYearModal(true)}
-              style={{alignItems: 'center'}}>
+            <View style={{alignItems: 'center'}}>
               <Text
                 style={[
                   styles.timelineYear,
@@ -1077,7 +1203,7 @@ export const MyDiaryScreen: React.FC = () => {
                 ]}>
                 {selectedDate.getFullYear() % 100}
               </Text>
-            </TouchableOpacity>
+            </View>
           )}
         </View>
         <View style={styles.timelineDivider} />
@@ -1218,19 +1344,71 @@ export const MyDiaryScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Diary</Text>
         <View style={{flex: 1}} />
-        <TouchableOpacity
-          style={styles.scrapbookToggle}
-          onPress={() =>
-            setDisplayType(
-              displayType === 'timeline' ? 'scrapbook' : 'timeline',
-            )
-          }>
-          {displayType === 'timeline' ? (
-            <NotebookLinear size={20} color="#fff" />
-          ) : (
-            <NotebookBold size={20} color="#fff" />
-          )}
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity
+            style={[
+              {
+                padding: 14,
+                marginRight: spacing.sm,
+                borderRadius: borderRadius.round,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                backgroundColor: colors.modal.blur,
+                borderColor: colors.modal.blur,
+              },
+              Object.keys(activeFilters).length > 0 && {
+                backgroundColor: colors.modal.active,
+                borderColor: colors.modal.activeBorder,
+              },
+            ]}
+            onPress={() => setFilterModalVisible(true)}>
+            <Ionicons
+              name={
+                Object.keys(activeFilters).length > 0
+                  ? 'funnel'
+                  : 'funnel-outline'
+              }
+              size={16}
+              color={
+                Object.keys(activeFilters).length > 0
+                  ? colors.accent
+                  : colors.text.tertiary
+              }
+            />
+          </TouchableOpacity>
+
+          <View style={[styles.toggleContainer, {marginRight: 0}]}>
+            <TouchableOpacity
+              style={[
+                styles.toggleBtn,
+                displayType === 'timeline' && styles.toggleBtnActive,
+              ]}
+              onPress={() => setDisplayType('timeline')}>
+              <Ionicons
+                name={displayType === 'timeline' ? 'grid' : 'grid-outline'}
+                size={16}
+                color={
+                  displayType === 'timeline'
+                    ? colors.text.primary
+                    : colors.text.tertiary
+                }
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.toggleBtn,
+                displayType === 'scrapbook' && styles.toggleBtnActive,
+              ]}
+              onPress={() => setDisplayType('scrapbook')}>
+              {displayType === 'scrapbook' ? (
+                <NotebookBold size={16} color={colors.text.primary} />
+              ) : (
+                <NotebookLinear size={16} color={colors.text.tertiary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {/* Year/Month Selector Row */}
@@ -1392,12 +1570,15 @@ export const MyDiaryScreen: React.FC = () => {
   };
 
   const renderTopTen = () => {
-    const topTen = entries
-      .filter(e => e.rating && e.status !== 'watching')
+    const ratedEntries = entries.filter(
+      e => e.rating && e.status !== 'watching',
+    );
+
+    if (ratedEntries.length <= 10) return null;
+
+    const topTen = ratedEntries
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))
       .slice(0, 10);
-
-    if (topTen.length === 0) return null;
 
     return (
       <View style={styles.topTenSection}>
@@ -1406,26 +1587,23 @@ export const MyDiaryScreen: React.FC = () => {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{paddingHorizontal: spacing.lg}}>
-          {topTen.map((entry, index) => (
+          {topTen.map(entry => (
             <TouchableOpacity
               key={entry.id}
               style={styles.topTenCard}
-              onPress={() => toggleViewModal(true, entry)}>
+              onPress={() => {
+                if (entry.type === 'movie') {
+                  navigation.navigate('MovieDetails', {movie: entry as any});
+                } else {
+                  navigation.navigate('TVShowDetails', {show: entry as any});
+                }
+              }}>
               <Image
                 source={{
                   uri: `https://image.tmdb.org/t/p/w200${entry.poster_path}`,
                 }}
                 style={styles.topTenPoster}
               />
-              <View style={styles.topTenRank}>
-                <Text style={styles.topTenRankText}>{index + 1}</Text>
-              </View>
-              <View style={styles.topTenRating}>
-                <Ionicons name="star" size={10} color="#F5C518" />
-                <Text style={styles.topTenRatingText}>
-                  {(entry.rating! / 2).toFixed(1)}
-                </Text>
-              </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -1604,7 +1782,20 @@ export const MyDiaryScreen: React.FC = () => {
                     </Text>
                   ) : null}
 
-                  <View
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      toggleViewModal(false);
+                      if (viewingEntry.type === 'movie') {
+                        navigation.navigate('MovieDetails', {
+                          movie: viewingEntry as any,
+                        });
+                      } else {
+                        navigation.navigate('TVShowDetails', {
+                          show: viewingEntry as any,
+                        });
+                      }
+                    }}
                     style={{
                       width: 100,
                       height: 150,
@@ -1630,7 +1821,7 @@ export const MyDiaryScreen: React.FC = () => {
                       }}
                       resizeMode="cover"
                     />
-                  </View>
+                  </TouchableOpacity>
 
                   {viewingEntry.mood ? (
                     <Text
@@ -2630,9 +2821,49 @@ export const MyDiaryScreen: React.FC = () => {
     );
   };
 
+  const renderFilteredResults = () => {
+    return (
+      <View style={{flex: 1}}>
+        <LinearGradient
+          colors={[
+            colors.background.primary,
+            colors.background.primary,
+            'transparent',
+          ]}
+          style={styles.topGradient}
+        />
+        {renderHeader()}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingTop: 100, paddingBottom: 100}}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#fff"
+            />
+          }>
+          <View style={styles.historyContainer}>
+            {filteredEntries.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>
+                  No entries match these filters
+                </Text>
+              </View>
+            ) : (
+              filteredEntries.map(renderHistoryCard)
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {displayType === 'scrapbook' ? (
+      {Object.keys(activeFilters).length > 0 ? (
+        renderFilteredResults()
+      ) : displayType === 'scrapbook' ? (
         <>
           {renderScrapbookYearSelector()}
           {renderScrapbookBody()}
@@ -2704,6 +2935,235 @@ export const MyDiaryScreen: React.FC = () => {
 
       {renderYearSelectorModal()}
       {renderEntryViewModal()}
+
+      {/* Diary Filter Modal - Exact Search UI replica */}
+      <Modal
+        visible={filterModalVisible}
+        animationType="slide"
+        statusBarTranslucent={true}
+        transparent={true}
+        onRequestClose={() => setFilterModalVisible(false)}>
+        {BlurPreference.getMode() !== 'normal' && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor={colors.modal.blurDark}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+
+        <View
+          style={{
+            flex: 1,
+            margin: isTablet ? spacing.xl : spacing.md,
+            borderRadius: borderRadius.xl,
+            backgroundColor:
+              BlurPreference.getMode() === 'normal'
+                ? colors.background.primary
+                : 'transparent',
+          }}>
+          <MaybeBlurView header style={{marginTop: 20}}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+              }}>
+              <Ionicons name="filter" size={20} color={colors.text.muted} />
+              <Text style={modalStyles.modalTitle}>Filter</Text>
+            </View>
+            <View style={{flexDirection: 'row', gap: spacing.sm}}>
+              <TouchableOpacity
+                onPress={() => setActiveFilters({})}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons
+                  name="refresh"
+                  size={20}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setFilterModalVisible(false)}
+                style={{
+                  padding: spacing.sm,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.round,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Ionicons name="close" size={20} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+          </MaybeBlurView>
+
+          <MaybeBlurView body style={{flex: 1}}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingVertical: isTablet ? spacing.xl : spacing.md,
+                paddingBottom: 100,
+              }}>
+              {/* Type Section */}
+              <View style={modalStyles.section}>
+                <Text style={modalStyles.sectionTitle}>Content Type</Text>
+                <View style={modalStyles.contentTypeContainer}>
+                  {['all', 'movie', 'tv'].map(type => (
+                    <TouchableOpacity
+                      key={type}
+                      onPress={() =>
+                        setActiveFilters(prev => ({...prev, type: type as any}))
+                      }
+                      style={[
+                        modalStyles.contentTypeButton,
+                        (activeFilters.type === type ||
+                          (!activeFilters.type && type === 'all')) &&
+                          modalStyles.activeButton,
+                      ]}>
+                      <Ionicons
+                        name={
+                          type === 'all'
+                            ? 'grid-outline'
+                            : type === 'movie'
+                            ? 'film-outline'
+                            : 'tv-outline'
+                        }
+                        size={20}
+                        color={
+                          activeFilters.type === type ||
+                          (!activeFilters.type && type === 'all')
+                            ? colors.accent
+                            : colors.text.secondary
+                        }
+                      />
+                      <Text
+                        style={[
+                          modalStyles.contentTypeText,
+                          (activeFilters.type === type ||
+                            (!activeFilters.type && type === 'all')) &&
+                            modalStyles.activeText,
+                        ]}>
+                        {type === 'all'
+                          ? 'All'
+                          : type === 'movie'
+                          ? 'Movies'
+                          : 'TV Shows'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Rating Section */}
+              <View style={modalStyles.section}>
+                <GradientProgressBar
+                  value={activeFilters.ratingGte || 0}
+                  minValue={0}
+                  maxValue={10}
+                  step={0.5}
+                  onValueChange={val =>
+                    setActiveFilters(prev => ({...prev, ratingGte: val}))
+                  }
+                  label="Minimum Rating"
+                  showValue={true}
+                  height={16}
+                />
+                <View style={{height: spacing.md}} />
+                <GradientProgressBar
+                  value={activeFilters.ratingLte || 10}
+                  minValue={0}
+                  maxValue={10}
+                  step={0.5}
+                  onValueChange={val =>
+                    setActiveFilters(prev => ({...prev, ratingLte: val}))
+                  }
+                  label="Maximum Rating"
+                  showValue={true}
+                  height={16}
+                />
+              </View>
+
+              {/* Moods Section */}
+              <View style={[modalStyles.section, {paddingHorizontal: 0}]}>
+                <View style={modalStyles.sectionHeader}>
+                  <Text style={modalStyles.sectionTitle}>Moods</Text>
+                  {activeFilters.moods && activeFilters.moods.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        setActiveFilters(prev => ({...prev, moods: []}))
+                      }>
+                      <Text style={modalStyles.showAllText}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{
+                    paddingHorizontal: spacing.md,
+                    gap: spacing.md,
+                    alignItems: 'center',
+                  }}>
+                  {MOODS.map(emoji => {
+                    const isSelected = activeFilters.moods?.includes(emoji);
+                    return (
+                      <TouchableOpacity
+                        key={emoji}
+                        onPress={() => {
+                          setActiveFilters(prev => {
+                            const currentMoods = prev.moods || [];
+                            if (currentMoods.includes(emoji)) {
+                              return {
+                                ...prev,
+                                moods: currentMoods.filter(m => m !== emoji),
+                              };
+                            } else {
+                              return {
+                                ...prev,
+                                moods: [...currentMoods, emoji],
+                              };
+                            }
+                          });
+                        }}
+                        style={{
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: isSelected ? 1 : 0.5,
+                          transform: [{scale: isSelected ? 1.2 : 1}],
+                        }}>
+                        <Text style={{fontSize: 32}}>{emoji}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </ScrollView>
+
+            {/* Sticky Footer Apply Button */}
+            <View style={modalStyles.footer}>
+              <TouchableOpacity
+                style={[modalStyles.footerButton, modalStyles.resetButton]}
+                onPress={() => setActiveFilters({})}>
+                <Text style={modalStyles.resetButtonText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[modalStyles.footerButton, modalStyles.applyButton]}
+                onPress={() => setFilterModalVisible(false)}>
+                <Text style={modalStyles.applyButtonText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </MaybeBlurView>
+        </View>
+      </Modal>
     </View>
   );
 };

@@ -14,7 +14,13 @@ import {BlurView} from '@react-native-community/blur';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
-import {colors, typography, spacing, borderRadius} from '../../styles/theme';
+import {
+  colors,
+  typography,
+  spacing,
+  borderRadius,
+  MOODS,
+} from '../../styles/theme';
 import {diaryManager} from '../../store/diary';
 import {useResponsive} from '../../hooks/useResponsive';
 import {GradientButton} from '../GradientButton';
@@ -69,7 +75,6 @@ export const DiaryModal: React.FC<DiaryModalProps> = ({
   const ACTIVE_COLOR = '#FFFFFF'; // White for active elements
   const PROGRESS_COLOR = '#E5E5E5'; // Light Grey for progress bar
   const STAR_COLOR = '#F5C518'; // Gold for stars
-  const MOODS = ['🍿', '😍', '😴', '😭', '😱', '🤔', '🤩'];
 
   useEffect(() => {
     if (visible) {

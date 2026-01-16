@@ -208,3 +208,5 @@ export const tagGradientColors = [
   'rgba(184, 8, 8, 0.2)',
   'rgba(184, 8, 8, 0.2)',
 ];
+
+export const MOODS = ['🍿', '😍', '😴', '😭', '😱', '🤔', '🤩'];
