@@ -92,7 +92,6 @@ import {
   useRemoveFromWatchlist,
 } from '../hooks/useWatchlists';
 import {useQueryClient} from '@tanstack/react-query';
-import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
@@ -473,7 +472,6 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
   const {data: watchlistContainingItem} = useWatchlistContainingItem(show.id);
   const removeFromWatchlistMutation = useRemoveFromWatchlist();
   const queryClient = useQueryClient();
-  const cinema = true;
   const isFocused = useIsFocused();
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -2081,14 +2079,7 @@ export const TVShowDetailsScreen: React.FC<TVShowDetailsScreenProps> = ({
                         title="Watch Trailer"
                         isIcon={true}
                         onPress={() => {
-                          // setIsPlaying(true);
-                          navigation.navigate('CinemaScreen', {
-                            id: show.id.toString(),
-                            type: 'tv',
-                            title: show.name,
-                            season,
-                            episode,
-                          });
+                          setIsPlaying(true);
                         }}
                         style={{
                           ...styles.watchButton,

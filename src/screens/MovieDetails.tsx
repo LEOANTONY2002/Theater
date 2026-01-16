@@ -81,7 +81,6 @@ import {ContentTagsDisplay} from '../components/ContentTagsDisplay';
 import {ReviewsSection} from '../components/ReviewsSection';
 import languageData from '../utils/language.json';
 import {useQueryClient} from '@tanstack/react-query';
-import Cinema from '../components/Cinema';
 import {ServerModal} from '../components/ServerModal';
 import {GradientSpinner} from '../components/GradientSpinner';
 import {useResponsive} from '../hooks/useResponsive';
@@ -170,7 +169,6 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {navigateWithLimit} = useNavigationState();
   const queryClient = useQueryClient();
-  const cinema = false;
   const isFocused = useIsFocused();
   const [currentServer, setCurrentServer] = useState<number | null>(1);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -1994,12 +1992,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                         title="Watch Trailer"
                         isIcon={true}
                         onPress={() => {
-                          // setIsPlaying(true);
-                          navigation.navigate('CinemaScreen', {
-                            id: movie.id.toString(),
-                            type: 'movie',
-                            title: displayTitle,
-                          });
+                          setIsPlaying(true);
                         }}
                         style={{
                           ...styles.watchButton,
