@@ -12,7 +12,7 @@ export const colors = {
     secondary: 'rgba(255, 255, 255, 0.08)',
     tertiary: 'rgba(249, 244, 255, 0.03)',
     tertiaryGlass: 'rgb(15, 15, 19)',
-    tertiarySolid: 'rgb(3, 1, 13)',
+    tertiarySolid: 'rgba(13, 13, 15, 1)',
     border: '#13131D',
     card: 'rgba(255, 255, 255, 0.05)',
     tag: 'rgba(125, 118, 154, 0.08)',

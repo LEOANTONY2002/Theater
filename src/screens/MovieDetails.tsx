@@ -1962,7 +1962,7 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
                       marginBottom: spacing.md,
                     }}>
                     <Image
-                      source={require('../assets/tmdb.png')}
+                      source={require('../assets/tmdb_icon.png')}
                       style={{
                         width: 50,
                         height: 20,

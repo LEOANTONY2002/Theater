@@ -310,7 +310,7 @@ export const MyFiltersScreen = () => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: '25%',
+      marginTop: '30%',
       paddingBottom: 200,
     },
     emptyStateTitle: {
@@ -1352,14 +1352,30 @@ export const MyFiltersScreen = () => {
               isIcon={false}
               style={{
                 borderRadius: borderRadius.round,
-                marginVertical: spacing.lg,
+                marginTop: spacing.lg,
               }}
             />
-            <QuickAddFilters
-              onQuickAdd={handleQuickAdd}
-              onAISave={handleSaveFilter}
-              onOpenAICreator={() => setShowAICreator(true)}
-            />
+            <TouchableOpacity
+              onPress={() => setShowQuickAddModal(true)}
+              style={{
+                marginTop: spacing.sm,
+                paddingVertical: 14,
+                paddingHorizontal: 34,
+                borderRadius: borderRadius.round,
+                borderWidth: 1,
+                borderBottomWidth: 0,
+                borderColor: colors.modal.content,
+                backgroundColor: colors.modal.blur,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+              }}
+              activeOpacity={0.7}>
+              <Ionicons name="flash" size={16} color={colors.text.primary} />
+              <Text style={{color: colors.text.primary, ...typography.button}}>
+                Quick Add
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </Animated.ScrollView>

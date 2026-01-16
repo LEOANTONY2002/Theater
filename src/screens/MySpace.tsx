@@ -674,10 +674,10 @@ export const MySpaceScreen = React.memo(() => {
       borderRadius: isTablet ? 40 : borderRadius.lg,
       padding: isTablet ? spacing.md : spacing.sm,
       minHeight: isTablet ? 180 : 120,
-      borderTopWidth: 1,
-      borderLeftWidth: 1,
-      borderRightWidth: 1,
-      borderBottomWidth: !forceBlurAll ? 1 : 0,
+      borderTopWidth: 0,
+      borderLeftWidth: forceBlurAll ? 1 : 0,
+      borderRightWidth: forceBlurAll ? 1 : 0,
+      borderBottomWidth: 0,
       borderColor: forceBlurAll
         ? colors.modal.content
         : colors.background.border,
@@ -1060,18 +1060,18 @@ export const MySpaceScreen = React.memo(() => {
             )}
             <TouchableOpacity
               onPress={() => navigateWithLimit('NotificationSettings')}
-              style={{
-                padding: isTablet ? 14 : 12,
-                borderRadius: borderRadius.round,
-                backgroundColor: colors.modal.blur,
-                borderWidth: 1,
-                borderColor: colors.modal.content,
-                position: 'relative',
-                height: 44, // Same height as DNA for alignment
-                width: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              style={[
+                styles.tile,
+                {
+                  padding: isTablet ? 14 : 12,
+                  borderRadius: borderRadius.round,
+                  position: 'relative',
+                  minHeight: 44,
+                  width: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
               activeOpacity={0.7}>
               <Image
                 source={require('../assets/notification.png')}
