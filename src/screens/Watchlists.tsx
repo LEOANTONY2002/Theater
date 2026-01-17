@@ -357,7 +357,7 @@ export const WatchlistsScreen: React.FC = () => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingBottom: 200,
+      paddingBottom: 100,
     },
     emptyStateTitle: {
       ...typography.h3,
@@ -869,21 +869,27 @@ export const WatchlistsScreen: React.FC = () => {
           </TouchableOpacity>
         </Animated.ScrollView>
       </View>
-      <Animated.ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{nativeEvent: {contentOffset: {y: scrollY}}}],
-          {useNativeDriver: false},
-        )}>
-        {isLoading ? (
-          <View>
+      {isLoading ? (
+        <Animated.ScrollView
+          style={styles.container}
+          contentContainerStyle={{flexGrow: 1}}
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
             <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading watchlists...</Text>
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           </View>
-        ) : watchlists.length > 0 ? (
+        </Animated.ScrollView>
+      ) : watchlists.length > 0 ? (
+        <Animated.ScrollView
+          style={styles.container}
+          contentContainerStyle={{flexGrow: 1}}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{nativeEvent: {contentOffset: {y: scrollY}}}],
+            {useNativeDriver: false},
+          )}>
           <View style={styles.content}>
             {watchlists.map(watchlist => (
               <WatchlistItemWithResults
@@ -897,208 +903,79 @@ export const WatchlistsScreen: React.FC = () => {
               />
             ))}
           </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <View
-              style={{
-                marginTop:
-                  isTablet && orientation === 'landscape' ? '20%' : '20%',
-                alignItems: 'center',
-              }}>
-              <Image
-                source={require('../assets/watchlistsEmpty.png')}
-                style={{
-                  width: isTablet ? width / 3 : width / 2,
-                  height: isTablet ? width / 3 : width / 2,
-                }}
-              />
-              <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
-              <Text
-                style={[
-                  styles.emptyStateText,
-                  {
-                    width: isTablet ? 400 : 300,
-                  },
-                ]}>
-                Create your first watchlist to start organizing your favorite
-                movies and shows
-              </Text>
-            </View>
-          </View>
+          <View style={{height: 100}} />
+        </Animated.ScrollView>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Image
+            source={require('../assets/watchlistsEmpty.png')}
+            style={{
+              width: isTablet ? width / 3 : width / 2,
+              height: isTablet ? width / 3 : width / 2,
+            }}
+          />
+          <Text style={styles.emptyStateTitle}>No Watchlists Yet</Text>
+          <Text
+            style={[
+              styles.emptyStateText,
+              {
+                width: isTablet ? 400 : 300,
+              },
+            ]}>
+            Start curating your movie and TV show watchlists
+          </Text>
+        </View>
+      )}
+
+      {/* Import Watchlist Modal */}
+      <Modal
+        visible={showImportModal}
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
+        onRequestClose={() => setShowImportModal(false)}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor="rgba(0, 0, 0, 0.5)"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
         )}
-
-        {/* Placeholder to ensure content isn't hidden by FAB */}
-        <View style={{height: 100}} />
-
-        {/* Import Watchlist Modal */}
-        <Modal
-          visible={showImportModal}
-          animationType="fade"
-          statusBarTranslucent
-          navigationBarTranslucent
-          backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
-          onRequestClose={() => setShowImportModal(false)}>
-          {!isSolid && (
-            <BlurView
-              blurType="dark"
-              blurAmount={10}
-              overlayColor="rgba(0, 0, 0, 0.5)"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-          )}
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
           <View
             style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
+              width: isTablet ? '40%' : '85%',
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
             }}>
-            <View
-              style={{
-                width: isTablet ? '40%' : '85%',
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-              }}>
-              {isSolid ? (
-                <LinearGradient
-                  colors={[
-                    'rgba(111, 111, 111, 0.42)',
-                    'rgba(20, 20, 20, 0.7)',
-                  ]}
-                  start={{x: 1, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={{
-                    borderRadius: borderRadius.xl,
-                  }}>
-                  <View
-                    style={{
-                      padding: spacing.xl,
-                      backgroundColor: 'black',
-                      borderWidth: 1.5,
-                      borderColor: 'rgba(0, 0, 0, 0.3)',
-                      borderRadius: borderRadius.xl,
-                    }}>
-                    <Text
-                      style={{
-                        ...typography.h2,
-                        color: colors.text.primary,
-                        marginBottom: spacing.sm,
-                        textAlign: 'center',
-                      }}>
-                      Import Watchlist
-                    </Text>
-                    <Text
-                      style={{
-                        ...typography.body2,
-                        color: colors.text.secondary,
-                        marginBottom: spacing.md,
-                      }}>
-                      Paste Code
-                    </Text>
-                    <TextInput
-                      style={{
-                        ...typography.body1,
-                        backgroundColor: colors.modal.content,
-                        borderWidth: 1,
-                        borderColor: colors.modal.border,
-                        borderRadius: borderRadius.md,
-                        padding: spacing.md,
-                        color: colors.text.primary,
-                        height: 100,
-                        textAlignVertical: 'top',
-                        marginBottom: spacing.xl,
-                      }}
-                      value={importCode}
-                      onChangeText={setImportCode}
-                      placeholder="THTR1:..."
-                      placeholderTextColor={colors.text.muted}
-                      multiline
-                    />
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        gap: spacing.md,
-                        width: '100%',
-                      }}>
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          paddingVertical: spacing.md,
-                          borderRadius: borderRadius.round,
-                          alignItems: 'center',
-                          backgroundColor: colors.modal.content,
-                        }}
-                        onPress={() => setShowImportModal(false)}>
-                        <Text
-                          style={{
-                            color: colors.text.primary,
-                            ...typography.button,
-                          }}>
-                          Cancel
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={{flex: 1}}
-                        onPress={handleImportSubmit}
-                        disabled={isImporting}
-                        activeOpacity={0.8}>
-                        <LinearGradient
-                          colors={[colors.primary, colors.secondary]}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 0}}
-                          style={{
-                            padding: spacing.md,
-                            borderRadius: borderRadius.round,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}>
-                          {isImporting ? (
-                            <ActivityIndicator
-                              size="small"
-                              color={colors.text.primary}
-                            />
-                          ) : (
-                            <Text
-                              style={{
-                                color: colors.text.primary,
-                                ...typography.button,
-                              }}>
-                              Import
-                            </Text>
-                          )}
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      height: isTablet ? '150%' : '100%',
-                      width: '180%',
-                      transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
-                      left: isTablet ? '-30%' : '-50%',
-                      bottom: isTablet ? '-20%' : '-30%',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                </LinearGradient>
-              ) : (
+            {isSolid ? (
+              <LinearGradient
+                colors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.7)']}
+                start={{x: 1, y: 0}}
+                end={{x: 1, y: 1}}
+                style={{
+                  borderRadius: borderRadius.xl,
+                }}>
                 <View
                   style={{
                     padding: spacing.xl,
-                    backgroundColor: colors.modal.blur,
+                    backgroundColor: 'black',
+                    borderWidth: 1.5,
+                    borderColor: 'rgba(0, 0, 0, 0.3)',
                     borderRadius: borderRadius.xl,
-                    borderTopWidth: 1,
-                    borderLeftWidth: 1,
-                    borderRightWidth: 1,
-                    borderColor: colors.modal.content,
                   }}>
                   <Text
                     style={{
@@ -1192,159 +1069,184 @@ export const WatchlistsScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
                 </View>
-              )}
-            </View>
+                <LinearGradient
+                  colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    height: isTablet ? '150%' : '100%',
+                    width: '180%',
+                    transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+                    left: isTablet ? '-30%' : '-50%',
+                    bottom: isTablet ? '-20%' : '-30%',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </LinearGradient>
+            ) : (
+              <View
+                style={{
+                  padding: spacing.xl,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.xl,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Text
+                  style={{
+                    ...typography.h2,
+                    color: colors.text.primary,
+                    marginBottom: spacing.sm,
+                    textAlign: 'center',
+                  }}>
+                  Import Watchlist
+                </Text>
+                <Text
+                  style={{
+                    ...typography.body2,
+                    color: colors.text.secondary,
+                    marginBottom: spacing.md,
+                  }}>
+                  Paste Code
+                </Text>
+                <TextInput
+                  style={{
+                    ...typography.body1,
+                    backgroundColor: colors.modal.content,
+                    borderWidth: 1,
+                    borderColor: colors.modal.border,
+                    borderRadius: borderRadius.md,
+                    padding: spacing.md,
+                    color: colors.text.primary,
+                    height: 100,
+                    textAlignVertical: 'top',
+                    marginBottom: spacing.xl,
+                  }}
+                  value={importCode}
+                  onChangeText={setImportCode}
+                  placeholder="THTR1:..."
+                  placeholderTextColor={colors.text.muted}
+                  multiline
+                />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    gap: spacing.md,
+                    width: '100%',
+                  }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      paddingVertical: spacing.md,
+                      borderRadius: borderRadius.round,
+                      alignItems: 'center',
+                      backgroundColor: colors.modal.content,
+                    }}
+                    onPress={() => setShowImportModal(false)}>
+                    <Text
+                      style={{
+                        color: colors.text.primary,
+                        ...typography.button,
+                      }}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{flex: 1}}
+                    onPress={handleImportSubmit}
+                    disabled={isImporting}
+                    activeOpacity={0.8}>
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 0}}
+                      style={{
+                        padding: spacing.md,
+                        borderRadius: borderRadius.round,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      {isImporting ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.text.primary}
+                        />
+                      ) : (
+                        <Text
+                          style={{
+                            color: colors.text.primary,
+                            ...typography.button,
+                          }}>
+                          Import
+                        </Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Delete Confirmation Modal */}
-        <Modal
-          visible={showDeleteConfirm}
-          backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
-          animationType="fade"
-          statusBarTranslucent
-          navigationBarTranslucent
-          onRequestClose={() => setShowDeleteConfirm(false)}>
-          {!isSolid && (
-            <BlurView
-              blurType="dark"
-              blurAmount={10}
-              overlayColor="rgba(0, 0, 0, 0.5)"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-          )}
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteConfirm}
+        backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setShowDeleteConfirm(false)}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor="rgba(0, 0, 0, 0.5)"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
           <View
             style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
+              width: isTablet ? '40%' : '85%',
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
             }}>
-            <View
-              style={{
-                width: isTablet ? '40%' : '85%',
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-              }}>
-              {isSolid ? (
-                <LinearGradient
-                  colors={[
-                    'rgba(111, 111, 111, 0.42)',
-                    'rgba(20, 20, 20, 0.7)',
-                  ]}
-                  start={{x: 1, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={{
-                    borderRadius: borderRadius.xl,
-                  }}>
-                  <View
-                    style={{
-                      padding: spacing.xl,
-                      backgroundColor: 'black',
-                      borderWidth: 1.5,
-                      borderColor: 'rgba(0, 0, 0, 0.3)',
-                      borderRadius: borderRadius.xl,
-                    }}>
-                    <Text
-                      style={{
-                        ...typography.h2,
-                        color: colors.text.primary,
-                        marginBottom: spacing.sm,
-                        textAlign: 'center',
-                      }}>
-                      Delete Watchlist?
-                    </Text>
-                    <Text
-                      style={{
-                        ...typography.body2,
-                        color: colors.text.secondary,
-                        textAlign: 'center',
-                        marginBottom: spacing.xl,
-                      }}>
-                      Are you sure you want to delete "
-                      {pendingDeleteWatchlist?.name}"? This action cannot be
-                      undone.
-                    </Text>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        gap: spacing.md,
-                        width: '100%',
-                      }}>
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          padding: spacing.md,
-                          borderRadius: borderRadius.round,
-                          alignItems: 'center',
-                          backgroundColor: colors.modal.content,
-                        }}
-                        onPress={() => {
-                          setShowDeleteConfirm(false);
-                          setPendingDeleteWatchlist(null);
-                        }}>
-                        <Text
-                          style={{
-                            color: colors.text.primary,
-                            ...typography.button,
-                          }}>
-                          Cancel
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          padding: spacing.md,
-                          borderRadius: borderRadius.round,
-                          alignItems: 'center',
-                          backgroundColor: '#ef4444',
-                        }}
-                        onPress={confirmDelete}>
-                        <Text
-                          style={{
-                            color: colors.text.primary,
-                            ...typography.button,
-                          }}>
-                          Delete
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      height: isTablet ? '150%' : '100%',
-                      width: '180%',
-                      transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
-                      left: isTablet ? '-30%' : '-50%',
-                      bottom: isTablet ? '-20%' : '-30%',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                </LinearGradient>
-              ) : (
+            {isSolid ? (
+              <LinearGradient
+                colors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.7)']}
+                start={{x: 1, y: 0}}
+                end={{x: 1, y: 1}}
+                style={{
+                  borderRadius: borderRadius.xl,
+                }}>
                 <View
                   style={{
                     padding: spacing.xl,
-                    backgroundColor: colors.modal.blur,
+                    backgroundColor: 'black',
+                    borderWidth: 1.5,
+                    borderColor: 'rgba(0, 0, 0, 0.3)',
                     borderRadius: borderRadius.xl,
-                    borderTopWidth: 1,
-                    borderLeftWidth: 1,
-                    borderRightWidth: 1,
-                    borderColor: colors.modal.content,
                   }}>
                   <Text
                     style={{
                       ...typography.h2,
                       color: colors.text.primary,
                       marginBottom: spacing.sm,
+                      textAlign: 'center',
                     }}>
                     Delete Watchlist?
                   </Text>
@@ -1404,143 +1306,155 @@ export const WatchlistsScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
                 </View>
-              )}
-            </View>
-          </View>
-        </Modal>
-
-        {/* Edit Watchlist Modal */}
-        <Modal
-          visible={showEditModal}
-          backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
-          animationType="fade"
-          statusBarTranslucent
-          navigationBarTranslucent
-          onRequestClose={() => setShowEditModal(false)}>
-          {!isSolid && (
-            <BlurView
-              blurType="dark"
-              blurAmount={10}
-              overlayColor="rgba(0, 0, 0, 0.5)"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-          )}
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            <View
-              style={{
-                width: isTablet ? '40%' : '85%',
-                borderRadius: borderRadius.xl,
-                overflow: 'hidden',
-              }}>
-              {isSolid ? (
                 <LinearGradient
-                  colors={[
-                    'rgba(111, 111, 111, 0.42)',
-                    'rgba(20, 20, 20, 0.7)',
-                  ]}
-                  start={{x: 1, y: 0}}
-                  end={{x: 1, y: 1}}
+                  colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
                   style={{
-                    borderRadius: borderRadius.xl,
+                    position: 'absolute',
+                    right: 0,
+                    height: isTablet ? '150%' : '100%',
+                    width: '180%',
+                    transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+                    left: isTablet ? '-30%' : '-50%',
+                    bottom: isTablet ? '-20%' : '-30%',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </LinearGradient>
+            ) : (
+              <View
+                style={{
+                  padding: spacing.xl,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.xl,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Text
+                  style={{
+                    ...typography.h2,
+                    color: colors.text.primary,
+                    marginBottom: spacing.sm,
                   }}>
-                  <View
+                  Delete Watchlist?
+                </Text>
+                <Text
+                  style={{
+                    ...typography.body2,
+                    color: colors.text.secondary,
+                    textAlign: 'center',
+                    marginBottom: spacing.xl,
+                  }}>
+                  Are you sure you want to delete "
+                  {pendingDeleteWatchlist?.name}"? This action cannot be undone.
+                </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    gap: spacing.md,
+                    width: '100%',
+                  }}>
+                  <TouchableOpacity
                     style={{
-                      padding: spacing.xl,
-                      backgroundColor: 'black',
-                      borderWidth: 1.5,
-                      borderColor: 'rgba(0, 0, 0, 0.3)',
-                      borderRadius: borderRadius.xl,
+                      flex: 1,
+                      padding: spacing.md,
+                      borderRadius: borderRadius.round,
+                      alignItems: 'center',
+                      backgroundColor: colors.modal.content,
+                    }}
+                    onPress={() => {
+                      setShowDeleteConfirm(false);
+                      setPendingDeleteWatchlist(null);
                     }}>
                     <Text
                       style={{
-                        ...typography.h2,
                         color: colors.text.primary,
-                        marginBottom: spacing.md,
-                        textAlign: 'center',
+                        ...typography.button,
                       }}>
-                      Edit Watchlist
+                      Cancel
                     </Text>
-                    <TextInput
-                      style={{
-                        backgroundColor: colors.background.tertiary,
-                        color: colors.text.primary,
-                        padding: spacing.md,
-                        borderRadius: borderRadius.md,
-                        marginBottom: spacing.md,
-                        borderWidth: 1,
-                        borderColor: colors.modal.border,
-                        ...typography.body1,
-                      }}
-                      placeholder="Watchlist Name"
-                      placeholderTextColor={colors.text.muted}
-                      value={editName}
-                      onChangeText={setEditName}
-                      autoFocus
-                    />
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'flex-end',
-                        gap: spacing.md,
-                      }}>
-                      <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                        <Text
-                          style={{
-                            ...typography.button,
-                            color: colors.text.secondary,
-                          }}>
-                          Cancel
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={handleUpdateWatchlist}>
-                        <Text
-                          style={{...typography.button, color: colors.primary}}>
-                          Save
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={{
-                      position: 'absolute',
-                      right: 0,
-                      height: isTablet ? '150%' : '100%',
-                      width: '180%',
-                      transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
-                      left: isTablet ? '-30%' : '-50%',
-                      bottom: isTablet ? '-20%' : '-30%',
-                      pointerEvents: 'none',
+                      flex: 1,
+                      padding: spacing.md,
+                      borderRadius: borderRadius.round,
+                      alignItems: 'center',
+                      backgroundColor: '#ef4444',
                     }}
-                  />
-                </LinearGradient>
-              ) : (
+                    onPress={confirmDelete}>
+                    <Text
+                      style={{
+                        color: colors.text.primary,
+                        ...typography.button,
+                      }}>
+                      Delete
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Watchlist Modal */}
+      <Modal
+        visible={showEditModal}
+        backdropColor={isSolid ? 'rgba(0, 0, 0, 0.8)' : colors.modal.blurDark}
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setShowEditModal(false)}>
+        {!isSolid && (
+          <BlurView
+            blurType="dark"
+            blurAmount={10}
+            overlayColor="rgba(0, 0, 0, 0.5)"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              width: isTablet ? '40%' : '85%',
+              borderRadius: borderRadius.xl,
+              overflow: 'hidden',
+            }}>
+            {isSolid ? (
+              <LinearGradient
+                colors={['rgba(111, 111, 111, 0.42)', 'rgba(20, 20, 20, 0.7)']}
+                start={{x: 1, y: 0}}
+                end={{x: 1, y: 1}}
+                style={{
+                  borderRadius: borderRadius.xl,
+                }}>
                 <View
                   style={{
                     padding: spacing.xl,
-                    backgroundColor: colors.modal.blur,
+                    backgroundColor: 'black',
+                    borderWidth: 1.5,
+                    borderColor: 'rgba(0, 0, 0, 0.3)',
                     borderRadius: borderRadius.xl,
-                    borderTopWidth: 1,
-                    borderLeftWidth: 1,
-                    borderRightWidth: 1,
-                    borderColor: colors.modal.content,
                   }}>
                   <Text
                     style={{
                       ...typography.h2,
                       color: colors.text.primary,
                       marginBottom: spacing.md,
+                      textAlign: 'center',
                     }}>
                     Edit Watchlist
                   </Text>
@@ -1578,20 +1492,92 @@ export const WatchlistsScreen: React.FC = () => {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleUpdateWatchlist}>
                       <Text
-                        style={{
-                          ...typography.button,
-                          color: colors.text.primary,
-                        }}>
+                        style={{...typography.button, color: colors.primary}}>
                         Save
                       </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-              )}
-            </View>
+                <LinearGradient
+                  colors={['transparent', 'rgba(0, 0, 0, 0.5)']}
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    height: isTablet ? '150%' : '100%',
+                    width: '180%',
+                    transform: [{rotate: isTablet ? '-10deg' : '-20deg'}],
+                    left: isTablet ? '-30%' : '-50%',
+                    bottom: isTablet ? '-20%' : '-30%',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </LinearGradient>
+            ) : (
+              <View
+                style={{
+                  padding: spacing.xl,
+                  backgroundColor: colors.modal.blur,
+                  borderRadius: borderRadius.xl,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.modal.content,
+                }}>
+                <Text
+                  style={{
+                    ...typography.h2,
+                    color: colors.text.primary,
+                    marginBottom: spacing.md,
+                  }}>
+                  Edit Watchlist
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: colors.background.tertiary,
+                    color: colors.text.primary,
+                    padding: spacing.md,
+                    borderRadius: borderRadius.md,
+                    marginBottom: spacing.md,
+                    borderWidth: 1,
+                    borderColor: colors.modal.border,
+                    ...typography.body1,
+                  }}
+                  placeholder="Watchlist Name"
+                  placeholderTextColor={colors.text.muted}
+                  value={editName}
+                  onChangeText={setEditName}
+                  autoFocus
+                />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'flex-end',
+                    gap: spacing.md,
+                  }}>
+                  <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                    <Text
+                      style={{
+                        ...typography.button,
+                        color: colors.text.secondary,
+                      }}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleUpdateWatchlist}>
+                    <Text
+                      style={{
+                        ...typography.button,
+                        color: colors.text.primary,
+                      }}>
+                      Save
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
-        </Modal>
-      </Animated.ScrollView>
+        </View>
+      </Modal>
       {/* Delete All Confirm Modal */}
       <Modal
         visible={showDeleteAllConfirm}

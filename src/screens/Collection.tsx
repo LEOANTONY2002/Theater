@@ -436,12 +436,19 @@ export const CollectionScreen: React.FC<{route: any}> = ({route}) => {
                       styles.metaText,
                       {color: colors.text.primary, fontWeight: '700'},
                     ]}>
-                    {(
-                      collection.parts.reduce(
-                        (acc, part) => acc + part.vote_average,
-                        0,
-                      ) / collection.parts.length
-                    ).toFixed(1)}
+                    {(() => {
+                      const ratedParts = collection.parts.filter(
+                        part => part.vote_count > 0,
+                      );
+                      return ratedParts.length > 0
+                        ? (
+                            ratedParts.reduce(
+                              (acc, part) => acc + part.vote_average,
+                              0,
+                            ) / ratedParts.length
+                          ).toFixed(1)
+                        : '0.0';
+                    })()}
                   </Text>
                   <Text
                     style={[styles.metaText, {marginLeft: 4, opacity: 0.7}]}>

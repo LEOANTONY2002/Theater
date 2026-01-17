@@ -132,9 +132,12 @@ export const MyCollectionsTab: React.FC<MyCollectionsTabProps> = ({
       (sum, p) => sum + (p.vote_count || 0),
       0,
     );
+    const ratedParts = item.parts.filter(p => (p.vote_count || 0) > 0);
     const avgRating =
-      item.parts.reduce((sum, p) => sum + (p.vote_average || 0), 0) /
-      item.parts.length;
+      ratedParts.length > 0
+        ? ratedParts.reduce((sum, p) => sum + (p.vote_average || 0), 0) /
+          ratedParts.length
+        : 0;
 
     return {
       years: yearDisplay,

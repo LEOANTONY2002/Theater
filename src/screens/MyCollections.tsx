@@ -234,6 +234,7 @@ export const MyCollectionsScreen = () => {
       fontSize: isTablet ? 14 : 10,
     },
     content: {
+      flexGrow: 1,
       paddingHorizontal: spacing.md,
       paddingTop: 200,
       paddingBottom: 150,
@@ -278,6 +279,7 @@ export const MyCollectionsScreen = () => {
       ...typography.h3,
       fontSize: isTablet ? 20 : 14,
       color: colors.text.primary,
+      alignSelf: 'stretch',
     },
     cardSubtitle: {
       ...typography.caption,
@@ -285,9 +287,10 @@ export const MyCollectionsScreen = () => {
       fontSize: isTablet ? 12 : 10,
     },
     emptyContainer: {
-      height: 400,
+      flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
+      paddingBottom: 100,
     },
     emptyTitle: {
       ...typography.h3,
@@ -356,35 +359,39 @@ export const MyCollectionsScreen = () => {
         </View>
       </View>
 
-      <Animated.ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{nativeEvent: {contentOffset: {y: scrollY}}}],
-          {useNativeDriver: false},
-        )}>
-        {isLoading ? (
+      {isLoading ? (
+        <Animated.ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.content}>
           <View style={{padding: 100}}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        ) : collections.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Image
-              source={require('../assets/collectionsEmpty.png')}
-              style={{
-                width: isTablet ? width / 3 : width / 2,
-                height: isTablet ? width / 3 : width / 2,
-              }}
-            />
-            <Text style={styles.emptyTitle}>No Collections</Text>
-            <Text style={styles.emptySubtitle}>
-              You haven't saved any collections yet.
-            </Text>
-          </View>
-        ) : (
-          collections.map(item => (
+        </Animated.ScrollView>
+      ) : collections.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Image
+            source={require('../assets/collectionsEmpty.png')}
+            style={{
+              width: isTablet ? width / 3 : width / 2,
+              height: isTablet ? width / 3 : width / 2,
+            }}
+          />
+          <Text style={styles.emptyTitle}>No Collections</Text>
+          <Text style={styles.emptySubtitle}>
+            You haven't saved any collections yet.
+          </Text>
+        </View>
+      ) : (
+        <Animated.ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{nativeEvent: {contentOffset: {y: scrollY}}}],
+            {useNativeDriver: false},
+          )}>
+          {collections.map(item => (
             <TouchableOpacity
               key={item.id}
               style={styles.card}
@@ -419,6 +426,7 @@ export const MyCollectionsScreen = () => {
                     position: 'absolute',
                     left: isTablet ? 20 : 15,
                     top: isTablet ? 20 : 15,
+                    right: isTablet ? 20 : 15,
                   }}>
                   <View
                     style={{
@@ -442,7 +450,7 @@ export const MyCollectionsScreen = () => {
                     />
                   </View>
 
-                  <View style={styles.cardContent}>
+                  <View style={[styles.cardContent, {flex: 1}]}>
                     <Text style={styles.cardTitle} numberOfLines={1}>
                       {item.name.replace(/collection/gi, '').trim()}
                     </Text>
@@ -472,9 +480,9 @@ export const MyCollectionsScreen = () => {
                 </View>
               </View>
             </TouchableOpacity>
-          ))
-        )}
-      </Animated.ScrollView>
+          ))}
+        </Animated.ScrollView>
+      )}
 
       {/* Import Modal */}
       <Modal

@@ -307,10 +307,11 @@ export const NotificationSettings: React.FC = () => {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing.xxl * 3,
       paddingHorizontal: spacing.xl,
+      paddingBottom: 100,
     },
     emptyTitle: {
+      ...typography.h3,
       fontSize: 18,
       fontWeight: '600',
       color: colors.text.secondary,
@@ -318,6 +319,7 @@ export const NotificationSettings: React.FC = () => {
       marginBottom: spacing.xs,
     },
     emptySubtitle: {
+      ...typography.body1,
       fontSize: 14,
       color: colors.text.muted,
       textAlign: 'center',
@@ -398,7 +400,7 @@ export const NotificationSettings: React.FC = () => {
           />
           <Text style={styles.loadingText}>Loading notifications...</Text>
         </View>
-      ) : (
+      ) : history.length > 0 ? (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -410,99 +412,64 @@ export const NotificationSettings: React.FC = () => {
               tintColor={colors.primary}
             />
           }>
-          {history.length > 0 ? (
-            Object.entries(groupedNotifications).map(
-              ([dateGroup, notifications]) => (
-                <View key={dateGroup} style={styles.dateGroup}>
-                  <Text style={styles.dateGroupTitle}>{dateGroup}</Text>
-                  {notifications.map(item => {
-                    const imageUrl = item.imageUrl;
+          {Object.entries(groupedNotifications).map(
+            ([dateGroup, notifications]) => (
+              <View key={dateGroup} style={styles.dateGroup}>
+                <Text style={styles.dateGroupTitle}>{dateGroup}</Text>
+                {notifications.map(item => {
+                  const imageUrl = item.imageUrl;
 
-                    const handlePress = () => {
-                      if (item.data?.screen) {
-                        const {screen, ...params} = item.data;
+                  const handlePress = () => {
+                    if (item.data?.screen) {
+                      const {screen, ...params} = item.data;
 
-                        // Auto-correct screen name (same as NotificationService)
-                        let correctedScreen = screen;
-                        if (screen.toLowerCase() === 'tvshowdetails') {
-                          correctedScreen = 'TVShowDetails';
-                        } else if (screen.toLowerCase() === 'moviedetails') {
-                          correctedScreen = 'MovieDetails';
-                        }
-
-                        // Convert IDs to numbers
-                        const cleanParams: any = {...params};
-                        if (cleanParams.movieId) {
-                          cleanParams.movieId = parseInt(
-                            cleanParams.movieId,
-                            10,
-                          );
-                        }
-                        if (cleanParams.tvShowId) {
-                          cleanParams.tvShowId = parseInt(
-                            cleanParams.tvShowId,
-                            10,
-                          );
-                        }
-                        if (cleanParams.id) {
-                          cleanParams.id = parseInt(cleanParams.id, 10);
-                        }
-
-                        // Navigate using NavigationService (handles nested navigators)
-                        navigate(correctedScreen as any, cleanParams);
+                      // Auto-correct screen name (same as NotificationService)
+                      let correctedScreen = screen;
+                      if (screen.toLowerCase() === 'tvshowdetails') {
+                        correctedScreen = 'TVShowDetails';
+                      } else if (screen.toLowerCase() === 'moviedetails') {
+                        correctedScreen = 'MovieDetails';
                       }
-                    };
 
-                    return (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.notificationCard}
-                        onPress={handlePress}
-                        activeOpacity={1}>
-                        {imageUrl ? (
-                          // Card with image background
-                          <ImageBackground
-                            source={{uri: imageUrl}}
-                            style={styles.notificationWithImage}
-                            imageStyle={styles.backgroundImage}>
-                            <LinearGradient
-                              colors={[
-                                colors.background.primary,
-                                'transparent',
-                              ]}
-                              useAngle
-                              angle={90}
-                              style={styles.gradientOverlay}
-                            />
+                      // Convert IDs to numbers
+                      const cleanParams: any = {...params};
+                      if (cleanParams.movieId) {
+                        cleanParams.movieId = parseInt(cleanParams.movieId, 10);
+                      }
+                      if (cleanParams.tvShowId) {
+                        cleanParams.tvShowId = parseInt(
+                          cleanParams.tvShowId,
+                          10,
+                        );
+                      }
+                      if (cleanParams.id) {
+                        cleanParams.id = parseInt(cleanParams.id, 10);
+                      }
 
-                            <View style={styles.notificationHeader}>
-                              <View style={styles.notificationContent}>
-                                <Text
-                                  style={[
-                                    styles.notificationTitle,
-                                    !item.opened &&
-                                      styles.notificationTitleUnread,
-                                  ]}
-                                  numberOfLines={2}>
-                                  {item.title || 'Notification'}
-                                </Text>
-                                {item.body && (
-                                  <Text
-                                    style={styles.notificationBody}
-                                    numberOfLines={3}>
-                                    {item.body}
-                                  </Text>
-                                )}
-                                <View style={styles.notificationFooter}>
-                                  <Text style={styles.notificationTime}>
-                                    {formatDate(item.receivedAt)}
-                                  </Text>
-                                </View>
-                              </View>
-                            </View>
-                          </ImageBackground>
-                        ) : (
-                          // Card without image
+                      // Navigate using NavigationService (handles nested navigators)
+                      navigate(correctedScreen as any, cleanParams);
+                    }
+                  };
+
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.notificationCard}
+                      onPress={handlePress}
+                      activeOpacity={1}>
+                      {imageUrl ? (
+                        // Card with image background
+                        <ImageBackground
+                          source={{uri: imageUrl}}
+                          style={styles.notificationWithImage}
+                          imageStyle={styles.backgroundImage}>
+                          <LinearGradient
+                            colors={[colors.background.primary, 'transparent']}
+                            useAngle
+                            angle={90}
+                            style={styles.gradientOverlay}
+                          />
+
                           <View style={styles.notificationHeader}>
                             <View style={styles.notificationContent}>
                               <Text
@@ -528,52 +495,75 @@ export const NotificationSettings: React.FC = () => {
                               </View>
                             </View>
                           </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              ),
-            )
-          ) : (
-            <View style={styles.emptyState}>
-              <Image
-                source={require('../assets/notificationOff.png')}
-                style={{
-                  width: isTablet ? width / 3 : width / 2,
-                  height: isTablet ? width / 3 : width / 2,
-                }}
-              />
-              <Text style={styles.emptyTitle}>
-                {hasPermission ? 'No notifications yet' : 'Let the bell ring'}
-              </Text>
-              <Text style={styles.emptySubtitle}>
-                {hasPermission
-                  ? "You'll see your notifications here when you receive them"
-                  : 'Turn on the notification to get your cherry picks, updates and more'}
-              </Text>
-
-              {!hasPermission && (
-                <TouchableOpacity
-                  style={styles.enableButton}
-                  onPress={handleEnableNotifications}
-                  disabled={isEnabling}>
-                  {isEnabling ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={colors.text.primary}
-                    />
-                  ) : (
-                    <Text style={styles.enableButtonText}>
-                      Turn On Notifications
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
+                        </ImageBackground>
+                      ) : (
+                        // Card without image
+                        <View style={styles.notificationHeader}>
+                          <View style={styles.notificationContent}>
+                            <Text
+                              style={[
+                                styles.notificationTitle,
+                                !item.opened && styles.notificationTitleUnread,
+                              ]}
+                              numberOfLines={2}>
+                              {item.title || 'Notification'}
+                            </Text>
+                            {item.body && (
+                              <Text
+                                style={styles.notificationBody}
+                                numberOfLines={3}>
+                                {item.body}
+                              </Text>
+                            )}
+                            <View style={styles.notificationFooter}>
+                              <Text style={styles.notificationTime}>
+                                {formatDate(item.receivedAt)}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ),
           )}
           <View style={styles.footer} />
         </ScrollView>
+      ) : (
+        <View style={styles.emptyState}>
+          <Image
+            source={require('../assets/notificationOff.png')}
+            style={{
+              width: isTablet ? width / 3 : width / 2,
+              height: isTablet ? width / 3 : width / 2,
+            }}
+          />
+          <Text style={styles.emptyTitle}>
+            {hasPermission ? 'No notifications yet' : 'Let the bell ring'}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {hasPermission
+              ? "You'll see your notifications here when you receive them"
+              : 'Turn on the notification to get your cherry picks, updates and more'}
+          </Text>
+
+          {!hasPermission && (
+            <TouchableOpacity
+              style={styles.enableButton}
+              onPress={handleEnableNotifications}
+              disabled={isEnabling}>
+              {isEnabling ? (
+                <ActivityIndicator size="small" color={colors.text.primary} />
+              ) : (
+                <Text style={styles.enableButtonText}>
+                  Turn On Notifications
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       )}
       <NotificationSettingsModal
         visible={showSettingsModal}

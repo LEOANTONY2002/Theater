@@ -762,6 +762,25 @@ export const MyDiaryScreen: React.FC = () => {
       fontWeight: 'bold',
       color: '#8E8E93',
     },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingBottom: 100,
+    },
+    emptyTitle: {
+      ...typography.h3,
+      color: colors.text.secondary,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    emptySubtitle: {
+      ...typography.body1,
+      color: colors.text.muted,
+      textAlign: 'center',
+      paddingHorizontal: spacing.xl,
+      lineHeight: 20,
+    },
     emptyState: {
       alignItems: 'center',
       padding: 60,
@@ -3123,6 +3142,30 @@ export const MyDiaryScreen: React.FC = () => {
     );
   };
 
+  const renderEmptyScreen = () => (
+    <View style={styles.emptyContainer}>
+      <Image
+        source={require('../assets/diary.png')}
+        style={{
+          width: isTablet ? width / 3 : width / 2,
+          height: isTablet ? width / 3 : width / 2,
+        }}
+        resizeMode="contain"
+      />
+      <Text style={styles.emptyTitle}>Start Your Cinematic Journey</Text>
+      <Text
+        style={[
+          styles.emptySubtitle,
+          {
+            width: isTablet ? 400 : 350,
+          },
+        ]}>
+        Start logging movies and TV shows to build your personal cinematic
+        journal
+      </Text>
+    </View>
+  );
+
   const renderFilteredResults = () => {
     return (
       <View style={{flex: 1}}>
@@ -3163,7 +3206,24 @@ export const MyDiaryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {Object.keys(activeFilters).length > 0 ? (
+      {loading ? (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : entries.length === 0 ? (
+        <View style={{flex: 1}}>
+          <LinearGradient
+            colors={[
+              colors.background.primary,
+              colors.background.primary,
+              'transparent',
+            ]}
+            style={styles.topGradient}
+          />
+          {renderHeader()}
+          {renderEmptyScreen()}
+        </View>
+      ) : Object.keys(activeFilters).length > 0 ? (
         renderFilteredResults()
       ) : displayType === 'scrapbook' ? (
         <>
